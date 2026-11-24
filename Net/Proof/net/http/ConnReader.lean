@@ -17,7 +17,7 @@ nothing (`hasByte` is refuted in `hijackLocked`).
   variable, half here and half with the main thread), either nothing but the background reader's
   token (`token γ.bg`, phase "main": the main thread owns the fields), or the fields (`crBg`: phase
   "background", from `startBackgroundRead` to the abort): `conn`, `hasByte`, `inRead`, `aborted`,
-  `failed`, and while no read runs (`inRead` false) the token, the byte buffer and the reader's
+  and while no read runs (`inRead` false) the token, the byte buffer and the reader's
   token at `R0` (half of `γ.r`) or, with a byte, `R0 ++ [b]` with `Z cn`; `R0 = hs`.
 * `crConnOk cn` (persistent): what `handleReadErrorLocked` reads of the reader's `*conn` (here: only
   its `cancelCtx`, a cancel function callable at any time, and its `curReq`, an atomic pointer in
@@ -110,8 +110,7 @@ instance crConnOk_persistent (c : Loc) : Persistent (crConnOk (GF := GF) c) := b
   unfold crConnOk; infer_instance
 
 /-- What the reader holds while no read runs: the byte buffer, and the reader's token, at `R0` with
-no byte kept, or anywhere with `Z cn` (a byte read past the head, kept or dropped after a
-failure). -/
+no byte kept, or anywhere with `Z cn` (a byte read past the head). -/
 def crRead (cr : Loc) (cn : Nat) (P : Proto GF) (Z : Nat → IProp GF) (R0 : List w8) (hb : Bool) :
     IProp GF :=
   iprop((∃ arr : GoArray w8 1, structFieldRef net.http.connReader go!"byteBuf" cr ↦ arr) ∗
@@ -121,12 +120,11 @@ def crRead (cr : Loc) (cn : Nat) (P : Proto GF) (Z : Nat → IProp GF) (R0 : Lis
 /-- The fields in the background phase (see the file header). -/
 def crBg (cr : Loc) (γ : CrNames) (cn : Nat) (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) :
     IProp GF :=
-  iprop(∃ (c : Loc) (hb ir ab fl : Bool),
+  iprop(∃ (c : Loc) (hb ir ab : Bool),
     structFieldRef net.http.connReader go!"conn" cr ↦ c ∗
     structFieldRef net.http.connReader go!"hasByte" cr ↦ hb ∗
     structFieldRef net.http.connReader go!"inRead" cr ↦ ir ∗
     structFieldRef net.http.connReader go!"aborted" cr ↦ ab ∗
-    structFieldRef net.http.connReader go!"failed" cr ↦ fl ∗
     ghostVar γ.r (1 : Qp).half hs ∗ crConnOk c ∗
     if ir then iprop(⌜hb = false⌝) else iprop(token γ.bg ∗ crRead cr cn P Z hs hb))
 
@@ -152,25 +150,23 @@ def crInv (cr : Loc) (γ : CrNames) (cn : Nat) (P : Proto GF) (hs : List w8) (Z 
     crPh cr γ cn P hs Z)
 
 /-- The fields as the main thread owns them in the main phase, no read running (`inRead` false):
-the reader's connection `c`, `hasByte` `hb`, `aborted`, `failed`, and the reader's resources. -/
+the reader's connection `c`, `hasByte` `hb`, `aborted`, and the reader's resources. -/
 def crOwn (cr : Loc) (cn : Nat) (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) : IProp GF :=
-  iprop(∃ (c : Loc) (hb ab fl : Bool),
+  iprop(∃ (c : Loc) (hb ab : Bool),
     structFieldRef net.http.connReader go!"conn" cr ↦ c ∗
     structFieldRef net.http.connReader go!"hasByte" cr ↦ hb ∗
     structFieldRef net.http.connReader go!"inRead" cr ↦ false ∗
     structFieldRef net.http.connReader go!"aborted" cr ↦ ab ∗
-    structFieldRef net.http.connReader go!"failed" cr ↦ fl ∗
     crConnOk c ∗ crRead cr cn P Z hs hb)
 
 /-- What a hijack leaves of the reader with the main thread: the main phase, the fields. -/
 def crLeft (cr : Loc) (γ : CrNames) (hs : List w8) : IProp GF :=
   iprop(ghostVar γ.ph (1 : Qp).half false ∗ ghostVar γ.r (1 : Qp) hs ∗
-    ∃ (c : Loc) (hb ab fl : Bool),
+    ∃ (c : Loc) (hb ab : Bool),
     structFieldRef net.http.connReader go!"conn" cr ↦ c ∗
     structFieldRef net.http.connReader go!"hasByte" cr ↦ hb ∗
     structFieldRef net.http.connReader go!"inRead" cr ↦ false ∗
     structFieldRef net.http.connReader go!"aborted" cr ↦ ab ∗
-    structFieldRef net.http.connReader go!"failed" cr ↦ fl ∗
     ∃ arr : GoArray w8 1, structFieldRef net.http.connReader go!"byteBuf" cr ↦ arr)
 
 /-- See the file header. -/

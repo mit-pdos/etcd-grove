@@ -1,8 +1,7 @@
 /-
 **Two shared invariants are of one set of roots** (S5, 2026-11-18, `notes/bbolt-integration-plan.md`):
 the shared mode's invariant `osSharedInv R` holds the whole element `(R, Vs)` of the ghost map `γs`,
-whose authority is in the state interpretation (`treeShared`: at the state's roots; `treeLegacy`:
-empty). At the step of any expression that is not a value (`wp_ext_acc`), each of two invariants,
+whose authority is in the state interpretation (`treeCtx`: at the state's roots). At the step of any expression that is not a value (`wp_ext_acc`), each of two invariants,
 opened in turn, finds its roots the state's, so the two agree (`wp_osSharedAgree`). What lets a
 client combine two claims made with different witnesses of the roots (a file's and a target name's,
 for a rename, `Proof/os/Rename.lean`). Untrusted.
@@ -28,41 +27,33 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-/-- **A shared invariant's roots are the state's** (and the tree is in the shared mode). -/
+/-- **A shared invariant's roots are the state's**. -/
 theorem treeCtx_roots (R : Roots) (st : OsState) (hE : ↑osShN ⊆ E) :
     ⊢ osSharedInv (L := L) R -∗ treeCtx (gooseOsGS (L := L)) st ={E}=∗
       ⌜R = st.fs.roots⌝ ∗ treeCtx (gooseOsGS (L := L)) st := by
   iintro #Hsi Ht
-  unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
+  icases (treeCtx_eq _ _).1 $$ Ht with ⟨Ht, Hcm⟩
+  unfold treeCtxT
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   unfold osSharedInv
-  icases Hm with (Hm | Hm)
-  · unfold treeLegacy legacyHolds
-    icases Hm with ⟨%V, %Γdf, %Γc, %hns, HAd, HAdf, HAc, Hrd, Hcr, Has, -⟩
-    imod inv_acc hE $$ Hsi with ⟨Hi, -⟩
-    icases Hi with >Hi
-    icases Hi with ⟨%Vs, %Γn, Hs, -⟩
-    icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %h
-    exact absurd h (by simp)
-  · unfold treeShared
-    icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg,
-      Hgr⟩
-    imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
-    icases Hi with >Hi
-    icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
-    icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
-    simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
-    obtain ⟨hR, rfl⟩ := hVs
-    imod Hclose $$ [Hs HAn Halen HAlog] with -
-    · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
-    imodintro
-    isplitr
-    · ipureintro; exact hR.symm
-    iframe Hcm
-    iright
-    iexists V0, s1, Γdf, Γc, Γg
-    iframe
-    ipureintro; exact hns
+  imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
+  obtain ⟨hR, rfl⟩ := hVs
+  imod Hclose $$ [Hs HAn Halen HAlog] with -
+  · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
+  imodintro
+  isplitr
+  · ipureintro; exact hR.symm
+  iapply (treeCtx_eq _ _).2
+  iframe Hcm
+  unfold treeCtxT
+  iexists Γdf, Γc, Γg
+  try unfold callResS
+  iframe
+  ipureintro; exact hns
 
 /-- **Two shared invariants agree on the roots**, at the step of any expression that is not a
 value (see the file header). -/

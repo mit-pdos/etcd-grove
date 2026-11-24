@@ -33,8 +33,10 @@ without them merges the two files as git always does.
 
 Land a branch on `lean` with `etc/land.sh` from its worktree (notes-only branches too): it takes the
 landing lock, checks `lean` is merged, runs `etc/gates.sh` and fast-forwards `lean`, so no other
-landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). Record your
-session in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
+landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). A session that
+posts on GitHub has a row in `etc/sessions.txt` and posts by `notes/coordination.md` (`to:`/`from:`
+lines, asks and their open/acked/closed state; `etc/gh-inbox.py watch`/`open`); record a worktree's
+stage in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
 
 Delete a branch once its work is merged into `lean` (or wherever it was merged): the
 local branch (`git branch -d <branch>`, which refuses one that is not merged), its remote
@@ -188,7 +190,9 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   definition (`Robust crashing stable g threads bound`: in every execution of Perennial's `DistCrashNstepsBelow`
   (fewer than `threads` live threads on every machine, fewer than `bound` steps) of programs on machines that crash and restart and programs on machines that never crash, with
   any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
-  is checked by a program of the deployment that panics, never stated over traces in Lean), and
+  is checked by a program of the deployment that panics, never stated over traces in Lean; an exit
+  (`os.Exit`, `log.Fatal`: Perennial's `AngelicExit`) counts as a safe run, so checkers panic,
+  `etc/exit-check.py`), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
   kernel and the harness, never by the program): `notes/robustness.md`. Every example's top-level
   result is an instance, in two files named `TopLevelRobustness.lean`:
@@ -224,7 +228,7 @@ the same pattern; Perennial's are modules too.
 ## Package APIs
 
 Lean's visibility is per module (a declaration is `private`, or public to every importer) and
-`import all` is unrestricted, so a package cannot hide the definitions its own files share. Three
+`import all` is unrestricted, so a package cannot hide the definitions its own files share. Two
 pieces make a package's boundary checkable instead (`notes/decisions.md`, "Package APIs: an
 importable list and a generated interface"):
 
@@ -233,18 +237,6 @@ importable list and a generated interface"):
   modules (never with `import all`), and a listed module publicly imports only listed modules of
   the package (linking files, `Link`/`Results`/`Adequacy*`, are exempt; a non-linking module that
   imports one is a warning). Adding a module to the list is an API change.
-- **The generated interface**, `interface/<module path>.txt` (`etc/gen-interface.py
-  etc/api/<pkg>.txt`; `--check` in place of regenerating): what a client sees of each listed
-  module, as Lean's module system exports it -- every declaration's kind and signature, the body
-  only of a definition whose body is exported -- and of every function's proof file (its
-  `<F>.wp_proof`, or the axiom in its place, with `<F>.spec` unfolded: the Hoare triple, and the
-  callees' specs it takes). Committed: a change to a package's API or to a function's spec is a diff
-  to review (no bogus definitions, no lemma exposing internals). `--layout` checks the layout on
-  every module of the package (a spec file exposes only its `<F>.spec`, its proof file only
-  `<F>.wp_proof`), against the known violations in `etc/api/<pkg>-layout.txt`. CI regenerates the
-  interfaces after the build and fails if they differ from the committed ones (as for the Goose
-  translations): when a change moves a package's API, regenerate (`etc/gen-interface.py
-  etc/api/<pkg>.txt`, after `lake build`) and commit the result with it.
 - **Sealing**: an API module imports the package's internals non-publicly and marks what clients
   must not see inside `@[no_expose]`; the package's own proofs `import all` it. When a proof
   outside the package needs a fact of a sealed predicate, add a law to the API module; do not
@@ -355,7 +347,9 @@ which roots reach a `sorry` (`--per-root`: every root). A collection
 (`etc/tcb-collections/*.txt`) keeps the patterns (`roots` lines) with their baseline
 (`axiom`/`sorry` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
 `--check` compares, `--check --update` rewrites the baseline. Track a proof's progress
-by adding a collection for it.
+by adding a collection for it. Its `axioms PATTERN` lines, if any, restrict the report and the
+baseline to the axioms and `sorry`s whose name or module file matches one: what one family of
+declarations contributes to the roots (`etc/tcb-collections/grpc.txt`).
 
 ## How much is verified
 
@@ -477,10 +471,17 @@ A proof that needs a prophecy the Go code does not have gets it from a **prophec
 `etc/proph-patches/<project>/*.patch`, which `etc/goose.py` applies to a copy of the source before
 translating (and `etc/verified-code.py` reads): it may only add `primitive.NewProph()`, its
 `ResolveBool`/`ResolveU64` calls (which do nothing in Go) on read-only expressions, and `if`s on
-read-only conditions holding only such statements; `etc/prophcheck` checks it on syntax trees (the
-patched file with those statements erased must be the original). A read-only expression may fail,
-which only adds failing behaviors the proof rules out. Never put anything else in such a patch; a
-code change goes to the fork (`notes/decisions.md`, "Prophecies as patches of the Go code").
+read-only conditions holding only such statements. The rule widens (Upamanyu, #24):
+- a patch may add prophecy-only declarations: a `ProphId` field or package variable initialized only by `NewProph`, and helper functions whose bodies hold only read-only computation plus `Resolve*`;
+- it may add calls to them at statement level or inside `if`s on read-only conditions;
+- `etc/prophcheck` checks that erasing every added declaration and call gives back the original files, and refuses an added field in a struct the program compares with `==`, uses as a map key, or reflects on.
+- `Resolve(any)` calls are admitted too (Upamanyu, #24), their argument built from read-only values: a struct literal or conversion to `any`, with no allocation, `append` or `make`.
+- The prophecy package is Perennial's `github.com/mit-pdos/perennial/proph` (`NewProph`, `ProphId`, `ResolveBool`, `ResolveU64`, `Resolve(any)`; Lean namespace `github_com.mit_pdos.perennial.proph`) or goose's `github.com/goose-lang/primitive` (the same without `Resolve`); new patches use `proph`.
+
+A read-only expression may fail, which only adds failing behaviors the proof rules out. The exact
+checks: `notes/proph-patch-rule.md` and `etc/prophcheck/main.go`'s doc comment. Never put anything
+else in such a patch; a code change goes to the fork (`notes/decisions.md`, "Prophecies as patches
+of the Go code").
 
 goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the

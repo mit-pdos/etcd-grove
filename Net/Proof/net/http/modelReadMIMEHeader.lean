@@ -687,8 +687,7 @@ theorem mh_sprintfB_pre (sl : GoSlice) (bs : List w8) (fs : GoString)
       fmt.bytesOwn DFrac.discard (mhB sl bs) [interface.mkOk (go.SliceType go.byte) #sl] ∗
       fmt.argsOkB (mhB sl bs) fmt.methodVerbs fs [interface.mkOk (go.SliceType go.byte) #sl] := by
   iintro #Hs
-  have hB : mhB sl bs (interface.mkOk (go.SliceType go.byte) #sl) = some (.bytes bs) := by
-    simp [mhB]
+  have hB : mhB sl bs (interface.mkOk (go.SliceType go.byte) #sl) = some (.bytes bs) := by simp [mhB]
   isplitl []
   · unfold fmt.bytesOwn
     iapply BigSepL.bigSepL_singleton.2

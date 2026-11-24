@@ -1357,3 +1357,32 @@ matches `etc/tcb-baseline.txt` (390 axioms, 0 sorries; unchanged: session 11 had
 `time.Time.Format.wp_proofBroken` and the `HardState.Reset` model, and `HasPrefix` was a hypothesis, not an axiom).
 Collections: all 54 match after `wal-tester.txt`'s update (`fmt.ErrorfStrs.wp_proof` no longer reached,
 `time.Time.Format.wp_proofBroken` recorded).
+
+# Session (branch `wal-open`, 2026-11-24, etcd-grove-03's delegate; #15): `Hinit_wp` discharged; `unmarshalWalRecordE` blocked
+
+**`Hinit_wp` gone.** `etcd_wal_crash_safety_bounded` no longer takes the initializer's spec. Each generation
+(`tGen_wp`) allocates its own registration rights for the WAL's three metric IDs (`prometheus.regKeys_alloc`,
+`tRegQsOk`: the IDs as literals `tRegKeys`, decided by the kernel, the same values as the etcd examples' lists),
+makes them the generation's `PromRegGS`, turns `ownGoState ∅` into `ownInitializing` (`tOwnInitializing_of_empty`)
+and applies the generated `wp_initialize'` (`InitLinked.lean`) with the tester's package table
+(`PkgTable.lean`, new: `etc/gen-init.py`'s `wt_inits` now generates it, `WT_PROGRAM`).
+
+**A bug in the statement, fixed** (ledger 2026-11-24): `bootWal`'s bare `initialize'` was raft's (the file opens
+`go_etcd_io.raft.v3`), so the program initialized raft only and `Hinit_wp` asked raft's initializer for the
+tester's `isPkgInit`: unprovable. `bootWal` now calls the tester's initializer. The theorem gains
+`[log.NewModel]` (raft's initializer calls `log.New`; the etcd examples' closed theorems take it too). For review
+before landing.
+
+**`unmarshalWalRecordE` not discharged** (stays the only field of `TOpen`): its failure post `errIsNot err t ∗
+errIsTerm err` (the error is not `io.EOF`, `errors.Is` answers) does not follow from `proto.UnmarshalPb.spec`,
+whose error post is only `err ≠ nil` (the spec's own header and `perennial-changes.md` 2026-11-14 say so: an
+extension of the trust boundary, the user's decision). The success and `UFail` parts are
+`proto.UnmarshalWalRecord.wp_proof`'s. No file added for it.
+
+**Axioms** of `etcd_wal_crash_safety_bounded`: 18 before, 24 after (all already in the trust base, reached through
+the initializer): `prometheus.NewGauge.wp_proof`, `prometheus.NewHistogram.wp_proof`, `strings.ToLower.wp_proof`,
+`internal.runtime.sys.opaqueInitsOk`, `runtime.initFuncsOk`, `runtime.opaqueInitsOk`. None removed.
+
+**Merged with lean `b0a063163c`** (Perennial `b3f2fc485`; 2026-11-24): `Adequacy.lean` taken from lean (fs-single-view:
+`fsSQ_crash_adequacy`, `tGen` with `osShared`) and the changes above reapplied; generated files regenerated. With
+fs-single-view on lean, the closed `etcd_wal_safe` wrapper is unblocked (not started).

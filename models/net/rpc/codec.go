@@ -31,17 +31,14 @@
 // io.EOF if the connection ends before a frame, io.ErrUnexpectedEOF if within one (gob's two
 // cases), the connection's error otherwise; a frame longer than maxFrame, or a header frame that
 // does not parse, is an error the model's own (gob's malformed input errors are not modelled:
-// no model peer sends such input). Write errors are sticky, as gob's bufio.Writer's. The server
-// codec's frame read errors are sticky too (serverCodec.rerr): after one, every later read fails
-// with it. Go's gob reads on after a read error; the server loop then reads on only after a body's
-// read error (ServeCodec answers it and continues), and a frame cut short leaves gob, and the
-// model, in the middle of a frame, reading from there as if a frame started. Over Linux a
-// connection's end yields no byte after a read error (an error comes once the unread bytes are
-// read: then EOF, examples/net/semantics' TestResetInNetwork, TestKilledWithUnreadInput,
-// TestTimeoutOnBreak), so Go's later reads fail too and the loop ends at the next header, as the
-// model's does: the same behavior, but for a read deadline's timeout, after which Go reads on
-// (outside the model's claim: a program that sets a read deadline on a connection it serves; the
-// net extension's semantics allows bytes after a read error too, which is why the model says it).
+// no model peer sends such input). Write errors are sticky, as gob's bufio.Writer's. Read errors
+// are Go's: gob reads on after one, and so does the model (the server loop reads on only after a
+// body's read error: ServeCodec answers it and continues); over Linux a connection's end yields
+// no byte after a read error but a read deadline's timeout (the net extension's semantics, D1
+// v3.5), so the loop ends at the next header. A request frame longer than maxFrame is the model's
+// stuck point (clientCodec.WriteRequest, stuck): gob's encoder refuses a message too big but
+// leaves the header it encoded buffered for the next flush, which the model does not model; a
+// proof shows no client builds one.
 package rpc
 
 import (
@@ -126,6 +123,14 @@ func getCodec() *Codec {
 const maxFrame uint64 = 1 << 30
 
 var errFrame = errors.New("rpc: malformed frame")
+
+// stuck is the model's stuck point (MODEL: not in Go's net/rpc), where the model does not model
+// Go's behavior: it has no behavior there (its Lean model, Net/TrustedCode/net/rpc.lean, is
+// Perennial's internal/gomodel.Stuck, a stuck panic no recover catches), so a proof that the
+// program runs shows it never gets here. Its Go body blocks forever.
+func stuck() {
+	select {}
+}
 
 func putU64(b []byte, x uint64) []byte {
 	return append(b, byte(x), byte(x>>8), byte(x>>16), byte(x>>24), byte(x>>32), byte(x>>40),
@@ -213,8 +218,14 @@ func (c *clientCodec) WriteRequest(r *Request, body any) error {
 	}
 	h := putU64(nil, r.Seq)
 	h = putString(h, r.ServiceMethod)
+	e := getCodec().Encode(body)
+	if uint64(len(h)) > maxFrame || uint64(len(e)) > maxFrame {
+		// MODEL: a frame the model's server would refuse (gob's encoder refuses a message too
+		// big, leaving the header it encoded buffered for the next flush): not modelled.
+		stuck()
+	}
 	b := putFrame(nil, h)
-	b = putFrame(b, getCodec().Encode(body))
+	b = putFrame(b, e)
 	if _, err := c.rwc.Write(b); err != nil {
 		c.werr = err
 		return err
@@ -265,7 +276,6 @@ func (c *clientCodec) Close() error {
 type serverCodec struct {
 	rwc    io.ReadWriteCloser
 	werr   error // as clientCodec's
-	rerr   error // the first frame read error: every later read fails with it (the package doc)
 	closed bool
 }
 
@@ -274,12 +284,8 @@ func newServerCodec(conn io.ReadWriteCloser) *serverCodec {
 }
 
 func (c *serverCodec) ReadRequestHeader(r *Request) error {
-	if c.rerr != nil {
-		return c.rerr
-	}
 	p, err := readFrame(c.rwc)
 	if err != nil {
-		c.rerr = err
 		return err
 	}
 	if len(p) < 8 {
@@ -297,12 +303,8 @@ func (c *serverCodec) ReadRequestHeader(r *Request) error {
 
 // ReadRequestBody reads the body frame that follows the header (with body nil, to discard it).
 func (c *serverCodec) ReadRequestBody(body any) error {
-	if c.rerr != nil {
-		return c.rerr
-	}
 	p, err := readFrame(c.rwc)
 	if err != nil {
-		c.rerr = err
 		return err
 	}
 	if body == nil {

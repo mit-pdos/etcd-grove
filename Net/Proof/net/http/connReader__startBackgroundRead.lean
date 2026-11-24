@@ -35,9 +35,9 @@ theorem connReader.startBackgroundRead.wp_proof
     (wp_SetReadDeadline : net.Conn.SetReadDeadline.spec (GF := GF) (hG := hG))
     (wp_backgroundRead : connReader.backgroundRead.spec (GF := GF) (hG := hG)) :
     connReader.startBackgroundRead.spec (GF := GF) (hG := hG) := by
-  intro cr γ t cn a la ra P hs Z c ab fl arr
-  wp_start as ⟨#Hcr, #Hlaw, #Henv, #Hrwc, #Hca, #Hcis, Hph, Hr, Hc, Hhb, Hir, Hab, Hfl, #Hcok,
-    Hbuf, Hrecv, Hrdl⟩
+  intro cr γ t cn a la ra P hs Z c ab b arr
+  wp_start as ⟨#Hcr, #Hlaw, #Henv, #Hrwc, #Hca, Hrdl, Hph, Hr, Hc, Hhb, Hir, Hab, #Hcok,
+    Hbuf, Hrecv⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply wp_cr_lock cr γ cn P hs Z $$ [$Hcr] as ⟨Hown, ⟨%cv, #Hcond⟩, Hinv⟩
   iunfold crPh at Hinv
@@ -46,10 +46,9 @@ theorem connReader.startBackgroundRead.wp_proof
   subst Hag
   simp only [Bool.false_eq_true, ite_false]
   wp_apply wp_SetReadDeadline t cn true a la ra _
-      (fun _ => iprop(∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b)) $$ [$Hca Hrdl]
-    as %err0 ⟨%rres, Hrdl, -⟩
-  · icases Hrdl with ⟨%rb, Hrdl⟩
-    imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 1) _ $$ Hrdl with ⟨%st, Hend, Hcl⟩
+      (fun _ => iprop(∃ b' : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b')) $$ [$Hca Hrdl]
+    as %err0 ⟨%res0, ⟨%b2, Hrdl⟩, -⟩
+  · imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 1) _ b $$ Hrdl with ⟨%st, Hend, Hcl⟩
     imodintro
     iexists st
     iframe Hend
@@ -62,18 +61,18 @@ theorem connReader.startBackgroundRead.wp_proof
     itrivial
   imod ghostVar_update_halves true γ.ph _ _ $$ Hph Hph2 with ⟨Hph, Hph2⟩
   icases (ghostVar_split_half γ.r 1 hs).1 $$ Hr with ⟨Hr, Hr2⟩
-  wp_apply wp_cr_unlock cr γ cn P hs Z cv $$ [$Hcr $Hown $Hcond Hph2 Hc Hhb Hir Hab Hfl Hr2]
+  wp_apply wp_cr_unlock cr γ cn P hs Z cv $$ [$Hcr $Hown $Hcond Hph2 Hc Hhb Hir Hab Hr2]
   · iunfold crPh
     iexists true
     simp only [ite_true]
     iframe Hph2
     iunfold crBg
-    iexists c, false, true, ab, fl
-    iframe Hc Hhb Hir Hab Hfl Hr2 Hcok
+    iexists c, false, true, ab
+    iframe Hc Hhb Hir Hab Hr2 Hcok
     simp only [ite_true]
     ipureintro; trivial
   iapply HΦ
-  iframe Hrdl Hph Hr
+  iframe Hph Hr Hrdl
 
 end proof
 

@@ -1,19 +1,22 @@
 /-
 The proof of `DialHTTPPath` (`Net/Spec/net/rpc/DialHTTPPath.lean`): `net.Dial` with the library's
-`dial_au`, the connection registered in the world (`rpc_register`), the `CONNECT` request written
-by `Conn.Write` (`writeP`, `write_acc`: a prefix of the dialer's handshake meets `reqProto`), the
-answer read by `http.ReadResponse` over `bufio.NewReader` of the model's `connectReader` (a stream
-reader, `connectReader.Read.spec`, whose bytes are a prefix of the answer and stay put after an
-error: `crSt`, `crErr_final`); on the status `connected`, the reader has delivered the whole answer,
+`dial_rdl_au` (the dialer's read deadline not set), the connection registered in the world
+(`rpc_register`), the `CONNECT` request written by `Conn.Write` (`writeP`, `write_acc`: a prefix of
+the dialer's handshake meets `reqProto`), the answer read by `http.ReadResponse` over
+`bufio.NewReader` of the connection (a stream reader, `crStream`, over `Conn.Read.specLc`: its bytes
+are a prefix of the answer, `resp_before_req`, and after a read error it reads nothing more,
+`read_dead_au` with the end's `rdlTok`, then `read_after_dead_au`: `crSt`, `crErr_final`); on the status `connected`, the reader has delivered the whole answer,
 which the acceptor wrote only after the whole request (`respProto`'s `sentLb`), so the dialer has
 written all of it (`sendTok_sentLb_prefix`): `rpcDialed`, then `NewClient`. Otherwise the error, an
-`*OpError` (`errAny_opErrPtr`, over its read-only fields), after `Close`.
+`*OpError` (`errAny_opErrPtr`), after `Close`.
 -/
 module
 
 public import Net.Spec.net.rpc.DialHTTPPath
 public import Net.Spec.net.rpc.NewClient
-public import Net.Spec.net.rpc.connectReader__Read
+public import Net.Spec.net.Conn__Read
+public import Net.Proof.net.rpc.HttpDefs
+public import GooseLang.Ext.Net.Stream
 public import Net.Spec.net.Dial
 public import Net.Spec.net.Conn__Write
 public import Net.Spec.net.Conn__Close
@@ -57,11 +60,248 @@ theorem hs_proto (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
     simpa [reqsWire] using h
   ileft; ipureintro; exact h
 
+/-- A read error of the connection is a pointer (`io.ptrTyped`): `io.EOF`'s `*errorString`, or an
+`*OpError`. -/
+theorem readErr_ptr (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) :
+    net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err ⊢
+      ⌜_root_.Perennial.io.ptrTyped err⌝ := by
+  cases r with
+  | bytes bs =>
+    simp only [net.ReadErr]
+    iintro %h; subst h; ipureintro; exact _root_.Perennial.io.ptrTyped_nil
+  | eof =>
+    simp only [net.ReadErr]
+    iintro %h; subst h; ipureintro
+    intro ii T h hT
+    simp only [interface.mkOk] at h
+    cases h; exact ⟨xe, rfl⟩
+  | err k =>
+    simp only [net.ReadErr]
+    iintro HE
+    ihave %Hnet := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
+    obtain ⟨-, Hne⟩ := Hnet
+    obtain ⟨pe, rfl⟩ := Hne (by simp)
+    ipureintro
+    intro ii T h hT
+    simp only [interface.mkOk] at h
+    cases h; exact ⟨pe, rfl⟩
+
+/-- A read's error other than for bytes is a pointer: not `nil`. -/
+theorem readErr_some (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (hr : ∀ bs, r ≠ .bytes bs) :
+    net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err ⊢
+      ⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ := by
+  cases r with
+  | bytes bs => exact absurd rfl (hr bs)
+  | eof =>
+    simp only [net.ReadErr]
+    iintro %h; subst h; ipureintro
+    refine ⟨by simp [interface.mkOk], ?_⟩
+    intro ii T h hT
+    simp only [interface.mkOk] at h
+    cases h; exact ⟨xe, rfl⟩
+  | err k =>
+    simp only [net.ReadErr]
+    iintro HE
+    ihave %Hnet := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
+    obtain ⟨-, Hne⟩ := Hnet
+    obtain ⟨pe, rfl⟩ := Hne (by simp)
+    ipureintro
+    refine ⟨by simp [interface.mkOk], ?_⟩
+    intro ii T h hT
+    simp only [interface.mkOk] at h
+    cases h; exact ⟨pe, rfl⟩
+
+/-- A reader with its protocol fact back. -/
+theorem recvTokL_back (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
+    recvTokL (Gg := hG.goose_globalGS) cn s P R ∗ protoPrefix P cn R ⊢
+      recvTok (Gg := hG.goose_globalGS) cn s P R := by
+  unfold recvTokL recvTok
+  iintro ⟨⟨H, -⟩, #Hp⟩
+  iframe H Hp
+
+/-- The dialer's end of `cn`, before any request, is a stream reader that makes progress over
+`crSt` (`HttpDefs.lean`): its bytes extend the answer read so far, a prefix of the answer or of
+the `400` answer (`resp_before_req`, with the call's credit); a read that fails (EOF, a `sys` error
+or `closed`: no timeout, the read deadline not set) makes the end's reading dead (`read_dead_au`),
+recorded in `γe`, and every later read returns no byte (`read_after_dead_au`). -/
+theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
+    (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (t : Loc) (la ra : GoInterface)
+    (γe : GName) (ed : GoInterface) (hA : W.hsAns a = connectAns) :
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
+      net.connAt (GF := GF) t cn false a la ra ⊢
+    EtcdGrove.io.readerStreamNE ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ (crSt W a cn γ γe)
+      (crErr γe) := by
+  iintro ⟨#Hio, #Hed, #Hconn⟩
+  ihave #Hinit := _root_.Perennial.io.isInit_access $$ Hio
+  icases Hinit with ⟨-, -, -, -, #HEOF, -, -⟩
+  unfold errors.newVar
+  icases HEOF with ⟨%xe, #Hxe, -⟩
+  iunfold EtcdGrove.io.readerStreamNE
+  imodintro
+  iintro %r %p %xs
+  imodintro
+  iintro %Φ ⟨-, Hst, Hp⟩ HΦ
+  iunfold crSt at Hst
+  icases Hst with ⟨Hrecv, Hrdl, #Hrpc, Hh, %Hpre, Hc⟩
+  ihave %Hlen := ownSlice_len $$ Hp
+  have hxl : xs.length = p.len.toNat := by
+    rw [Hlen.1]; have := Hlen.2; unfold sint.nat; word
+  icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ Hrecv with ⟨Hrecv, #Hpp0⟩
+  ihave HrL := recvTok_L (Gg := hG.goose_globalGS) cn false _ _ $$ Hrecv
+  iapply wp_fupd
+  icases Hc with (⟨Hc, #Hdead⟩ | Hc)
+  · -- failed before: no byte
+    wp_apply wp_Read t cn false a la ra p xs (interface.mkOk errors.errorString.ty.PointerType #xe) ed
+        (fun res => iprop(recvTokL (Gg := hG.goose_globalGS) cn false (respProto W a) r ∗
+          ⌜res.got = [] ∧ (p.len.toNat ≠ 0 → ∀ bs, res ≠ .bytes bs)⌝)) $$ [Hp HrL]
+      as %k %err ⟨%res, %bs', ⟨HrL, %Hres⟩, Hp, %Hout, HE, -⟩
+    · iframe Hconn Hp Hxe Hed
+      imod read_after_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat $$ [$HrL $Hdead]
+        with ⟨%st, %d, HE, HD, Hcl⟩
+      imodintro
+      iexists st, d
+      iframe HE HD
+      iintro %r' %d' %Hrd HE HD
+      iapply Hcl $$ %r' %d' %Hrd HE HD
+    ihave HrT := recvTokL_back cn false _ _ $$ [$HrL $Hpp0]
+    imod monoListAuthOwn_update (GF := GF) [r] (List.prefix_refl _) $$ Hc with ⟨Hc, #Hlb⟩
+    rcases res with bs | _ | k0
+    · -- `(0, nil)` on an empty buffer
+      obtain ⟨hk, rfl⟩ := Hout
+      obtain ⟨hg, hne⟩ := Hres
+      simp only [ReadRes.got] at hg
+      subst hg
+      have hx0 : p.len.toNat = 0 := by
+        rcases Nat.eq_zero_or_pos p.len.toNat with h | h
+        · exact h
+        · exact absurd rfl (hne (by omega) [])
+      have hxs : xs = [] := List.eq_nil_of_length_eq_zero (by omega)
+      subst hxs
+      imodintro
+      iapply HΦ
+      iexists []
+      simp only [List.append_nil, List.length_nil, List.drop_zero, List.nil_append, List.take_nil]
+      iframe Hp
+      isplitr
+      · ipureintro
+        refine ⟨?_, by simp, fun h => absurd rfl h⟩
+        simpa using hk
+      isplitl [HE]
+      · try simp only [net.ReadErr]
+        icases HE with %h; subst h
+        iapply EtcdGrove.io.errAt_nil
+      iunfold crSt
+      iframe HrT Hrdl Hrpc Hh
+      isplitr
+      · ipureintro; exact Hpre
+      ileft; iframe Hc Hdead
+    all_goals (
+      obtain ⟨hk, rfl⟩ := Hout
+      ihave %Hne := readErr_some _ la ra ed err xe (by intro bs h; cases h) $$ HE
+      obtain ⟨Hne, Hptr⟩ := Hne
+      imodintro
+      iapply HΦ
+      iexists []
+      simp only [List.append_nil, List.length_nil, List.drop_zero, List.nil_append]
+      iframe Hp
+      isplitr
+      · ipureintro
+        exact ⟨by rw [hk]; rfl, by simp, fun _ => Or.inr Hne⟩
+      isplitr
+      · unfold EtcdGrove.io.errAt
+        isplitl []
+        · iright; imodintro; iunfold crErr; iexact Hlb
+        · ipureintro; exact Hptr
+      iunfold crSt
+      iframe HrT Hrdl Hrpc Hh
+      isplitr
+      · ipureintro; exact Hpre
+      ileft; iframe Hc Hdead)
+  · -- not failed: read into `p`
+    wp_apply wp_Read t cn false a la ra p xs (interface.mkOk errors.errorString.ty.PointerType #xe) ed
+        (fun res => iprop(recvTokL (Gg := hG.goose_globalGS) cn false (respProto W a) (r ++ res.got) ∗
+          rdlTok (Gg := hG.goose_globalGS) cn false false ∗
+          ⌜∃ st d d', st.rdl = false ∧ ReadOutcome st d p.len.toNat res d'⌝ ∗
+          (⌜res = .eof ∨ res = .err .sys ∨ res = .err .closed⌝ -∗
+            readDead (Gg := hG.goose_globalGS) cn false))) $$ [Hp HrL Hrdl]
+      as %k %err ⟨%res, %bs', ⟨HrL, Hrdl, %Hro, Hdead⟩, Hp, %Hout, HE, Hlc1, Hlc2⟩
+    · iframe Hconn Hp Hxe Hed
+      imod read_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat false $$ [$HrL $Hrdl]
+        with ⟨%st, %d, HE, HD, Hcl⟩
+      imodintro
+      iexists st, d
+      iframe HE HD
+      iintro %r' %d' %Hrd HE HD
+      iapply Hcl $$ %r' %d' %Hrd HE HD
+    obtain ⟨st, d, d', hrdl, Hro⟩ := Hro
+    have Hgl := readOutcome_got_le Hro
+    ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn false _ _ $$ HrL
+    imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
+    icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ HrT with ⟨HrT, #Hpp⟩
+    imod resp_before_req W a cn γ _ $$ [$Hrpc $Hh $Hlc2 $Hpp] with ⟨Hh, %Hpre'⟩
+    rw [hA, show hsErr connectAns = badReqAns from ite_eq_left rfl] at Hpre'
+    rcases res with bs | _ | (_ | _ | _)
+    · -- bytes: no error
+      simp only [net.ReadErr]
+      icases HE with %Herr
+      subst Herr
+      obtain ⟨hk, rfl⟩ := Hout
+      simp only [ReadRes.got] at Hgl Hpre' ⊢
+      have hbl : bs.length ≤ xs.length := by rw [hxl]; exact Hgl.1
+      imodintro
+      iapply HΦ
+      iexists bs
+      rw [List.take_of_length_le hbl]
+      iframe Hp
+      isplitr
+      · ipureintro
+        refine ⟨?_, hbl, fun hx => Or.inl ?_⟩
+        · rw [Nat.min_eq_right hbl] at hk; exact hk
+        · rintro rfl
+          have := Hgl.2 rfl
+          exact hx (List.eq_nil_of_length_eq_zero (by omega))
+      isplitr
+      · iapply EtcdGrove.io.errAt_nil
+      iunfold crSt
+      iframe HrT Hrdl Hrpc Hh Hc
+      ipureintro; exact Hpre'
+    all_goals (
+      obtain ⟨hk, rfl⟩ := Hout
+      simp only [ReadRes.got, List.append_nil] at Hpre' ⊢
+      ihave %Hne := readErr_some _ la ra ed err xe (by intro bs h; cases h) $$ HE
+      obtain ⟨Hne, Hptr⟩ := Hne
+      ihave #Hd : readDead (Gg := hG.goose_globalGS) cn false $$ [Hdead]
+      · iapply Hdead
+        ipureintro
+        first
+        | exact absurd Hro (fun h => readOutcome_no_timeout hrdl h)
+        | simp
+      imod monoListAuthOwn_update_app (GF := GF) [r] $$ Hc with ⟨Hc, #Hlb⟩
+      simp only [List.nil_append]
+      imodintro
+      iapply HΦ
+      iexists []
+      simp only [List.append_nil, List.length_nil, List.drop_zero, List.nil_append]
+      iframe Hp
+      isplitr
+      · ipureintro
+        exact ⟨by rw [hk]; rfl, by simp, fun _ => Or.inr Hne⟩
+      isplitr
+      · unfold EtcdGrove.io.errAt
+        isplitl []
+        · iright; imodintro; iunfold crErr; iexact Hlb
+        · ipureintro; exact Hptr
+      iunfold crSt
+      iframe HrT Hrdl Hrpc Hh
+      isplitr
+      · ipureintro; exact Hpre'
+      ileft; iframe Hc Hd)
+
 theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (wp_NewReader : EtcdGrove.bufio.NewReader.spec (GF := GF) (hG := hG))
-    (wp_crRead : connectReader.Read.spec (GF := GF) (hG := hG))
+    (wp_ReadLc : net.Conn.Read.specLc (GF := GF) (hG := hG))
     (wp_ReadResponse : net.http.ReadResponse.spec (GF := GF) (hG := hG))
     (wp_NewClient : NewClient.spec (GF := GF) (hG := hG)) :
     DialHTTPPath.spec (GF := GF) (hG := hG) := by
@@ -80,13 +320,14 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   wp_auto
   wp_apply wp_Dial nw hnw a iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqProto W a) (respProto W a)
-        [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn false)) $$ [Hap]
-    as %c %err (⟨%Herr, %cn, #Hc, Hend, Hfresh⟩ | ⟨-, %x, -, #HE⟩)
+        [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn false ∗
+        rdlTok (Gg := hG.goose_globalGS) cn false false)) $$ [Hap]
+    as %c %err (⟨%Herr, %cn, #Hc, Hend, Hfresh, Hrdl⟩ | ⟨-, %x, -, #HE⟩)
   · isplitr
     · ipureintro; exact Hok
     isplit
     · itrivial
-    · iapply dial_au $$ Hap
+    · iapply dial_rdl_au $$ Hap
   · subst Herr
     iunfold net.isConn at Hc
     icases Hc with ⟨%t, %la, %ra, %Hct, #Hca⟩
@@ -117,71 +358,48 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     obtain ⟨Hw, -⟩ := Hw
     iunfold writeP at HwP
     simp only [List.nil_append]
-    -- the reader: a `connectReader` of the connection, its once-cell, and a `bufio.Reader`
-    wp_alloc cr as Hcr
-    iStructNamed Hcr
-    ipersist r
+    -- the reader: a `bufio.Reader` of the connection, the once-cell of its failure
     imod mono_list_own_alloc (GF := GF) ([] : List (List w8)) with ⟨%γe, Hγe, -⟩
-    ihave #Hcrat : crAt cr t cn a la ra $$ []
-    · iunfold crAt; iframe r Hca
-    ihave HS0 : crSt W a cn γ cr γe [] $$ [failed Hrecv Hreqs Hγe]
+    ihave HS0 : crSt W a cn γ γe [] $$ [Hrecv Hrdl Hreqs Hγe]
     · iunfold crSt
-      iexists false, []
-      iframe failed Hrecv Hrpc Hreqs
-      isplitr
-      · ipureintro; exact ⟨List.nil_prefix, Or.inl List.nil_prefix⟩
-      iright
-      iframe Hγe
-      ipureintro; exact ⟨rfl, rfl⟩
-    ihave #Hstream : EtcdGrove.io.readerStreamNE ⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩
-        (crSt W a cn γ cr γe) (crErr γe) $$ []
-    · iunfold EtcdGrove.io.readerStreamNE
-      imodintro
-      iintro %r0 %p %xs
-      imodintro
-      iintro %Φ' ⟨-, HS, Hp⟩ HΦ'
-      wp_apply wp_crRead W a cn γ cr t la ra γe r0 p xs ed $$ [$Hio $Hed $Hcrat HS Hp]
-        as %n %e ⟨%ys, %Hys, #He, Hp, HS⟩
-      · iframe HS Hp; ipureintro; exact HhsA
-      iapply HΦ'
-      iexists ys
-      iframe He Hp HS
-      ipureintro; exact Hys
-    have hty : (⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩ : GoInterfaceOk).ty ≠
+      iframe Hrecv Hrdl Hrpc Hreqs Hγe
+      ipureintro; exact Or.inl List.nil_prefix
+    ihave #Hstream := crStream wp_ReadLc W a cn γ t la ra γe ed HhsA $$ [$Hio $Hed $Hca]
+    have hty : (⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ : GoInterfaceOk).ty ≠
         go.GoType.PointerType _root_.Perennial.bufio.Reader.ty := by
       simp only [ne_eq, go.GoType.PointerType.injEq]
-      unfold net.rpc.connectReader.ty _root_.Perennial.bufio.Reader.ty
+      unfold net.TCPConn.ty _root_.Perennial.bufio.Reader.ty
       simp
     ihave #Hstream0 := EtcdGrove.io.readerStreamNE_readerStream _ _ _ $$ Hstream
-    ihave #Hbound : (□ ∀ r0, crSt W a cn γ cr γe r0 -∗ ⌜r0.length + 2 ^ 12 < 2 ^ 62⌝ : IProp GF) $$ []
+    ihave #Hbound : (□ ∀ r0, crSt W a cn γ γe r0 -∗ ⌜r0.length + 2 ^ 12 < 2 ^ 62⌝ : IProp GF) $$ []
     · imodintro
       iintro %r0 HS
       iunfold crSt at HS
-      icases HS with ⟨%f, %R, -, -, -, -, ⟨%h1, %h2⟩, -⟩
+      icases HS with ⟨-, -, -, -, %h2, -⟩
       ipureintro
       have h4 : connectAns.length = 34 := by decide
       have h5 : badReqAns.length = 103 := by decide
       rcases h2 with h2 | h2
-      · have h3 := (h1.trans h2).length_le; omega
-      · have h3 := (h1.trans h2).length_le; omega
-    wp_apply wp_NewReader ⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩
-        (crSt W a cn γ cr γe) (crErr γe) [] hty $$ [$Hbufio $Hstream0 $Hbound $HS0] as %b Hb
+      · have h3 := h2.length_le; omega
+      · have h3 := h2.length_le; omega
+    wp_apply wp_NewReader ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩
+        (crSt W a cn γ γe) (crErr γe) [] hty $$ [$Hbufio $Hstream0 $Hbound $HS0] as %b Hb
     irename «$a1» => Hreq
     generalize «$a1_ptr» = req at *
     -- the laws `ReadResponse` takes of the stream
-    ihave #Hlaw1 : (□ ∀ r0, crSt W a cn γ cr γe r0 -∗
+    ihave #Hlaw1 : (□ ∀ r0, crSt W a cn γ γe r0 -∗
         ⌜r0 <+: connectAns ∨ r0 <+: badReqAns⌝ : IProp GF) $$ []
     · imodintro
       iintro %r0 HS
       iunfold crSt at HS
-      icases HS with ⟨%f, %R, -, -, -, -, ⟨%h1, %h2⟩, -⟩
-      ipureintro; exact h2.imp h1.trans h1.trans
+      icases HS with ⟨-, -, -, -, %h2, -⟩
+      ipureintro; exact h2
     ihave #Hlaw2 : (□ ∀ (r0 r' : List w8) (e : GoInterface), crErr γe r0 e -∗
-        crSt W a cn γ cr γe r' -∗ ⌜r0 <+: r' → r' = r0⌝ : IProp GF) $$ []
+        crSt W a cn γ γe r' -∗ ⌜r0 <+: r' → r' = r0⌝ : IProp GF) $$ []
     · imodintro
       iintro %r0 %r' %e He HS
-      iapply crErr_final W a cn γ cr γe r0 r' e $$ [$He $HS]
-    wp_apply wp_ReadResponse b _ (crSt W a cn γ cr γe) (crErr γe) req _
+      iapply crErr_final W a cn γ γe r0 r' e $$ [$He $HS]
+    wp_apply wp_ReadResponse b _ (crSt W a cn γ γe) (crErr γe) req _
         $$ [$Hhenv $Hstream $Hb $Hlaw1 $Hlaw2 $Hreq] as %resp %rerr Hres
     · ipureintro; rfl
     icases Hres with (%Hne | ⟨%Hnil, %rv, Hrv, Hst⟩)
@@ -238,15 +456,14 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     wp_auto
     ihave ⟨%q, HS, -⟩ := EtcdGrove.bufio.ownReader_open b _ _ _ connectAns $$ Hb
     iunfold crSt at HS
-    icases HS with ⟨%f, %R, -, Hrecv, -, Hreqs, ⟨%h1, %h2⟩, -⟩
-    have hR : R = connectAns := by
-      have l1 := h1.length_le
-      simp only [List.length_append] at l1
+    icases HS with ⟨Hrecv, -, -, Hreqs, %h2, -⟩
+    have hq : connectAns ++ q = connectAns := by
       rcases h2 with h2 | h2
-      · have l2 := h2.length_le
-        exact h2.eq_of_length (by omega)
-      · exact absurd ((List.prefix_append _ _).trans h1 |>.trans h2) (by decide)
-    subst hR
+      · have l := h2.length_le
+        simp only [List.length_append] at l
+        rw [List.eq_nil_of_length_eq_zero (by omega : q.length = 0), List.append_nil]
+      · exact absurd ((List.prefix_append _ _).trans h2) (by decide)
+    rw [hq]
     icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ Hrecv with ⟨Hrecv, #Hpp⟩
     -- the acceptor wrote it after the dialer's whole request
     ihave #Hsl : sentLb (Gg := hG.goose_globalGS) cn false (W.hs a) $$ [Hpp]

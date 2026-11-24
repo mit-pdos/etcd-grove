@@ -1098,6 +1098,37 @@ tests kept as differential tests against the real library, a "not modelled" pani
    the `Host` checks, `context.WithCancel` (Perennial's spec), the body switch on `NoBody`,
    `SetReadDeadline` of the zero time, the response's allocation; then `conn.serve` (the 400 answer is now
    `respProto`'s), `Serve`/`ListenAndServe`, the mux, `HandleHTTP`.
+   **The user's decisions of 2026-11-23 applied (same branch; ledger 2026-11-23, "the model's `strings`
+   stand-ins and read-error wrappers removed").** Kept as approved: `GODEBUG=http2server` not read, no HTTP/2
+   configuration (`nethttpomithttp2`), `modelParseRequestURI`, `modelHeaderValuesContainsToken`. *Removed*: the
+   stand-ins `modelCutByte`/`modelTrimLeftByte` (the model calls `strings.Cut`/`TrimLeft` as Go does; the
+   callers' proofs take `Spec/strings/{Cut,TrimLeft}.lean`, Go's pure result over `Proof/strings/CutDefs.lean`, as
+   hypotheses, pending on Perennial's `strings-cut-lastindex`, `8ff6a1c79a`: `section links_pending` of both
+   `Results.lean`; `cut_single`/`trimLeft_single` relate them to `cutByte`/`trimLeftByte`), and the read-error
+   wrappers `connectReader` and `connReader.failed` (the model's `client.go` and `server.go` are Go's code there):
+   the net extension's sticky read errors (branch `net-sticky-read`, D1 v3.5, merged here) give no byte after a
+   read error. *Re-proved*: `DialHTTPPath` reads through `bufio.NewReader(conn)` over `crStream` (`crSt`: the
+   dialer's `recvTok` at the delivered bytes, its `rdlTok cn false false` from `dial_rdl_au`, the failure once-cell
+   with `readDead`; `read_dead_au`, `read_after_dead_au`; the credits from `net.Conn.Read.specLc`, new, proved);
+   the server's head read (`crHead` with `γe`, `rdlTok cn true false`, errors `crHeadErr γe`, final); the
+   background reader's deadline calls (`startBackgroundRead`, `abortPendingRead`, `hijackLocked`) over the end's
+   `rdlTok` (`deadline_au`'s new premise), carried by `hjPre`/`hjDone`; `accept_addrs_shared_rdl_au` (Proto.lean,
+   new: the wildcard accept with the acceptor's `rdlTok`, for `conn.serve` later). The models' claims lose the
+   "no read deadlines on served connections" exclusion. Difftests pass. `origin/lean` merged (Perennial
+   `ccfeb3895`), swiftpaxos's `RpcWorld` built by field names (`Start.lean`) and `NewWriterSize` over its
+   `specRep` (`LibDepsLinked.lean`), from dsv-gryff `bb8e39f9c3`/`b30a1f41ce`.
+   **`crHeadErr` records the error's message (2026-11-24, proving session 2, branch `prove-ps2-s5srv/2026-11-24`;
+   agreed with dsverify-net on #24).** `crHeadErr γe r e := monoListLbOwn γe [r] ∗ errMsgOk e`
+   (`ConnReaderHead.lean`; `errMsgOk` from `RequestDefs.lean`): `connReader.Read`'s errors are `io.EOF`'s
+   `*errorString` (its `Error()` from `errors.newVar`) and the connection's `*OpError` (`net.wp_OpError_Error`,
+   Go's form, through `readErr_msgOk`); `crHeadErr_msg` is the law `readRequestLimit.spec` asks. A stronger
+   post of `connReader.Read.spec`; no other statement changed.
+   **net/url's `escape` proved (2026-11-24, same branch).** `Spec/net/url/escape.lean`: `escape(s, mode)`
+   returns `escapeF s mode` for the seven modes, given `3 * len(s) < 2^63` (Go's `len(s) + 2*hexCount`, the
+   result's length, must not overflow `int`, else `make` panics); proved over its body (both counting loops, the
+   64-byte stack buffer or `make`, the space-only `copy` path, the `%AB` writes through `upperhex`), linked in
+   `Results.lean`. Left: `unescape` (needs `strings.Builder.Grow`), `PathUnescape`, `URL.EscapedPath` (specs
+   drafted).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

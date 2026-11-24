@@ -94,6 +94,11 @@ jobs:
       # byte for byte (k8s 7g, `notes/k8s-7g-scope.md` §1.1). Reads the sources and the module.
       - name: Check the k8s checker copy
         run: ./etc/k8s-correctness-check.py
+      # No robustness theorem's program reports a violation by exiting: under `Robust` an exit is a
+      # safe run (Perennial models `syscall.Exit` as `AngelicExit`), so a check must panic. Every exit
+      # in the programs' own code (under `examples/`) has its reason in `etc/exit-allow.txt`.
+      - name: Check the robustness programs' exits
+        run: ./etc/exit-check.py
       # `RaftTla/` (raft's `with_tla` build, for the trace check) compiles the main tree's raft
       # specs and proofs again: its copies must be what `etc/gen-raft-tla.py` generates from them.
       # Reads the sources only.
@@ -110,7 +115,6 @@ jobs:
       - name: Check the packages' importable modules
         run: |
           for c in etc/api/*.txt; do
-            case "$c" in *-layout.txt) continue ;; esac
             ./etc/api-check.py "$c" --check
           done
       # Only the listed modules `import all` a module whose sealed definitions or private laws
@@ -161,12 +165,3 @@ jobs:
       # .lake/tcb.json the step above wrote).
       - name: Check the fmt.Errorf model steps
         run: ./etc/errorf-wrap-check.py --reuse
-      # The checked-in interfaces (`interface/`) must be exactly what the build exports, as the
-      # translations must be what Goose produces; and no new layout violation. After the build:
-      # the interface is read from the built modules.
-      - name: Check the packages' interfaces
-        run: |
-          for c in etc/api/*.txt; do
-            case "$c" in *-layout.txt) continue ;; esac
-            ./etc/gen-interface.py "$c" --check --layout
-          done

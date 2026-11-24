@@ -552,8 +552,6 @@ class connReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_aborted : ∀ (x : connReader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet connReader.underlying go!"aborted") (PairV #x #y) (Val #(({ x with aborted' := y } : connReader)))
   get_remain : ∀ (x : connReader), go.IsGoStepPureDetTagged under (StructFieldGet connReader.underlying go!"remain") #x (Val #(x.remain'))
   set_remain : ∀ (x : connReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet connReader.underlying go!"remain") (PairV #x #y) (Val #(({ x with remain' := y } : connReader)))
-  get_failed : ∀ (x : connReader), go.IsGoStepPureDetTagged under (StructFieldGet connReader.underlying go!"failed") #x (Val #(x.failed'))
-  set_failed : ∀ (x : connReader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet connReader.underlying go!"failed") (PairV #x #y) (Val #(({ x with failed' := y } : connReader)))
   method_set : go.MethodSetIs connReader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType connReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net/http.abortPendingRead", (some (go.signature.Signature [] false []))), (go!"net/http.backgroundRead", (some (go.signature.Signature [] false []))), (go!"net/http.handleReadErrorLocked", (some (go.signature.Signature [go.error] false []))), (go!"net/http.hitReadLimit", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.lock", (some (go.signature.Signature [] false []))), (go!"net/http.releaseConn", (some (go.signature.Signature [] false []))), (go!"net/http.setInfiniteReadLimit", (some (go.signature.Signature [] false []))), (go!"net/http.setReadLimit", (some (go.signature.Signature [go.int64] false []))), (go!"net/http.startBackgroundRead", (some (go.signature.Signature [] false []))), (go!"net/http.unlock", (some (go.signature.Signature [] false [])))]
   ptr_Read_unfold : MethodUnfold (go.GoType.PointerType connReader.ty) go!"Read" connReader.Read.impl
@@ -588,8 +586,6 @@ attribute [instance] connReader.TypeAssumptions.type_repr
   connReader.TypeAssumptions.set_aborted
   connReader.TypeAssumptions.get_remain
   connReader.TypeAssumptions.set_remain
-  connReader.TypeAssumptions.get_failed
-  connReader.TypeAssumptions.set_failed
   connReader.TypeAssumptions.method_set
   connReader.TypeAssumptions.ptr_method_set
   connReader.TypeAssumptions.ptr_Read_unfold
@@ -1137,6 +1133,26 @@ attribute [instance] loggingConn.TypeAssumptions.type_repr
   loggingConn.TypeAssumptions.set_Conn
   loggingConn.TypeAssumptions.method_set
   loggingConn.TypeAssumptions.ptr_method_set
+
+class checkConnErrorWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying checkConnErrorWriter.underlying checkConnErrorWriter
+  underlying : go.UnderlyingDirectedEq checkConnErrorWriter.ty checkConnErrorWriter.underlying
+  get_c : ∀ (x : checkConnErrorWriter), go.IsGoStepPureDetTagged under (StructFieldGet checkConnErrorWriter.underlying go!"c") #x (Val #(x.c'))
+  set_c : ∀ (x : checkConnErrorWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet checkConnErrorWriter.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : checkConnErrorWriter)))
+  method_set : go.MethodSetIs checkConnErrorWriter.ty [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType checkConnErrorWriter.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  Write_unfold : MethodUnfold checkConnErrorWriter.ty go!"Write" checkConnErrorWriter.Write.impl
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType checkConnErrorWriter.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve checkConnErrorWriter.ty go!"Write"))) (App (Val (GoInstruction (GoLoad checkConnErrorWriter.ty))) (Var "$r"))))
+
+attribute [instance] checkConnErrorWriter.TypeAssumptions.type_repr
+  checkConnErrorWriter.TypeAssumptions.underlying
+  checkConnErrorWriter.TypeAssumptions.get_c
+  checkConnErrorWriter.TypeAssumptions.set_c
+  checkConnErrorWriter.TypeAssumptions.method_set
+  checkConnErrorWriter.TypeAssumptions.ptr_method_set
+  checkConnErrorWriter.TypeAssumptions.Write_unfold
+  checkConnErrorWriter.TypeAssumptions.ptr_Write_unfold
 
 end net.http
 

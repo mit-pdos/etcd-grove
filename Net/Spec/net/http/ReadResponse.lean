@@ -6,8 +6,8 @@ makes progress (`io.readerStreamNE ri S E`: no `(0, nil)` read, so bufio never g
 `connectAns` (`"HTTP/1.0 200 Connected to Go RPC\n\n"`) or of net/http's server's `400` answer
 `badReqAns` (to a request it could not read: `"HTTP/1.1 400 Bad Request"`, a `Content-Type` and a
 `Connection: close` header line, its body), and that delivers nothing after an error
-(the law over `E` and `S`: after an error at `r`, the stream stays at `r`; the model's
-`connectReader`), `req` the request `{Method: "CONNECT"}`. It returns an error (some error, non-nil:
+(the law over `E` and `S`: after an error at `r`, the stream stays at `r`; a connection's, by the
+net extension's sticky read errors, D1 v3.5), `req` the request `{Method: "CONNECT"}`. It returns an error (some error, non-nil:
 the stream's, `io.ErrUnexpectedEOF`, a malformed line's), or a response whose `Status` is either not
 `"200 Connected to Go RPC"` (the `400` answer's is `"400 Bad Request"`) or is it, and then the reader
 has delivered exactly `connectAns` (the status line and the empty header block, each up to its `"\n"`:

@@ -42,7 +42,7 @@ theorem schema.membershipBackend.MustCreateBackendBuckets.wp_proof
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bm, #HM, -⟩, -, ⟨%bmr, #HMR, -⟩,
-    ⟨%bc, #HC, -⟩⟩
+    ⟨%bc, #HC, -⟩, -⟩
   ihave #Hbm := schema.members_isBucket hID hName hSafe bm $$ [$Hpkg $HM]
   ihave #Hbmr := schema.membersRemoved_isBucket hID hName hSafe bmr $$ [$Hpkg $HMR]
   ihave #Hbc := schema.cluster_isBucket hID hName hSafe bc $$ [$Hpkg $HC]

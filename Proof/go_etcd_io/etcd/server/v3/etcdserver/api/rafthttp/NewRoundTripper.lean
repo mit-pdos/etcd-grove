@@ -35,7 +35,9 @@ theorem rafthttp.NewRoundTripper.wp_proof
   iapply HΦ
   icases Hres with (%Hne | ⟨%He, #Hrt⟩)
   · ileft; ipureintro; exact Hne
-  · iright; iframe #; ipureintro; exact He
+  · iright; iframe #; isplitl
+    · ipureintro; exact He
+    · ipureintro; exact ⟨tr, rfl⟩
 
 end proof
 

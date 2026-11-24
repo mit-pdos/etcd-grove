@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # The WAL tester's boot after a crash (W4c U5, `notes/wal-fsext-w4c-plan.md`)
 
 * `TCrashed e V`: what the tester's crash obligation (`tester_crash`, `Crash.lean`) hands the new
-  generation besides its tree (`osTree … V`, which the program gives to `wp_osShare`): the WAL's
+  generation besides its tree's shared view (`osShared … V`): the WAL's
   start over the crashed tree (`walStart`, the boot files, the lock and crash tokens, from
   `walInv_crash`), the ghost WAL state `od` the new generation's program map holds (`walDirIs`) and
   the oracle `o` it accounts for (`tRelI`, from the `_keep` lemmas: `walSyncedLb`/`walNamed` of the
@@ -12,7 +12,7 @@ Lean-first (no Rocq counterpart).
   `durFoundTmp`, from `durInv_crash`) holding `o` (`tOracleFile ⟨v, none⟩ o none`), and the pure facts
   `walBootCrash` needs of the crashed tree and state. `BootFo V.now e.jr` is carried as a fact,
   from `walInv_crash` (`bootFo_of`; until 2026-11-22 in part `tester_crash`'s premise `BootFoNmTmp`).
-* `tBootCrash`: from `TCrashed e V` and what `wp_osShare` gives (the shared invariant, the whole call
+* `tBootCrash`: from `TCrashed e V` and `osShared … V` (the shared invariant, the whole call
   permission, every directory's whole claim), the incarnation's `TBoot e`, as `tBoot0` does for the
   first: the WAL's area by `walBootCrash`, the oracle file's by durable's `durBoot` on the oracle
   directory's claim (among `walBootCrash`'s `bootRest`: `mem_bootRest_root`), the tester's ghost

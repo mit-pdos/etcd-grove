@@ -181,15 +181,14 @@ theorem errAny_opErr (op : GoString) (src addr e err : GoInterface) :
   iapply errNE_errAny
   iapply errNE_opErr $$ H
 
-/-- An `*OpError` `pe` (its fields read-only) is `errAny`: its `Error()` (the net model's,
-`wp_OpError_Error`) is of Go's form for its `Op`, not empty (`DialHTTPPath`'s `"dial-http"` error,
-whose `Net` is not a TCP network's name). -/
+/-- Any `*OpError` (its fields persistent) is `errAny`: its `Error()` (the net model's) returns a
+message of Go's form (`DialHTTPPath`'s `"dial-http"` error, whose `Net` is not a TCP network's
+name). -/
 theorem errAny_opErrPtr (pe : Loc) (v : net.OpError) :
     (pe ↦□ v : IProp GF) ⊢
       models_lab.errAny (GF := GF) (interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe) := by
   iintro #Hpe
-  iapply errNE_errAny
-  unfold errNE
+  unfold models_lab.errAny
   iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
   isplitr
   · ipureintro; rfl
@@ -199,8 +198,8 @@ theorem errAny_opErrPtr (pe : Loc) (v : net.OpError) :
   iintro %Φ HΦ
   iapply net.wp_OpError_Error $$ Hpe
   inext
-  iintro %msg %hmsg
-  iapply HΦ; ipureintro; exact net.opErrMsg_ne _ _ hmsg
+  iintro %msg -
+  iapply HΦ
 
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is `errNE`. -/
 theorem errNE_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)

@@ -7,16 +7,19 @@ Adequacy, plain and with crashes, for a program whose only extension is the Linu
   node's files such a state).
 * The program's proof gets the invariant of the mapped cells (`osInv`, allocated here from the
   start resources), every file, whole, as on disk (`osFileStart`: its `OsMeta` and its bytes, each
-  durable), and the tree's history, whole, with nothing logged (`osTree 1 R (treeDur, [])`).
+  durable), and the tree's shared invariants and resources, nothing logged
+  (`osShared R (treeDur, [])`).
 * With crashes (`fs_crash_adequacy`; `fsQ_crash_adequacy` under a premise `Q` on crashes), each
   generation's ghost state is new (`CrashTok.lean`): the proof of a generation guarantees the
   precondition of the next from the new generation's `osInv` and `crashRest Q old new [] false V'`
-  for some new history `V'`, from which `osCrash_take_runs_keep` (and `osCrash_take_tok_keep`)
-  takes the files and `osTreeCrash_take` the tree, each related to what the old generation knew.
+  for some new history `V'` and a later credit (`£ 1`), from which `osCrash_take_runs_keep` (and
+  `osCrash_take_tok_keep`) takes the files and `crashRest_treeS'` the tree's `osShared` (with the old
+  generation's `osSharedInv`, which the frame keeps), each related to what the old generation knew.
 -/
 module
 
 public import GooseLang.Ext.Fs.CrashTok
+public import GooseLang.Ext.Fs.TreeSharedRes
 public import GooseLang.Ext.Fs.SemCongr
 
 @[expose] public section
@@ -79,12 +82,12 @@ section adequacy
 variable [GoGlobalContext] {GF : BundledGFunctors}
 
 /-- The start resources of `[fsExt]`: the invariant of the mapped cells, every file, and the
-tree's history. -/
+tree's shared invariants and resources (`osShared`), nothing logged. -/
 theorem fs_start [hG : HeapGS .hasLC GF] (σ : state) (h : FsInit (extLocal fsExt σ.world)) :
     ⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
       osInv (L := hG.goose_localGS) ∗
       ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files, osFileStart (L := hG.goose_localGS) i f) ∗
-      osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal fsExt σ.world).fs.roots
+      osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
         ((extLocal fsExt σ.world).fs.treeDur, []) := by
   have Hl : extsLocalStart (GF := GF) σ.world ⊢
       osStart (gooseOsGS (L := hG.goose_localGS)) (extLocal fsExt σ.world) :=
@@ -99,12 +102,11 @@ theorem fs_start [hG : HeapGS .hasLC GF] (σ : state) (h : FsInit (extLocal fsEx
   ihave Hfs := start_files (gooseOsGS (L := hG.goose_localGS)) hdisk $$ [Hb Hm]
   · iframe
   imod osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
+  imod osSwitchKit_open (L := hG.goose_localGS) _ _ ⊤ $$ Hd with Hsh
   imodintro
-  iframe Hinv
-  isplitl [Hfs]
-  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
-      (fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
-  · unfold osTree; iexact Hd
+  iframe Hinv Hsh
+  iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+    (fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
 
 /-- **Adequacy for a program with Linux files** (`goose_adequacy` for `[fsExt]`), from an initial
 state whose files are as on disk (`FsInit`). -/
@@ -118,7 +120,7 @@ theorem fs_adequacy [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ : state)
       ⊢ osInv (L := hG.goose_localGS) -∗
         ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files,
           osFileStart (L := hG.goose_localGS) i f) -∗
-        osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal fsExt σ.world).fs.roots
+        osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
           ((extLocal fsExt σ.world).fs.treeDur, []) -∗
         ownGoState σ.goState.packageState -∗ threadTok ={⊤}=∗
         WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
@@ -138,10 +140,11 @@ theorem fs_adequacy [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ : state)
 /-- **Crash adequacy for a program with Linux files** (`goose_crash_adequacy` for `[fsExt]`): the
 boot program `e` runs at the start and after every crash (of the machine, or of the process alone).
 The precondition `P` holds of the first generation, from the invariant of its mapped cells, every
-initial file (whole, every byte durable), the tree's history and the initial package state; every
+initial file (whole, every byte durable), the tree's `osShared` and the initial package state; every
 generation proves the WP of `e` from `P` and the main thread's token, and guarantees `P` of the next
 generation `L'` after it crashes, from its `crashed`, `L'`'s invariant of the mapped cells, the
-restart's resources (`crashRest`, for some new history `V'`) and `L'`'s package state. -/
+restart's resources (`crashRest`, for some new history `V'`), `L'`'s package state and a later
+credit. -/
 theorem fs_crash_adequacy [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ : state)
     (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -153,7 +156,7 @@ theorem fs_crash_adequacy [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ : st
       ⊢ osInv (L := hG.goose_localGS) -∗
         ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files,
           osFileStart (L := hG.goose_localGS) i f) -∗
-        osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal fsExt σ.world).fs.roots
+        osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
           ((extLocal fsExt σ.world).fs.treeDur, []) -∗
         ownGoState σ.goState.packageState ={⊤}=∗ P hG.goose_localGS)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
@@ -166,7 +169,7 @@ theorem fs_crash_adequacy [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ : st
           osInv (L := L') -∗
           crashRest (fun _ _ => True) (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L'))
             [] false V' -∗
-          ownGoState (hG := L'.goose_go_stateGS) ∅ ={⊤}=∗ P L')
+          ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗ P L')
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
     (Hsteps : RealCrashNsteps e n ([e], ((σ, g) : CfgState)) κs (t2, σ2) b)
     (Hbound : n < N) (Hthreads : σ.threads = 1)
@@ -185,7 +188,7 @@ theorem fs_crash_adequacy [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ : st
     imod Hwp HN HT Hlctx $$ HP Htok with ⟨Hwp, Hcrash⟩
     imodintro
     iframe Hwp
-    iintro %L' Hcr Hcs Hgs _
+    iintro %L' Hcr Hcs Hgs Hlc
     have Hc : extsCrashStart (GF := GF) hG.goose_localGS L' ⊢
         osCrashStart (fun _ _ => True) (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) :=
       sep_elim_left
@@ -193,7 +196,7 @@ theorem fs_crash_adequacy [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ : st
     unfold osCrashStart
     icases Hcs with ⟨Hv, %V', Hr⟩
     imod osInv_alloc (L := L') ⊤ $$ Hv with #Hinv
-    iapply Hcrash $$ %L' %V' Hcr Hinv Hr Hgs
+    iapply Hcrash $$ %L' %V' Hcr Hinv Hr Hgs Hlc
 
 end adequacy
 
@@ -239,7 +242,7 @@ theorem fsQ_crash_adequacy (Q : OsState → OsState → Prop) [hPre : GooseGpreS
       ⊢ osInv (L := hG.goose_localGS) -∗
         ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files,
           osFileStart (L := hG.goose_localGS) i f) -∗
-        osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal fsExt σ.world).fs.roots
+        osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
           ((extLocal fsExt σ.world).fs.treeDur, []) -∗
         ownGoState σ.goState.packageState ={⊤}=∗ P hG.goose_localGS)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
@@ -251,7 +254,7 @@ theorem fsQ_crash_adequacy (Q : OsState → OsState → Prop) [hPre : GooseGpreS
         ∀ (L' : GooseLocalGS GF) (V' : Hist), crashed (hC := hG.goose_localGS.goose_crashGS) -∗
           osInv (L := L') -∗
           crashRest Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) [] false V' -∗
-          ownGoState (hG := L'.goose_go_stateGS) ∅ ={⊤}=∗ P L')
+          ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗ P L')
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
     (Hsteps : @RealCrashNsteps fsExts (fsExtsSemanticsWith Q) _ e n
       ([e], ((σ, g) : CfgState)) κs (t2, σ2) b)
@@ -277,7 +280,7 @@ theorem fsQ_crash_adequacy (Q : OsState → OsState → Prop) [hPre : GooseGpreS
     imodintro
     isplitl [Hwp]
     · rw [← hw]; iexact Hwp
-    iintro %L' Hcr Hcs Hgs _
+    iintro %L' Hcr Hcs Hgs Hlc
     have Hc : @extsCrashStart fsExts (fsExtsSemanticsWith Q) fsExtsInterp
         (fsExtsCrashInterpWith Q) GF hG.goose_localGS L' ⊢
         osCrashStart Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) := by
@@ -286,7 +289,7 @@ theorem fsQ_crash_adequacy (Q : OsState → OsState → Prop) [hPre : GooseGpreS
     unfold osCrashStart
     icases Hcs with ⟨Hv, %V', Hr⟩
     imod osInv_alloc (L := L') ⊤ $$ Hv with #Hinv
-    iapply Hcrash $$ %L' %V' Hcr Hinv Hr Hgs
+    iapply Hcrash $$ %L' %V' Hcr Hinv Hr Hgs Hlc
 
 end adequacyQ
 

@@ -6,7 +6,7 @@
 dedicated WAL directory (`srvWalDirOf dd`, `WalLayout.lean`), the `wal` of an area of its own, a root
 of the Linux file extension (`walAreaOf dd`) that exists at start and holds nothing a WAL function may
 touch (`etcdWalAreasInit`, the closed theorems' premise, `WalAreasInit.lean`). Before the program's first step its proof
-switches the file extension to the shared mode (`wp_osShareE`) and allocates each area's WAL invariant
+takes the tree's shared view from the file extension's start (`osShared`, `etcdFs_start`) and allocates each area's WAL invariant
 (`walBoot0`, `Proof/.../storage/wal/Boot0.lean`), from which it builds each member's `walAreaFresh`
 (what `bootstrap`'s contract takes for the WAL, `wal.bootRes`): `walAreasFresh_boot`, `wp_walAreas`.
 Untrusted, but for `etcdWalAreasInit`, a premise of the closed theorems (a world premise, as
@@ -16,7 +16,6 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalAreaFresh
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Boot0
-public import GooseLang.Ext.Fs.TreeSharedSwitchE
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalLayoutFits
@@ -55,6 +54,17 @@ theorem walAreaOf_ne {d d' : GoString} (hd : ∃ n, d = memberDataDir n) (hd' : 
     walAreaOf d ≠ d' := by
   obtain ⟨n, rfl⟩ := hd; obtain ⟨n', rfl⟩ := hd'
   exact walAreaOf_ne_memberDataDir n n'
+
+/-- A member's data directory whose WAL directory fits is shorter than `PATH_MAX`. -/
+theorem memberDataDir_length_lt {d : GoString} (hd : ∃ n, d = memberDataDir n)
+    (hF : Fs.DirFits (srvWalDirOf d)) : d.length < 4096 := by
+  obtain ⟨n, rfl⟩ := hd
+  have h := hF.1
+  rw [srvWalDirOf, walAreaOf_memberDataDir] at h
+  simp only [memberDataDir, List.length_append] at h ⊢
+  have h1 : (go!"/tmp/etcd-grove-data/" : GoString).length = 21 := by decide
+  have h2 : (go!"/tmp/etcd-grove-wal/" : GoString).length = 20 := by decide
+  omega
 
 /-- A claim on all the names of `j`, at the history's start, names what the tree has. -/
 theorem namesOf_except_cur (V : Fs.Hist) (j : Fs.Ino) (b : GoString) :
@@ -223,7 +233,7 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
       iexists etcdWalArea W hsat hsatL R j (walAreaOf d) (srvWalDirOf d) (hF d List.mem_cons_self)
       isplitr
       · ipureintro
-        exact ⟨rfl, srvWalDirOf_inArea d, cleanAbsPath_of_rootForm ((hR.2.2 _ hrj).1)⟩
+        exact ⟨rfl, srvWalDirOf_inArea d, cleanAbsPath_of_rootForm ((hR.2.2 _ hrj).1), trivial⟩
       dsimp only [etcdWalArea]
       rw [Fs.callKey_eq hR hrj (.inl rfl)]
       iframe Hok Hdd Hsp Hres Hpd Hu
@@ -237,15 +247,15 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
       iexists inferInstance, inferInstance, inferInstance, R, jd, Fs.namesOf V jd (.except [])
       isplitr
       · ipureintro
-        exact ⟨cleanAbsPath_of_rootForm ((hR.2.2 _ hrjd).1),
-          fun b => by rw [namesOf_except_cur]; exact hemp b⟩
+        exact ⟨cleanAbsPath_of_rootForm ((hR.2.2 _ hrjd).1), memberDataDir_length_lt hNd
+            (hF d List.mem_cons_self), fun b => by rw [namesOf_except_cur]; exact hemp b⟩
       rw [Fs.callKey_eq hR hrjd (.inl rfl)]
-      iframe Hos Hsh Hspd Hpdd Hjd
+      iframe Hos Hsh Hab Hspd Hpdd Hjd
 
 /-- **The members' WAL areas, before the program's first step** (see the file header): over the file
 extension's initial state `st` (`FsInit`, no I/O error assumed: `hsat`) with the members' areas as
 `etcdWalAreasInit` says, the WP of a non-value `e` from the file extension's start resources (the
-invariant of the mapped cells and the tree's whole legacy history) follows from its WP given each data
+invariant of the mapped cells and the tree's shared view, `osShared`) follows from its WP given each data
 directory's `walAreaFresh` and (2026-11-19) `dataAreaFresh`. -/
 theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (hsatL : Fs.FsStepSat (Fs.NoMapLockErr allIo))
@@ -255,16 +265,15 @@ theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     (hrb : ReceiptBoundLe GF (2 ^ 62))
     (e : Expr) (he : toVal e = none) (Φ : val → IProp GF) :
     ⊢ Fs.osInv (L := hG.goose_localGS) -∗
-      Fs.osTree (L := hG.goose_localGS) (DFrac.own 1) st.fs.roots (st.fs.treeDur, []) -∗
+      Fs.osShared (L := hG.goose_localGS) st.fs.roots (st.fs.treeDur, []) -∗
       (([∗list] d ∈ Ds, memberAreasFresh (GF := GF) d) -∗
         WP e @ Stuckness.NotStuck; ⊤ {{ Φ }}) -∗
       WP e @ Stuckness.NotStuck; ⊤ {{ Φ }} := by
   have hR : Fs.RootsOk st.fs.roots := hfs.2.2.2.1
   have htw : Fs.TreeWf st.fs.roots st.fs.treeDur := hfs.2.2.2.2.1
   iintro #Hinv Ht Hk
-  iapply Fs.wp_osShareE (L := hG.goose_localGS) st.fs.roots (st.fs.treeDur, []) e he
-    CoPset.subseteq_top Φ $$ Hinv Ht
-  iintro #Hsh #Hab Hperms #- Hall
+  unfold Fs.osShared
+  icases Ht with ⟨#Hsh, #Hab, Hperms, #-, Hall⟩
   unfold Fs.osCallPerms
   have hmemJ : ∀ j : Fs.Ino, (∃ r, (r, j) ∈ st.fs.roots) →
       j ∈ (GMap.toList (Fs.Hist.now (st.fs.treeDur, []))).map (·.1) := by

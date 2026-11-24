@@ -12,7 +12,6 @@ axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom pbDeleteRangeRequestT_reg
 axiom pbDeleteRangeResponseT_reg

@@ -8,6 +8,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDeps
 public import Proof.bufio.NewWriter
 public import Proof.bufio.NewWriterSize
+public import Proof.bufio.NewWriterSizeRep
 public import Proof.bufio.Writer__Flush
 public import Proof.bufio.Writer__WriteByte
 public import Proof.bufio.Writer__Write
@@ -23,7 +24,6 @@ public import Net.Proof.net.Dial
 public import Net.Proof.net.DialTimeout
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
-public import Proof.bufio.NewWriterSizeRep
 
 @[expose] public section
 

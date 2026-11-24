@@ -45,12 +45,6 @@ REVIEWED = {
         "the model's errorString cell and Go's wrapError msg are written once; the errDesc prefix "
         "only given an Unwrap method (Go's wrapError; H0, 2026-11-18: vacuous of the model's error)",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
-    'Spec/google_golang_org/grpc/model/respond.lean':
-        'srvErrOk err a premise of the pre (stable Error()/GRPCStatus(): status.FromError, server.go:1461): '
-        'the carrier (Proof/google_golang_org/grpc/model/Serve.lean:71-72) gets it from the deposited run '
-        'contract grpcRunOkMd (InvGrpc.lean, its post; HS-6); the handler outcome handlerErrOut gives a description m with descIs err m '
-        '(errdesc stage 2b: what FromError reads of the stable error, the message grpc sends) and gates Psi_e m, '
-        'the handler\'s own description, which Invoke returns for a handlerDescs description only',
     'Spec/go_etcd_io/etcd/client/v3/withVersion.lean': 'statusErrOk opened, not used',
     'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Init.lean:toGRPCErrorMap_init':
         "its values are rpctypes' ErrGRPC* (status.Error) values, without a Format method "

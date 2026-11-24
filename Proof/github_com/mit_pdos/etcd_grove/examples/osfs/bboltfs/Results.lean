@@ -4,13 +4,16 @@ the start and after every crash, over the Linux file extension's per-byte semant
 crash filter and every step allowed (`fsExtsSemanticsWithS AnyStep P1`), reaches no stuck thread
 and no unrecovered panic. Its adequacy is `fsSQ_crash_adequacy` (with `anyStep_keeps`).
 
-A generation's precondition (`bootPre`) is the extension's invariant, the whole of the tree's history
-with nothing logged, the file at `dir/db` as the generation starts with it (`StartSt`: absent, or as
-on disk and `Good`), and the fresh package state. Each generation puts the file in its crash
-invariant (`csInv_alloc`, `dbOk` of the start state: `start_okS`) and runs the package initializer
-and `BootMinibolt` (`wp_BootMinibolt`); after a crash, the crash part opens the old generation's
-invariant and takes the file and the history from it (`csInv_crash_keep`): a `Good` file of the new
-generation, as on disk. At the first boot the file is absent.
+A generation's precondition (`bootPre`) is the extension's invariant, the tree's start resources
+(`osShared`) on a well-formed tree with nothing logged, the file at `dir/db` as the generation
+starts with it (`startAt`: absent, or as on disk, `Good`), and the fresh package state. Each
+generation takes the claim on `db` from its start resources (`osShared_file`), puts the file and
+half of the claim in its crash invariant (`csInv_alloc`, `dbOk` of the start state: `start_okS`)
+and runs the package initializer and `BootMinibolt` (`wp_BootMinibolt`); after a crash, the crash
+part opens the old generation's invariant and takes from it what the crash left at `dir/db`
+(`csInv_crash_keep`, over `crashRest_region'`): a `Good` file of the new generation, as on disk; the
+new generation's tree resources come from the restart (`crashRest_treeS'`). At the first boot the
+file is absent.
 
 The specs `wp_BootMinibolt` uses are linked to their proofs (`Open`, `Get`, `Close`, `Commit`, from
 the crash-aware proofs of their callees, `Proof/os/CrashStSpec.lean`'s `*.wp_proof_crashS`, and the
@@ -106,18 +109,6 @@ end links
 
 /-! ## The adequacy -/
 
-/-- The root `d` names its directory, whatever the history. -/
-theorem lookupH_root {R : Roots} (hr : RootsOk R) {d : GoString} {j : Ino} (hd : (d, j) ∈ R)
-    (V : Hist) : lookupH R V d = some (.dir j) := by
-  have := lookup_joinPath (st := Hist.st R V) hr hd (cs := []) (by simp)
-  simp only [joinPath, List.flatMap_nil, List.append_nil, walk] at this
-  exact this
-
-/-- A history with nothing logged has no other crash. -/
-theorem treeCrashed_nil {m : Tree} {V' : Hist} (h : TreeCrashed (m, []) V') : V' = (m, []) := by
-  obtain ⟨n, hn, rfl⟩ := h
-  simp only [List.length_nil, Nat.le_zero] at hn; subst hn; rfl
-
 /-- The start state's crash obligation: `dbOk`. -/
 theorem startSt_okS [GooseExts] {s : CState} (hs : StartSt s) : dbOk s := by
   rcases hs with rfl | ⟨i, vs, sz, rfl, hg⟩
@@ -129,11 +120,16 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable [GoGlobalContext] {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF]
 
 /-- **A generation's file starts `Good`**: what `startAt` gives of a history with nothing logged,
-the file `Good`, is a start state (`StartSt`), as `csInv_alloc` takes it. -/
-theorem startAt_startSt [L : GooseLocalGS GF] (p : GoString) (R : Roots) (m : Tree)
-    (fo : Option OsFile) (hg : Good fo) :
-    startAt L p R (m, []) fo ⊢ ∃ s, ⌜StartSt s ∧ SPathOk p R s (m, []) ∧
-      TreeOkI Good p R (sIno s) (m, [])⌝ ∗ csStartRes (L := L) s := by
+the file `Good`, with the generation's claim on the file's name (`namesOf`), is a start state
+(`StartSt`), as `csInv_alloc` takes it. -/
+theorem startAt_startSt [L : GooseLocalGS GF] (p : GoString) (R : Roots) (m : Tree) (j : Ino)
+    (b : GoString) (hfa : FileAt R p j b) (fo : Option OsFile) (hg : Good fo) :
+    startAt L p R (m, []) fo ⊢ ∃ s, ⌜StartSt s ∧ SPathOk b s (namesOf (m, []) j (.only [b])) ∧
+      TreeOkI Good j b (sIno s) (namesOf (m, []) j (.only [b]))⌝ ∗ csStartRes (L := L) s := by
+  have hcur := namesOf_cur (m, []) j b
+  rw [← lookupH_fileAt hfa] at hcur
+  have hva : ∀ K, (namesOf (m, []) j (.only [b])).valAfter j K b = lookupH R (m, []) p := by
+    intro K; rw [namesOf_nil_valAfter (m, []) rfl, ← lookupH_fileAt hfa]
   unfold startAt
   cases hl : lookupH R (m, []) p with
   | none =>
@@ -142,8 +138,8 @@ theorem startAt_startSt [L : GooseLocalGS GF] (p : GoString) (R : Roots) (m : Tr
     iexists none
     isplitr
     · ipureintro
-      refine ⟨.inl rfl, hl, fun V' h => ?_⟩
-      rw [treeCrashed_nil h]; exact .inl ⟨hl, trivial⟩
+      refine ⟨.inl rfl, by show _ = none; rw [hcur, hl], fun K => ?_⟩
+      exact .inl ⟨by rw [hva, hl], trivial⟩
     · unfold csStartRes; iempintro
   | some x =>
     cases x with
@@ -155,8 +151,8 @@ theorem startAt_startSt [L : GooseLocalGS GF] (p : GoString) (R : Roots) (m : Tr
       iexists csStart i (OsFile.ofDisk vs sz)
       isplitr
       · ipureintro
-        refine ⟨.inr ⟨i, vs, sz, rfl, hg⟩, hl, fun V' h => ?_⟩
-        rw [treeCrashed_nil h]; exact .inr ⟨i, rfl, hl⟩
+        refine ⟨.inr ⟨i, vs, sz, rfl, hg⟩, by show _ = _; rw [hcur, hl], fun K => ?_⟩
+        exact .inr ⟨i, rfl, by rw [hva, hl]⟩
       · unfold csStartRes
         simp only [csStart]
         iunfold osFileStart at Hf; iexact Hf
@@ -172,13 +168,13 @@ local instance : HasExt fsExt := fsExtsWithS_hasFs AnyStep P1
 section adequacy
 variable [GoGlobalContext] {GF : BundledGFunctors}
 
-/-- The precondition of the boot program in the generation `L`, `R` the roots. -/
+/-- The precondition of the boot program in the generation `L`, `R` the roots: the generation's
+start resources on a well-formed tree `m` with nothing logged, and the file at `dir/db`. -/
 def bootPre [G : GooseGlobalGS .hasLC GF] (R : Roots) (dir : GoString) (L : GooseLocalGS GF) :
     IProp GF :=
   iprop(osInv (L := L) ∗ ownGoState (hG := L.goose_go_stateGS) ∅ ∗
-    ∃ (m : Tree) (s : CState), osTree (L := L) (DFrac.own 1) R (m, []) ∗
-      ⌜StartSt s ∧ SPathOk (child dir dbB) R s (m, []) ∧
-        TreeOkI Good (child dir dbB) R (sIno s) (m, [])⌝ ∗ csStartRes (L := L) s)
+    ∃ (m : Tree) (fo : Option OsFile), osShared (L := L) R (m, []) ∗ ⌜TreeWf R m ∧ Good fo⌝ ∗
+      startAt L (child dir dbB) R (m, []) fo)
 
 /-- `bootCrashSafety` for executions of fewer than `N` steps along which fewer than `T ≤ 2 ^ 30`
 threads are live. -/
@@ -215,6 +211,7 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
   rw [hRdef] at hR hrj Hnone
   obtain ⟨m0, hm0⟩ : ∃ m0, (extLocal fsExt σ.world).fs.treeDur = m0 := ⟨_, rfl⟩
   rw [hm0] at Hnone
+  have hfa : FileAt R (child dir dbB) j dbB := ⟨hR, dbB_ok, dir, hrj, rfl⟩
   have h := fsSQ_crash_adequacy (GF := GF) AnyStep P1 anyStep_keeps N T (boot dir) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) Hinit (fun L => bootPre R dir L)
     ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads Hlive
@@ -227,13 +224,12 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     unfold bootPre
     imodintro
     iframe Hos Hgs
+    have hw : TreeWf R m0 := by rw [← hRdef, ← hm0]; exact Hinit.2.2.2.2.1
     iexists m0, none
     iframe Ht
     isplitr
-    · ipureintro
-      refine ⟨.inl rfl, Hnone, fun V' h => ?_⟩
-      rw [treeCrashed_nil h]; exact .inl ⟨Hnone, trivial⟩
-    · unfold csStartRes; iempintro
+    · ipureintro; exact ⟨hw, trivial⟩
+    unfold startAt; rw [Hnone]; ipureintro; rfl
   · -- every generation: the file in its invariant, the boot program, and the next generation's
     intro hG _ HT Hlctx'
     rw [Hlctx] at Hlctx'
@@ -242,7 +238,12 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     haveI : ThreadBoundLe GF (2 ^ 30) := ⟨by rw [HT]; exact hT⟩
     unfold bootPre
-    iintro ⟨#Hos, Hgs, %m, %s, Ht, %hso, Hsr⟩ Htok
+    iintro ⟨#Hos, Hgs, %m, %fo, Hsh, %hg, Hst⟩ Htok
+    obtain ⟨hw, hg⟩ := hg
+    imod osShared_file (L := hG.goose_localGS) R (m, []) dir j dbB ⊤ CoPset.subseteq_top hR hrj hw
+      $$ Hsh with ⟨#Hsi, Hperm, Hn⟩
+    icases startAt_startSt (L := hG.goose_localGS) (child dir dbB) R m j dbB hfa fo hg $$ Hst
+      with ⟨%s, %hso, Hsr⟩
     obtain ⟨hst, hp, htr⟩ := hso
     have hwf : CsWf s := by
       rcases hst with rfl | ⟨i, vs, sz, rfl, -⟩
@@ -257,38 +258,44 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       rcases hst with rfl | ⟨i, vs, sz, rfl, -⟩
       · trivial
       · exact csStart_cut i _
-    imod csInv_alloc (L := hG.goose_localGS) dbCrashN (child dir dbB) R (m, []) Good dbOk s hidle
-      (startSt_okS hst) htr hwf hcut hp $$ Ht Hsr with ⟨%γ, #Hinv, Hown⟩
+    imod csInv_alloc (L := hG.goose_localGS) dbCrashN (child dir dbB) R j dbB _ Good dbOk s hidle
+      hfa (startSt_okS hst) htr hwf hcut hp $$ Hn Hsr with ⟨%γ, #Hinv, Hown⟩
     imodintro
-    isplitl [Hgs Hown Htok]
+    isplitl [Hgs Hperm Hown Htok]
     · -- the boot program
       unfold boot
       wp_apply (Hinit_wp hG) $$ Hgs as #Hpkg
       wp_pures
-      wp_apply wp_BootMinibolt wp_OpenC DB.wp_GetC DB.wp_CommitC DB.wp_CloseC dir R (m, []) j γ s
-          (lookupH_root hR hrj _) hst $$ [Hown Htok]
+      wp_apply wp_BootMinibolt wp_OpenC DB.wp_GetC DB.wp_CommitC DB.wp_CloseC dir R 1 γ s hst
+        $$ [Hperm Hown Htok]
       · iframe; iframe #
       ipureintro; rfl
-    · -- after a crash: take the file and the history from the old generation's invariant
-      iintro %L' %V' _ #Hos' Hr Hgs'
+    · -- after a crash: the file from the old generation's invariant, the tree from the restart
+      iintro %L' %V' _ #Hos' Hr Hgs' -
       unfold csInv
       imod inv_acc (E := ⊤) (show ↑dbCrashN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
         with ⟨Hi, Hclose⟩
-      icases Hi with ⟨%s', %W, >Hv, >Hs, >Ht, >%Hok⟩
-      icases csInv_crash_keep P1 hG.goose_localGS L' [] V' (child dir dbB) R Good s' W
-          (fun _ _ => List.not_mem_nil) Hok.2.1 (fun i x h => by subst h; exact Hok.1) Hok.2.2 $$ Hr Hs Ht
-        with ⟨%fo', %hgt, Ht', Hst, -, Hs, Ht⟩
-      obtain ⟨hg', htc'⟩ := hgt
-      imod Hclose $$ [Hv Hs Ht] with -
-      · inext; iexists s', W; iframe; ipureintro; exact Hok
+      icases Hi with ⟨%s', %j', %b', %W, >%hfa', >Hv, >Hs, >Hn, >%Hok⟩
+      imod csInv_crash_keep P1 hG.goose_localGS L' [] false V' (child dir dbB) R Good s' j' b' W _
+          dbCrashN_disjS hfa' (fun _ _ => List.not_mem_nil) Hok.2.1 (fun i x h => by subst h; exact Hok.1)
+          Hok.2.2 $$ Hsi Hr Hs Hn
+        with ⟨%fo', %hg', Hst, ⟨%D', Hr⟩, Hs, Hn⟩
+      imod Hclose $$ [Hv Hs Hn] with -
+      · inext; iexists s', j', b', W; iframe; isplitr
+        · ipureintro; exact hfa'
+        ipureintro; exact Hok
+      imod crashRest_treeWf' P1 hG.goose_localGS L' D' false V' R ⊤ CoPset.subseteq_top
+        $$ Hsi Hr with ⟨%hw', Hr⟩
+      imod crashRest_treeS' P1 hG.goose_localGS L' D' V' R ⊤ CoPset.subseteq_top
+        $$ Hsi Hr with ⟨%hV', Hsh, -⟩
       imodintro
       iframe Hos' Hgs'
       rcases V' with ⟨m', l'⟩
-      obtain rfl : l' = [] := treeCrashed_log htc'
-      icases startAt_startSt (L := L') (child dir dbB) R m' fo' hg' $$ Hst with ⟨%s2, %hs2, Hs2⟩
-      iexists m', s2
-      iframe Ht' Hs2
-      ipureintro; exact hs2
+      simp only at hV'
+      subst hV'
+      iexists m', fo'
+      iframe Hsh Hst
+      ipureintro; exact ⟨hw', hg'⟩
 
 /-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`: executions along which fewer
 than `2 ^ 30` threads are live), under the hypotheses of the file header: the package initializer

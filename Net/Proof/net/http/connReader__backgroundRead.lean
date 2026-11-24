@@ -102,7 +102,7 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
     iapply token_exclusive $$ Htok Hph
   simp only [↓reduceIte]
   iunfold crBg at Hph
-  icases Hph with ⟨%c, %hb, %ir, %ab, %fl, Hc, Hhb, Hir, Hab, Hfl, Hr, #Hcok, Hrest⟩
+  icases Hph with ⟨%c, %hb, %ir, %ab, Hc, Hhb, Hir, Hab, Hr, #Hcok, Hrest⟩
   cases ir
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hrest with ⟨Htok2, -⟩
@@ -132,67 +132,34 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
     subst hk
     simp only [decide_true]
     wp_auto
-    cases fl
-    · simp only [Bool.not_false]
-      wp_auto
-      icases recvTokL_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrL with ⟨HrL, #Hpp⟩
-      ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
-      icases slice1_array _ _ $$ Hs with ⟨%arr', Hs⟩
-      wp_apply wp_cr_unlock cr γ cn P hs Z cv
-        $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hfl Hr Htok Hs HrT]
-      · iunfold crPh
-        iexists true
-        iframe Hphv
-        simp only [↓reduceIte]
-        iunfold crBg
-        iexists c, true, false, false, false
-        iframe Hc Hhb Hir Hab Hfl Hr Hcok
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        iframe Htok
-        iunfold crRead
-        isplitl [Hs]
-        · iexists arr'; iexact Hs
-        iexists (hs ++ [b])
-        simp only [ReadRes.got]
-        iframe HrT
-        iright
-        iapply law_Z P hs Z cn (hs ++ [b]) (fun h => by
-          have := h.length_le; simp at this; omega) $$ [$Hlaw $Hpp]
-      iunfold crCond at Hcond
-      icases Hcond with ⟨-, #Hcf, #Hcv⟩
-      wp_auto
-      wp_apply sync.Cond.wp_Broadcast $$ [$Hcv]
-      iapply HΦ; itrivial
-    · simp only [Bool.not_true]
-      wp_auto
-      icases recvTokL_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrL with ⟨HrL, #Hpp⟩
-      ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
-      icases slice1_array _ _ $$ Hs with ⟨%arr', Hs⟩
-      wp_apply wp_cr_unlock cr γ cn P hs Z cv
-        $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hfl Hr Htok Hs HrT]
-      · iunfold crPh
-        iexists true
-        iframe Hphv
-        simp only [↓reduceIte]
-        iunfold crBg
-        iexists c, false, false, false, true
-        iframe Hc Hhb Hir Hab Hfl Hr Hcok
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        iframe Htok
-        iunfold crRead
-        isplitl [Hs]
-        · iexists arr'; iexact Hs
-        iexists (hs ++ [b])
-        simp only [ReadRes.got]
-        iframe HrT
-        iright
-        iapply law_Z P hs Z cn (hs ++ [b]) (fun h => by
-          have := h.length_le; simp at this; omega) $$ [$Hlaw $Hpp]
-      iunfold crCond at Hcond
-      icases Hcond with ⟨-, #Hcf, #Hcv⟩
-      wp_auto
-      wp_apply sync.Cond.wp_Broadcast $$ [$Hcv]
-      iapply HΦ; itrivial
+    icases recvTokL_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrL with ⟨HrL, #Hpp⟩
+    ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
+    icases slice1_array _ _ $$ Hs with ⟨%arr', Hs⟩
+    wp_apply wp_cr_unlock cr γ cn P hs Z cv
+      $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hr Htok Hs HrT]
+    · iunfold crPh
+      iexists true
+      iframe Hphv
+      simp only [↓reduceIte]
+      iunfold crBg
+      iexists c, true, false, false
+      iframe Hc Hhb Hir Hab Hr Hcok
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe Htok
+      iunfold crRead
+      isplitl [Hs]
+      · iexists arr'; iexact Hs
+      iexists (hs ++ [b])
+      simp only [ReadRes.got]
+      iframe HrT
+      iright
+      iapply law_Z P hs Z cn (hs ++ [b]) (fun h => by
+        have := h.length_le; simp at this; omega) $$ [$Hlaw $Hpp]
+    iunfold crCond at Hcond
+    icases Hcond with ⟨-, #Hcf, #Hcv⟩
+    wp_auto
+    wp_apply sync.Cond.wp_Broadcast $$ [$Hcv]
+    iapply HΦ; itrivial
 
   · -- EOF
     simp only [net.ReadOut] at Hout
@@ -207,14 +174,14 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
     ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
     icases slice1_array _ _ $$ Hs with ⟨%arr', Hs⟩
     wp_apply wp_cr_unlock cr γ cn P hs Z cv
-      $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hfl Hr Htok Hs HrT]
+      $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hr Htok Hs HrT]
     · iunfold crPh
       iexists true
       iframe Hphv
       simp only [↓reduceIte]
       iunfold crBg
-      iexists c, false, false, false, true
-      iframe Hc Hhb Hir Hab Hfl Hr Hcok
+      iexists c, false, false, false
+      iframe Hc Hhb Hir Hab Hr Hcok
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe Htok
       iunfold crRead
@@ -246,14 +213,14 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
       ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
       icases slice1_array _ _ $$ Hs with ⟨%arr', Hs⟩
       wp_apply wp_cr_unlock cr γ cn P hs Z cv
-        $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hfl Hr Htok Hs HrT]
+        $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hr Htok Hs HrT]
       · iunfold crPh
         iexists true
         iframe Hphv
         simp only [↓reduceIte]
         iunfold crBg
-        iexists c, false, false, false, true
-        iframe Hc Hhb Hir Hab Hfl Hr Hcok
+        iexists c, false, false, false
+        iframe Hc Hhb Hir Hab Hr Hcok
         simp only [Bool.false_eq_true, ↓reduceIte]
         iframe Htok
         iunfold crRead
@@ -276,14 +243,14 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
         ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
         icases slice1_array _ _ $$ Hs with ⟨%arr', Hs⟩
         wp_apply wp_cr_unlock cr γ cn P hs Z cv
-          $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hfl Hr Htok Hs HrT]
+          $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hr Htok Hs HrT]
         · iunfold crPh
           iexists true
           iframe Hphv
           simp only [↓reduceIte]
           iunfold crBg
-          iexists c, false, false, false, true
-          iframe Hc Hhb Hir Hab Hfl Hr Hcok
+          iexists c, false, false, false
+          iframe Hc Hhb Hir Hab Hr Hcok
           simp only [Bool.false_eq_true, ↓reduceIte]
           iframe Htok
           iunfold crRead
@@ -302,14 +269,14 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
         ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
         icases slice1_array _ _ $$ Hs with ⟨%arr', Hs⟩
         wp_apply wp_cr_unlock cr γ cn P hs Z cv
-          $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hfl Hr Htok Hs HrT]
+          $$ [$Hcr $Hown $Hcond Hphv Hc Hhb Hir Hab Hr Htok Hs HrT]
         · iunfold crPh
           iexists true
           iframe Hphv
           simp only [↓reduceIte]
           iunfold crBg
-          iexists c, false, false, false, fl
-          iframe Hc Hhb Hir Hab Hfl Hr Hcok
+          iexists c, false, false, false
+          iframe Hc Hhb Hir Hab Hr Hcok
           simp only [Bool.false_eq_true, ↓reduceIte]
           iframe Htok
           iunfold crRead

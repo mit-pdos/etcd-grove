@@ -4,40 +4,22 @@
 
 package treemap
 
-// MODEL: only Iterator, Next and Value (no program here calls Prev, Key, Begin, End, First, Last,
-// NextTo, PrevTo; Select and String use the unexported key), and no assertion of
-// containers.ReverseIteratorWithKey.
+import (
+	"github.com/emirpasic/gods/containers"
+	rbt "github.com/emirpasic/gods/trees/redblacktree"
+)
+
+// Assert Iterator implementation
+var _ containers.ReverseIteratorWithKey = (*Iterator)(nil)
 
 // Iterator holding the iterator's state
-//
-// MODEL: the map's state, the position in its sorted entries (-1 before the first), and the
-// state's change count when the iterator was made (gods: an rbt.Iterator, the tree, a node and a
-// position begin/between/end).
 type Iterator struct {
-	state   *sorted
-	index   int
-	changes uint64
+	iterator rbt.Iterator
 }
 
 // Iterator returns a stateful iterator whose elements are key/value pairs.
-//
-// MODEL: reads m (a nil m panics, as gods' m.tree), not m's state (a zero Map's iterator is made,
-// as gods'; its Next panics).
 func (m *Map) Iterator() Iterator {
-	s := m.state
-	var changes uint64
-	if s != nil {
-		changes = s.changes
-	}
-	return Iterator{state: s, index: -1, changes: changes}
-}
-
-// MODEL: check panics with a NotModelled value if the map changed since the iterator was made
-// (after a nil dereference if the iterator has no state, as gods' Next on a zero Map).
-func (iterator *Iterator) check() {
-	if iterator.state.changes != iterator.changes {
-		panic(notModelled{"a change to a map while an iterator over it is in use"})
-	}
+	return Iterator{iterator: m.tree.Iterator()}
 }
 
 // Next moves the iterator to the next element and returns true if there was a next element in the container.
@@ -45,32 +27,78 @@ func (iterator *Iterator) check() {
 // If Next() was called for the first time, then it will point the iterator to the first element if it exists.
 // Modifies the state of the iterator.
 func (iterator *Iterator) Next() bool {
-	// MODEL: the next position in the slice, staying one past the last (gods' `end`).
-	iterator.check()
-	if iterator.index < len(iterator.state.entries) {
-		iterator.index++
-	}
-	return iterator.index < len(iterator.state.entries)
+	return iterator.iterator.Next()
 }
 
-// MODEL: current is the current entry; with none (before the first Next, past the last), a nil
-// dereference, as gods' iterator.node.Value on its nil node.
-func (iterator *Iterator) current() *entry {
-	iterator.check()
-	if iterator.index < 0 || iterator.index >= len(iterator.state.entries) {
-		var none *entry
-		return none
-	}
-	return &iterator.state.entries[iterator.index]
+// Prev moves the iterator to the previous element and returns true if there was a previous element in the container.
+// If Prev() returns true, then previous element's key and value can be retrieved by Key() and Value().
+// Modifies the state of the iterator.
+func (iterator *Iterator) Prev() bool {
+	return iterator.iterator.Prev()
 }
 
 // Value returns the current element's value.
 // Does not modify the state of the iterator.
 func (iterator *Iterator) Value() interface{} {
-	return iterator.current().value // MODEL: gods: iterator.iterator.Value()
+	return iterator.iterator.Value()
 }
 
-// MODEL: key is gods' Key (the current element's key), unexported: only Select and String call it.
-func (iterator *Iterator) key() interface{} {
-	return iterator.current().key
+// Key returns the current element's key.
+// Does not modify the state of the iterator.
+func (iterator *Iterator) Key() interface{} {
+	return iterator.iterator.Key()
+}
+
+// Begin resets the iterator to its initial state (one-before-first)
+// Call Next() to fetch the first element if any.
+func (iterator *Iterator) Begin() {
+	iterator.iterator.Begin()
+}
+
+// End moves the iterator past the last element (one-past-the-end).
+// Call Prev() to fetch the last element if any.
+func (iterator *Iterator) End() {
+	iterator.iterator.End()
+}
+
+// First moves the iterator to the first element and returns true if there was a first element in the container.
+// If First() returns true, then first element's key and value can be retrieved by Key() and Value().
+// Modifies the state of the iterator
+func (iterator *Iterator) First() bool {
+	return iterator.iterator.First()
+}
+
+// Last moves the iterator to the last element and returns true if there was a last element in the container.
+// If Last() returns true, then last element's key and value can be retrieved by Key() and Value().
+// Modifies the state of the iterator.
+func (iterator *Iterator) Last() bool {
+	return iterator.iterator.Last()
+}
+
+// NextTo moves the iterator to the next element from current position that satisfies the condition given by the
+// passed function, and returns true if there was a next element in the container.
+// If NextTo() returns true, then next element's key and value can be retrieved by Key() and Value().
+// Modifies the state of the iterator.
+func (iterator *Iterator) NextTo(f func(key interface{}, value interface{}) bool) bool {
+	for iterator.Next() {
+		key, value := iterator.Key(), iterator.Value()
+		if f(key, value) {
+			return true
+		}
+	}
+	return false
+}
+
+// PrevTo moves the iterator to the previous element from current position that satisfies the condition given by the
+// passed function, and returns true if there was a next element in the container.
+// If PrevTo() returns true, then next element's key and value can be retrieved by Key() and Value().
+// Modifies the state of the iterator.
+func (iterator *Iterator) PrevTo(f func(key interface{}, value interface{}) bool) bool {
+	for iterator.Prev() {
+		key, value := iterator.Key(), iterator.Value()
+		if f(key, value) {
+			return true
+		}
+	}
+	return false
 }

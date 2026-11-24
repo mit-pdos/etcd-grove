@@ -24,7 +24,10 @@ connection itself and sets no deadline. Go's `net/rpc` is frozen.
 
 ## Proof
 
-no: the net/rpc model reads the answer through `connectReader` (`models/net/rpc/client.go`), which
-drops any byte after a read error: Go's behavior over Linux. The net extension's semantics allows
-bytes after a read error on a cut direction, which is why the model says it (as for the server
-codec's sticky read error, `go-netrpc-server-reads-on-after-body-read-error.md`).
+no: handled by the net extension's semantics (2026-11-23, D1 v3.5, `GooseLang/Ext/Net/Impl.lean`):
+a `sys` read error comes only once nothing is unread, so after a read error (EOF, `sys`, `closed`)
+no read returns a byte (`readDead`, `read_after_dead_au` in `GooseLang/Ext/Net/Proto.lean`), and a
+timeout needs a read deadline, which `DialHTTPPath` does not set (the dialer's `rdlTok cn false
+false`). The model's `connectReader` wrapper is removed: `DialHTTPPath` reads through
+`bufio.NewReader(conn)` as Go's does, and its proof (`Net/Proof/net/rpc/DialHTTPPath.lean`,
+`crStream`) gives `http.ReadResponse.spec` the finality law it needs.

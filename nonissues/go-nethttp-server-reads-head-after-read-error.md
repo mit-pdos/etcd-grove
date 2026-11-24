@@ -25,8 +25,9 @@ one anyway).
 
 ## Proof
 
-no: the net/http model's `connReader` keeps a `failed` flag (`models/net/http/server.go`, MODEL)
-and delivers no byte after a read error: Go's behavior over Linux without read deadlines (the model's
-claim excludes served connections with read deadlines). The net extension's semantics allows bytes
-after a read error on a cut direction, which is why the model says it (as for the client's
-`connectReader`, `go-netrpc-dialhttp-reads-answer-after-read-error.md`).
+no: handled by the net extension's semantics (2026-11-23, D1 v3.5): no read returns a byte after a
+read error (`readDead`, `read_after_dead_au`), and a timeout needs a read deadline. The model's
+`connReader.failed` is removed (`models/net/http/server.go` is Go's code again); the head reader's
+proof (`Net/Proof/net/http/connReader__Read.lean`, `crHead`) holds the end's `rdlTok cn true false`
+(no read deadline while the head is read) and records the first error (`crHeadErr`,
+`crHeadErr_final`: nothing delivered after it), the law a head parser's spec takes.

@@ -16,21 +16,6 @@ noncomputable section
 
 namespace net.http
 
-class timeoutError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying timeoutError.underlying timeoutError
-  underlying : go.UnderlyingDirectedEq timeoutError.ty timeoutError.underlying
-  get_err : ∀ (x : timeoutError), go.IsGoStepPureDetTagged under (StructFieldGet timeoutError.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : timeoutError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet timeoutError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : timeoutError)))
-  method_set : go.MethodSetIs timeoutError.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeoutError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
-
-attribute [instance] timeoutError.TypeAssumptions.type_repr
-  timeoutError.TypeAssumptions.underlying
-  timeoutError.TypeAssumptions.get_err
-  timeoutError.TypeAssumptions.set_err
-  timeoutError.TypeAssumptions.method_set
-  timeoutError.TypeAssumptions.ptr_method_set
-
 class tLogKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tLogKey.underlying tLogKey
   underlying : go.UnderlyingDirectedEq tLogKey.ty tLogKey.underlying
