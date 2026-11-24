@@ -22,7 +22,8 @@ and the arguments its `wp_main` gets. `kitgen.py` writes the repetition from tha
 ## Inputs: the `KITGEN` section of `etc/dsv/<kit>.py`
 
 The kit file (etc/dsv/README.md) gets one more optional name, `KITGEN` (a dict; the name `KIT` is
-taken: `goose.dsv_kits()` sets `m.KIT` to the kit's name). Every part is optional: a kit adopts
+taken: `goose.dsv_kits()` sets `m.KIT` to the kit's name; and `goose.dsv_kits()` skips
+`kitgen.py` itself, the one change to `etc/goose.py`). Every part is optional: a kit adopts
 the generator file by file. The values are Python, so a template is a format string over a
 machine's fields (`{n}` its command, `{id}` its Go id, `{i}` its index in `system`, `{k}` its
 index in its role, `{pkg}` the kit's Lean package), or a function of the machine for what varies
@@ -41,7 +42,8 @@ by more than a substitution (paxos's servers 1..3 are acceptors, 4..5 learners).
 | `proof` | `TopLevelRobustness.lean` (the proof): doc, imports, opens, the boot lemma's variant (`plain`: paxos's `wp_boot`; `gostate`: rabia's, handing `main` the package state), the theorem's head and tail, the bridge (`robust_of_distProtoRB` ...), the start (a call of a hand-written `kit_start` lemma, or, for the retrofits, the kit's lines verbatim), and per role: its share, intro pattern, `wp_main` term, framed hypotheses, the final split's hypotheses and extra steps |
 | `mains` | `Mains.lean`: doc, imports, opens, the section's variables, per role its `wp_main` text |
 | `boot` | the first-run boot tables (`BootTable.lean`, `BootCmdsLinked.lean`), generalizing `_swiftpaxos_boot.py` and dsv-vr's `_vr_boot.py`: the table's source command, the owned packages, the resource `Q` the boot returns, the variables, opens and docs |
-| `nonvacuity` | the premise classes needing an instance (the NON-VACUITY rule): the scaffold's stubs |
+| `proof_roots` | the kit's own Lean trees, `Dsverify/{Proof,Spec}/<root>/` (default: the kit package), which `--export-challenge` never exports but the statement's closure |
+| (premise classes) | read from `statement.premises`: the scaffold's non-vacuity stubs and `--audit`'s list |
 
 K (the remote calls' budget units per client address, `mapCtx_alloc ... K`) and `readTries` are
 the kit's numbers (`budget = dict(K=..., read_tries=...)`); a generated `kit_start` call passes
@@ -96,8 +98,74 @@ reports any difference instead of making it):
 4. dsv-vr (not landed): its `_vr_boot.py` becomes a `boot` section when it lands.
 New kits start from `KITGEN` with a `kit_start` lemma and `kit_gen.go`.
 
-## State
+## The challenge export (`--export-challenge DIR KIT`; user decision, 2026-11-24)
 
-See "Progress" below (kept current).
+For the dsverify-lab harness's automatic-proving runs, whose containers cannot see etcd-grove: a
+self-contained tree with the kit's Go and statement, the shared infrastructure it needs, and none of
+the kit's own proofs (etc/dsv/README.md, "Exporting a proving challenge", has the contents).
+
+- **What is "the kit's own"**: the modules under `Dsverify/{Proof,Spec}/<r>/` for `r` in
+  `proof_roots`. Of them only the statement's import closure (checked spec/defs tier: the export
+  stops if the statement imports a proof module) and gen-init's generated `Init`/`PkgTable` (the
+  kit file's `PKGS`, `PROGRAMS`) are exported: the allow-list, written to `challenge/MANIFEST.txt`.
+- **The shared part**: the import closure of the kit's landed proof (`Proof/<pkg>/TopLevelRobustness`)
+  and of the generated files, outside the kit's trees; then everything is kept closed under imports
+  (a module importing an unexported one is dropped and listed; none for paxos).
+- **The leak check**, run after the export and alone with `--leak-check DIR KIT`: reads the exported
+  tree, not the generator's sets: (1) no module of the kit's trees outside the allow-list; (2) every
+  import of a module of this repository is exported; (3) no `sorry` in the statement's closure, but
+  Goose's instances of axiomatized types (`  sorry -- axiomatized type` in `GeneratedProof`, part of the
+  landed trust base: counted and reported). Negative tests (paxos): a planted `KitProof.lean` fails
+  (1) and (2); a `sorry` added to `Net/Statement/DistDeploy.lean` fails (3).
+- **The goal**: `Goal.lean`, the library `Goal`, `theorem Perennial.<pkg>.goal : <thm>.spec := sorry`;
+  `challenge/comparator/challenge.conf` and `Challenge.lean` in the conventions of the lab's
+  `statement/comparator-check.sh` (`theorem=`, `solution=Goal`, `layout=`, `gomodule=`, `test=`,
+  `perennial=`; `Challenge.lean`'s text below its header is `Goal.lean`'s). Two keys are new:
+  `tree=etcd-grove <commit>` and `statement=<module>`: the challenge is the exported tree itself.
+  **Gap (lab side, not changed here):** comparator-check.sh builds its challenge by regenerating
+  Goose's output of the fork into `DsvLab` with a KitStd and the lab's `DsvStatement.lean`; an
+  etcd-grove statement depends on the whole exported tree (Net, the main tree's translations and
+  proofs), which that workspace does not have. The lab needs a `tree=` mode: the challenge workspace
+  is the exported tree (a fresh copy, never the agent's), `DsvLab.Challenge` is `Challenge.lean` over
+  it, and the permitted axioms are those of the challenge's environment as now.
+
+## Findings
+
+- **paxos's statement closure carries the kit's proof design.** `TopLevelDefs` imports `Kit.lean`
+  (for `clientAddrs`) and the paxos package's `Deploy`, so the exported allow-list has `Kit`
+  (the kit functions' specs), `Inv`, `Agents`, `Net`, `Wire` (the protocol's invariants and ghost
+  vocabulary): defs only, nothing proved, but a challenge built from them gives the agent the
+  landed proof's invariants. A cleaner challenge needs `TopLevelDefs` to import only the addresses
+  (a statement-file change, not made: retrofits change no statement text).
+- **epaxos's codec cannot be regenerated as its module stands**: `rpcgen.py --check` on
+  `examples/dsverify/epaxos/examples/epaxosnet/rpc.toml` fails (`module models.lab provides package
+  models.lab/rpcdesc and is replaced but not required`): its `go.mod` lacks the `models.lab`
+  requirement swiftpaxos's has. So epaxos's KITGEN cannot list its codec yet; the gates have never
+  checked it (their codec loops list pbgen's and jsongen's inputs only).
+- The generic boot section reproduces dsv-vr's `_vr_boot.py` output byte for byte as well (tested in
+  a scratch root against `origin/dsv-vr` 7d6581b114's `BootTable.lean` and `BootCmdsLinked.lean`,
+  header aside); the VR section to adopt is in "Migration" below.
 
 ## Progress
+
+- `etc/dsv/kitgen.py`: `--check`, `--audit`, `--scaffold`, `--list`, `--export-challenge`,
+  `--leak-check`; wired into `etc/gates.sh` (section `sec_goose`, after gen-init: the boot tables
+  read gen-init's PkgTables).
+- paxos retrofit: KITGEN in `etc/dsv/paxos.py`; the 10 commands' mains, the statement,
+  `TopLevelDefs`, the proof, `Mains` regenerated: **byte-identical but for the one header line each**
+  (14 files; `paxos_remote_robust.spec`'s text unchanged).
+- swiftpaxos: the boot tables from the generic `boot` section (same output as `_swiftpaxos_boot.py`
+  but the header line, which moved from the doc comment to the first line; the script retired), and
+  its net/rpc codec checked through `rpcgen.py --check`.
+- Export: paxos exported (314 Lean modules, 42 of the kit's own on the allow-list, 0 dropped), leak
+  check ok, statement closure 112 modules, sorry-free but Goose's 174 axiomatized-type instances.
+
+### Migration, next
+
+- rabia, quepaxa, epaxos: the paxos parts (statement premises as `statement.premises`: rabia's are all
+  heap premises; quepaxa's include raw ones; epaxos's `heapAt` is in `TopLevelDefs`, `defs.heap_at`
+  is not implemented yet), Mains and the proof's `have` lines (`proof.have`).
+- dsv-vr, when it lands: replace `_vr_boot.py` by this `boot` section (tested):
+  `table='server1'`, `owned=[vsrnet, pkg.replica, pkg.network, 'encoding.json']`,
+  `opens` its three lines, `variables` (generic `GF`), `q='encoding.json.codecFresh (GF := GF)'`,
+  `q_sep='\n    '`, `post` its two lines, `returns` its sentence, the two docs.

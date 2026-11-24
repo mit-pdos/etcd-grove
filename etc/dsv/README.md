@@ -2,7 +2,7 @@
 
 Each kit ported into the part `Dsverify/` (notes/dsv-paxos.md) has one file here, `<kit>.py`
 (`paxos.py`), and edits no shared script: `etc/goose.py` and `etc/gen-init.py` load every `*.py`
-here (`goose.dsv_kits()`, in name order; files starting with `_` are skipped). The `Dsverify` lib's
+here (`goose.dsv_kits()`, in name order; files starting with `_`, and the generator `kitgen.py`, are skipped). The `Dsverify` lib's
 glob in `lakefile.toml` (`Dsverify.+`) already covers every kit's modules, and a kit's trust base is
 its own `etc/tcb-collections/dsv-<kit>.txt` (the gates glob that directory).
 
@@ -19,6 +19,7 @@ name is optional; a kit without `GOOSE` has no goose project.
 | `MAIN` | gen-init.py | main-tree packages the kit's closure adds to `NET_MAIN` (always the main tree's inventory and instances, with those of their imports `Net/` lacks; not raft's `Init` if listed in `RAFT_INIT`) |
 | `MAIN_GEN` | gen-init.py | the `MAIN` packages whose `Init.lean` is generated into the part (default: all of `MAIN`) |
 | `OWN` | gen-init.py | the part's own translations of packages the main tree translates otherwise: the main tree's `SPECIAL` does not apply to them |
+| `KITGEN` | etc/dsv/kitgen.py | the kit's generated plumbing (below, "Adding a kit"; notes/dsv-kitgen.md) |
 | `special(g)` | gen-init.py | returns `{package: configuration}` for the kit's packages, added to `SPECIAL` (`g`: gen-init.py's globals, `g.newvars_cfg`, `g.FIN_PRE`, ...); a package configured twice is an error |
 
 Each kit is generated in a context of its own (`gen-init.py`'s `dsv_kit_raw`): one kit's
@@ -44,3 +45,49 @@ moved to where it can be seen. So (#24, upamanyus's condition for this mechanism
   its notes.
 
 Paxos needs none: its statement rests on Lean's three axioms with no hypotheses.
+
+## Adding a kit
+
+1. Port the kit's Go into `examples/dsverify/<kit>/` (the fork as its own Go module, the kit package
+   `examples/<kitpkg>` on `examples/lib/remote`: `kit.go` with `Orch()`, `Client(c)`, `Server(id)`).
+2. Write `etc/dsv/<kit>.py`: `GOOSE`, `PKGS`, `PROGRAMS` (and the rest of the table above), then its
+   `KITGEN` section (notes/dsv-kitgen.md, "Inputs"; `paxos.py` is the full example, `swiftpaxos.py`
+   a kit adopting only the boot tables): the roles and their machines, the codecs, the statement
+   (theorem name, addresses, step bound, premises), and the Lean templates of each role (its share,
+   its `wp_main`, ...).
+3. Run `etc/goose.py`, `etc/gen-init.py`, then `etc/dsv/kitgen.py <kit>`: the commands' mains,
+   `kit_gen.go` (`go_consts`), the codecs (through `models/`'s generators), the statement
+   `Dsverify/Spec/<pkg>/TopLevelRobustness.lean`, `TopLevelDefs.lean`, the statement's proof around
+   the kit's lemmas, `Mains.lean`, the boot tables (`boot`). `kitgen.py --scaffold <kit>` writes
+   the starting points of the hand-written `Start.lean` (`kit_start`) and, if the statement has
+   premise classes, `NonVacuityLinked.lean` (one stub per class: the NON-VACUITY rule).
+4. Write the proofs (`Kit.lean`, `KitProof.lean`, `Linked.lean`, the protocol's), the premise classes'
+   content, and the non-vacuity instances. Never edit a generated file (its first line says it is);
+   change the kit file and regenerate. `etc/gates.sh` runs `kitgen.py --check`.
+5. Audit: `etc/dsv/kitgen.py --audit <kit>` prints what a reader must check (the statement file, the
+   definitions it names, each premise class with its declaration's place and size).
+
+The generator is untrusted: a reader reads the committed statement, not the script.
+
+### Exporting a proving challenge
+
+`etc/dsv/kitgen.py --export-challenge DIR <kit>` writes a self-contained tree for an automatic-proving
+run on the kit (the dsverify-lab harness runs agents in containers that cannot see etcd-grove):
+- the kit's Go module and the local modules its `go.mod` replaces with (`examples/lib/remote`,
+  lintest, porcupine; `models/` if the kit translates the models);
+- the statement and every module it imports, and gen-init's generated `Init`/`PkgTable` of the kit;
+- the shared infrastructure the kit's landed proof uses outside the kit's own tree (Net, the main
+  tree, other kits' shared libraries), closed under imports;
+- **none of the kit's own proofs**: of `Dsverify/{Proof,Spec}/<proof_roots>/`, only the statement's
+  closure (spec and defs modules only: the export stops if the statement imports a proof) and
+  gen-init's generated files (`challenge/MANIFEST.txt` lists each with why);
+- `lakefile.toml` (the libraries present, plus `Goal`), `lake-manifest.json` and `lean-toolchain` (the
+  Perennial pin);
+- `Goal.lean` (`theorem goal : <thm>.spec := sorry`) and `challenge/comparator/{challenge.conf,
+  Challenge.lean}` in the lab's comparator conventions (`statement/comparator-check.sh`:
+  `theorem=`, `solution=Goal`, `perennial=`, `gomodule=`, `test=`; plus `tree=` and `statement=`).
+
+It then runs the leak check (also `--leak-check DIR <kit>`): no module of the kit's tree outside
+the allow-list, every exported module's imports of this repository exported, and no `sorry` in the
+statement's closure but Goose's instances of axiomatized types (`sorry -- axiomatized type`, the
+translation's, counted). Build the export up to the statement with `lake build Goal`.

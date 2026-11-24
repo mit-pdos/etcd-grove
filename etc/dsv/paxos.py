@@ -54,6 +54,8 @@ KITGEN = dict(
     go_import='github.com/xiang90/paxos/examples/paxosnet',
     go_pkg='paxosnet',
     lean_pkg=f'{PAXOS}.examples.paxosnet',
+    # the kit's own Lean (Dsverify/{Proof,Spec}/<root>/): never exported (--export-challenge)
+    proof_roots=[PAXOS],
     roles=[
         dict(cmd='orch', go_doc="the paxos kit's orchestrator machine", go_call='Orch()',
              share='([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (woR Γ) a) ∗ mapCtx (Gg := G) (I := BStr) ∗ '

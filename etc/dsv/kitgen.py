@@ -8,6 +8,9 @@ Usage:
   etc/dsv/kitgen.py --audit KIT            print what a reader of the kit's statement must check
   etc/dsv/kitgen.py --scaffold KIT         write the hand-written files' starting points, if absent
   etc/dsv/kitgen.py --list [KIT ...]       print the generated files
+  etc/dsv/kitgen.py --export-challenge DIR KIT   a self-contained tree for a proving run on the kit,
+                                           none of the kit's proofs; then the leak check
+  etc/dsv/kitgen.py --leak-check DIR KIT   the leak check of an exported tree
   --no-codecs                              do not run the codec generators (they run Go)
 
 Generated, committed, and checked by `--check` in etc/gates.sh (each file carries a header naming
@@ -786,6 +789,245 @@ def audit(kit, kg):
     print(f'\n  {total:5d}  lines in all (the definitions they name in turn are not counted)')
 
 
+# ---------------------------------------------------------------------------------------------
+# --export-challenge DIR KIT: a self-contained tree for an automatic-proving run on the kit
+# (notes/dsv-kitgen.md, "The challenge export"): the kit's Go and statement, the shared
+# infrastructure it needs, and none of the kit's own proofs.
+
+def _tiers():
+    """etc/tier-check.py's modules, tiers and imports (repository modules only)."""
+    spec = importlib.util.spec_from_file_location('kitgen_tiercheck', os.path.join(ROOT, 'etc', 'tier-check.py'))
+    tc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tc)
+    tiers, _ = tc.classify()
+    return tiers, tc.IMPORTS
+
+
+def closure(roots, imports, stop=lambda m: False):
+    seen, st = set(), list(roots)
+    while st:
+        m = st.pop()
+        if m in seen or m not in imports:
+            continue
+        seen.add(m)
+        st.extend(i for i in imports[m] if not stop(i))
+    return seen
+
+
+def kit_file(kit):
+    spec = importlib.util.spec_from_file_location('kitgen_kitfile_' + kit, os.path.join(DSV, kit + '.py'))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def challenge_sets(kit, kg):
+    """The export's modules: (exported, allow, generated, dropped, in_tree, statement, tiers)."""
+    tiers, imports = _tiers()
+    km = kit_file(kit)
+    pkg = kg['lean_pkg']
+    roots = kg.get('proof_roots', [pkg])
+    tree = tuple(f'Dsverify.{t}.{r}' for r in roots for t in ('Proof', 'Spec'))
+
+    def in_tree(m):
+        return any(m == t or m.startswith(t + '.') for t in tree)
+
+    stmt = f'Dsverify.Spec.{pkg}.TopLevelRobustness'
+    proof = f'Dsverify.Proof.{pkg}.TopLevelRobustness'
+    cs = closure([stmt], imports)
+    allow = {m for m in cs if in_tree(m)}
+    bad = sorted(m for m in allow if tiers[m] not in ('spec', 'defs'))
+    if bad:
+        sys.exit('kitgen: the statement imports proof modules of the kit (they would leak):\n  ' + '\n  '.join(bad))
+    # gen-init's generated files of the kit: its packages' Init.lean, its programs' PkgTable.lean
+    gen = {f'Dsverify.Proof.{q}.Init' for q in getattr(km, 'PKGS', [])} | \
+        {'Dsverify.' + v[:-5].replace('/', '.') for v in getattr(km, 'PROGRAMS', {}).values()}
+    gen = {m for m in gen if m in imports}
+    # the shared infrastructure: what the kit's landed proof and the generated files use outside
+    # the kit's tree
+    infra = {m for m in closure([proof], imports) if not in_tree(m)}
+    infra |= {m for m in closure(gen, imports, stop=in_tree) if not in_tree(m)}
+    out = infra | allow | gen | cs
+    dropped = []
+    changed = True
+    while changed:  # keep the export closed under imports: drop what imports an unexported module
+        changed = False
+        for m in sorted(out):
+            miss = [i for i in imports[m] if i not in out]
+            if miss:
+                out.discard(m)
+                dropped.append((m, miss))
+                changed = True
+    if stmt not in out:
+        sys.exit(f'kitgen: the statement {stmt} cannot be exported closed: {dropped}')
+    return out, allow, gen & out, dropped, in_tree, stmt, tiers
+
+
+def go_dirs(start):
+    """The Go module at `start` (relative to ROOT) and every local module its go.mod replaces with,
+    transitively."""
+    seen, st = [], [start]
+    while st:
+        d = os.path.normpath(st.pop())
+        if d in seen:
+            continue
+        seen.append(d)
+        gm = os.path.join(ROOT, d, 'go.mod')
+        if os.path.exists(gm):
+            for t in re.findall(r'=>\s*(\.\.?/\S+)', open(gm).read()):
+                st.append(os.path.join(d, t))
+    return seen
+
+
+CHALLENGE_GOAL = """{header}module
+
+public import Dsverify.Spec.{pkg}.TopLevelRobustness
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+namespace {pkg}
+
+/-- The goal: the kit's top-level statement (`Dsverify/Spec/.../TopLevelRobustness.lean`). -/
+theorem goal : {thm}.spec :=
+  sorry
+
+end {pkg}
+end Perennial
+"""
+
+
+def export_challenge(kit, kg, dest):
+    import json
+    import shutil
+    out, allow, gen, dropped, in_tree, stmt, tiers = challenge_sets(kit, kg)
+    km = kit_file(kit)
+    dest = os.path.abspath(dest)
+    if os.path.exists(dest) and os.listdir(dest):
+        sys.exit(f'kitgen: {dest} is not empty')
+    os.makedirs(dest, exist_ok=True)
+    head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+
+    def cp(rel):
+        s, d = os.path.join(ROOT, rel), os.path.join(dest, rel)
+        os.makedirs(os.path.dirname(d), exist_ok=True)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, dirs_exist_ok=True, ignore=shutil.ignore_patterns('.lake', '.git'))
+        else:
+            shutil.copy2(s, d)
+
+    for m in sorted(out):
+        cp(m.replace('.', '/') + '.lean')
+    # the Lake configuration: the pin's manifest and toolchain; the libraries the export has
+    cp('lake-manifest.json')
+    cp('lean-toolchain')
+    lk = open(os.path.join(ROOT, 'lakefile.toml')).read()
+    tops = {m.split('.')[0] for m in out}
+    parts = re.split(r'(?m)^(?=\[\[|\[leanOptions\])', lk)
+    keep, libs = [parts[0]], []
+    for p_ in parts[1:]:
+        if p_.startswith('[[lean_lib]]'):
+            globs = re.findall(r'"([A-Za-z]+)\.\+"', p_)
+            if not any(g in tops for g in globs):
+                continue
+            libs.append(re.search(r'name = "(\w+)"', p_).group(1))
+        elif p_.startswith('[[lean_exe]]'):
+            continue
+        keep.append(p_)
+    keep.insert(len(keep) - 1 if keep[-1].startswith('[leanOptions]') else len(keep),
+                '# the challenge\'s goal (kitgen --export-challenge)\n[[lean_lib]]\nname = "Goal"\n\n')
+    lk2 = ''.join(keep)
+    lk2 = re.sub(r'(?m)^defaultTargets = .*$',
+                 'defaultTargets = [' + ', '.join(f'"{x}"' for x in libs + ['Goal']) + ']', lk2)
+    open(os.path.join(dest, 'lakefile.toml'), 'w').write(lk2)
+    # the Go: the kit's module and the local modules it replaces with; the models, if translated
+    gdirs = go_dirs(kg['go_module_dir'])
+    g = getattr(km, 'GOOSE', {})
+    if g.get('std_models') or g.get('module_models'):
+        gdirs.append('models')
+    for d in gdirs:
+        cp(d)
+    # the goal, and the comparator's files in the lab's convention (statement/comparator-check.sh)
+    thm, pkg = kg['statement']['theorem'], kg['lean_pkg']
+    open(os.path.join(dest, 'Goal.lean'), 'w').write(CHALLENGE_GOAL.format(header='', pkg=pkg, thm=thm))
+    c = os.path.join(dest, 'challenge', 'comparator')
+    os.makedirs(c)
+    pin = next(x['rev'] for x in json.load(open(os.path.join(ROOT, 'lake-manifest.json')))['packages']
+               if x['name'] == 'perennial')
+    gomod = re.search(r'(?m)^module (\S+)', open(os.path.join(ROOT, kg['go_module_dir'], 'go.mod')).read()).group(1)
+    open(os.path.join(c, 'challenge.conf'), 'w').write(
+        f'# the comparator\'s check of the goal (the lab\'s statement/comparator-check.sh conventions),\n'
+        f'# written by {ME} --export-challenge {kit} from etcd-grove {head}\n'
+        f'# the theorem, and the project\'s module that has it (the library Goal)\n'
+        f'theorem=Perennial.{pkg}.goal\nsolution=Goal\n'
+        f'# the module root of the exported tree\'s kit modules\nlayout=Dsverify\n'
+        f'# the fork\'s Go module, and the kit package whose commands are the system\n'
+        f'gomodule={gomod}\ntest=./{kg["go_pkg_dir"]}\n'
+        f'# the Perennial revision the goal is stated over; the project must pin the same\nperennial={pin}\n'
+        f'# the challenge is the exported tree itself (etcd-grove\'s translations and infrastructure), not\n'
+        f'# Goose\'s output regenerated by the lab: the statement\'s module and its closure\n'
+        f'tree=etcd-grove {head}\nstatement={stmt}\n')
+    open(os.path.join(c, 'Challenge.lean'), 'w').write(CHALLENGE_GOAL.format(
+        header=f'/-\nThe comparator\'s challenge: the kit\'s statement `{thm}.spec`, its proof a `sorry`; the text\n'
+               f'below this header is `Goal.lean`\'s, so that the two elaborate alike. Written by\n'
+               f'{ME} --export-challenge {kit}.\n-/\n', pkg=pkg, thm=thm))
+    tree_files = sorted(m for m in out if in_tree(m))
+    with open(os.path.join(dest, 'challenge', 'MANIFEST.txt'), 'w') as f:
+        f.write(f'# kitgen --export-challenge {kit}: etcd-grove {head}, Perennial {pin}\n')
+        f.write(f'# {len(out)} Lean modules; Go: {" ".join(gdirs)}\n')
+        f.write('# the kit\'s modules exported (the allow-list): the statement\'s closure (spec/defs only)\n'
+                '# and gen-init\'s generated package initializers and tables\n')
+        for m in tree_files:
+            f.write(f'allow {m} {"statement" if m in allow else "generated"} {tiers[m]}\n')
+        for m, miss in dropped:
+            f.write(f'dropped {m} (imports {", ".join(miss[:3])})\n')
+    return out, tree_files, dropped
+
+
+SORRY = re.compile(r'\bsorry\b')
+GOOSE_SORRY = re.compile(r'(?m)^  sorry -- axiomatized type$')
+IMP = re.compile(r'^\s*(?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?(\S+)', re.M)
+
+
+def leak_check(kit, kg, dest):
+    """After an export: no module of the kit's tree but the allow-list's, every exported module's
+    imports of this repository's modules exported, and no `sorry` in the statement's closure.
+    Returns (failures, modules, the statement closure's size)."""
+    out, allow, gen, dropped, in_tree, stmt, tiers = challenge_sets(kit, kg)
+    ok_tree = allow | gen
+    present = set()
+    for dp, dirs, fs in os.walk(dest):
+        if dp == dest:
+            dirs[:] = [d for d in dirs if d not in ('.lake', '.git', 'examples', 'models', 'third_party', 'challenge')]
+        for f in fs:
+            if f.endswith('.lean'):
+                present.add(os.path.relpath(os.path.join(dp, f), dest)[:-5].replace(os.sep, '.'))
+    bad = [f'leak: {m} (the kit\'s, not on the allow-list)' for m in sorted(present)
+           if in_tree(m) and m not in ok_tree]
+    texts = {m: open(os.path.join(dest, m.replace('.', '/') + '.lean')).read() for m in present}
+    for m, t in sorted(texts.items()):
+        for i in IMP.findall(t):
+            if i not in present and os.path.exists(os.path.join(ROOT, i.replace('.', '/') + '.lean')):
+                bad.append(f'open import: {m} imports {i}, which is not exported')
+    cs = closure([stmt], {m: [i for i in IMP.findall(texts[m]) if i in present] for m in present})
+    com = re.compile(r'/-.*?-/|--[^\n]*', re.S)
+    goose_sorry = 0
+    for m in sorted(cs):
+        t = texts[m]
+        if '.GeneratedProof.' in f'.{m}.':
+            # Goose's instances of an axiomatized type (`sorry -- axiomatized type`): the
+            # translation's, in the landed trust base (counted, not refused)
+            n0 = len(GOOSE_SORRY.findall(t))
+            goose_sorry += n0
+            t = GOOSE_SORRY.sub('', t)
+        if SORRY.search(com.sub('', t)):
+            bad.append(f'sorry: {m} (in the statement\'s closure)')
+    return bad, len(present), len(cs), goose_sorry
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('kits', nargs='*')
@@ -794,12 +1036,30 @@ def main():
     ap.add_argument('--scaffold', action='store_true')
     ap.add_argument('--list', action='store_true')
     ap.add_argument('--no-codecs', action='store_true')
+    ap.add_argument('--export-challenge', metavar='DIR')
+    ap.add_argument('--leak-check', metavar='DIR')
     a = ap.parse_args()
     kits = load_kits()
     for k in a.kits:
         if k not in kits:
             sys.exit(f'kitgen: no KITGEN in etc/dsv/{k}.py')
     names = a.kits or sorted(kits)
+    if a.export_challenge or a.leak_check:
+        if len(a.kits) != 1:
+            sys.exit('kitgen: --export-challenge/--leak-check take one kit')
+        k = a.kits[0]
+        if a.export_challenge:
+            out, tree, dropped = export_challenge(k, kits[k], a.export_challenge)
+            print(f'kitgen: exported {k} to {a.export_challenge}: {len(out)} Lean modules, '
+                  f'{len(tree)} of the kit\'s own (the allow-list), {len(dropped)} dropped')
+        d = os.path.abspath(a.export_challenge or a.leak_check)
+        bad, n, ns, gs = leak_check(k, kits[k], d)
+        for b in bad:
+            print(f'kitgen: {b}')
+        print(f'kitgen: leak check {"FAILED" if bad else "ok"} ({n} modules; the statement\'s closure {ns} '
+              f'modules, {"not " if any(b.startswith("sorry") for b in bad) else ""}sorry-free but Goose\'s '
+              f'{gs} instances of axiomatized types)')
+        sys.exit(1 if bad else 0)
     if a.audit:
         for k in names:
             audit(k, kits[k])
