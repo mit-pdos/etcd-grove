@@ -2441,7 +2441,7 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
       intro x hx
       rcases List.mem_append.1 hx with hx | hx
       · simp only [etcdKVMethodsM, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-        rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [etcdTys, etcdTyList]
+        rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp
       · exact hmt x hx)) $$ [] with Hrpcs
   · iframe Hl
     imodintro
@@ -4087,7 +4087,7 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
     (by
       intro x hx
       simp only [etcdLeaseMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl <;> simp [etcdTys, etcdTyList])) $$ [] with Hrpcs
+      rcases hx with rfl | rfl <;> simp)) $$ [] with Hrpcs
   · iframe #
   simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]
   icases Hrpcs with ⟨#H1, #H2, -⟩
@@ -4149,7 +4149,7 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
     (by
       intro m hm
       simp only [etcdLeaseMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hm
-      rcases hm with rfl | rfl <;> simp [etcdTys, etcdTyList])
+      rcases hm with rfl | rfl <;> simp)
     hρ HLv) $$ [] with ⟨#H1, #H2, #H3, #H4, #H7, Hle⟩
   · iframe #
   simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]

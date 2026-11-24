@@ -112,7 +112,6 @@ axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec
 axiom grpcResolverAt
 axiom grpcSrvCfgRaw
-axiom grpcSrvCfg_agree
 axiom grpcSrvLink
 axiom grpcSrvNew
 axiom grpcStatsHandlerOk

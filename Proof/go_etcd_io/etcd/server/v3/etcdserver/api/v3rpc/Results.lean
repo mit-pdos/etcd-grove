@@ -1550,7 +1550,7 @@ theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ :
     (by
       intro x hx
       simp only [etcdAuthMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [etcdTys, etcdTyList])) $$ [] with Hrpcs
+      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp)) $$ [] with Hrpcs
   · iframe Hl
     imodintro
     unfold etcdAuthMethods

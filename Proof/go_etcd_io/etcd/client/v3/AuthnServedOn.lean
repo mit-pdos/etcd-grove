@@ -451,7 +451,7 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
       simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append,
         List.mem_cons, List.mem_nil_iff, _root_.or_false] at hm
       rcases hm with rfl | rfl | rfl | rfl | rfl | rfl <;>
-        simp [etcdTys, etcdTyList, authnMethod])
+        simp [authnMethod])
     (fun h => by rw [hon] at h; cases h) HL) $$ [] with ⟨#H1, #H2, #H3, #H4, -, Hms⟩
   · rw [hon]
     iframe #
@@ -606,7 +606,7 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
     (by
       intro x hx
       simp only [etcdLeaseMethodsOn, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl <;> simp [etcdTys, etcdTyList])) $$ [] with Hrpcs
+      rcases hx with rfl | rfl <;> simp)) $$ [] with Hrpcs
   · iframe #
   simp only [etcdLeaseMethodsOn, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT,
     pbLeaseRevokeResponseT]

@@ -798,7 +798,7 @@ theorem etcd_lease_read_served (addr : GoString) (ql pl s : Loc) (A : v3rpc.KVAn
     (by
       intro x hx
       simp only [etcdLeaseReadMethodsMd, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl <;> simp [etcdTys, etcdTyList])) $$ [] with Hrpcs
+      rcases hx with rfl | rfl <;> simp)) $$ [] with Hrpcs
   · iframe #
   simp only [etcdLeaseReadMethodsMd, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT,
     pbLeaseLeasesRequestT, pbLeaseLeasesResponseT]
