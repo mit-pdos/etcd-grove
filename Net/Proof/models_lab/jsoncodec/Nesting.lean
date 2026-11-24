@@ -36,9 +36,10 @@ variable [package_sem' : models_lab.jsoncodec.Assumptions]
 
 set_option goose.wp.extras true
 
+set_option hygiene false in
 /-- A loop turn's end: `i + 1`, the state `hrun` names. -/
 local macro "nclose" h:term : tactic => `(tactic| (
-  wp_auto
+  try wp_auto
   wp_for_post
   iframe
   iexists _, _, _, _
@@ -69,7 +70,7 @@ theorem Nesting.wp_proof : Nesting.spec (GF := GF) (hG := hG) := by
   · have Hlt : uint.nat i < bs.length := by word
     obtain ⟨x, Hx⟩ : ∃ x, bs[uint.nat i]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
     have hdrop : bs.drop (uint.nat i) = x :: bs.drop (uint.nat i + 1) := by
-      rw [List.drop_eq_getElem_cons Hlt]; simp only [List.getElem?_eq_getElem Hlt] at Hx; cases Hx
+      rw [List.drop_eq_getElem_cons Hlt]; simp only [List.getElem?_eq_getElem Hlt] at Hx; cases Hx; rfl
     have hb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z b.len := by word
     have hnz : (sint.Z i).toNat = uint.nat i := by word
     rw [if_pos hb]
@@ -77,8 +78,6 @@ theorem Nesting.wp_proof : Nesting.spec (GF := GF) (hG := hG) := by
     · iframe; ipureintro; rw [hnz]; exact Hx
     rw [hdrop] at hrun
     have hi1 : uint.nat (i + W64 1) = uint.nat i + 1 := by word
-    have hW : ∀ k : Nat, k < 256 → (W8 ((k : Nat) : Int) : w8) = BitVec.ofNat 8 k := by
-      intro k hk; apply BitVec.eq_of_toNat_eq; simp [W8]; omega
     have e34 : (W8 34 : w8) = 34#8 := by decide
     have e91 : (W8 91 : w8) = 91#8 := by decide
     have e123 : (W8 123 : w8) = 123#8 := by decide
@@ -91,6 +90,7 @@ theorem Nesting.wp_proof : Nesting.spec (GF := GF) (hG := hG) := by
       by_cases h34 : x = W8 34
       · subst h34
         simp (config := { decide := true }) only [e34, ↓reduceIte] at hrun
+        rw [decide_eq_true rfl]
         nclose hrun
       rw [decide_eq_false h34]
       rw [e34] at h34
@@ -101,11 +101,19 @@ theorem Nesting.wp_proof : Nesting.spec (GF := GF) (hG := hG) := by
             false (bs.drop (uint.nat i + 1)) = nestRun (W64 0) (W64 0) false bs := by
           rcases h91 with e | e <;> subst e <;>
             simpa (config := { decide := true }) only [e91, e123, ↓reduceIte] using hrun
-        rcases h91 with e | e <;> subst e <;> wp_auto <;> wp_if_destruct
-        · rw [if_pos Hif] at hrun'; nclose hrun'
-        · rw [if_neg Hif] at hrun'; nclose hrun'
-        · rw [if_pos Hif] at hrun'; nclose hrun'
-        · rw [if_neg Hif] at hrun'; nclose hrun'
+        rcases h91 with e | e <;> subst e
+        · rw [decide_eq_true rfl]
+          wp_auto
+          wp_if_destruct
+          · rw [if_pos Hif] at hrun'; nclose hrun'
+          · rw [if_neg Hif] at hrun'; nclose hrun'
+        · rw [decide_eq_false (by decide)]
+          wp_auto
+          try rw [decide_eq_true rfl]
+          try wp_auto
+          wp_if_destruct
+          · rw [if_pos Hif] at hrun'; nclose hrun'
+          · rw [if_neg Hif] at hrun'; nclose hrun'
       have h91' : ¬ (x = 91#8 ∨ x = 123#8) := by rw [← e91, ← e123]; exact h91
       simp only [h91', ↓reduceIte] at hrun
       rw [not_or] at h91
@@ -119,8 +127,12 @@ theorem Nesting.wp_proof : Nesting.spec (GF := GF) (hG := hG) := by
           rcases h93 with e | e <;> subst e <;>
             simpa (config := { decide := true }) only [e93, e125, ↓reduceIte] using hrun
         rcases h93 with e | e <;> subst e
-        · nclose hrun'
-        · nclose hrun'
+        · rw [decide_eq_true rfl]
+          nclose hrun'
+        · rw [decide_eq_false (by decide)]
+          wp_auto
+          try rw [decide_eq_true rfl]
+          nclose hrun'
       have h93' : ¬ (x = 93#8 ∨ x = 125#8) := by rw [← e93, ← e125]; exact h93
       simp only [h93', ↓reduceIte] at hrun
       rw [not_or] at h93
@@ -132,6 +144,7 @@ theorem Nesting.wp_proof : Nesting.spec (GF := GF) (hG := hG) := by
       by_cases h92 : x = W8 92
       · subst h92
         rw [e92, nestRun_esc] at hrun
+        rw [decide_eq_true rfl]
         have hi2 : uint.nat i + 1 < bs.length := by
           rcases Nat.lt_or_ge (uint.nat i + 1) bs.length with h | h
           · exact h
@@ -152,11 +165,13 @@ theorem Nesting.wp_proof : Nesting.spec (GF := GF) (hG := hG) := by
         exact hrun
       rw [decide_eq_false h92]
       rw [e92] at h92
-      simp only [nestRun, h92, ↓reduceIte] at hrun
+      rw [nestRun.eq_def] at hrun
+      simp only [h92, ↓reduceIte] at hrun
       wp_auto
       by_cases h34 : x = W8 34
       · subst h34
         simp (config := { decide := true }) only [e34, ↓reduceIte] at hrun
+        rw [decide_eq_true rfl]
         nclose hrun
       rw [decide_eq_false h34]
       rw [e34] at h34
