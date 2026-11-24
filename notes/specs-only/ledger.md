@@ -6019,3 +6019,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
   No top-level statement changes (the tokens come from the backend's constructor inside the proof).
 - **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.
+## 2026-11-24: every client operation takes `levelTok 0` (decision 1b; prove-ps2-clientrdlock, #18)
+
+- **Spec.** The etcd client connection's resource family (`grpcConn … Ok`, `perRPCCredsOk pc Ok`,
+  `grpcInvokerOk … Ok`, `cliBidiStreamIs … Ok`), `anyRes` until now, becomes `clientRes`
+  (`R = levelTok 0`, `Proof/google_golang_org/grpc/InvGrpcBase.lean`); and every spec of a client operation
+  that makes a call on the connection synchronously (the generated stubs `kVClient.*`, `authClient.*`,
+  `leaseClient.*`, `watchClient.Watch`; the `retry*Client`s; `kv.*`, `txn.Commit`, `lessor.Grant`/`Revoke`/
+  `TimeToLive`/`Leases` and their `specM`/`specG`/`specP` forms; the client's `authClient.*`; `etcdConn.Invoke*`;
+  the retry interceptor's contract `etcdInterceptorOk(M)`; `isSafeRetry`, `waitRetryBackoff`, `getToken`,
+  `refreshToken`; the dial, `newClient`, `New`; the keep-alive and watch stream goroutines' bodies) takes a
+  level-0 thread token in its pre and gives it back in every outcome. `Client.Endpoints` and
+  `perRPCCredential.GetRequestMetadata` take it too. `backoffOk` becomes `backoffOkT` in the options
+  (`optionsOk`, `withBackoff`, `roundRobinQuorumBackoff`): the backoff is lent the token.
+- **Defect.** The two read-locking methods were trust-boundary axioms: their `RWMutex.RLock` needs a reader
+  slot, which no caller held (the retry interceptor's and grpc's per-attempt calls were persistent contracts
+  with no resource). Their docstrings hedged on "at most 2^30 - 1 concurrent readers".
+- **Evidence.** Both proved over their bodies (`Client__Endpoints.lean`, `perRPCCredential__GetRequestMetadata.lean`):
+  `newClient` builds a level-0 pool of `epMu`'s reader slots (`clientEpPool`, in `retryClientOk`, with the
+  read-only endpoints), `NewPerRPCCredentialBundle` one of `authTokenMu`'s (`credTokInv`, now a level-0 pool);
+  each call borrows with its caller's `levelTok 0` and gives it back. grpc lends the token to the
+  credentials (`perRPCCredsOk pc clientRes`, #24's S2 resource parameter).
+- **Proposed change.** As above, approved by the user as decision 1b (2026-11-23). The callers of the client
+  hold a thread token (a live thread has one token per level): a thread's proof splits `levelTok 0` off
+  (`threadTok_level0`), a goroutine's fork gives it (`wp_fork_level0`). No top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-clientrdlock/2026-11-24`); the two axioms retired.

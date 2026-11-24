@@ -1778,6 +1778,27 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
     unfold etcdInterceptorOkW
     iexact H2
 
+/-- **`go` of a goroutine that needs a level-0 thread token** (prove-ps2-clientrdlock, 2026-11-24):
+the forked thread's fresh thread token (`wp_fork_tok_body`) splits into its level-0 token, which the
+body is given and gives back (a client goroutine's calls on the connection, `clientRes`), and the
+other levels, kept aside until the thread exits. -/
+theorem wp_fork_level0 (e : Expr) (Φ : val → IProp GF) :
+    ⊢ ▷ (levelTok 0 -∗ WP e {{ v, ⌜v.isPanic = false⌝ ∗ levelTok 0 }}) -∗ ▷ Φ #() -∗
+      WP (Fork e) {{ Φ }} := by
+  iintro He HΦ
+  iapply wp_fork_tok_body $$ [He] HΦ
+  inext
+  iintro Htok
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Hr⟩
+  iapply wp_wand_r
+  isplitl [He H0]
+  · iapply He $$ H0
+  iintro %v ⟨%Hv, H0⟩
+  isplitr
+  · ipureintro; exact Hv
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe
+
 /-- **An etcd client's connection `conn` to the server at `addr`** (persistent; unit P3a; see the
 file header): grpc's connection with one unary interceptor, the client's retry interceptor
 (`etcdInterceptorOk`), and no default call options. -/
