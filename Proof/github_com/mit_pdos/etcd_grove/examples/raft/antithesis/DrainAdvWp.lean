@@ -169,7 +169,7 @@ theorem drainAdvance_close
       as %t %ca %ps' %ip' ⟨Hraw, -, -, -, -, %Hend⟩
   obtain ⟨hadv, hipo⟩ := Hend trivial Hst.1
   have hR := reach_next (net := net₃) hps hpend hce (hby ▸ hbyI)
-    (by rw [hqs, ← rnCfg_cfgM3 Hst.2]; exact hadv) hip hipo
+    (by rw [hqs, ← rnCfg_cfgM3 Hst.2]; exact hadv) hip (hipo hip)
   have hrv' : RsView (advRS I.rs₂ t ca) v₃ := rsView_next hrv hvce hout hps hdl hce
   have hadvn : advRS I.rs₂ t ca = { I.rs₂ with steps := [], term := t, capplied := ca, flw := false } :=
     advRS_none _ _ rfl

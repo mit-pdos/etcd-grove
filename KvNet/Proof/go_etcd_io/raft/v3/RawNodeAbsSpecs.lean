@@ -353,8 +353,10 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → PStat
         (rs.mode = .static → ca = rs.capplied)⌝ ∗
       ⌜rs.slent = none → rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length⌝ ∗
       -- (#33 S3c) the exact effect
+      -- (#33 S4, 2026-11-24) the boundary's fact at a boundary at the log's end (the harness's, after a
+      -- `Ready`): in general an acknowledgement can raise it past `min ip lcp` (ledger)
       ⌜S → γ.reTrace = none → AdvanceEnd (rnCfg γ) id ps qs ps' ∧
-        ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
+        (ip = ps.log.length → ip' = min ip (lcpLen ps.log ps'.log))⌝ }}
 
 /-- **`RawNode.Advance`, strengthened**. -/
 abbrev RawNode.Advance.absSpec : Prop :=

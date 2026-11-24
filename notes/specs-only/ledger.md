@@ -5608,3 +5608,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `id ∈ γ.reCfg ∧ γ.reTrace = none ∧ (isDyn → incoming = reCfg ∧ outgoing = ∅)` (was `rs.mode = .static`).
   `RnScope` also gains, last, `s.role = .leader → s.rd.ro.pending = []` (entry above).
 - **Decision.** Applied (the lead's option (a), branch `antithesis-s4`; raft helper).
+
+## 2026-11-24: `RawNode.Advance.form`'s in-progress boundary fact is false in general (#33 S4)
+
+- **Spec.** `RawNode.Advance.form`'s exact effect (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the
+  conjunct `ip' = min ip (lcpLen ps.log ps'.log)`.
+- **Defect.** False when the boundary is below the log's end: a `Ready` hands out `(2,b)`; a `MsgApp`
+  truncates to `(2,c)` (`ip = 1`); a later leader's `MsgApp` writes `(2,b)` back (`ip` stays `1`); the
+  `Advance` that steps the storage acknowledgement of `(2,b)` then finds it at the log (`ip' = 2`, not
+  `min 1 2 = 1`).
+- **Evidence.** The trace above (round 3 of the antithesis S4 plan); `unstable.stableTo` and
+  `acceptInProgress` raise `offsetInProgress` to the acknowledged index when the entry still matches.
+- **Proposed change.** The fact at a boundary at the log's end only:
+  `ip = ps.log.length → ip' = min ip (lcpLen ps.log ps'.log)`. The harness meets it: after a `Ready`,
+  `ip = |log|` (`Ready`'s `ip' = ps.log.length`), so an acknowledgement's index is at most `ip` and the
+  `max` is a no-op (a self-vote's `becomeLeader` append leaves `inprogress` alone).
+- **Decision.** Applied (the lead's round-3 decision; raft helper G). `drainAdvance` passes its `hip`.
