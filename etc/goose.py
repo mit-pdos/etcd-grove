@@ -2698,6 +2698,11 @@ def main():
     sources = [(p,) + source(p, local.get(p.name), args.check) for p in projects]
     sources = [with_proph_patches(p, src, desc) for p, src, desc in sources]
 
+    # the [model] dir of every internal/gomodel.toml: Perennial's internal/gomodel at the Lean pin
+    # (etc/gomodels.py)
+    import gomodels
+    gomodels.materialize([perennial])
+
     bindir = os.path.join(WORK, "bin")
     os.makedirs(bindir, exist_ok=True)
     run(["go", "build", "-o", bindir + os.sep, "./goose/cmd/goose", "./goose/cmd/proofgen"],
