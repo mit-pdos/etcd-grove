@@ -54,8 +54,8 @@ theorem putFragment.wp_proof
   try wp_auto
   iapply HΦ
   iframe Hbcap Hc
-  rw [show fragBytes src dst boot seq index total cs =
-    [] ++ headerBytes (W8 1) src dst boot seq ++ u32Le index ++ u32Le total ++ cs from rfl]
+  unfold fragBytes kindFragmentB
+  rw [List.nil_append]
   iexact Hb
 
 end proof

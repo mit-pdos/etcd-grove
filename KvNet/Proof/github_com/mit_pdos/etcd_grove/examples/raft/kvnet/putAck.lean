@@ -38,7 +38,8 @@ theorem putAck.wp_proof
   try wp_auto
   iapply HΦ
   iframe Hscap
-  rw [show ackBytes src dst boot seq = [] ++ headerBytes (W8 2) src dst boot seq from rfl]
+  unfold ackBytes kindAckB
+  rw [List.nil_append]
   iexact Hs
 
 end proof
