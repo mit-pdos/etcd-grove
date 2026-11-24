@@ -22,6 +22,12 @@ with the UDP side added:
   `kvBoot_names_fresh`);
 * **the client**: kvnet's (`kvudpClient_stable`, as `kvClient_stable`).
 
+Since 2026-11-24 the statement has no premise on the configuration, as kvnet's: the programs check it
+and return at once if they cannot run it (`RunNodeUDP`: `runNodeOk`, `RunNode`'s check; `Check`:
+`validAddrs`), and the proof cases on those checks as kvnet's (the theorem's docstring); a replica
+whose `RunNodeUDP` returns needs only its package state (`kvudpPcSkip`, `kvudpPc_skip_crashBoot`), the
+client at invalid addresses nothing (`kvudpClient_skip`).
+
 The three `net` UDP functions (`ListenUDP`, `(*UDPConn).WriteToUDP`, `(*UDPConn).ReadFromUDP`) are
 linked by the part's Link from their proofs (`Net/Proof/net/`, copied into the part).
 -/
@@ -518,22 +524,22 @@ variable [_root_.Perennial.errors.Assumptions]
 variable [_root_.Perennial.log.NewModel]
 
 /-- **A replica's program** (`ReplicaLinked.lean`'s `kvReplica_wp`, with `RunNodeUDP`): from the
-generation's empty package state, the replica's address protocols and, at every address map, the
-start resource and the UDP side's (`udpProcStart`). -/
+generation's empty package state and, if `RunNodeUDP`'s check passes (`runNodeOk`; otherwise it
+returns at once), the replica's address protocols and, at every address map, the start resource and
+the UDP side's (`udpProcStart`). -/
 theorem kvudpReplica_wp (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
-    (γu : UdpNames)
-    (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
-      (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
-    (hid1 : 1 ≤ uint.nat id) (hid2 : uint.nat id ≤ (splitAddrs addrs).length) :
+    (γu : UdpNames) :
     ⊢ ownGoState (GF := GF) ∅ -∗
-      (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
-        addrProto a (kvP (kvFacts γ (fun _ => True)) id) (kvQ (kvFacts γ (fun _ => True)) id)) -∗
-      (raft_kvcheck.connGlobals -∗ context.isClosedchanInit -∗ ∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗
-        kvNodeStart γ vs dir id dir ⟨cl.voters, cl.preVote, cl.checkQuorum, cl.stepDownOnRemoval,
-          cl.maxSizePerMsg, cl.maxCommittedSizePerReady, cl.maxInflightMsgs⟩ M ∗
-        udpProcStart (kvFacts γ (fun _ => True)) γu id dir M) -∗
+      (⌜runNodeOk (splitAddrs addrs) (uint.nat id) dir (uint.nat cl.voters)
+        (uint.nat cl.maxSizePerMsg) (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs)⌝ -∗
+        (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
+          addrProto a (kvP (kvFacts γ (fun _ => True)) id) (kvQ (kvFacts γ (fun _ => True)) id)) ∗
+        (raft_kvcheck.connGlobals -∗ context.isClosedchanInit -∗ ∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗
+          kvNodeStart γ vs dir id dir ⟨cl.voters, cl.preVote, cl.checkQuorum, cl.stepDownOnRemoval,
+            cl.maxSizePerMsg, cl.maxCommittedSizePerReady, cl.maxInflightMsgs⟩ M ∗
+          udpProcStart (kvFacts γ (fun _ => True)) γu id dir M)) -∗
       WP (kvudpReplicaProgram cl addrs dir id) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
-  iintro Hgs Hproto HS
+  iintro Hgs Hres
   unfold kvudpReplicaProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.raft.kvnet.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getIsPkgInit_wf) $$ [Hgs] as ⟨-, #Hpkg⟩
@@ -547,14 +553,18 @@ theorem kvudpReplica_wp (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (add
   ihave ⟨#Hnet, #Hctx⟩ := kvnet_pkg_deps $$ Hpkg
   ihave #Hcg := connGlobals_of_net $$ Hnet
   ihave #Hcc := context.isClosedchanInit_of_init $$ Hctx
-  ispecialize HS $$ Hcg Hcc
+  ihave Hcg' := connGlobals_of_net $$ Hnet
   unfold raft_kvcheck.connGlobals
-  icases Hcg with ⟨%eof, %ed, %et, #Heof, #Hed, -⟩
+  icases Hcg' with ⟨%eof, %ed, %et, #Heof, #Hed, -⟩
   wp_pures
   wp_apply (kvudpLink.raft_kvnet.wp_RunNodeUDP γ vs dir γu id addrs dir
       cl.voters cl.preVote cl.checkQuorum cl.stepDownOnRemoval cl.maxSizePerMsg
-      cl.maxCommittedSizePerReady cl.maxInflightMsgs eof ed hvc hid1 hid2) $$ [Hproto HS]
-  · iframe Hproto HS Heof Hed Hcc
+      cl.maxCommittedSizePerReady cl.maxInflightMsgs eof ed) $$ [Hres]
+  · iframe Heof Hed Hcc
+    iintro %h
+    ihave ⟨Hproto, HS⟩ := Hres $$ %h
+    iframe Hproto
+    iapply HS $$ Hcg Hcc
   ipureintro; rfl
 
 /-- **A replica's generation** (the body of `CrashBootWpU` for replica `id`, at the generation's
@@ -564,11 +574,10 @@ then the boot file's `udp_boot_crash` on the crash's rest, which give the next g
 `kvudpGen` at the same directory. -/
 theorem kvudpRep_gen (γ : KdNames) (γu : UdpNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString)
     (id : w64) (J : Fs.Ino) (R : Fs.Roots)
-    (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
-      (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
-    (hid1 : 1 ≤ uint.nat id) (hid2 : uint.nat id ≤ (splitAddrs addrs).length)
+    (hrun : runNodeOk (splitAddrs addrs) (uint.nat id) dir (uint.nat cl.voters)
+      (uint.nat cl.maxSizePerMsg) (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs))
     (hid32 : uint.nat id < 2 ^ 32)
-    (hR : Fs.RootsOk R) (hr : (dir, J) ∈ R) (hdir : dir.length < 2 ^ 39)
+    (hR : Fs.RootsOk R) (hr : (dir, J) ∈ R)
     (hmax : uint.nat id ≤ γ.max)
     (hγ : γ.r.cluster.dup = true ∧ γ.r.cluster.bootLen = 0 ∧ Cluster.trace γ.r.cluster = none ∧
       γ.r.cluster.snapLoc = (fun _ => none) ∧ γ.r.cluster.maxData = none ∧ γ.max < 2 ^ 32)
@@ -590,6 +599,8 @@ theorem kvudpRep_gen (γ : KdNames) (γu : UdpNames) (vs : List w64) (cl : Clust
             (Fs.gooseOsGS (L := L')) [] false V' ={⊤}=∗
           kvudpGen (hG := ⟨hG.goose_globalGS, L'⟩) γ γu id dir J R) := by
   iintro #Hsi #Hcl #Hrf #Hpr #Hpeer #Hum #Hua Hg Hgs
+  have hid1 := hrun.2.1
+  have hdir := hrun.2.2.2
   have hroot := (hR.2.2 _ hr).1
   have hf := kvDFile_ok dir J id hroot hdir hid32
   have hbf := kvBootDFile_ok dir J id hroot hdir hid32
@@ -606,7 +617,10 @@ theorem kvudpRep_gen (γ : KdNames) (γu : UdpNames) (vs : List w64) (cl : Clust
     with ⟨%bn, ⟨%hbn1, %hbn2⟩, Hbs, Hbk⟩
   imodintro
   isplitl [Hgs Hst Hbs]
-  · iapply kvudpReplica_wp γ vs cl addrs dir id γu hvc hid1 hid2 $$ Hgs Hpr
+  · iapply kvudpReplica_wp γ vs cl addrs dir id γu $$ Hgs
+    iintro %-
+    isplitr
+    · iexact Hpr
     iintro #Hcg #Hcc %M %hM
     isplitl [Hst]
     · unfold kvNodeStart
@@ -673,15 +687,15 @@ theorem kvudpRep_gen (γ : KdNames) (γu : UdpNames) (vs : List w64) (cl : Clust
 /-- **The checking client's program returns** (kvnet's `kvcheck_wp_program`, over kvudp's
 extensions). -/
 theorem kvudpCheck_wp_program (γ : KdNames) (cl : ClusterConfig) (addrs : GoString)
-    (hv : validAddrs (splitAddrs addrs) (uint.nat cl.voters) = true)
     (hrb : receiptBound GF ≤ 2 ^ 63) :
-    ⊢ rkvInv γ -∗ rkvVal γ raft_kvreconf.kvEmpty -∗
-      raft_kvcheck.kvCnt γ (splitAddrs addrs).length false (W64 0) -∗
-      raft_kvcheck.kvCnt γ (splitAddrs addrs).length true (W64 0) -∗
-      raft_kvcheck.addrsProto (kvFacts γ (fun _ => True)) (splitAddrs addrs) -∗
+    ⊢ (⌜validAddrs (splitAddrs addrs) (uint.nat cl.voters) = true⌝ -∗
+        rkvInv γ ∗ rkvVal γ raft_kvreconf.kvEmpty ∗
+        raft_kvcheck.kvCnt γ (splitAddrs addrs).length false (W64 0) ∗
+        raft_kvcheck.kvCnt γ (splitAddrs addrs).length true (W64 0) ∗
+        raft_kvcheck.addrsProto (kvFacts γ (fun _ => True)) (splitAddrs addrs)) -∗
       ownGoState ∅ -∗
       WP (kvudpCheckProgram cl addrs) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
-  iintro #Hinv Hval Hc1 Hc2 #Haddrs Hgs
+  iintro Hres Hgs
   unfold kvudpCheckProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.getIsPkgInit_wf) $$ [Hgs]
@@ -697,8 +711,8 @@ theorem kvudpCheck_wp_program (γ : KdNames) (cl : ClusterConfig) (addrs : GoStr
   ihave #Hcg := connGlobals_of_net $$ Hnet
   ihave #Hcc := context.isClosedchanInit_of_init $$ Hctx
   wp_pures
-  wp_apply (kvnetLink.raft_kvcheck.wp_Check γ addrs cl.voters hv hrb) $$ [Hval Hc1 Hc2]
-  · iframe Hcc Hcg Hinv Hval Hc1 Hc2 Haddrs
+  wp_apply (kvnetLink.raft_kvcheck.wp_Check γ addrs cl.voters hrb) $$ [Hres]
+  · iframe Hcc Hcg Hres
   ipureintro; rfl
 
 end replica
@@ -739,6 +753,12 @@ def kvudpPc (γ : KdNames) (vs : List w64) (rs : List GoString) (γu : UdpNames)
     (∃ (J : Fs.Ino) (R : Fs.Roots), ⌜(dir, J) ∈ R ∧ Fs.RootsOk R⌝ ∗ kvudpGen γ γu id dir J R) ∗
     ownGoState ∅)
 
+/-- **Replica `id`'s generation when `RunNodeUDP` returns at once** (a configuration it cannot run,
+kvnet's `kvPcSkip`): the generation's empty package state. -/
+def kvudpPcSkip (L : GooseLocalGS GF) : IProp GF :=
+  letI : HeapGS .hasLC GF := ⟨G, L⟩
+  ownGoState ∅
+
 /-- **The checking client's share** (kvnet's `kvClient`). -/
 def kvudpClient (γ : KdNames) (rs : List GoString) : IProp GF :=
   iprop(rkvInv γ ∗ rkvVal γ raft_kvreconf.kvEmpty ∗ ghostVar γ.r.opn (1 : Qp).half (W64 0) ∗
@@ -753,33 +773,35 @@ variable [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.Fie
 variable [log_sem : log.NewModel] [NaInvG GF]
 
 /-- **Every generation of replica `i + 1`** (`CrashBootWpU`, as kvnet's `kvPc_crashBoot`). -/
-theorem kvudpPc_crashBoot (γ : KdNames) (γu : UdpNames) (cl : ClusterConfig) (rs : List GoString)
-    (dir : GoString) (i : Nat)
-    (hi : i < rs.length) (hnd : rs.Nodup) (hok : ∀ a ∈ rs, addrOk a = true)
-    (hlen : rs.length < 2 ^ 32) (hcl : cl.Ok rs.length) (hdir : dir.length < 2 ^ 39)
-    (hγ : γ.max = rs.length ∧ γ.r.cluster.dup = true ∧ γ.r.cluster.bootLen = 0 ∧
+theorem kvudpPc_crashBoot (γ : KdNames) (γu : UdpNames) (cl : ClusterConfig) (addrs dir : GoString)
+    (i : Nat) (hi : i < (splitAddrs addrs).length)
+    (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
+      (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
+    (hdir : dir.length < 2 ^ 39)
+    (hγ : γ.max = (splitAddrs addrs).length ∧ γ.r.cluster.dup = true ∧ γ.r.cluster.bootLen = 0 ∧
       Cluster.trace γ.r.cluster = none ∧ γ.r.cluster.snapLoc = (fun _ => none) ∧
       γ.r.cluster.maxData = none) :
-    CrashBootWpU (GF := GF) (kvudpReplicaProgram cl (List.intercalate go!"," rs) dir (W64 ((i : Int) + 1)))
-      (kvudpPc γ (bootVoters (uint.nat cl.voters)) rs γu dir (W64 ((i : Int) + 1))) := by
+    CrashBootWpU (GF := GF) (kvudpReplicaProgram cl addrs dir (W64 ((i : Int) + 1)))
+      (kvudpPc γ (bootVoters (uint.nat cl.voters)) (splitAddrs addrs) γu dir (W64 ((i : Int) + 1))) := by
   intro L hL
   subst hL
   try dsimp only
   letI hG : HeapGS .hasLC GF := ⟨G, L⟩
-  have hsplit := splitAddrs_intercalate rs (List.ne_nil_of_length_pos (by omega)) hok
-  obtain ⟨hid1, hid2, hid32, hget⟩ := replica_id rs i hi hlen
+  have hva := validAddrs_of_validCluster hvc
+  unfold validAddrs at hva
+  obtain ⟨hok, -, hlen, -⟩ := of_decide_eq_true hva
+  have hcl := clOk_of_validCluster _ cl hvc
+  obtain ⟨hid1, hid2, hid32, hget⟩ := replica_id (splitAddrs addrs) i hi hlen
   unfold kvudpPc
   try dsimp only
   iintro ⟨#Hgl, ⟨%J, %R, ⟨%hJ, %hR⟩, Hg⟩, Hgs⟩ -
   imod kdStor_alloc (GF := GF) ⊤ with ⟨%k, #Hsi⟩
   letI : KdStor GF := k
   have Hrep := kvudpRep_gen (GF := GF) γ γu (bootVoters (uint.nat cl.voters)) cl
-    (List.intercalate go!"," rs) dir (W64 ((i : Int) + 1)) J R
-    (by rw [hsplit]; exact validCluster_of rs cl hnd hok hlen hcl) hid1 (by rw [hsplit]; exact hid2)
-    hid32 hR hJ hdir (by rw [hγ.1]; exact hid2)
+    addrs dir (W64 ((i : Int) + 1)) J R ⟨hvc, hid1, hid2, hdir⟩
+    hid32 hR hJ (by rw [hγ.1]; exact hid2)
     ⟨hγ.2.1, hγ.2.2.1, hγ.2.2.2.1, hγ.2.2.2.2.1, hγ.2.2.2.2.2, by rw [hγ.1]; exact hlen⟩
-    (kvOptsOk_of_clOk cl rs.length hcl hlen) rfl
-  rw [hsplit] at Hrep
+    (kvOptsOk_of_clOk cl _ hcl hlen) rfl
   unfold kvudpGlobals
   icases Hgl with ⟨#Hc, #Hp, #Ha, #Hsn, #Hinv, #Hrf, #Haddrs, #Hum, #Hua⟩
   ihave #Hkc := kvnet_kdCluster γ (bootVoters (uint.nat cl.voters)) $$ Hc Hp Ha Hsn Hinv
@@ -797,7 +819,7 @@ theorem kvudpPc_crashBoot (γ : KdNames) (γu : UdpNames) (cl : ClusterConfig) (
     iexact H
   · imodintro
     iintro %M %hM
-    iapply kvnet_peerAddrs γ rs _ M hM hok
+    iapply kvnet_peerAddrs γ _ _ M hM hok
     iexact Haddrs
   imodintro
   iframe Hwp
@@ -808,6 +830,34 @@ theorem kvudpPc_crashBoot (γ : KdNames) (γu : UdpNames) (cl : ClusterConfig) (
   iexists J, R
   iframe Hg'
   ipureintro; exact ⟨hJ, hR⟩
+
+/-- **Every generation of a replica whose `RunNodeUDP` returns at once** (`CrashBootWpU`, as kvnet's
+`kvPc_skip_crashBoot`): its program runs kvnet's initialization, then `RunNodeUDP`'s check fails
+(`kvudpReplica_wp`, nothing else needed); after a crash, the next generation's empty package state.
+(`γ`, `γu` name the specs' facts, unused.) -/
+theorem kvudpPc_skip_crashBoot (γ : KdNames) (γu : UdpNames) (cl : ClusterConfig)
+    (addrs dir : GoString) (id : w64)
+    (hno : ¬ runNodeOk (splitAddrs addrs) (uint.nat id) dir (uint.nat cl.voters)
+      (uint.nat cl.maxSizePerMsg) (uint.nat cl.maxCommittedSizePerReady)
+      (uint.nat cl.maxInflightMsgs)) :
+    CrashBootWpU (GF := GF) (kvudpReplicaProgram cl addrs dir id) kvudpPcSkip := by
+  intro L hL
+  subst hL
+  try dsimp only
+  letI hG : HeapGS .hasLC GF := ⟨G, L⟩
+  letI : KdStor GF := ⟨0⟩
+  unfold kvudpPcSkip
+  iintro Hgs -
+  imodintro
+  isplitl [Hgs]
+  · iapply kvudpReplica_wp (GF := GF) γ [] cl addrs dir id γu $$ Hgs
+    iintro %h
+    iexfalso
+    ipureintro
+    exact hno h
+  · iintro %L' %V' - - - Hgs' -
+    imodintro
+    iexact Hgs'
 
 /-- **Replica `id`'s first generation**: from the file extension's start resources of a file system
 as on disk in which `dir` is an empty root, the id's durable state at `RaftState.init` with its
@@ -866,29 +916,51 @@ theorem kvudpPc_first (γ : KdNames) (vs : List w64) (rs : List GoString) (γu :
   iexists (st.fs.treeDur, [])
   iframe Hg Hu
 
-/-- **The checking client** (`StableBootWpU`, as kvnet's `kvClient_stable`). -/
-theorem kvudpClient_stable (γ : KdNames) (cl : ClusterConfig) (rs : List GoString) (σc : state)
-    (hnd : rs.Nodup) (hok : ∀ a ∈ rs, addrOk a = true) (hlen : rs.length < 2 ^ 32)
-    (hcl : cl.Ok rs.length) (hrb : receiptBound GF ≤ 2 ^ 63) :
-    StableBootWpU (GF := GF) (kvudpCheckProgram cl (List.intercalate go!"," rs)) σc
-      (kvudpClient γ rs) := by
+/-- **The checking client** (`StableBootWpU`, as kvnet's `kvClient_stable`), at valid addresses. -/
+theorem kvudpClient_stable (γ : KdNames) (cl : ClusterConfig) (addrs : GoString) (σc : state)
+    (hva : validAddrs (splitAddrs addrs) (uint.nat cl.voters) = true)
+    (hrb : receiptBound GF ≤ 2 ^ 63) :
+    StableBootWpU (GF := GF) (kvudpCheckProgram cl addrs) σc (kvudpClient γ (splitAddrs addrs)) := by
   intro L hL
   subst hL
   try dsimp only
   letI hG : HeapGS .hasLC GF := ⟨G, L⟩
-  have hsplit := splitAddrs_intercalate rs (by
-    rintro rfl; exact absurd hcl.2.1 (by have := hcl.1; simp; omega)) hok
+  have hva' := hva
+  unfold validAddrs at hva'
+  obtain ⟨hok, -⟩ := of_decide_eq_true hva'
   letI : KdStor GF := ⟨0⟩
-  have H := kvudpCheck_wp_program (GF := GF) γ cl (List.intercalate go!"," rs)
-    (by rw [hsplit]; exact validAddrs_of rs cl hnd hok hlen hcl) hrb
-  rw [hsplit] at H
+  have H := kvudpCheck_wp_program (GF := GF) γ cl addrs hrb
   unfold kvudpClient
   iintro ⟨#Hinv, Hval, Hopn, Hrseq, #Haddrs⟩ - Hgs -
   imodintro
-  iapply H $$ Hinv Hval [Hopn] [Hrseq] [] Hgs
+  iapply H $$ [Hval Hopn Hrseq] Hgs
+  iintro %-
+  iframe Hinv Hval
+  isplitl [Hopn]
   · iapply kvnet_kvCnt_op; iexact Hopn
+  isplitl [Hrseq]
   · iapply kvnet_kvCnt_read; iexact Hrseq
-  · iapply kvnet_addrsProto γ _ rs hok; iexact Haddrs
+  · iapply kvnet_addrsProto γ _ _ hok; iexact Haddrs
+
+/-- **The checking client, at invalid addresses** (`StableBootWpU`, as kvnet's `kvClient_skip`):
+`Check` returns at once. -/
+theorem kvudpClient_skip (γ : KdNames) (cl : ClusterConfig) (addrs : GoString) (σc : state)
+    (hva : ¬ validAddrs (splitAddrs addrs) (uint.nat cl.voters) = true)
+    (hrb : receiptBound GF ≤ 2 ^ 63) :
+    StableBootWpU (GF := GF) (kvudpCheckProgram cl addrs) σc iprop(True) := by
+  intro L hL
+  subst hL
+  try dsimp only
+  letI hG : HeapGS .hasLC GF := ⟨G, L⟩
+  letI : KdStor GF := ⟨0⟩
+  have H := kvudpCheck_wp_program (GF := GF) γ cl addrs hrb
+  iintro - - Hgs -
+  imodintro
+  iapply H $$ [] Hgs
+  iintro %h
+  iexfalso
+  ipureintro
+  exact hva h
 
 end deploy
 
@@ -897,68 +969,153 @@ end deploy
 section top
 variable [go_gctx : GoGlobalContext]
 
-/-- **kvudp is robust** (the statement: `raft_kvudp_robust.spec`). -/
+/-- **kvudp is robust** (the statement: `raft_kvudp_robust.spec`). As kvnet's `raft_kvnet_robust`:
+the programs see the addresses split (`splitAddrs addrs`), at least as many as the machines
+(`splitAddrs_intercalate_length`). Three cases, by the programs' checks:
+* the addresses are invalid (`validAddrs` fails): every program returns at once, the bridge at no
+  address;
+* the addresses are valid but `RunNodeUDP`'s check fails for the cluster (its options, or `dir`'s
+  length; the ids are all in range): the store and the addresses' protocols as below, the client
+  runs, the replicas return at once;
+* both pass: the store, the addresses' protocols, kvudp's names and address invariants, every
+  replica's generations and the client. -/
 theorem raft_kvudp_robust : raft_kvudp_robust.spec := by
   intro lctx sem package_sem field_sem udp_field_sem os_file_sem os_stat_sem log_sem cl dir replicas
-    σc g hcl hn hdir hnd hrep addrs hfresh hig hil
-  have hlenrs : (replicas.map (·.1)).length = replicas.length := List.length_map _
-  have hok : ∀ a ∈ replicas.map (·.1), addrOk a = true := by
-    intro a ha
-    obtain ⟨p, hp, rfl⟩ := List.mem_map.1 ha
-    exact (hrep p.1 p.2 hp).1
-  rw [← hlenrs] at hcl hn
-  refine robust_of_netFsUdpBoot (GF := kvudpGF) (replicas.map (·.1)) _ _ g _ _ hnd hok ?_
+    σc g hrep addrs hfresh hig hil
+  have hm : replicas.length ≤ (splitAddrs addrs).length := by
+    have h := splitAddrs_intercalate_length (replicas.map (·.1))
+    rw [List.length_map] at h
+    exact h
+  by_cases hva : validAddrs (splitAddrs addrs) (uint.nat cl.voters) = true
+  case neg =>
+    -- invalid addresses: every program returns at once
+    refine robust_of_netFsUdpBoot (GF := kvudpGF) [] _ _ g _ _ List.nodup_nil
+      (fun _ h => by cases h) ?_ hfresh hig hil
+    intro G hrb
+    iintro - -
+    imod Net.netProto_alloc (GF := kvudpGF) ⊤ with ⟨%π, -⟩
+    letI : Net.NetProtoGS := π
+    -- (a store, only to name the specs' facts)
+    imod kvnet_store_alloc (GF := kvudpGF) ⊤ 1 1 (Nat.le_refl _) (Nat.le_refl _) (by decide)
+      (by omega) with ⟨%γ, -⟩
+    imod kvudp_names_alloc (GF := kvudpGF) ⊤ [] List.nodup_nil with ⟨%γu, -⟩
+    imodintro
+    iexists (fun _ => kvudpPcSkip (GF := kvudpGF))
+    iexists (fun _ => iprop(True))
+    isplitr
+    · ipureintro
+      intro i m hm'
+      obtain ⟨p, -, rfl, -⟩ := replica_mem _ replicas i m hm'
+      exact kvudpPc_skip_crashBoot γ γu cl addrs dir _
+        (fun h => hva (validAddrs_of_validCluster h.1))
+    isplitr
+    · ipureintro
+      intro j m hm'
+      match j, hm' with
+      | 0, hm' =>
+        cases hm'
+        exact kvudpClient_skip γ cl addrs σc hva (by omega)
+    isplitl
+    · iapply bigSepL_of_forall
+      intro k m
+      iintro %L %_ - Hgs
+      imodintro
+      unfold kvudpPcSkip
+      iexact Hgs
+    · iapply BigSepL.bigSepL_cons.2
+      isplitl
+      · itrivial
+      · iapply BigSepL.bigSepL_nil.2
+        iempintro
+  -- valid addresses
+  have hva' := hva
+  unfold validAddrs at hva'
+  obtain ⟨hok, hnd, hn, hv1, hvn⟩ := of_decide_eq_true hva'
+  refine robust_of_netFsUdpBoot (GF := kvudpGF) (splitAddrs addrs) _ _ g _ _ hnd hok ?_
     hfresh hig hil
   intro G hrb
   iintro Hs Hu
   imod Net.netProto_alloc (GF := kvudpGF) ⊤ with ⟨%π, #Hreg⟩
   letI : Net.NetProtoGS := π
-  have hv := hcl
-  obtain ⟨hv1, hvn, -⟩ := hv
-  imod kvnet_store_alloc (GF := kvudpGF) ⊤ (replicas.map (·.1)).length (uint.nat cl.voters) hv1 hvn
+  imod kvnet_store_alloc (GF := kvudpGF) ⊤ (splitAddrs addrs).length (uint.nat cl.voters) hv1 hvn
     hn (by omega)
     with ⟨%γ, %hγ, #Hc, #Hp, #Ha, #Hsn, #Hinv, #Hrf, Hnodes, Hval, Hopn, Hrseq⟩
-  imod kvnet_addrs_alloc (GF := kvudpGF) (F := kvFactsG γ (fun _ => True)) ⊤ (replicas.map (·.1))
+  imod kvnet_addrs_alloc (GF := kvudpGF) (F := kvFactsG γ (fun _ => True)) ⊤ (splitAddrs addrs)
     $$ Hreg Hs with #Haddrs
-  imod kvudp_udp_alloc (GF := kvudpGF) (kvFactsG γ (fun _ => True)) ⊤ (replicas.map (·.1))
-    (bootVoters (replicas.map (·.1)).length) hnd hok
+  have hcs : ∀ (j : Nat) (m : Expr × state), [(kvudpCheckProgram cl addrs, σc)][j]? = some m →
+      StableBootWpU (GF := kvudpGF) m.1 m.2 (kvudpClient γ (splitAddrs addrs)) := by
+    intro j m hm'
+    match j, hm' with
+    | 0, hm' =>
+      cases hm'
+      exact kvudpClient_stable γ cl addrs σc hva (by omega)
+  by_cases hrun : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
+      (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true ∧
+      dir.length < 2 ^ 39
+  case neg =>
+    -- `RunNodeUDP`'s check fails: the replicas return at once, the client runs
+    -- (UDP names, only to name the specs' facts)
+    imod kvudp_names_alloc (GF := kvudpGF) ⊤ [] List.nodup_nil with ⟨%γu, -⟩
+    imodintro
+    iexists (fun _ => kvudpPcSkip (GF := kvudpGF))
+    iexists (fun _ => kvudpClient γ (splitAddrs addrs))
+    isplitr
+    · ipureintro
+      intro i m hm'
+      obtain ⟨p, -, rfl, -⟩ := replica_mem _ replicas i m hm'
+      exact kvudpPc_skip_crashBoot γ γu cl addrs dir _ (fun h => hrun ⟨h.1, h.2.2.2⟩)
+    isplitr
+    · ipureintro; exact hcs
+    isplitl []
+    · iapply bigSepL_of_forall
+      intro k m
+      iintro %L %_ - Hgs
+      imodintro
+      unfold kvudpPcSkip
+      iexact Hgs
+    · iapply BigSepL.bigSepL_cons.2
+      dsimp only
+      isplitl [Hval Hopn Hrseq]
+      · unfold kvudpClient
+        iframe Hinv Hval Hopn Haddrs Hrseq
+      · iapply BigSepL.bigSepL_nil.2
+        iempintro
+  -- both checks pass: every replica runs
+  obtain ⟨hvc, hdir⟩ := hrun
+  imod kvudp_udp_alloc (GF := kvudpGF) (kvFactsG γ (fun _ => True)) ⊤ (splitAddrs addrs)
+    (bootVoters (splitAddrs addrs).length) hnd hok
     (raft_kvreconf.bootVoters_nodup _ (by omega)) _ $$ Hu with ⟨%γu, #Hum, #Hua, Hhis⟩
-  ihave #Hgl : kvudpGlobals γ (bootVoters (uint.nat cl.voters)) (replicas.map (·.1)) γu $$ []
+  ihave #Hgl : kvudpGlobals γ (bootVoters (uint.nat cl.voters)) (splitAddrs addrs) γu $$ []
   · unfold kvudpGlobals
     iframe Hc Hp Ha Hsn Hinv Hrf Haddrs Hum Hua
   imodintro
-  iexists (fun i L => kvudpPc γ (bootVoters (uint.nat cl.voters)) (replicas.map (·.1)) γu dir
+  iexists (fun i L => kvudpPc γ (bootVoters (uint.nat cl.voters)) (splitAddrs addrs) γu dir
     (W64 ((i : Int) + 1)) L)
-  iexists (fun _ => kvudpClient γ (replicas.map (·.1)))
+  iexists (fun _ => kvudpClient γ (splitAddrs addrs))
   isplitr
   · ipureintro
-    intro i m hm
-    obtain ⟨p, hp, rfl, -⟩ := replica_mem _ replicas i m hm
+    intro i m hm'
+    obtain ⟨p, hp, rfl, -⟩ := replica_mem _ replicas i m hm'
     have hi : i < replicas.length := (List.getElem?_eq_some_iff.1 hp).1
-    exact kvudpPc_crashBoot γ γu cl _ dir i (by omega) hnd hok hn hcl hdir hγ
+    exact kvudpPc_crashBoot γ γu cl addrs dir i (by omega) hvc hdir hγ
   isplitr
-  · ipureintro
-    intro j m hm
-    match j, hm with
-    | 0, hm =>
-      cases hm
-      exact kvudpClient_stable γ cl _ σc hnd hok hn hcl (by omega)
+  · ipureintro; exact hcs
   isplitl [Hnodes Hhis]
-  · ihave Hn := bootVoters_bigSepL (fun id => iprop(raftState γ.r.cluster id RaftState.init ∗
+  · ihave Hn := bootVoters_bigSepL_le (fun id => iprop(raftState γ.r.cluster id RaftState.init ∗
       nodeVacant γ.r.cluster id)) _
       (replicas.mapIdx fun i p => (kvudpReplicaProgram cl addrs dir (W64 ((i : Int) + 1)), p.2))
-      (by simp) $$ Hnodes
-    ihave Hh := bootVoters_bigSepL (fun id => udpHiG (G := G) γu id (W64 0)) _
+      (by simp; omega) $$ Hnodes
+    ihave Hh := bootVoters_bigSepL_le (fun id => udpHiG (G := G) γu id (W64 0)) _
       (replicas.mapIdx fun i p => (kvudpReplicaProgram cl addrs dir (W64 ((i : Int) + 1)), p.2))
-      (by simp) $$ Hhis
+      (by simp; omega) $$ Hhis
     ihave Hn := BigSepL.bigSepL_sep_eqv_symm.1 $$ [$Hn $Hh]
     iapply BigSepL.bigSepL_impl $$ Hn
     imodintro
     iintro %k %m %hk ⟨⟨HrS, Hvac⟩, Hhi⟩ %L %hL Hfs Hgs
     obtain ⟨p, hp, rfl, hmem⟩ := replica_mem _ replicas k m hk
-    have hk' : k < (replicas.map (·.1)).length := by
-      rw [hlenrs]; exact (List.getElem?_eq_some_iff.1 hp).1
-    obtain ⟨-, hroot, hempty⟩ := hrep p.1 p.2 (List.mem_of_getElem? hp)
+    have hk' : k < (splitAddrs addrs).length := by
+      have := (List.getElem?_eq_some_iff.1 hp).1; omega
+    obtain ⟨hroot, hempty⟩ := hrep p.1 p.2 (List.mem_of_getElem? hp)
     have hfs : Fs.FsInit (fsOf p.2) := (hil _ (List.mem_append_left _ hmem)).2.1
     iapply kvudpPc_first γ _ _ γu dir _ (fsOf p.2) hfs hroot hempty hdir
       (replica_id _ k hk' hn).2.2.1 L hL $$ [HrS Hvac Hhi] Hfs Hgs
@@ -972,7 +1129,8 @@ theorem raft_kvudp_robust : raft_kvudp_robust.spec := by
       iempintro
 
 /-- **The example from the theorem**: `raft_kvudp_robust_example.spec` from `raft_kvudp_robust.spec`,
-its premises by computation (as kvnet's). -/
+its premise on the file systems passed through (as kvnet's; kvnet's `raft_kvnet_example_premises`
+shows the example's configuration passes `RunNode`'s check, which is `RunNodeUDP`'s). -/
 theorem raft_kvudp_robust_example_of (H : raft_kvudp_robust.spec) :
     raft_kvudp_robust_example.spec := by
   intro lctx sem package_sem field_sem udp_field_sem os_file_sem os_stat_sem log_sem σ₁ σ₂ σ₃ σ₄ σ₅
@@ -981,19 +1139,16 @@ theorem raft_kvudp_robust_example_of (H : raft_kvudp_robust.spec) :
     exampleConfig go!"/var/lib/kvnet"
     [(go!"10.0.0.1:7001", σ₁), (go!"10.0.0.2:7001", σ₂), (go!"10.0.0.3:7001", σ₃),
      (go!"10.0.0.4:7001", σ₄), (go!"10.0.0.5:7001", σ₅)] σc g
-    (by show exampleConfig.Ok 5; unfold ClusterConfig.Ok exampleConfig; decide) (by show 5 < 2 ^ 32; decide)
-    (by decide)
-    (by show [go!"10.0.0.1:7001", go!"10.0.0.2:7001", go!"10.0.0.3:7001", go!"10.0.0.4:7001",
-      go!"10.0.0.5:7001"].Nodup; decide) ?_
+    ?_
   · exact h
   · intro a σ hm
     simp only [List.mem_cons, Prod.mk.injEq, List.not_mem_nil, _root_.or_false] at hm
     rcases hm with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-    · exact ⟨by decide, hfs _ (by simp)⟩
-    · exact ⟨by decide, hfs _ (by simp)⟩
-    · exact ⟨by decide, hfs _ (by simp)⟩
-    · exact ⟨by decide, hfs _ (by simp)⟩
-    · exact ⟨by decide, hfs _ (by simp)⟩
+    · exact hfs _ (by simp)
+    · exact hfs _ (by simp)
+    · exact hfs _ (by simp)
+    · exact hfs _ (by simp)
+    · exact hfs _ (by simp)
 
 
 /-- **kvudp is robust, an example**: from `raft_kvudp_robust`. -/

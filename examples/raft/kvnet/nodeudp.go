@@ -67,13 +67,15 @@ func openUDP(cfg NodeConfig) *udpNet {
 	return &udpNet{id: cfg.ID, conn: conn, addrs: addrs, boot: boot, acks: make(map[uint64]*ackWait)}
 }
 
-// RunNodeUDP is RunNode with the raft messages between replicas over UDP (RunUDP).
+// RunNodeUDP is RunNode with the raft messages between replicas over UDP (RunUDP). As RunNode, it
+// returns at once, doing nothing, if the cluster is not one it can run (ValidCluster), id is not one
+// of its replicas, or dir is too long (MaxDirLen): a safe run.
 func RunNodeUDP(id uint64, addrs string, dir string, voters uint64, preVote, checkQuorum, stepDownOnRemoval bool,
 	maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs uint64) {
 	as := SplitAddrs(addrs)
 	if !ValidCluster(as, voters, maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs) ||
-		id < 1 || id > uint64(len(as)) {
-		panic("kvnet: not a valid cluster")
+		id < 1 || id > uint64(len(as)) || uint64(len(dir)) >= MaxDirLen {
+		return
 	}
 	m := make(map[uint64]string)
 	for i, a := range as {

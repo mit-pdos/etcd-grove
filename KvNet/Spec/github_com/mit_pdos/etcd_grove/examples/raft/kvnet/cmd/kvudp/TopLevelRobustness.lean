@@ -5,7 +5,7 @@
 UDP datagrams, `kvnet.RunNodeUDP`; the clients' requests still over TCP) as an instance of the generic
 robustness statement (`Robustness/Statement.lean`). **Exactly kvnet's statement**
 (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`, agreed 2026-11-20: `notes/kvnet-robust-goal.md`), its
-premises and vocabulary reused unchanged (`raft_kvnet.ClusterConfig`, `ClusterConfig.Ok`), with three
+premises and vocabulary reused unchanged (`raft_kvnet.ClusterConfig`), with three
 differences: replica `i + 1` runs `kvudpReplicaProgram` (`RunNodeUDP` for `RunNode`), the
 extensions are `[netExt, fsExt, udpExt]` (`NetFsUdp.kvudpExts`), and the thread bound is named
 (below). The definitions are in
@@ -18,11 +18,21 @@ crashes and runs `Check`, which panics unless porcupine answers `Ok`. The UDP ne
 duplicate, reorder and delay any datagram, and deliver garbage for one longer than `Udp.intactMax`
 bytes (the UDP extension's semantics, `GooseLang/Ext/Udp/Impl.lean`, U1-U13); kvudp sends none.
 
-**The premises** are kvnet's, verbatim. The UDP extension adds no premise: `Robust` requires its
-initial state (`Udp.UdpGlobal.init`: no datagram sent; a fresh machine has no socket), and every
-replica's address is already canonical (`Net.addrOk`, which the UDP extension's `ValidDest` uses).
-`dir` holds both of a replica's files (its storage, `replica-<id>`, and its boot counter,
-`udp-boot-<id>`); empty at the start.
+**The configuration is checked by the programs, not by premises** (2026-11-24, as kvnet's). Both
+programs return at once, doing nothing, on a configuration they cannot run: `Check` unless the
+addresses (`addrs` split at its commas) are distinct, each canonical `a.b.c.d:p` (IPv4 unicast, port
+nonzero and below the ephemeral range), fewer than `2^32`, with the bootstrap voters among them (Go's
+`kvnet.ValidAddrs`); `RunNodeUDP` unless, besides, raft's options are valid (`kvnet.ValidCluster`:
+`ClusterConfig.Ok`), its id is one of the replicas, and `dir` is shorter than `2^39` bytes: the same
+checks as `RunNode`'s, in the same order. So the theorem covers every configuration, and its coverage
+of the real runs is the Go checks' (`examples/raft/kvnet`'s `validate_test.go`, `RunNodeUDP`'s path
+included). Every address the UDP endpoint uses is then canonical (`Net.addrOk`, which the UDP
+extension's `ValidDest` uses), so `openUDP`'s check of its own address cannot fail.
+
+**The premises** are kvnet's, verbatim. The UDP extension adds none: `Robust` requires its initial
+state (`Udp.UdpGlobal.init`: no datagram sent; a fresh machine has no socket). `dir` holds both of a
+replica's files (its storage, `replica-<id>`, and its boot counter, `udp-boot-<id>`); empty at the
+start.
 
 **The extensions are fixed**: kvnet's two and the UDP extension. Their trusted semantics assume an
 environment, stated here in prose: kvnet's (one replica per file system, nothing else touches its tree,
@@ -75,12 +85,7 @@ def raft_kvudp_robust.spec : Prop :=
     [log_sem : log.NewModel],
   ∀ (cl : ClusterConfig) (dir : GoString) (replicas : List (GoString × state)) (σc : state)
     (g : GlobalState),
-    cl.Ok replicas.length →
-    replicas.length < 2 ^ 32 →
-    dir.length < 2 ^ 39 →
-    (replicas.map (·.1)).Nodup →
     (∀ a σ, (a, σ) ∈ replicas →
-      Net.addrOk a = true ∧                               -- canonical a.b.c.d:p
       dir ∈ (fsOf σ).fs.roots.map (·.1) ∧                 -- dir is an empty root
       ∀ c, (fsOf σ).lookup (joinPath dir [c]) = none) →
     let addrs := List.intercalate go!"," (replicas.map (·.1))

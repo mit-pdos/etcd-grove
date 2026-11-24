@@ -1,5 +1,7 @@
 /-
-The proof of `KvNet/Spec/.../kvnet/RunNodeUDP.lean` (kvudp, phase 2: `notes/kvudp-proof-plan.md`).
+The proof of `KvNet/Spec/.../kvnet/RunNodeUDP.lean` (kvudp, phase 2: `notes/kvudp-proof-plan.md`), as
+`RunNode`'s: `SplitAddrs`, `ValidCluster` and the rest of the check (a configuration it fails returns at
+once; one it passes gives the resources), the address map built by a loop, then `RunUDP`.
 -/
 module
 
@@ -39,25 +41,52 @@ theorem RunNodeUDP.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     (wp_ValidCluster : ValidCluster.spec (GF := GF) (hG := hG))
     (wp_RunUDP : RunUDP.spec (GF := GF) (hG := hG) F rep cf S) :
     RunNodeUDP.spec (GF := GF) (hG := hG) F rep cf S := by
-  intro γu id addrs dir voters pv cq sd msz mcs mif eof ed Hvalid Hid1 Hid2
-  wp_start as ⟨Hpr, HS, #Heof, #Hed, #Hcc⟩
+  intro γu id addrs dir voters pv cq sd msz mcs mif eof ed
+  wp_start as ⟨Hres, #Heof, #Hed, #Hcc⟩
   try wp_auto
   wp_apply wp_SplitAddrs addrs $$ [$Hpkg] as %sl ⟨Hsl, Hcap⟩
   try wp_auto
+  ihave %Hsll := ownSlice_len $$ Hsl
+  wp_apply wp_ValidCluster sl (DFrac.own 1) (splitAddrs addrs) voters msz mcs mif
+    $$ [$Hpkg $Hsl] as Hsl
+  -- the check: a configuration `RunNodeUDP` cannot run returns at once
+  by_cases Hvalid : validCluster (splitAddrs addrs) (uint.nat voters) (uint.nat msz) (uint.nat mcs)
+    (uint.nat mif) = true
+  case neg =>
+    rw [Bool.not_eq_true] at Hvalid
+    rw [Hvalid]
+    try wp_auto
+    iapply HΦ
+    itrivial
+  rw [Hvalid]
+  try wp_auto
+  wp_if_destruct
+  · try wp_auto
+    iapply HΦ
+    itrivial
+  try wp_auto
+  wp_if_destruct
+  · try wp_auto
+    iapply HΦ
+    itrivial
+  try wp_auto
+  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hd63
+  try wp_auto
+  wp_if_destruct
+  · try wp_auto
+    iapply HΦ
+    itrivial
+  try wp_auto
+  have Hid1 : 1 ≤ uint.nat id := by word
+  have Hid2 : uint.nat id ≤ (splitAddrs addrs).length := by
+    have := Hsll.1; have := Hsll.2; word
+  have Hdir : dir.length < 2 ^ 39 := by word
+  have Hrn : runNodeOk (splitAddrs addrs) (uint.nat id) dir (uint.nat voters) (uint.nat msz)
+      (uint.nat mcs) (uint.nat mif) := ⟨Hvalid, Hid1, Hid2, Hdir⟩
+  ihave ⟨Hpr, HS⟩ := Hres $$ %Hrn
   have Hv := Hvalid
   simp only [validCluster, validAddrs, Bool.and_eq_true, decide_eq_true_eq] at Hv
   obtain ⟨⟨⟨⟨Hok, Hnd, Hlen32, Hv1, Hv2⟩, Hv3⟩, Hv4⟩, Hv5⟩ := Hv
-  have Hl63 : ∀ a ∈ splitAddrs addrs, a.length + 1 < 2 ^ 63 := fun a ha => by
-    have := addrOk_length (Hok a ha); omega
-  ihave %Hsll := ownSlice_len $$ Hsl
-  wp_apply wp_ValidCluster sl (DFrac.own 1) (splitAddrs addrs) voters msz mcs mif Hl63
-    $$ [$Hpkg $Hsl] as Hsl
-  rw [Hvalid]
-  try wp_auto
-  rw [decide_eq_false (show ¬ uint.Z id < uint.Z (W64 1) by word)]
-  try wp_auto
-  rw [decide_eq_false (show ¬ uint.Z sl.len < uint.Z id by have := Hsll.1; have := Hsll.2; word)]
-  try wp_auto
   wp_apply (wp_map_make1 (K := w64) (V := GoString) go.uint64 go.string) as %mref Hm
   try wp_auto
   rename_i iu_ptr

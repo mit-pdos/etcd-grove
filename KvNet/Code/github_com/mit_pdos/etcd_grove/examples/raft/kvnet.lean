@@ -5376,9 +5376,11 @@ noncomputable def openUDP.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 (go.GoType.PointerType _root_.Perennial.net.UDPAddr.ty))))) (Pair (Var "addrs") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType udpNet.ty)))) (Var "$res0")))))
 
-/-- RunNodeUDP is RunNode with the raft messages between replicas over UDP (RunUDP).
+/-- RunNodeUDP is RunNode with the raft messages between replicas over UDP (RunUDP). As RunNode, it
+    returns at once, doing nothing, if the cluster is not one it can run (ValidCluster), id is not one
+    of its replicas, or dir is too long (MaxDirLen): a safe run.
 
-    go: nodeudp.go:71:6 -/
+    go: nodeudp.go:73:6 -/
 noncomputable def RunNodeUDP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addrs"
@@ -5441,16 +5443,16 @@ noncomputable def RunNodeUDP.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "a") (Var "$value"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.string)))) (Pair (Var "m") (Var "$r0")))))))))
-  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "as"))
+  (If (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "as"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "voters"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxSizePerMsg"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxCommittedSizePerReady"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxInflightMsgs"))
   (App (App (App (App (App (App (Val (GoInstruction (FuncResolve ValidCluster []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (Val #(W64 1))))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "as"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"kvnet: not a valid cluster")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))) (Val #true) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "dir"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val MaxDirLen)))))
+  (App (Val doReturn)
+  (Val #()))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -5463,7 +5465,7 @@ noncomputable def RunNodeUDP.impl [GooseExts] [GoGlobalContext] : val :=
     incarnation of the process shares), receives its peers' datagrams (udpNet.receive) and serves
     its clients. It never returns.
 
-    go: nodeudp.go:93:6 -/
+    go: nodeudp.go:95:6 -/
 noncomputable def RunUDP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Seq (App (Val exceptionDo)
@@ -5502,7 +5504,7 @@ noncomputable def RunUDP.impl [GooseExts] [GoGlobalContext] : val :=
 /-- startNodeUDP is StartNode with the UDP transport, over the endpoint it opens (openUDP), which it
     returns: its receiver is not started (udpNet.receive).
 
-    go: nodeudp.go:102:6 -/
+    go: nodeudp.go:104:6 -/
 noncomputable def startNodeUDP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
@@ -5534,7 +5536,7 @@ noncomputable def startNodeUDP.impl [GooseExts] [GoGlobalContext] : val :=
     stepped by a goroutine per peer (stepper), from a queue of queueLen messages: so that the reading
     never waits on the node, as the TCP transport's connections each have a goroutine of their own.
 
-    go: nodeudp.go:121:18 -/
+    go: nodeudp.go:123:18 -/
 noncomputable def udpNet.receive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "n"
@@ -5628,7 +5630,7 @@ noncomputable def udpNet.receive.impl [GooseExts] [GoGlobalContext] : val :=
 /-- stepper steps the messages of q, in order, on the current incarnation (Node.stepPeer), and
     acknowledges each snapshot once stepped, forever.
 
-    go: nodeudp.go:144:18 -/
+    go: nodeudp.go:146:18 -/
 noncomputable def udpNet.stepper.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "n"
@@ -5663,7 +5665,7 @@ noncomputable def udpNet.stepper.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ack sends the ack of message (boot, seq) of replica to.
 
-    go: nodeudp.go:155:18 -/
+    go: nodeudp.go:157:18 -/
 noncomputable def udpNet.ack.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "n"
@@ -5699,7 +5701,7 @@ noncomputable def udpNet.ack.impl [GooseExts] [GoGlobalContext] : val :=
     sender's address by id, once stepped). The first fragment of a snapshot completed before is
     acknowledged again.
 
-    go: nodeudp.go:170:18 -/
+    go: nodeudp.go:172:18 -/
 noncomputable def udpNet.handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "n"
