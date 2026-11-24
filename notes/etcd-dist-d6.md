@@ -228,4 +228,49 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
   `restartNames` keeps it; a crash's new heap needs a fresh registry (or a proof that a registry naming
   dead locations is harmless). `memberRestart` leaves the registry name free (`γ' = {C.γ with reg := r}`);
   T4 decides.
+  **Decided (T4, 2026-11-24): a fresh registry name per generation, at `M = ∅`.** The crash law
+  (`memberGen_crash.law`, T7) allocates `memStorRegAuth ∅` at a fresh `r` and the generation runs at
+  `γ' = {C.γ with reg := r}`; the old generation's authority is not carried across the crash (it names
+  dead locations, and keeping it would need it inside the run's crash invariant). `NewServer.specC` is
+  unchanged: it quantifies over `γ` and `M`, and its post is at `γ`, whatever its `reg`. What this
+  asks of T7: the global facts it hands `specC` (`srvRaftLogInv`, `kvInvM`, `srvPropMint`,
+  `srvRdCtxInv`, the image's `srvRLogLb`/`confAt`/`walSnapCert`, `restartNames ρo ρ`) at `γ'`, i.e. their
+  bodies must not read `reg` (the cluster's facts are already per-member-registry: `memberGOk`).
 * **Q5**: D4b's crash interpretation (§5).
+
+## 9. T4 status (2026-11-24, branch `etcd-safe-d6t4/2026-11-24`)
+
+`NewServer.wp_proofC` (`Proof/.../etcdserver/NewServerCrash.lean`), WIP, not linked: over
+`NewServer.specRAt` (`NewServerRAt.lean`: `specR` with `bootstrap`'s contract at the image,
+`bootstrapAtR`; `NewServer.wp_proofRG` now proves it, and `specR` follows, `NewServer.specR_of_RAt`).
+
+* `i ≤ σ.commit`: proved (`srvCrashImageAt_disk`, `bootstrapAtR_of_crash`).
+* `σ.commit < i`: `sorry`. Where the graceful proof needs `|A| ≤ σ.commit` (`|A| = i`):
+  `restart_idx` → `NodeStartSpecR`'s `A₀.length ≤ σ.commit` and `bootLen ≤ σ.commit` →
+  `rnBootPre .restart` (`bootstrappedRaft.newRaftNode.spec`), `replaySeed_facts` (needs `|A₀| ≤ σ.last`),
+  and `isRaftNode`'s `rnRestartOk` (`|a0| ≤ commit0`), used by `raftNode.start` (`rnRestartOk_a0_le` →
+  `rnStopImage`'s `a0 ≤ σ.commit`, `onStop`) and by the apply side (`rnRestartOk_winAbove` →
+  `EtcdServer.run`/`applyAll`'s "a `Ready`'s snapshot is above the backend's log").
+* The last is **false after a crash** (inference from the code, not tested): a follower applies
+  committed entries before its `Save` (raft v3.7 hands unstable committed entries; `raft.go`'s `applyc`
+  before `Save`), so its backend can be past even the WAL's last index `σ.last`; restarted, a leader's
+  snapshot at `k ∈ (σ.last, i]` is restorable (raft's `restore` rejects only a snapshot whose entry it
+  holds), `applySnapshot` checks only `k > appliedi` (and `appliedi` restarts at `σ.b`), so the backend
+  goes back from `i` to `k` (`OpenSnapshotBackend`, `kv.Restore`). Probably not a linearizability bug
+  (a linearizable read waits for `appliedi ≥` the leader's commit `≥ i`), but the apply-side window
+  must admit it. Plan: drop `|a0| ≤ commit0` from `rnRestartOk` (keep `snap0 ≤ |a0|`), restate the
+  window as "snapshot above `appliedi`, possibly at or below the backend's index" through
+  `applyAll`/`ApplyAllSnap` (the backend's index may move down at a snapshot inside the replay window),
+  `replaySeed_*` over `min(|A₀|, σ.last)`, `rnStopImage` without `a0 ≤ σ.commit` (so the graceful stop
+  image drops `i ≤ σ.commit` too: one image), then `specRAt` over the crash image.
+* `specR` from `specC`: **not as stated**. `specC` needs `walReadFacts σ` in the image (the graceful
+  image lacks it: the restart contract promises it after `bootstrap`) and the crash contract, which is
+  stronger than the restart one (all `i`, not only `i ≤ σ.commit`); and the graceful image's vacancy
+  is armed (`nodeVacantA`), which cannot be unarmed into the crash image's `nodeVacant`. `specR`
+  derives from `specC` once `wal.stopImage` carries `walReadFacts`, #34 proves `bootstrapCrashContract`
+  (giving the restart one), and the crash image holds the vacancy armed (next bullet). Today both are
+  instances of `specRAt` instead.
+* Vacancy: `specC` arms the image's `nodeVacant` with `nodeVacant_armD`, dropping raft's crash token,
+  as the graceful boot does; a generation that must survive its own crash needs that token kept (T2/T7:
+  arm in the crash law and keep the token in the generation's invariant, i.e. the image carries
+  `nodeVacantA`, or `specC`'s post returns `nodeCrashTok`).
