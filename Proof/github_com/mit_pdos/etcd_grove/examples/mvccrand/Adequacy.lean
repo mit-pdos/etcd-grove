@@ -37,11 +37,10 @@ package table `PkgTable.lean`) and `mvccrand.wp_Run` (`Link.lean`).
 **Its hypotheses** (S3e: no longer `dbOpenOk` and `dbCloseOk`, bbolt's `Open` and `Close` not
 failing, the user's decision of 2026-11-08: the semantics' steps do not fail on files, `etcdSQ`, and
 the backend's `Open_kv`/`DB.Close_kv` are theorems with no error case; the two are `True` now):
-* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset),
-  (etcdstorage, 2026-11-20, the user's decision) `namesUnclaimed` of `mvccrandNames` (no other code
-  of the run registers the metric names mvcc's, the lessor's, the backend's and auth's `init()`
-  register: the etcd examples' premise, now that those `init()`s are translated), and the
-  execution's length
+* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset) and the
+  execution's length (prom-registry, route (b), 2026-11-22: no longer `namesUnclaimed` of
+  `mvccrandNames`: the proof allocates the registration rights of the packages' metric IDs itself,
+  `mvccrand_regQsOk`, and the default registry is client_golang's real code)
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 48`;
   `mvccrand_adequate_below` takes the thread bound `T ≤ 2 ^ 28` along the execution instead, and
   only `n + 1 ≤ 2 ^ 48`);
@@ -99,6 +98,28 @@ instance mvccrandGF_gooseGpreS : GooseGpreS mvccrandGF where
 
 /-! ## The closed theorem -/
 
+/-- The IDs the program's packages register (auth's, the lessor's, the backend's and mvcc's metric
+names' label-free descriptor IDs, in `regQs`' order; computed with cespare/xxhash v2.3.0, and checked by
+the kernel in `mvccrand_regQsOk`). -/
+def mvccrandRegKeys : List w64 :=
+  [0x12ecdedc778f3f77, 0x79b607416929bc6b, 0xb617c6d2d636f8d3, 0x8cdefdfd7fbe0f89,
+   0x4d5dbff2abdff296, 0x7d293418f489e89, 0x1cf0310f1f3cbc4d, 0xaf13cf18762e0410,
+   0xab20cb33e635a4d3, 0x4ea7aecf35604fe8, 0xdfccb0d5dbf98fee, 0x1329a594e50076ed,
+   0xe21d9196734675f, 0x4f14727af435217b, 0x93f9374046090575, 0x1f18f72ac56b959b,
+   0xb99f16de319e8327, 0x6f040a217f98b36f, 0x6e59011109180671, 0x11c28b1620be2404,
+   0x7454d00abfa5eebd, 0x3990ae2951922721, 0xc6dbc11e1f9070ed, 0xee70855f50c035a7,
+   0xe022592a562465ef, 0xc59e341e500edbf0, 0x4ff1a721c3c867d0, 0xddb5f8a18722005e,
+   0x37b32b97f7de5f, 0x9c06bb0ca40cbda8, 0x23dbdcaf102f1686, 0x1de4f1c3b13fe482,
+   0xe4ccc50c7daf4c9c, 0x9b8a677c6e6c1ef8, 0x7133d22463246355, 0xaa607cdd4f5c0a9a]
+
+/-- **The registering packages' IDs can have their rights** (prom-registry, route (b)): pairwise
+distinct, none a built-in's, no name a built-in's. Decided by the kernel once, here, over the IDs as
+literals (`mvccrandRegKeys`: the kernel hashes each name once; deciding `regQsOk` directly rehashes the names
+for every pair `Nodup` compares, and ran out of memory: 21 GB). -/
+theorem mvccrand_regQsOk :
+    prometheus.regQsOk github_com.mit_pdos.etcd_grove.examples.mvccrand.regQs :=
+  prometheus.regQsOk_of_keys _ mvccrandRegKeys (by decide +kernel) (by decide +kernel) (by decide +kernel)
+
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
@@ -116,7 +137,6 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     (r : GoString)
-    (HNs : prometheus.namesUnclaimed (mvccrandProgram r) mvccrandNames)
     (HEnv : verifyEnvOff (mvccrandProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
@@ -133,10 +153,9 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := mvccrandGF) (n + 1) T (mvccrandProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
-    ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccrand.initNames [] []
-    (by decide +kernel) List.nodup_nil List.nodup_nil
-    (fun _ h => absurd h List.not_mem_nil) HNs
-    (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
+    ⟨trivial, Hfs, trivial⟩ [] [] List.nodup_nil List.nodup_nil
+    (fun _ h => absurd h List.not_mem_nil) (fun _ h => absurd h List.not_mem_nil)
+    ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
     HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
@@ -151,7 +170,12 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ReceiptBoundLe mvccrandGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨Hns, -, -, -, #Hvoff⟩
+  icases Hrights with ⟨-, -, -, #Hvoff⟩
+  -- (prom-registry, route (b)) the run's registration rights: a fresh ghost map of its packages' IDs,
+  -- the run's registry name
+  imod (prometheus.regKeys_alloc (GF := mvccrandGF) _ mvccrand_regQsOk) with ⟨%γreg, Hregs⟩
+  letI : prometheus.PromRegGS mvccrandGF := ⟨γreg⟩
+  ihave Hregs := prometheus.idToks_regsFree (GF := mvccrandGF) _ $$ Hregs
   have Hst : extsLocalStart (GF := mvccrandGF) σ.world ⊢
       Fs.osStart (Fs.gooseOsGS (L := (inferInstance : HeapGS .hasLC mvccrandGF).goose_localGS))
         (extLocal Fs.fsExt σ.world) :=
@@ -168,8 +192,8 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   icases BigSepL.bigSepL_cons.1 $$ Hfiles with ⟨Hfile, -⟩
   unfold mvccrandProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccrand.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
-  · iframe Hown; iunfold prometheus.namesFree; iexact Hns
+    github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ [Hown Hregs] as ⟨-, #Hpkg⟩
+  · iframe Hown Hregs
   wp_apply (mvccrand.wp_Run Hsort' (mvccrandCfg r) (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word)
     (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word) trivial trivial) $$ [Hfile Htok]
     as %rep -
@@ -191,7 +215,6 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     (r : GoString)
-    (HNs : prometheus.namesUnclaimed (mvccrandProgram r) mvccrandNames)
     (HEnv : verifyEnvOff (mvccrandProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
@@ -205,7 +228,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  mvccrand_adequate_below Hsort r HNs HEnv σ g Hlctx Hinit Hfs j0 Hr Habs Hrfit Hthreads (n + 2)
+  mvccrand_adequate_below Hsort r HEnv σ g Hlctx Hinit Hfs j0 Hr Habs Hrfit Hthreads (n + 2)
     (by omega) n κs t2 σ2 (RealNstepsBelow.of_one Hsteps Hthreads) (by omega)
 
 end adequacy
