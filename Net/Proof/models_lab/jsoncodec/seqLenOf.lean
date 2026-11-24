@@ -26,16 +26,40 @@ variable [package_sem' : models_lab.jsoncodec.Assumptions]
 
 set_option goose.wp.extras true
 
+/-- A leaf of `seqLenOf`'s proof: its result `k` is `seqLenB`'s. -/
+theorem seqLenOf_leaf (Φ : val → IProp GF) (k : Nat) (c c1 c2 c3 : w8) (h : seqLenB c c1 c2 c3 = k) :
+    (True -∗ Φ #(W64 (seqLenB c c1 c2 c3 : Int))) ⊢ Φ #(W64 (k : Int)) := by
+  rw [h]; iintro H; iapply H; itrivial
+
+set_option linter.unreachableTactic false in
+set_option linter.unnecessarySeqFocus false in
 theorem seqLenOf.wp_proof : seqLenOf.spec (GF := GF) (hG := hG) := by
-  intro c c1 c2 c3
+  intro a0 a1 a2 a3
   wp_start
   wp_auto
   repeat' (first | wp_if_destruct | wp_auto)
   all_goals
-    rw [show (_ : w64) = W64 (seqLenB c c1 c2 c3 : Int) by
-      congr 1; unfold seqLenB loB hiB; simp_all]
-    iapply HΦ
-    itrivial
+    first
+    | iapply (seqLenOf_leaf Φ 1 a0 a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 1 (W8 224) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 1 (W8 237) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 1 (W8 240) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 1 (W8 244) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 2 a0 a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 2 (W8 224) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 2 (W8 237) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 2 (W8 240) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 2 (W8 244) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 3 a0 a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 3 (W8 224) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 3 (W8 237) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 3 (W8 240) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 3 (W8 244) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 4 a0 a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 4 (W8 224) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 4 (W8 237) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 4 (W8 240) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
+    | iapply (seqLenOf_leaf Φ 4 (W8 244) a1 a2 a3 (by unfold seqLenB loB hiB; simp_all (decide := true) <;> (repeat' split) <;> omega)) $$ HΦ
 
 end proof
 

@@ -20,6 +20,27 @@ namespace models_lab.jsoncodec
 /-- The lower-case hexadecimal digit of `n < 16` (`hexDigits[n]`). -/
 def hexDigit (n : Nat) : w8 := (go!"0123456789abcdef" : List w8).getD n (W8 0)
 
+/-- `hexDigits[n]`, `n < 16`, as `Index go.untypedString` reduces it. -/
+theorem hexIdx (n : Nat) (h : n < 16) :
+    (if 0 ≤ sint.Z (W64 (n : Int)) then (go!"0123456789abcdef" : List w8)[sint.nat (W64 (n : Int))]?
+      else none) = some (hexDigit n) := by
+  have h0 : 0 ≤ sint.Z (W64 (n : Int)) := by word
+  have he : sint.nat (W64 (n : Int)) = n := by word
+  simp only [h0, ↓reduceIte, he]
+  unfold hexDigit
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simpa using h)]
+  rfl
+
+theorem uintZ_w8 (x : w8) : uint.Z x = ((x.toNat : Nat) : Int) := rfl
+
+theorem shr4_toNat (x : w8) : (x >>> W64 4).toNat = x.toNat / 16 := by
+  simp [BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow]
+
+theorem and15_toNat (x : w8) : (x &&& W8 15).toNat = x.toNat % 16 := by
+  rw [BitVec.toNat_and]
+  have : (W8 15 : w8).toNat = 2 ^ 4 - 1 := rfl
+  rw [this, Nat.and_two_pow_sub_one_eq_mod]
+
 /-- `htmlByte c`: `<`, `>` or `&`. -/
 def htmlB (c : w8) : Bool := decide (c = W8 60 ∨ c = W8 62 ∨ c = W8 38)
 
@@ -160,12 +181,13 @@ theorem strIdx_some (s : List w8) (j : w64) (h : uint.nat j < s.length) (h2 : s.
   have he : sint.nat j = uint.nat j := by
     simp only [uint.nat, sint.nat, sint.Z] at *
     rw [BitVec.toInt_eq_toNat_of_lt (by omega)]; simp
-  rw [if_pos h0, he, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]
+  simp only [h0, ↓reduceIte]
+  rw [he, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]
   rfl
 
 /-- The decimal digits of `n` (`AppendUint`'s, `strconv.AppendUint(b, n, 10)`'s). -/
 def decNat (n : Nat) : List w8 :=
-  if n < 10 then [W8 (48 + n)] else decNat (n / 10) ++ [W8 (48 + n % 10)]
+  if n < 10 then [W8 ((48 + n : Nat) : Int)] else decNat (n / 10) ++ [W8 ((48 + n % 10 : Nat) : Int)]
 termination_by n
 decreasing_by omega
 
@@ -173,7 +195,7 @@ decreasing_by omega
 of its loop). -/
 def digitsN (m : Nat) : Nat → List w8
   | 0 => []
-  | n + 1 => W8 (48 + m / 10 ^ n % 10) :: digitsN m n
+  | n + 1 => W8 ((48 + m / 10 ^ n % 10 : Nat) : Int) :: digitsN m n
 
 theorem digitsN_length (m n : Nat) : (digitsN m n).length = n := by
   induction n with
@@ -182,11 +204,13 @@ theorem digitsN_length (m n : Nat) : (digitsN m n).length = n := by
 
 /-- `digitsN` of `m` drops the last digit: the digits of `m / 10`, then `m`'s last. -/
 theorem digitsN_succ_snoc (m n : Nat) :
-    digitsN m (n + 1) = digitsN (m / 10) n ++ [W8 (48 + m % 10)] := by
+    digitsN m (n + 1) = digitsN (m / 10) n ++ [W8 ((48 + m % 10 : Nat) : Int)] := by
   induction n with
   | zero => simp [digitsN]
   | succ n ih =>
-    rw [digitsN, ih, digitsN, Nat.div_div_eq_div_mul, ← Nat.pow_succ']
+    have h : m / 10 ^ (n + 1) = m / 10 / 10 ^ n := by
+      rw [Nat.div_div_eq_div_mul, Nat.pow_succ, Nat.mul_comm]
+    rw [digitsN, ih, digitsN, h]
     rfl
 
 /-- Once the loop stops (`m / 10 ^ n = 0`, after at least one digit, the last one taken non-zero
@@ -198,7 +222,7 @@ theorem digitsN_decNat (m n : Nat) (hn : 1 ≤ n) (hlt : m < 10 ^ n)
   | succ n ih =>
     rw [decNat]
     by_cases h10 : m < 10
-    · rw [if_pos h10]
+    · simp only [h10, ↓reduceIte]
       cases n with
       | zero => simp [digitsN, Nat.mod_eq_of_lt h10]
       | succ k =>
@@ -208,10 +232,11 @@ theorem digitsN_decNat (m n : Nat) (hn : 1 ≤ n) (hlt : m < 10 ^ n)
             calc 10 = 10 ^ 1 := rfl
               _ ≤ 10 ^ (k + 1) := Nat.pow_le_pow_right (by omega) (by omega)
           simp at h; omega
-    · rw [if_neg h10, digitsN_succ_snoc]
+    · simp only [h10, ↓reduceIte]; rw [digitsN_succ_snoc]
       have hn1 : 1 ≤ n := by
         rcases hge with h | h
-        · subst h; simp at h10 hlt; omega
+        · have h0 : n = 0 := by omega
+          subst h0; simp at hlt; omega
         · rcases n with _ | n
           · simp at hlt; omega
           · omega
@@ -228,6 +253,23 @@ theorem digitsN_decNat (m n : Nat) (hn : 1 ≤ n) (hlt : m < 10 ^ n)
 
 /-- `AppendUint`'s digits for `x`. -/
 def decU64 (x : w64) : List w8 := decNat x.toNat
+
+section leaves
+open Iris Iris.BI Iris.ProofMode
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
+
+/-- A leaf of a proof whose result `b` is the one its postcondition names, `a`. -/
+theorem val_leaf (Φ : val → IProp GF) (a b : val) (h : b = a) :
+    (True -∗ Φ a) ⊢ Φ b := by
+  rw [h]; iintro H; iapply H; itrivial
+
+/-- A slice's points-to at equal contents. -/
+theorem slice_pts_eq (sl : GoSlice) (l1 l2 : List w8) (h : l1 = l2) :
+    (sl ↦* l1 : IProp GF) ⊢ sl ↦* l2 := by
+  rw [h]
+
+end leaves
 
 end models_lab.jsoncodec
 end Perennial
