@@ -4,7 +4,10 @@ Stage **S3 (fmt)** of the Go-model overlays plan (#692). Branch `goose-model-ove
 
 **Before (lean 54a29571e):** `TrustedCode/fmt.lean`, 4114 lines: hand-pasted goose output of a Go model printer (`intVerb`, ..., `doPrintf`, `visitArg`), plus `Errorf.impl`, `Printf.impl`, `Fprintf.impl`, `Fprint.impl`, `Print.impl`, and a hand-written printer pool (`printerBuf`, `printerAlloc`, `fillArbitraryBytes`, `retire`, `retireLoop`). `trusted = ["Errorf", "Fprint", "Fprintf", "Print", "Printf"]`.
 
-**After:** `TrustedCode/fmt.lean` is 2 primitive stubs (~30 lines). Everything else is goose output: the real `fmt` and the Go model overlay `goose/model/overlay/fmt/` (`[model] replaces = ["errorf", "Fprintf", "Printf", "pp.doPrint"]`).
+**After:** `TrustedCode/fmt.lean` is 2 primitive stubs and `Printf.impl` (~110 lines); `trusted = ["underlyingAs", "kindIs", "Printf"]`. Everything else is goose output: the real `fmt` and the Go model overlay `goose/model/overlay/fmt/` (`[model] replaces = ["errorf", "Fprintf", "pp.doPrint"]`).
+
+### Stays trusted: `Printf`
+Printf's stdout write stays trusted (as on lean); translating it needs a semantics primitive for an arbitrary interface value — future work. `Printf.impl` is lean's, verbatim, except that its call of lean's hand-written `doPrintf(format, a, false)` is now a call of the translated model helper `printfFormat(format, a)` (`newPrinter`, the model printer's `doPrintf` into `p.buf`, `p.free()`: Go's `Fprintf(os.Stdout, ...)` without the write). As on lean, it returns an arbitrary count and either `nil` or `errors.New(arbitraryString())`. The spec `fmt.Printf.spec` is lean's, unchanged.
 
 ### Became real translations (no trust)
 - `Errorf`: Go's own (`errorf`, then `errors.New(format)` when it returns nil). Go's shortcut (no argument, no `%`) is proved too (`fmt.SprintfOut_noPct`, `fmt.fmtDirectives_noPct`).
@@ -16,10 +19,9 @@ Stage **S3 (fmt)** of the Go-model overlays plan (#692). Branch `goose-model-ove
 |---|---|
 | `errorf` | Go's body with `p.doPrintf` + `string(p.buf)` + `p.wrappedErrs` swapped for the model printer's `doPrintf(format, a, true)` and `errorfResult` (the same switch on the `%w` count). The real printer is stuck on floats, complex numbers, `%q` of an integer, `%T`/`%p`/bad verbs/`EXTRA` (`reflect.TypeOf`), and named types (`printValue`), while the `Errorf` spec admits them (`argsOk`). |
 | `Fprintf` | Go's body with one line swapped (`p.doPrintf` becomes model `doPrintf` + `p.buf.writeString`). Same reason. |
-| `Printf` | `Fprintf(stdout{}, ...)`. The model of `os` has no `Stdout` (os.toml, #663). `stdout.Write` is a model of `(*os.File).Write` on fd 1: `(len(b), nil)`, or `n ≤ len(b)` with `*fs.PathError{"write", "/dev/stdout", e}`, where `e` is `ErrClosed`, `ErrDeadlineExceeded`, `ErrNotPollable`, `ErrUnexpectedEOF` or an Errno in 1..4095. EPIPE may loop for ever (SIGPIPE). |
 | `pp.doPrint` | Go tells strings by `reflect.TypeOf(arg).Kind()` (stuck) and `printArg` is stuck as above. The model calls each operand's methods as `printArg(·,'v')` would (`visitArg`), then appends `chooseString()`. |
 
-The additions (`printmodel.go`: the model printer, `chooseString`, `notModelled`) carry no claim of their own.
+The additions (`printmodel.go`: the model printer, `chooseString`, `notModelled`; `printfFormat`, the formatting of the trusted `Printf`) carry no claim of their own.
 
 ### Primitive stubs (`TrustedCode/fmt.lean`)
 ```lean
@@ -37,7 +39,7 @@ The stub's `.impl` is exactly lean's old `TrustedCode` `kindIs`, so the trust is
 Alternative (follow-up): a semantics lemma that interface values are never panic values, then translate `kindIs`.
 
 ### Other trusted-base-adjacent changes
-- `Code/fmt.toml` `imports`: adds `internal/stringslite`, `internal/gomodel`, `io/fs`, `syscall` and `internal/poll`, the model's callees.
+- `Code/fmt.toml` `imports`: adds `internal/stringslite` and `internal/gomodel`, the model's callees.
 - `Print` drops out of `trusted` and is no longer translated (stuck, like `Println`). It had no spec.
 
 ## Premise / statement changes
@@ -52,12 +54,12 @@ The `wp_proof`s take more callee specs, which `Link.lean` passes:
 - `newPrinter`, `buffer.writeString`, `pp.free`;
 - `stringslite.IndexByte`;
 - `gomodel.Choose`/`ChooseUint64`;
-- `Printf` takes `Fprintf`'s spec.
+- `Printf` takes `newPrinter`, `buffer.writeString`, `pp.free` and `gomodel.Choose`/`ChooseUint64` (for `printfFormat`).
 
-`internal/poll`'s `isInit` gains `ErrNotPollable` (`errors.newVar`, proved in poll's `initialize'`), which `stdout.Write`'s proof loads. It is a proved strengthening; nothing in Perennial destructured that `isInit`.
+`internal/poll`'s `isInit` gains `ErrNotPollable` (`errors.newVar`, proved in poll's `initialize'`). It is a proved strengthening; nothing in Perennial destructured that `isInit`, and `fmt` no longer imports `internal/poll`.
 
 ## Evidence
-- `go test ./goose/...` passes, including `goose/model/fmt`. These are the differential tests of the model printer and the replaced declarations against the real fmt: `TestModelSprintf`, `TestModelErrorf`, `TestModelFprintf`, `TestModelFprint`, `TestModelPrintf`, `TestModelCopy`, method-panic.
+- `go test ./goose/...` passes, including `goose/model/fmt`. These are the differential tests of the model printer and the replaced declarations against the real fmt: `TestModelSprintf`, `TestModelErrorf`, `TestModelFprintf`, `TestModelFprint`, `TestModelCopy`, method-panic; `TestModelPrintf` compares the method calls of `printfFormat` (the trusted `Printf`'s formatting) with Go's.
 - `etc/model-tests.sh` does not run Go's own fmt tests, by design (reason recorded in the script). With `gomodel`'s Go bodies, the arbitrary output is empty, so Go's tests of `Errorf`/`Fprint(f)`/`Printf`/`Sprint` fail, and stuck points block.
 - Builds (vmlake, at 2cc4ef285, with lean's fmt stage 1.5 merged): `Perennial.Proof.fmt`, `Perennial.Proof.internal.poll`, and every module that imports `Code.fmt`, `Proof.fmt.Base` or `Proof.internal.poll`. That is 185 modules, built through the leaves `Proof.{fmt,bytes,log,math.big,crypto.rand,internal.poll}`, the unittest examples and `ProgramLogic.TypeSetTest`: 2359 jobs, no errors, no new `sorry`.
 - `etc/gen-link.py --check`: OK. `etc/model-tests.sh`: OK.
@@ -78,7 +80,7 @@ For each replaced declaration: every behaviour of the real one (gc, linux/amd64,
 ### Perennial/Code/fmt.toml  (package `fmt`)
 
 - `[model]` before: none
-- `[model]` after:  dir = 'goose/model/overlay/fmt', replaces = ['errorf', 'Fprintf', 'Printf', 'pp.doPrint'], added_methods = []
+- `[model]` after:  dir = 'goose/model/overlay/fmt', replaces = ['errorf', 'Fprintf', 'pp.doPrint'], added_methods = []
 - model files: goose/model/overlay/fmt/print.go, goose/model/overlay/fmt/printmodel.go; changed: goose/model/overlay/fmt/print.go, goose/model/overlay/fmt/printmodel.go
 
 #### `fmt.Fprintf` (new)
@@ -114,32 +116,6 @@ func Fprintf(w io.Writer, format string, a ...any) (n int, err error) {
 	n, err = w.Write(p.buf)
 	p.free()
 	return
-}
-```
-
-#### `fmt.Printf` (new)
-
-Model (goose/model/overlay/fmt/print.go:67):
-
-```go
-// MODEL: Printf is Go's Fprintf(os.Stdout, format, a...) with the writer stdout{} for os.Stdout:
-// the model of os has no Stdout (os.toml: its variable is not allocated, so a program that reads
-// or assigns os.Stdout is stuck), and Printf always writes to the file Go opens as os.Stdout
-// (descriptor 1, "/dev/stdout"); stdout.Write has every result Go's (*os.File).Write of it has.
-func Printf(format string, a ...any) (n int, err error) {
-	return Fprintf(stdout{}, format, a...)
-}
-```
-
-Real (`go doc -u -src fmt.Printf`):
-
-```go
-package fmt // import "fmt"
-
-// Printf formats according to a format specifier and writes to standard output.
-// It returns the number of bytes written and any write error encountered.
-func Printf(format string, a ...any) (n int, err error) {
-	return Fprintf(os.Stdout, format, a...)
 }
 ```
 
@@ -269,8 +245,7 @@ func (p *pp) doPrint(a []any) {
 
 Additions (no claim of their own; a primitive stub carries the TrustedCode claim, R2; an added method must match `added_methods`):
 
-- `stdout` (type, goose/model/overlay/fmt/print.go:75, new)
-- `stdout.Write` (method, goose/model/overlay/fmt/print.go:78, new); a method: of a model-only type, or a config error
+- `printfFormat` (func, goose/model/overlay/fmt/print.go, new): the formatting of the trusted `Printf`
 - `chooseString` (func, goose/model/overlay/fmt/print.go:132, new)
 - `notModelled` (func, goose/model/overlay/fmt/print.go:142, new)
 - `underlyingAs` (func, goose/model/overlay/fmt/print.go:147, new); PRIMITIVE STUB (in `trusted`: its Lean `.impl` in Perennial/TrustedCode is the model)
@@ -306,6 +281,23 @@ Additions (no claim of their own; a primitive stub carries the TrustedCode claim
 - `errorfResult` (func, goose/model/overlay/fmt/printmodel.go:631, new)
 
 ## Trusted models vs the Go source
+
+### Perennial/TrustedCode/fmt.lean: `Printf.impl`
+
+Lean's `Printf.impl` (origin/lean `Perennial/TrustedCode/fmt.lean`), with `doPrintf(format, a, false)` replaced by `printfFormat(format, a)`; its docstring quotes the Go:
+
+```go
+func Printf(format string, a ...any) (int, error) {
+	printfFormat(format, a)
+	n := int(arbitrary())
+	if arbitrary() == 0 {
+		return n, nil
+	}
+	return n, errors.New(arbitraryString())
+}
+```
+
+Real: `return Fprintf(os.Stdout, format, a...)`. The count and error of the write to standard output are not modelled.
 
 ### Perennial/TrustedCode/fmt.lean: `underlyingAs.impl`
 
