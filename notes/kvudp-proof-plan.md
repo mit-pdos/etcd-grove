@@ -125,7 +125,8 @@ Entry:
 
 `UdpWire.lean`: `parseDg_fragBytes`, `parseDg_ackBytes`, `parseDg_length`, `parseDg_kind`, `fragsOf_ok`,
 `fragsOf_nil`, `chunks_flatten`, `chunkAt_length`, `fragBytes_length`, `ackBytes_length`,
-`parseAddrM_ok`. `UdpBootDefs.lean`: `udp_boot_alloc`, `udp_boot_crash` (`bootOk_crash` is proved).
+`parseAddrM_ok`. `UdpBootDefs.lean` (proved 2026-11-24): `udp_boot_alloc`, `udp_boot_crash`,
+`udp_boot_bump` (the sync's ghost step), `udp_gen_boot`.
 To add in phase 2 (in `UdpDefs.lean` or a `UdpLemmas.lean`): `udp_seq_fresh` (nextSeq's token from
 the counter), `udp_record` (token → `udpMsgAt`), `udp_boot_bump` (the sync's ghost step),
 `udpDgOk_recv` (what `RecvOut` gives, read into a 524-byte buffer, is `udpDgOk` of the datagram whole),
@@ -166,6 +167,25 @@ Perennial spec; it now calls a helper `putUint32`, `PutUint32` into a `[4]byte` 
    `IntoValTyped received`; the generated `IntoValTypedUnderlying` should give it.
 4. **Datagrams from outside.** The address invariants hold only the deployment's datagrams: the
    statement's closed-world assumption (prose, as kvnet's TCP one).
+
+## For kvnet-single: the TopBoot change (risk 1, 2026-11-24)
+
+`KvNet/Proof/.../kvnet/TopBoot.lean`'s `kvGen_crash` now returns the next generation's `kvGenAt` **at the
+crash's tree `V'`** (no longer `∃ V`), its `kvDirRest` at `V'`, and the crash's rest of the file system
+after the storage file's: `∃ D, ⌜∀ i ∈ D, V'.now.entry f.J f.b = some (.file i) ∨ V'.now.entry f.J f.tb =
+some (.file i)⌝ ∗ crashRest … D true V'` (what `durInv_crash0` took and `crashRest_treeS` handed back,
+previously dropped). Generic: another durable file's crash lemma (`DurFs.durInv_crash`, any `D`, any
+`tt`) runs on it, its premise on `D` holding by unique naming (`TreeWf`'s last conjunct) when its names
+are not the storage file's (kvudp: `kvBoot_names_fresh`). kvnet's own use (`ReplicaLinked.lean`'s
+`kvRep_gen`) drops the two extras and gives `kvGen` at `V'`. kvnet's statement files are untouched
+(`git diff 3cfd69ae26 -- KvNet/Spec/.../kvnet/TopLevelRobustness.lean KvNet/Proof/.../kvnet/TopLevelDefs.lean`
+is empty). To merge into kvnet-single: take `TopBoot.lean`'s `kvGen_crash` and `ReplicaLinked.lean`'s
+three-line call site.
+
+The boot file's crash (`UdpBootDefs.lean`'s `udp_boot_crash`) runs after it, without a later credit (the
+boot invariant's contents are timeless), and runs `durInv_crash` inside the boot invariant (`durSt` is
+in it), so its statement takes `udpBootKeep`, `crashed` and the `crashRest` and gives what the next
+generation finds at the boot file's names, with `udpHi` bounded by it.
 
 ## The partition (riskiest first; disjoint files)
 
