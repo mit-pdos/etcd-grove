@@ -229,7 +229,7 @@ abbrev NewServer.specRAt : Prop :=
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+      -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);

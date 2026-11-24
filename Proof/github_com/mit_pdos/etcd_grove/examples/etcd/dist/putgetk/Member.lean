@@ -311,7 +311,7 @@ theorem Member.wp_proof
     rw [cms_ids]; exact xsOf_at _ _ Hpfxnd _ (List.mem_of_getElem? hidi)
   -- the member's bootstrap premise
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hbps, #Hmarsh, #Hcom⟩
+  icases Hprem with ⟨#Hbps, #Hmarsh⟩
   ihave #Hbp : etcdstart.bootPremise (2 ^ 28) ps (LogEntry.toEntries boot 0) ctxs
       (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token (nameOf i)
       (urlsN (membersOf peers clients) ⟨nameOf i, pi, ci⟩) (memberIdOf pi) $$ []

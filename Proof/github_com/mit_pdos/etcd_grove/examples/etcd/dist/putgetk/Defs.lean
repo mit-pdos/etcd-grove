@@ -115,7 +115,8 @@ the configuration's members `membersOf peers clients`, their ids `idsOf peers` a
 `N` of each member's apply thread's write tokens, the peers `ps`, their contexts and the bootstrap log: per
 member, `bootstrap`'s contract (`etcdstart.bootPremise`) for its configuration (`cfgOk token name`) and URLs
 (`urlsN`) at the peer-URL directory `dirN`; `proto.Marshal`'s contract at the bootstrap log
-(`bootMarshal`); the raft wrapper's trust-boundary contracts (`etcdstart.commonPremises`). -/
+(`bootMarshal`). (The raft wrapper's contracts, `etcdstart.commonPremises`, are axioms since
+hprem-axioms, 2026-11-24.) -/
 def premises (N : Nat) (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) : IProp GF :=
   iprop(
@@ -123,8 +124,7 @@ def premises (N : Nat) (peers clients : List GoString) (ps : List w64) (ctxs : L
       etcdstart.bootPremise N ps (LogEntry.toEntries boot 0) ctxs
         (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token m.Name'
         (urlsN (membersOf peers clients) m) id) ∗
-    bootMarshal ps ctxs (LogEntry.toEntries boot 0) ∗
-    etcdstart.commonPremises)
+    bootMarshal ps ctxs (LogEntry.toEntries boot 0))
 
 instance premises_persistent (N : Nat) (peers clients : List GoString) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) :
