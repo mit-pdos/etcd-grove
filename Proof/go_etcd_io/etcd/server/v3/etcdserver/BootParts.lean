@@ -36,13 +36,11 @@ The states:
   program's (`backend.onFs`): its body must say they are the program's. (Until 2026-11-23 the snapshot
   directory's right `snap.snapDirOwn` was missing from it too; it is now `bootstrapSnapshot`'s, carved
   from the snapshot directory that function makes.)
-- `bootFs.walExist.law`: unprovable under the trusted semantics as it stands (2026-11-23): `open` of an
-  absent path may fail with any nonzero errno (`Impl.lean`'s `Open`), and `NoIoErr`'s `PathErrno` names no
-  errno for `open` (only `unlink`/`rmdir`), so `ReadDir`'s error need not be `ENOENT` and `Exist` may answer
-  `true`; and `walAreaFresh`'s area covers by path the paths below the WAL directory (`covP`), not the
-  directory itself. Before: `wal.Exist.spec` gives `false → no WAL`, not the converse (its `false` arm
-  rests on `ENOENT`, `ExistCallees.lean`): `Exist` of a fresh area's absent directory reads `ENOENT`
-  and answers `false` in Go (`server/storage/wal/util.go`), so the restart branch is not taken.
+- `bootFs.walExist.law`: **proved** (2026-11-23), `bootFs.walExist_law_holds` (`BootFsLaws.lean`), from
+  `wal.Exist.spec` (whose post since then answers `false` with no WAL when the file system does not fail
+  on the directory, `FsNoErrAt`): `ReadDir`'s `open` of the absent directory fails with `ENOENT`
+  (`NoIoErr`'s `PathErrno`, its `open` case, the user's approval of 2026-11-23), at the area's no-I/O-error
+  and no-lock-error instances, which cover every inode and (`a.Sio.path a.dir`) the WAL directory by path.
 
 **The rows.** `bootOk`'s rows by the callee that makes them:
 
