@@ -64,6 +64,7 @@ include h_After in
 2026-11-24): `Main`'s linked triple behind `ParamsOk`, with the schedules `cluster3.RandomSchedule`
 draws. -/
 theorem k8s_all.wp_MainChecked [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_all.MainChecked.spec (GF := GF) (hG := hG) :=
   k8s_all.MainChecked.wp_proof k8s_all.wp_ParamsOk cluster3.wp_RandomSchedule
