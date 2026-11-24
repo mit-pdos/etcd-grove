@@ -1,7 +1,8 @@
 # Kubernetes' conditional authorization (KEP-5681, examples/k8s/authz): the results of
 # Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Results.lean (`k8s_authz_safe`) and
 # TopLevelRobustness.lean (`k8s_authz_robust`), over the union authorizer and the authorizer
-# package of the fork github.com/luxas/kubernetes (project k8s-authz) and the driver (project
+# package of the fork github.com/luxas/kubernetes, with three `%v` of a slice spelled out
+# (github.com/upamanyus/kubernetes goose-lean-authz-fmt2; project k8s-authz) and the driver (project
 # k8s-authz-driver).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/k8s-authz.txt [--check [--update]]
@@ -11,8 +12,6 @@
 # `#print axioms Perennial.EtcdGrove.k8s_authz.k8s_authz_robust`, not yet by --check --update.)
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/(Results|TopLevelRobustness)\.lean$
 axiom Perennial.net.http.initFuncsOk
-axiom fmt.ErrorfSlice.wp_proof
-axiom fmt.SprintfSlice.wp_proof
 axiom rand.Int63n.wp_proof
 axiom validation.IsDNS1123Subdomain.wp_proof
 axiom validation.IsDomainPrefixedKey.wp_proof

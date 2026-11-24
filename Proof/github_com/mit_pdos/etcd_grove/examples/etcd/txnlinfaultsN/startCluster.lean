@@ -369,12 +369,13 @@ theorem startCluster.wp_proof
       iintro %gs' %lis %cid %mid %R Hg
       rw [HsvOff.1]
       ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-      ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs'
-        lis xj.1.Client' cid mid R HEo $$ [Hg]
+      imod (etcdstart.kv_served_at sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs' lis xj.1.Client' cid
+        mid R Hrb48 Hrf rfl HLv) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hksa⟩
       · iframe; iframe #
-      imod (etcdstart.kv_served sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs' lis xj.1.Client' cid mid R
-        Hrb48 Hrf rfl HLv) $$ [Hg Hstk] with ⟨Htk, #Hkv⟩
-      · iframe; iframe #
+      -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
+      ihave %Hnr := EtcdGrove.etcd_noRefusal_srv xj.1.Client' sj E { xj.2.ρ with wait := γw } HEo
+        $$ [Hksa]
+      · iframe #
       imodintro
       iframe Htk
       iframe #

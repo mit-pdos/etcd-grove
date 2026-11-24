@@ -9,7 +9,7 @@ the cluster's compaction mode; then `net.Listen` at the client address, `s.Start
 keepalive policy: `v3rpc.Server(s, nil, nil, opt)` (its configuration from the started server's,
 `grpcCfgOk_of_started`, with the watchable store's built part `srvWatchBuilt`), the ghost step
 `etcd_kv_started` (etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at the client address)
-with the members' axiom `etcd_noRefusal` before it (D29: the address refusal-free), (W2 of
+with the members' axiom after it (`etcd_noRefusal_at` at the started server, D29: the address refusal-free), (W2 of
 `notes/watch-cut-plan.md`) the `Watch` stream served there
 (`etcd_watch_served_chain`, watchkv's), the runs borrowing from the server's run pools, built from
 `memberUp`'s stocks (`etcdstart.kvServeStocks_pools`; per-type stage B3), `go holdToken()`
@@ -104,7 +104,7 @@ theorem StartMember.wp_proof
   icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfresh with ⟨Hcaddr, Hfresh⟩
   ihave #Hcom' := Hcom
   iunfold etcdstart.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -⟩
+  icases Hcom' with ⟨-, -⟩
   ihave #Hsls : [∗map] k ↦ sl ∈ GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂
       (GMap.insert cfg.Name1' sl₁ ∅)), sl ↦*□ initURLs3 cfg k $$ []
   · iapply (BigSepM.bigSepM_insert (by
@@ -192,7 +192,7 @@ theorem StartMember.wp_proof
     as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %pc, %pm, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
       %lcid, %lmid, %R,
       Hgsn, %Hregs, -, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,
-      Hbemu2, Hgo2⟩
+      Hbemu2, Hgo2, #Hics⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [HEw]; simp
@@ -273,20 +273,20 @@ theorem StartMember.wp_proof
   rw [HC.2] at hRE
   ihave #Hkva := EtcdGrove.client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]
-  -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
-  ihave ⟨Hgsn, Hclis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal client gs q p srv clis E
-      { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HEo) $$
-    [Hgsn Hclis]
-  · iframe Hgsn Hclis; iframe #
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
       cid mid C.n il im iu ims is svcs regs sregs Hregs.1 Hrf Hregs.2.2.2.2.2 rfl HLv)
-    $$ [Hgsn Hclis Hcleft] with ⟨%γg, Hserv, #Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+    $$ [Hgsn Hclis Hcleft] with ⟨%γg, Hserv, #Hss, #Hksa, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe Hgsn Hclis Hcleft
     iframe Pv3 Psrv Hreq Hrd Hkva Hq Hil Him Hiu Hrp Hrb
     iintro !>
     imodintro
     iunfold idCred
     ipureintro; exact Hrb48
+  -- (D29) the member never refuses: the server now at its client address is etcd's, authentication
+  -- off, a voter (the members' axiom)
+  ihave %Hnr := EtcdGrove.etcd_noRefusal_at client srv [il, im, iu] E { ρ with wait := γw } HEo
+      $$ [Hreq Hksa Hics]
+  · iframe Hreq Hksa Hics
   -- (W2) the `Watch` stream served at the client address
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit

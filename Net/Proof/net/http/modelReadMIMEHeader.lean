@@ -313,6 +313,14 @@ theorem mh_trim_line {k w : List w8} (hne : k ≠ []) (hk : k.all fieldByte = tr
   rw [← List.cons_append]
   exact mh_rtrim_cons_nonws _ _ (by decide) _
 
+/-- A `Sprintf` whose format starts with a literal `l` (`Sprintf_pure_of`'s `Out`): its output starts
+with any prefix of `l`. -/
+theorem mh_proto_prefix {p l : GoString} {ps : List fmt.Piece} {args : List fmt.Arg} {out : GoString}
+    {Q : Prop} (hl : p <+: l) (h : fmt.Out (.lit l :: ps) args out ∧ Q) : p <+: out := by
+  obtain ⟨h, -⟩ := h
+  cases h with
+  | lit _ _ _ o _ => exact hl.trans (List.prefix_append _ _)
+
 theorem mh_proto_ptrTyped [GooseExts] [GoGlobalContext] (msg : GoString) :
     interface.mkOk net.textproto.ProtocolError.ty #msg ≠ GoInterface.nil ∧
       _root_.Perennial.io.ptrTyped (interface.mkOk net.textproto.ProtocolError.ty #msg) := by
@@ -633,10 +641,13 @@ local macro "mh_ret_err" : tactic => `(tactic| (
   ileft
   isplitr
   · ipureintro; exact ⟨He, Hty⟩
-  iunfold mimeErr
-  ileft
+  isplitl []
+  · iunfold mimeErr
+    ileft
+    iexists _
+    iexact HEe
   iexists _
-  iexact HEe))
+  iexact Hb))
 
 theorem mh_hdrOwn_snoc (mp : Loc) (l : List HdrLine) (ms : GMap GoString GoSlice) (K v : GoString)
     (s' : GoSlice) (hdom : ∀ k, (ms !! k).isSome = decide (k ∈ l.map Prod.fst))
@@ -688,10 +699,13 @@ set_option hygiene false in
 local macro "mh_proto_post" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact mh_proto_ptrTyped msg
-  iunfold mimeErr
-  iright
-  ipureintro
-  exact ⟨msg, rfl⟩))
+  isplitl []
+  · iunfold mimeErr
+    iright
+    ipureintro
+    exact ⟨msg, rfl, mh_proto_prefix (by decide) Hout⟩
+  iexists _
+  iexact Hb))
 
 set_option hygiene false in
 /-- The new header line's insertion into the map (after the value's skip loop), then `fin`. -/
@@ -871,7 +885,7 @@ local macro "mh_after" fin:tacticSeq : tactic => `(tactic| (
           try wp_auto
           wp_apply (fmt.Sprintf_pure_of wp_Sprintf _
               [.lit go!"malformed MIME header line: ", .dir none fmt.verb_q] _ _ _ _
-              (by fmt_encode) (mh_fits_q _ _ (by decide)) (.str _ _ _ .nil)) $$ [Hsl] as %msg -
+              (by fmt_encode) (mh_fits_q _ _ (by decide)) (.str _ _ _ .nil)) $$ [Hsl] as %msg ⟨-, %Hout⟩
           · iexact Hsl
           try wp_auto
           wp_for_post
@@ -1278,7 +1292,7 @@ local macro "mh_loop" : tactic => `(tactic| (
         -- `%q` of `string(kv)` (the model's, byte-identical to textproto's `%q` of `kv`)
         wp_apply (fmt.Sprintf_pure_of wp_Sprintf _
             [.lit go!"malformed MIME header: missing colon: ", .dir none fmt.verb_q] _ _ _ _
-            (by fmt_encode) (mh_fits_q _ _ (by decide)) (.str _ _ _ .nil)) $$ [Hsl] as %msg -
+            (by fmt_encode) (mh_fits_q _ _ (by decide)) (.str _ _ _ .nil)) $$ [Hsl] as %msg ⟨-, %Hout⟩
         · iexact Hsl
         try wp_auto
         wp_for_post

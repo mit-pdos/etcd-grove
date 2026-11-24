@@ -37,6 +37,9 @@ translate = ["!*", "RangeRequest_SortOrder_name", "RangeRequest_SortTarget_name"
   "CompactionRequest", "CompactionResponse",
   # the auth plan's A2 (2026-10-23): the server's `MemberList` reads the request's `Linearizable`
   "MemberListRequest",
+  # (claim #34 stage 4, 2026-11-25) `bootstrapNewWAL`'s WAL metadata (`&Metadata{NodeID, ClusterID}`,
+  # marshalled by `pbutil.MustMarshalMessage`): the type, for the marshal's spec
+  "Metadata",
   "LeaseGrantRequest", "LeaseGrantResponse", "LeaseRevokeRequest", "LeaseCheckpointRequest",
   "LeaseCheckpoint", "LeaseCheckpointResponse",
   # the lease-read plan (2026-10-31): `LeaseTimeToLive` reads its request's `ID` and `Keys`,

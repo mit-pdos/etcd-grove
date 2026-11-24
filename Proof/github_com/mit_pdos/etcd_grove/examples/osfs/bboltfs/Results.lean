@@ -181,7 +181,8 @@ def bootPre [G : GooseGlobalGS .hasLC GF] (R : Roots) (dir : GoString) (L : Goos
       startAt L (child dir dbB) R (m, []) fo)
 
 /-- `bootCrashSafety` for executions of fewer than `N` steps along which fewer than `T ≤ 2 ^ 30`
-threads are live. -/
+threads are live (`RealCrashNstepsBelow`: the thread bound on the execution itself, Perennial's
+`goose_crash_adequacy_below`, so `N` is not bounded by `T`). -/
 theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [hPre : GooseGpreS GF]
@@ -191,11 +192,9 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
     (Hnone : (extLocal fsExt σ.world).lookup (child dir dbB) = none)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
-    (Hsteps : @RealCrashNsteps fsExts (fsExtsSemanticsWithS AnyStep P1) _
-      (boot dir) n ([boot dir], ((σ, g) : CfgState)) κs (t2, σ2) b)
-    (Hbound : n < N) (Hthreads : σ.threads = 1)
-    (Hlive : @RealCrashThreadsBelow fsExts (fsExtsSemanticsWithS AnyStep P1) _
-      (boot dir) T n ([boot dir], ((σ, g) : CfgState))) :
+    (Hsteps : @RealCrashNstepsBelow fsExts (fsExtsSemanticsWithS AnyStep P1) _
+      (boot dir) T n ([boot dir], ((σ, g) : CfgState)) κs (t2, σ2) b)
+    (Hbound : n < N) (Hthreads : σ.threads = 1) :
     (∀ e2, e2 ∈ t2 → @RealNotStuck fsExts (fsExtsSemanticsWithS AnyStep P1) _ e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   letI := fsExtsSemanticsWithS AnyStep P1
@@ -214,9 +213,9 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
   obtain ⟨m0, hm0⟩ : ∃ m0, (extLocal fsExt σ.world).fs.treeDur = m0 := ⟨_, rfl⟩
   rw [hm0] at Hnone
   have hfa : FileAt R (child dir dbB) j dbB := ⟨hR, dbB_ok, dir, hrj, rfl⟩
-  have h := fsSQ_crash_adequacy (GF := GF) AnyStep P1 anyStep_keeps N T (boot dir) σ g
+  have h := fsSQ_crash_adequacy_below (GF := GF) AnyStep P1 anyStep_keeps N T (boot dir) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) Hinit (fun L => bootPre R dir L)
-    ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads Hlive
+    ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads
   · exact h.2
   · -- the first generation: the tree as on disk, the file absent
     intro hG _ _ _
@@ -311,7 +310,8 @@ theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     BootCrashSafety dir := by
   intro σ g Hlctx Hpkgs Hinit Hdir Hnone Hthreads n κs t2 σ2 b Hsteps Hlive
   exact bootCrashSafety_bounded (GF := fsGF) (n + 1) (2 ^ 30) (Nat.le_refl _)
-    σ g dir Hlctx Hpkgs Hinit Hdir Hnone n κs t2 σ2 b Hsteps (by omega) Hthreads Hlive
+    σ g dir Hlctx Hpkgs Hinit Hdir Hnone n κs t2 σ2 b
+    (RealCrashNstepsBelow.of_threadsBelow Hsteps Hlive) (by omega) Hthreads
 
 end adequacy
 

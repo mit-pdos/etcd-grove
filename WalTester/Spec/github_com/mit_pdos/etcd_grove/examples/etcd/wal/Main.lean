@@ -1,7 +1,9 @@
 /-
-`Main(area, orDir)` (wal.go): the program, `Boot(area, orDir, 0, 40)`; the crash and the restart between
-incarnations are the machine's (the adequacy theorem's crash semantics). Stated as `Boot`'s spec (the
-program's part of `TBoot`, `TRun`; the same premises). Lean-first (no Rocq counterpart).
+`Main(area, orDir)` (wal.go): the program, `Boot(area, orDir, 0, 40)` once `dirOk` accepts both
+directories (else it returns); the crash and the restart between incarnations are the machine's (the
+adequacy theorem's crash semantics). Stated as `Boot`'s spec (the program's part of `TBoot`, `TRun`; the
+same premises), for directories the tester's facts hold of; `MainInvalid.lean` states the other case.
+Lean-first (no Rocq counterpart).
 -/
 module
 

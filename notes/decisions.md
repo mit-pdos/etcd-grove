@@ -14942,6 +14942,10 @@ at `addr`, the facts `etcd_kv_started` takes. `errDesc`, `refusalDescs` and `noR
 `Proof/go_etcd_io/etcd/cache/v3/Base.lean`, beside `statusErrOk`, and `noRefusalAt` is in
 `InvGrpc.lean`.
 
+*Superseded in part (2026-11-24): the premises `gs` and the listener did not tie `addr` to the server;
+the axiom now takes the server listening at `addr` (`grpcAddrIs`, `grpcSrvCfg`), see "`etcd_noRefusal`
+over the server listening at the address".*
+
 **What it buys.** The client proves (R4): `isSafeRetry`, `isSafeRetryMutableRPC` and
 `shouldRefreshToken` return `true` for a `nonRepeatable` call only on a refusal. So on a
 connection to refusal-free members, the interceptor sends a write once and takes its ordinary
@@ -42348,6 +42352,59 @@ bridges `a` keeps nothing to set them with. Trust-shrinking (a stronger precondi
 `client_Get_own` (over `grpc.ClientConn.Invoke`) promises a value the real store lacks (`examples/axiomcx/bridgeinvoke/`);
 with the fix it found no route (`notes/axiom-review/bridge-addrleft.md`).
 
+## `http.register` consumes what sets the address's net protocols (2026-11-24 · the coordinator, trust-shrinking · branch `http-register-addrleft/2026-11-24`)
+
+*Superseded in part* (the same day) by "`http.reserve` fixes the address's net protocols" below: `reserve` takes the
+address's net protocols as net/http's, `register` no longer takes `netAddrLeft a` (nothing gives it for a reserved
+address). The alternative this entry set aside was the right place: the hole was also open without any `register`.
+
+**Problem.** `http.register` (D38c) took only the listener `netListenerAt l a` (and the reserved protocol). Since phase 7
+S2's interface `net.Listen` also returns `netAddrLeft a`, from which a program gives `a` net protocols of its own and writes
+raw bytes to it; `Serve_ok` still promised each handler a request of `a`'s http protocol. Go: a raw `GET` reaches a handler
+promised only `POST`s and its check panics (`notes/axiom-review/http-register-addrleft.md`, `examples/axiomcx/httpaddrleft/`).
+The same class as `bridge.New` before its fix (above).
+
+**Choice.** `register` also consumes `netAddrLeft a`: an address served by net/http speaks HTTP, so the program that
+registers it keeps nothing to set its net protocols with. Trust-shrinking (a stronger premise of an axiom); its five
+callers pass `net.Listen`'s, their specs unchanged. Alternative: `reserve` consuming it (the reservation happens before
+the listener exists, from the start's `httpProtoFree`; `register` is where the listener and `netAddrLeft` meet).
+
+## `http.reserve` fixes the address's net protocols (2026-11-24 · the coordinator, trust-shrinking · branch `http-reserve-addrproto/2026-11-24`)
+
+**Problem.** `http.reserve` turned `httpProtoFree a` into `httpProtoAt a P ∗ httpProtoOwn a P`, and `RoundTrip` (through
+`NewTimeoutTransport`'s `roundTripperOk`) promises a client of `a` `P.resp` of whatever status it reads, from the
+reservation on. Nothing tied `a`'s net protocols to HTTP: a program that reserved `a` and never registered it listened at
+`a` (`net.Listen`, `netAddrFree a`), set `a`'s net protocols to trivial ones from `netAddrLeft a` (or kept `netPend a ∅`),
+accepted the client's connection and wrote `HTTP/1.1 200 OK`, a status `P` excluded. Go: `examples/axiomcx/httpreserve/`
+panics (`notes/axiom-review/http-reserve-addrproto.md`). The same class as `bridge.New`'s and `register`'s holes (above),
+and the previous entry's fix (`register` consuming `netAddrLeft a`) does not reach it: the program never registers.
+
+**Choice.** `reserve` also takes `httpAddrNet a` (persistent, `Proof/net/http/AddrNet.lean`): `a`'s net protocols are the
+opaque `httpNetCliP`/`httpNetSrvP` (trusted text with no law, as grpc's `grpcCliPI`/`grpcSrvPI`), so no program but
+raw net code writes at `a` (it may still listen, accept and read), and `a`'s pending set is spent (no
+`netAddrLeft a`: no protocols of the program's own). It is set by a theorem over the net extension (`httpAddrFree_set`: `netProto_alloc`,
+`addr_set_proto`) from `netAddrFree a`, which leaves `httpAddrFree a := addrClaim a ∗ httpAddrNet a`, the right to listen
+at `a` reserved for HTTP; `reserveAddr` packages the two. The member's peer listener is made from it by a second spec of
+`net.Listen`, `net.Listen.specHttp` (a theorem from Net's `Listen` spec with `listen_au`, linked as `net_Listen+Http`),
+which leaves no `netAddrLeft`, so `register` takes the listener and `httpProtoOwn a P` alone (`httpProtoOwn` comes only from
+`reserve`, so its address already speaks HTTP). The start bundles' peer part is `httpAddrFree p ∗ httpProtoOwn p P`
+(`memberFreshRes`, `memberRestartRes`, sealed), set at the clusters' allocations (`netHttp_reserve3`, `netHttp_reserveL`,
+which now take each address's `netAddrFree` with its `httpProtoFree`); the restart examples' `newMember.spec` say so. No
+top-level statement changes (they name program start's `addrClaim`/`httpProtoFree`, unchanged). Trust: `reserve`'s
+premise is stronger; `register`'s is weaker than the previous entry's but sound by the reservation; the two opaques
+are new trusted text without laws (definitions, not axioms). The drafts of `ListenerClose.lean` follow: the close gives
+back `httpAddrFree a`, never a fresh `netAddrFree a`.
+
+Alternatives. `reserve` consuming `netAddrFree a` whole and handing the listen right back opaque (an axiom for the
+listener: trust grows). Setting the protocols at `register` (too late: `RoundTrip`'s promise holds from the
+reservation). `httpProtoAt` carrying the net fact for `RoundTrip` to take (the same premise in a less direct place).
+
+**Addendum (the same day, the listener's tie).** An independent review of the fix found `netListenerOpen l a` did not tie
+the Go listener `l` to the extension's listener open at `a` (pre-existing): a raw listener at an unreserved `b` could be
+registered as `a`'s (`examples/axiomcx/httpregfwd/`, `notes/axiom-review/http-reserve-addrproto.md`, "The listener's
+tie"). `netListenerOpen` now carries Net's `lisAt t lv x` (as `isListener`), which `net.Listen`'s proofs keep; its
+consumers are axioms (`register`, `grpc.start`, `bridge.New`), whose premise is stronger. Alternative: an axiom-side
+check (each axiom taking `isListener`): the same fact in three places instead of the one definition.
 
 ## Go's process exit stays angelic, and checkers panic (2026-11-24 · branch `angelic-exit-doc/2026-11-24`)
 
@@ -42388,3 +42445,83 @@ QuePaxa's exits on a failed `grpc.Dial` or debug-dump file (environment failures
 Not done: a whole-program analysis (an exit in a dependency, or a wrapper that decides by itself whose
 callers' conditions matter, is not followed); the gate is a review aid for the checks' own code, which
 is where a vacuous check would be written.
+
+## `etcd_noRefusal` over the server listening at the address (2026-11-24 · trust-shrinking, from an axiom sweep · branch `norefusal-link/2026-11-24`)
+
+*Supersedes D29's sentence on the members' axiom's premises ("the gRPC server `gs` with the KV
+registrations and the listener at `addr`, the facts `etcd_kv_started` takes") and the same premises of
+`etcd_noOtherRefusal` (F-S2 part 1).*
+
+**Problem.** `etcd_noRefusal` took etcd's gRPC server being built (`grpcSrvNew gs …` with `kvRegs q`
+among its registrations) and a listener at `addr` (`netListenerAt lis addr`), and gave both back with
+the pure, global `noRefusalAt addr`, which the attempt contract (`grpcInvokerOk`) reads for every KV
+call at `addr`. Nothing tied `addr` to `gs`: a program built `gs`, never served it, and served `addr`
+with another server whose `Put` returns the learner refusal (through `grpc.start'` on the same listener);
+a `Put` at `addr` then had a proof that it is not refused, and Go refuses it
+(`examples/axiomcx/norefusal/`, `TestMainPanics`; `notes/axiom-review/norefusal-link.md`).
+`etcd_noOtherRefusal` had the same shape (latent: no result uses it).
+
+**Choice.** Both axioms take the server listening at `addr` after its start: `grpcAddrIs addr γ ∗
+grpcSrvCfg γ c` with `kvRegs q` among `c.regs`, beside `isServerReq` and `quotaKVServerAt q … s`, and
+conclude the pure fact only (nothing to give back: the premises are persistent). `grpcAddrIs` is made
+only by `grpc.start` (consuming the server and the listener) and `bridge.New`, one per address
+(`grpcAddrIs_agree`); `grpcSrvCfg` is that server's configuration (`grpcSrvCfg_agree`). Bundled as
+`etcdKVSrvAt addr s` (`NoRefusal.lean`), made from `grpc.start'`'s `grpcServerAt` by
+`etcdKVSrvAt_of_serverAt`; `etcd_noRefusal_at` applies the axiom to it.
+
+Rejected: (i) keep the pre-start position and return a binding token: any token the axiom returns
+beside a plain `netListenerAt` can be dropped and the listener used by another server, and a sealed
+wrapper is not a soundness argument; (ii) a variant of `grpc.start'` that also concludes `noRefusalAt`
+(formally a weakening of the old axiom with the start): sound for this route, but it duplicates
+`grpc.start'`'s statement in a trusted axiom and the call sites start the server inside proved theorems
+(`client.etcd_kv_started_with`) that would have to call it, which is the same cascade as returning
+`etcdKVSrvAt`; (iii) applying the axiom inside the started theorems: every result over them (putget's,
+lease's, ...) would then rest on it, a per-result growth of trust.
+
+**Trust.** Weaker, per execution: every instance is the old axiom's at the moment of the start (or the
+old axiom's at a bridge's target with the bridge's carry), and the instances where `addr` is served by
+another server are gone. The statement is not a syntactic strengthening of the premises (pre-start
+resources became post-start facts). Axiom count unchanged; no top-level statement changed; per-result
+axiom sets unchanged (the started theorems return `etcdKVSrvAt` without using the axiom, and only the
+old call sites apply it).
+
+**Cascade.** `client.etcd_kv_started_with`, `etcd_kv_started`, `kv_lease_served_core`,
+`etcdstart.kvWatch_served`, `etcd_watch.wk_served_nd` return `etcdKVSrvAt addr s`; `etcdstart.kv_served_at`
+is new (`kv_served`, unchanged, is its weakening); `etcdstart.grpcUp_noRefusal` is removed. The call
+sites (cache, watch, compactwatch, k8s compactor's and etcd3's `Main`s and `startCluster`s, txnlin,
+txnlinfaultsN, `cluster3.StartMember`, `kv_lease_served_watch`) apply `etcd_noRefusal_at` after the start.
+
+**The chain by identity (same day, after an independent review: the first fix, `665f2f1efa`, left the
+unary chain unread).** A server registering etcd's KV service over the member behind a refusing
+interceptor of the program's met the first fix's premises, and Go refuses
+(`examples/axiomcx/norefusal/`, `TestMainInterceptorPanics`, 5/5 on the review): interceptor contracts
+(`srvInterceptorOk`) allow any non-handler error. Both axioms now also take `v3rpc.etcdUnaryIcs s c.ics`
+(`v3rpc/UnaryChain.lean`): the chain is exactly `[il, im, iu]`, `il`/`iu` the closures
+`newLogUnaryInterceptor(s)`/`newUnaryInterceptor(s)` return (their translated code over a variable
+holding `s`, `v3rpc.icClosureOf`, read off the code; their proved specs return it), `im` one of
+grpc-prometheus's (`promUnaryIc`, opaque). `v3rpc.Server`'s spec returns it, `grpcUp` carries it,
+`etcdKVSrvAt addr s ics` records `c.ics = ics`, and `etcdKVSrv addr s` adds the identity.
+
+Rejected: (b) interceptor contracts bounding their own errors' descriptions, proved for etcd's and
+assumed for grpc-prometheus's, with the voter fact moved onto `IsLearner`: a smaller axiom, but it
+redesigns the learner spec and the interceptor contract; not needed to close the hole.
+
+**Trust.** The axioms only lose instances again (their chain must be etcd's; the old axiom read no
+chain). One trusted spec restated: `grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof`
+also returns `⌜promUnaryIc ic⌝` (opaque, a `Prop`: no axiom), naming the value Go returns (the closure
+`interceptors.UnaryServerInterceptor(reporter)`), read only by the members' axioms; nothing else grows.
+
+**Docstrings corrected** (the review's): `grpcAddrIs_agree` and `InvNet.lean`'s header said an address
+is listened on once per run, false (`listen_au` lends the listening token again once the address's
+protocols are set); what holds is that `addrClaim`, which `grpc.start` and `bridge.New` consume for
+good, is given once per address.
+
+**`kvMethod` exact (same day, a second independent review of `152b805937`).** The attempt contract
+read `noRefusalAt` for `kvMethod method`, then the prefix `/etcdserverpb.KV/`: a program registering a
+service named `etcdserverpb.KV/Evil` on etcd's own server got the promise for `/etcdserverpb.KV/Evil/Put`,
+which grpc-go dispatches (at the last `/`) to that service, and Go refuses
+(`examples/axiomcx/norefusal/`, `TestMainSlashPanics`). `kvMethod` is now membership in the five exact
+full names; the client's three uses discharge it by `kvMethod_put`/`_deleteRange`/`_txn`/`_range`.
+Trust-shrinking: the attempt contract (`grpcInvokerOk`) promises a non-refusal for fewer calls; the
+members' axioms are unchanged in statement and now speak of fewer calls.
+
