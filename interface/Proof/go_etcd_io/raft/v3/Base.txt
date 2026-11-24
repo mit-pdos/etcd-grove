@@ -243,38 +243,41 @@ def Perennial.go_etcd_io.raft.v3.isInitialized : IProp GF :=
                                                                   us (DFrac.own 1) ∗
                                                                 ownSlice us [] (DFrac.own 1))) ∗
                                       "#isLocalMsg" ∷ typedPointsto (globalAddr isLocalMsg) localMsgs DFrac.discard ∗
-                                        "#isResponseMsg" ∷
-                                            typedPointsto (globalAddr isResponseMsg) responseMsgs DFrac.discard ∗
-                                          "#ErrStepLocalMsg" ∷
-                                              typedPointsto (globalAddr ErrStepLocalMsg) errStepLocal DFrac.discard ∗
-                                            "#ErrStepPeerNotFound" ∷
-                                                typedPointsto (globalAddr ErrStepPeerNotFound) errStepPeer DFrac.discard ∗
-                                              ("#ErrBreak" ∷
-                                                  ∃ eb,
-                                                    typedPointsto (globalAddr errBreak) eb DFrac.discard ∗
-                                                      ⌜eb ≠ GoInterface.nil ∧ IsNewError eb⌝) ∗
-                                                "#ErrStoppedNew" ∷
-                                                    errorsNewVar ErrStopped
-                                                      go!"raft: stopped" ∗
-                                                  "#ErrPropDroppedNew" ∷
-                                                      errorsNewVar ErrProposalDropped
-                                                        go!"raft proposal dropped" ∗
-                                                    "#ErrCompactedNew" ∷
-                                                        errorsNewVar ErrCompacted
-                                                          go!"requested index is unavailable due to compaction" ∗
-                                                      ("#ErrSnapOOD" ∷
-                                                          ∃ e,
-                                                            typedPointsto (globalAddr ErrSnapOutOfDate) e DFrac.discard) ∗
-                                                        "#ErrSnapOODNew" ∷
-                                                            errorsNewVar ErrSnapOutOfDate
-                                                              go!"requested index is older than the existing snapshot" ∗
-                                                          "#stmap" ∷
-                                                              typedPointsto (globalAddr stmap) stmapV DFrac.discard ∗
-                                                            "#HloggerMu" ∷
-                                                              sync.isMutex (globalAddr raftLoggerMu)
-                                                                iprop(∃ l,
-                                                                    typedPointsto (globalAddr raftLogger) l
-                                                                      (DFrac.own 1)))
+                                        "%HlocalMsgs" ∷ ⌜localMsgs = localMsgsV⌝ ∗
+                                          "#isResponseMsg" ∷
+                                              typedPointsto (globalAddr isResponseMsg) responseMsgs DFrac.discard ∗
+                                            "#ErrStepLocalMsg" ∷
+                                                typedPointsto (globalAddr ErrStepLocalMsg) errStepLocal DFrac.discard ∗
+                                              "#ErrStepPeerNotFound" ∷
+                                                  typedPointsto (globalAddr ErrStepPeerNotFound) errStepPeer
+                                                    DFrac.discard ∗
+                                                ("#ErrBreak" ∷
+                                                    ∃ eb,
+                                                      typedPointsto (globalAddr errBreak) eb DFrac.discard ∗
+                                                        ⌜eb ≠ GoInterface.nil ∧ IsNewError eb⌝) ∗
+                                                  "#ErrStoppedNew" ∷
+                                                      errorsNewVar ErrStopped
+                                                        go!"raft: stopped" ∗
+                                                    "#ErrPropDroppedNew" ∷
+                                                        errorsNewVar ErrProposalDropped
+                                                          go!"raft proposal dropped" ∗
+                                                      "#ErrCompactedNew" ∷
+                                                          errorsNewVar ErrCompacted
+                                                            go!"requested index is unavailable due to compaction" ∗
+                                                        ("#ErrSnapOOD" ∷
+                                                            ∃ e,
+                                                              typedPointsto (globalAddr ErrSnapOutOfDate) e
+                                                                DFrac.discard) ∗
+                                                          "#ErrSnapOODNew" ∷
+                                                              errorsNewVar ErrSnapOutOfDate
+                                                                go!"requested index is older than the existing snapshot" ∗
+                                                            "#stmap" ∷
+                                                                typedPointsto (globalAddr stmap) stmapV DFrac.discard ∗
+                                                              "#HloggerMu" ∷
+                                                                sync.isMutex (globalAddr raftLoggerMu)
+                                                                  iprop(∃ l,
+                                                                      typedPointsto (globalAddr raftLogger) l
+                                                                        (DFrac.own 1)))
 
 def Perennial.go_etcd_io.raft.v3.protoreflect_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
@@ -363,3 +366,11 @@ def Perennial.go_etcd_io.raft.v3.protoimpl_is_pkg_init_inst : IsPkgInit (IProp G
     pkg_id.google_golang_org.protobuf.runtime.protoimpl :=
   { isPkgInitDeps := iprop(isPkgInit pkg_id.google_golang_org.protobuf.internal.impl ∗ True),
     isPkgInitDef := iprop(True) }
+
+def Perennial.go_etcd_io.raft.v3.localMsgTypes : List w32 :=
+  [W32 0, W32 1, W32 10, W32 11, W32 12, W32 19, W32 20, W32 21, W32 22]
+
+def Perennial.go_etcd_io.raft.v3.localMsgsV : GoArray Bool 23 :=
+  array.mk 23
+    [true, true, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false,
+      false, false, true, true, true, true]

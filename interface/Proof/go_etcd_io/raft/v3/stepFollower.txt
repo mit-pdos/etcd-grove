@@ -9,8 +9,9 @@ theorem stepFollower.wp_proof [package_sem : Assumptions] (wp_raft_handleAppendE
     raftpb.Message.GetFrom.spec) (wp_GetEntries : raftpb.Message.GetEntries.spec) (wp_GetIndex :
     raftpb.Message.GetIndex.spec) (wp_GetData : raftpb.Entry.GetData.spec) : stepFollower.spec
   -- `Perennial.EtcdGrove.stepFollower.spec`, unfolded:
-  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
-    (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8) (G G' : List Msg → IProp GF),
+  ∀ {nc : Bool} (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
+    (G G' : List Msg → IProp GF),
     m.Type' = MsgVoteResp ∨
         m.Type' = MsgProp ∨
           m.Type' = MsgApp ∨
@@ -51,7 +52,7 @@ theorem stepFollower.wp_proof [package_sem : Assumptions] (wp_raft_handleAppendE
                             s.role = PRole.follower ∧ s.votes = ∅ ∧ m.From' ≠ id ∧ s.gh.ns = false ∧ s.gh.tr = none) →
                     (m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader → rs = []) →
                       PermInv G' →
-                        IdxFree s.gh.tr G →
+                        IdxFreeN nc s.gh.tr G →
                           (m.Type' = MsgTransferLeader → s.gh.tr = none) →
                             ⊢
                               ∀ Φ,
@@ -138,7 +139,8 @@ theorem stepFollower.wp_proof [package_sem : Assumptions] (wp_raft_handleAppendE
                                                     (⌜m.Type' = MsgProp ∨
                                                           m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗
                                                       ∀ out,
-                                                        ⌜∀ (x : Msg), x ∈ out → x.ty.traced = false⌝ -∗
+                                                        ⌜∀ (x : Msg),
+                                                              x ∈ out → x.ty.traced = false ∧ x.ty ≠ MsgType.snap⌝ -∗
                                                           G s.outbox -∗
                                                             HookGateOpt s.gh.tr r none (G (s.outbox ++ out))) ∗
                                                   "Hgcamp" ∷

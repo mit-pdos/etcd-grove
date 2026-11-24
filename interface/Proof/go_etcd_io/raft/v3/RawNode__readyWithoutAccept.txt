@@ -9,15 +9,28 @@ theorem RawNode.readyWithoutAccept.wp_proof [package_sem : Assumptions] (wp_raft
     (wp_raftLog_nextUnstableSnapshot : raftLog.nextUnstableSnapshot.spec) (wp_MustSync :
     MustSync.spec) (wp_Message_GetTo : raftpb.Message.GetTo.spec) : RawNode.readyWithoutAccept.spec
   -- `Perennial.EtcdGrove.RawNode.readyWithoutAccept.spec`, unfolded:
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat) (sc : Bool),
     rs.steps = [] →
       rs.unpersisted = [] →
         ⊢
           ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNodeAt γ rn id rs ps qs ip sc -∗
               (▷
                   ∀ rd ce es ms sts h L,
-                    "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms false L ∗
+                    ("Hrn" ∷
+                          ∃ s,
+                            ownRawNodeReadyS γ rn id rs rd ce es ms false L s ∗
+                              rnScopeAt γ id sc rs s ∗
+                                ⌜toPState s = ps ∧
+                                      uint.nat s.logst.inprogress = ip + 1 ∧
+                                        (List.filterMap (fun q => absMsgOf q.st) ms).Perm
+                                            (List.filter (fun m => decide (m.dst ≠ id)) s.outbox) ∧
+                                          (∀ (q : QMsg), q ∈ ms → q.st.msg.To' ≠ id) ∧
+                                            (sc = true →
+                                              roleGo ps.role = stateW64 s.role ∧
+                                                rs.delivered ++ ce <+: ps.log ∧
+                                                  (rs.delivered ++ ce).length ≤ uint.nat ps.commit)⌝ ∗
+                                  ∃ ss, softStateIs rd.SoftState' ss ∗ ⌜roleAfter rs.role ss = stateW64 s.role⌝) ∗
                         "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
                           "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
                             "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
@@ -50,8 +63,11 @@ theorem RawNode.readyWithoutAccept.wp_proof [package_sem : Assumptions] (wp_raft
                                             "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
                                               ("#Hrs_ok" ∷ [∗list] st ∈ sts, readStateRaw γ st) ∗
                                                 "#Hhard" ∷ hsOptC rd.HardState' h ∗
-                                                  "#Hhsw" ∷
-                                                    hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length -∗
+                                                  "%Hhnew" ∷
+                                                      ⌜¬(h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) →
+                                                          h ≠ rs.phs⌝ ∗
+                                                    "#Hhsw" ∷
+                                                      hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length -∗
                       Φ (intoVal rd)) -∗
                 WP
                   ((intoVal

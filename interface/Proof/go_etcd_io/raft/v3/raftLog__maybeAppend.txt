@@ -40,7 +40,8 @@ theorem raftLog.maybeAppend.wp_proof [package_sem : Assumptions] (wp_raftLog_mat
                               ⌜ls'.snap = ls.snap ∧
                                   (nextUnstable ls ≠ [] → nextUnstable ls' ≠ []) ∧
                                     SnpKeep ls ls' ∧
-                                      (uint.Z ls'.inprogress < uint.Z ls.inprogress → TruncAt ls ents ls'.inprogress)⌝ -∗
+                                      (uint.Z ls'.inprogress < uint.Z ls.inprogress → TruncAt ls ents ls'.inprogress) ∧
+                                        (ok = true → ls'.inprogress = maybeAppendIp ls ents)⌝ -∗
                           Φ (intoVal lastnewi, intoVal ok)) -∗
                     WP
                       (((intoVal

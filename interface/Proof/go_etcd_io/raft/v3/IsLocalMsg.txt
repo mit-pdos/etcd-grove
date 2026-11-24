@@ -10,4 +10,5 @@ theorem IsLocalMsg.wp_proof [package_sem : Assumptions] (wp_isMsgInArray : isMsg
       ⊢
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-            (▷ ∀ b, True -∗ Φ (intoVal b)) -∗ WP ((intoVal (functions IsLocalMsg [])) (intoVal t)) {{ Φ }}
+            (▷ ∀ b, ⌜b = decide (t ∈ localMsgTypes)⌝ -∗ Φ (intoVal b)) -∗
+              WP ((intoVal (functions IsLocalMsg [])) (intoVal t)) {{ Φ }}

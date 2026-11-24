@@ -80,24 +80,44 @@ theorem RawNode.acceptReady.wp_proof [package_sem : Assumptions] (wp_IsEmptyHard
     : RawNode.acceptReady.spec
   -- `Perennial.EtcdGrove.RawNode.acceptReady.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
-    (h : HardStateM) (L : Option SnapLoan),
+    (h : HardStateM) (L : Option SnapLoan) (s : NState) (sc : Bool),
     (γ.reTrace ≠ none → uint.Z rs.tc + 1 < ↑traceNumBound ∧ traceReadyFits GF γ) →
       ⊢
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗ "#Hh" ∷ hsOpt rd.HardState' h -∗
+              "Hrn" ∷ ownRawNodeReadyS γ rn id rs rd ce es ms true L s ∗
+                "Hsc" ∷ rnScopeAt γ id sc rs s ∗ "#Hh" ∷ hsOpt rd.HardState' h -∗
             (▷
-                ∀ steps ss,
-                  ("#Hss" ∷ softStateIs rd.SoftState' ss ∗
+                ∀ steps ss qs' ip',
+                  "#Hss" ∷ softStateIs rd.SoftState' ss ∗
                       "%Hssn" ∷ ⌜rd.SoftState' = null → ss = none⌝ ∗
                         "Hrn" ∷
-                            ownRawNode γ rn id
+                            ownRawNodeAt γ rn id
                               { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
                                 storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode,
                                 cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L,
                                 phs := phsNext rs.phs h, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
-                                role := roleAfter rs.role ss, bw := rs.bw, hlb := rs.hlb } ∗
-                          "Htoks" ∷ [∗list] q ∈ ms, readyTok γ q.st) -∗
+                                role := roleAfter rs.role ss, bw := rs.bw, hlb := rs.hlb }
+                              (have __src := toPState s;
+                              { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
+                                votes := __src.votes, outbox := [], base := __src.base, log := __src.log,
+                                commit := __src.commit, matched := __src.matched,
+                                rd :=
+                                  have __src := (toPState s).rd;
+                                  { ro := __src.ro, pend := __src.pend } })
+                              qs' ip' sc ∗
+                          ("Htoks" ∷ [∗list] q ∈ ms, readyTok γ q.st) ∗
+                            "%Hout" ∷
+                              ⌜sc = true →
+                                  qs'.Perm (List.filter (fun m => decide (m.dst = id)) s.outbox) ∧
+                                    phsNext rs.phs h =
+                                        { Term' := s.term, Vote' := s.vote, Commit' := s.logst.committed } ∧
+                                      (readyDurable rs.dur (phsNext rs.phs h) L es).ents = (toPState s).log ∧
+                                        (∀ (e0 : EntryM),
+                                            e0 ∈ es.head? →
+                                              List.drop (uint.nat e0.Index' - 1) (toPState s).log = es ∧
+                                                uint.nat e0.Index' = uint.nat s.logst.inprogress) ∧
+                                          ip' = (toPState s).log.length ∧ L = none⌝ -∗
                     Φ (intoVal ())) -∗
               WP
                 ((intoVal

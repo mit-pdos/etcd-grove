@@ -9,5 +9,5 @@ theorem isMsgInArray.wp_proof [package_sem : Assumptions] : isMsgInArray.spec
       ⊢
         ∀ Φ,
           ownSlice arr l DFrac.discard -∗
-            (▷ ∀ b, True -∗ Φ (intoVal b)) -∗
+            (▷ ∀ b, ⌜b = l[(sint.Z t).toNat]?.getD false⌝ -∗ Φ (intoVal b)) -∗
               WP (((intoVal (functions isMsgInArray [])) (intoVal t)) (intoVal arr)) {{ Φ }}

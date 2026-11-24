@@ -11,9 +11,9 @@ theorem stepCandidate.wp_proof [package_sem : Assumptions] (wp_raft_poll : raft.
     raftpb.Message.GetFrom.spec) (wp_GetTerm : raftpb.Message.GetTerm.spec) (wp_GetReject :
     raftpb.Message.GetReject.spec) : stepCandidate.spec
   -- `Perennial.EtcdGrove.stepCandidate.spec`, unfolded:
-  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
-    (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8) (G G' : List Msg → IProp GF)
-    (Gf G1 G2 : IProp GF) (k0 : Nat),
+  ∀ {nc : Bool} (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
+    (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) (k0 : Nat),
     m.Type' = MsgVoteResp ∨
         m.Type' = MsgProp ∨
           m.Type' = MsgApp ∨
@@ -47,8 +47,8 @@ theorem stepCandidate.wp_proof [package_sem : Assumptions] (wp_raft_poll : raft.
                       scfg = sv.Metadata'.ConfState'.lists ∧
                         SnapScopeIf id sv scfg ∧ m.From' ≠ id ∧ s.gh.ns = false ∧ s.gh.tr = none) →
                   PermInv G' →
-                    IdxFree s.gh.tr G' →
-                      IdxFree s.gh.tr G →
+                    IdxFreeN nc s.gh.tr G' →
+                      IdxFreeN nc s.gh.tr G →
                         ⊢
                           ∀ Φ,
                             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
@@ -364,7 +364,7 @@ theorem stepCandidate.wp_proof [package_sem : Assumptions] (wp_raft_poll : raft.
                                                                             sdr := __src.sdr, cq := __src.cq })
                                                                           c MsgApp [mm])
                                                                         (G' (o ++ [mm]))) ∗
-                                                        "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
+                                                        "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst ∗
                                                           "Hgcamp" ∷
                                                               (⌜m.Type' = MsgPreVoteResp ∧
                                                                     s.role = PRole.preCandidate ∧

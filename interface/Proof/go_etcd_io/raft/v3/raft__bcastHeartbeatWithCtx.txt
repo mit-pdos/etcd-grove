@@ -42,7 +42,10 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof [package_sem : Assumptions] (wp_Prog
                               logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
                               rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
                               sdr := __src.sdr, cq := __src.cq }) ∗
-                          ⌜∀ (m : Msg), m ∈ ms → HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
+                          ⌜∀ (m : Msg),
+                                m ∈ ms →
+                                  HeartbeatOk id (toPState s) m ∧
+                                    m.ctx = cl ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧ m.entries = []⌝ ∗
                             ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
                               G
                                 (have __src := sendMsgs s ms;

@@ -21,7 +21,7 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
     raftpb.Entry.GetIndex.spec) (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) :
     raft.Step.spec
   -- `Perennial.EtcdGrove.raft.Step.spec`, unfolded:
-  ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+  ∀ {nc : Bool} (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (R : StepG GF)
     (Gout : NState → IProp GF),
     StepMsg m →
@@ -159,7 +159,7 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                                 "HG" ∷ R.G ∗
                                                                                   "Hgates" ∷
                                                                                       stepGates c r id s m ents sn ctx rs
-                                                                                        (ghostIn γ md c id s R) ∗
+                                                                                        (ghostIn γ md c id s R) nc ∗
                                                                                     "Hclose" ∷
                                                                                       stepClose γ md c id m ents ctx s R
                                                                                         Gout -∗
