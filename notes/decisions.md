@@ -42462,3 +42462,13 @@ also returns `⌜promUnaryIc ic⌝` (opaque, a `Prop`: no axiom), naming the val
 is listened on once per run, false (`listen_au` lends the listening token again once the address's
 protocols are set); what holds is that `addrClaim`, which `grpc.start` and `bridge.New` consume for
 good, is given once per address.
+
+**`kvMethod` exact (same day, a second independent review of `152b805937`).** The attempt contract
+read `noRefusalAt` for `kvMethod method`, then the prefix `/etcdserverpb.KV/`: a program registering a
+service named `etcdserverpb.KV/Evil` on etcd's own server got the promise for `/etcdserverpb.KV/Evil/Put`,
+which grpc-go dispatches (at the last `/`) to that service, and Go refuses
+(`examples/axiomcx/norefusal/`, `TestMainSlashPanics`). `kvMethod` is now membership in the five exact
+full names; the client's three uses discharge it by `kvMethod_put`/`_deleteRange`/`_txn`/`_range`.
+Trust-shrinking: the attempt contract (`grpcInvokerOk`) promises a non-refusal for fewer calls; the
+members' axioms are unchanged in statement and now speak of fewer calls.
+

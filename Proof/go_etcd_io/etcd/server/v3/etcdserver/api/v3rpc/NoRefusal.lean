@@ -100,8 +100,13 @@ grpc-prometheus's, in `v3rpc.Server`'s order and nothing else): if `s` runs with
 (`E.authOn = false`: a fresh backend, `NewAuthStore`'s `isAuthStore … false`) and as a voter (the
 server model boots a new cluster's member; a voter stays one unless a conf change re-adds it as a
 learner, which `ccLogOk`, the conf-change policy of `isServerReq`'s raft log invariant, does not
-exclude: the voter fact is assumed, see the end), no status `γ` sends in answer to a call of the KV
-service (`kvMethod`) has a refusal's description (`noRefusalAt addr`).
+exclude: the voter fact is assumed, see the end), no status `γ` sends in answer to a call of one of
+the KV service's five methods has a refusal's description (`noRefusalAt addr`, read by the attempt
+contract for `kvMethod`, the five exact full names `/etcdserverpb.KV/{Range,Put,DeleteRange,Txn,Compact}`:
+`kvRegs q` among `c.regs` and distinct full names make each of them dispatch to etcd's handler. Until
+2026-11-24 `kvMethod` was the prefix `/etcdserverpb.KV/`, so the claim also covered a service the program
+registers as `etcdserverpb.KV/Evil` on this very server, which grpc dispatches at the last `/`:
+`examples/axiomcx/norefusal`, `MainSlash`).
 
 **Why the server listening at `addr`** (2026-11-24, `notes/axiom-review/norefusal-link.md`). Until then
 the axiom took etcd's server being built (`grpcSrvNew gs …`) and any listener at `addr`

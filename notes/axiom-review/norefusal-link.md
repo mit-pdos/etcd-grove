@@ -60,7 +60,8 @@ returns (each: the function's translated code, read off by `v3rpc.icClosureOf`, 
 `l ↦□ s`; both constructors' proved specs now return it, `rfl` from the code) and `im` one of grpc-prometheus's
 (`promUnaryIc`, opaque, made only by `ServerMetrics.UnaryServerInterceptor`'s trusted spec, restated to return it);
 `v3rpc.Server`'s spec returns `etcdUnaryIcs s [il, im, iu]`. So the claim is about the server that answers calls at
-`addr`, with etcd's KV service over `s` registered on it behind etcd's own chain over `s`. `etcdKVSrvAt addr s ics`
+`addr`, with etcd's KV service over `s` registered on it behind etcd's own chain over `s`, and (third fix) about
+calls of the KV service's five exact method names (`kvMethod`), which dispatch to etcd's handlers there. `etcdKVSrvAt addr s ics`
 bundles the server facts (with `c.ics = ics`), `etcdKVSrv addr s` adds the chain's identity; `etcd_noRefusal_at` and
 `etcd_noRefusal_srv` are the axiom at them.
 
@@ -135,3 +136,23 @@ variable holding `s`) or `promUnaryIc` of anything but grpc-prometheus's. A prog
 over `s`, in that order and alone, runs etcd's chain over `s`, which the claim is about. Option (b) (interceptor
 contracts bounding their own errors' descriptions, with the voter fact moved onto `IsLearner`) is not done; it would
 shrink the axiom further.
+
+## The second fix's residual (closed): `kvMethod` was a prefix
+
+Found by an independent re-review of `152b805937`. The attempt contract reads `noRefusalAt a` for a call when
+`kvMethod method`, which was the prefix test `"/etcdserverpb.KV/" <+: method`. On etcd's own server
+(`v3rpc.Server(s, nil, nil)`: etcd's chain, `kvRegs q` among the registrations, a voter, authentication off) a
+program calls `gs.RegisterService` with a descriptor whose service name is `etcdserverpb.KV/Evil` and whose `Put`
+returns the learner refusal (`RegisterService.spec` asks only for a service name not yet registered and distinct full
+names); `kvRegs q ⊆ regs` still holds, so `etcd_noRefusal_at` gives `noRefusalAt addr`, and `Invoke` of
+`/etcdserverpb.KV/Evil/Put` was promised a non-refusal. grpc-go splits a full method name at its last `/`
+(`server.go`, `handleStream`), so the call reaches the extra service's `Put`, behind etcd's chain, which passes it at
+a voter: Go refuses (`examples/axiomcx/norefusal/`, `slash.go`, `TestMainSlashPanics`: panics, 1/1 here, 5/5 on the
+review).
+
+**Closed** by making `kvMethod` membership in the five exact full names `/etcdserverpb.KV/{Range,Put,DeleteRange,Txn,
+Compact}` (`InvGrpc.lean`; `kvMethod_put`, ... discharge it at the client's call sites, which named those methods).
+This narrows the attempt contract's promise (`grpcInvokerOk`, trusted: fewer calls get it), so trust shrinks. Each of
+the five names dispatches to etcd's own handler on a server with `kvRegs q` among its registrations: full names are
+distinct (`grpc.start`'s premise), and the five are `kvRegs q`'s. (The grpc model's `grpcFullName` is not injective,
+`"a/b"`,`"c"` against `"a"`,`"b/c"`; with exact names this no longer matters here.)
