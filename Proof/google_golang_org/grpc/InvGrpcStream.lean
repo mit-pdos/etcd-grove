@@ -1383,32 +1383,6 @@ instance grpcStreamRunOk_persistent {Req Rep : StreamMsg GF} (mh : val) (srv : G
     Persistent (grpcStreamRunOk mh srv sics Up Spec) := by
   unfold grpcStreamRunOk; infer_instance
 
-/-- **The registration of the stream `name` at server `γ`, as Go has it** (the stream analogue of
-`isGrpcRpcAt`, with `grpcStreamRunOk`). -/
-def isGrpcStreamAt {Req Rep : StreamMsg GF} (γ : GName) (name : GoString)
-    (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
-  iprop(∃ (c : GrpcSrvCfg GF) (mh : GoFunc) (srv : GoInterface),
-    grpcSrvCfg γ c ∗ ⌜(name, mh, srv) ∈ c.sregs⌝ ∗ grpcStreamRunOk #mh srv c.sics Up Spec)
-
-instance isGrpcStreamAt_persistent {Req Rep : StreamMsg GF} (γ : GName) (name : GoString)
-    (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
-    Persistent (isGrpcStreamAt γ name Up Spec) := by
-  unfold isGrpcStreamAt; infer_instance
-
-/-- **The server listening at `addr` is `γ`, built with the stream chain `sics` and the streams
-`sregs`** (persistent; per-type stage B, B1b: it was an exclusive axiom; the stream analogue of
-`grpcServerAt`): Go's configuration of `γ`, whatever its unary chain and methods. Made by
-`grpc.start'`. -/
-def grpcStreamServerAt (addr : GoString) (sics : List GoFunc)
-    (sregs : List (GoString × GoFunc × GoInterface)) (γ : GName) : IProp GF :=
-  iprop(grpcAddrIs addr γ ∗ ∃ (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface)),
-    grpcSrvCfg γ ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF))
-
-instance grpcStreamServerAt_persistent (addr : GoString) (sics : List GoFunc)
-    (sregs : List (GoString × GoFunc × GoInterface)) (γ : GName) :
-    Persistent (grpcStreamServerAt (GF := GF) addr sics sregs γ) := by
-  unfold grpcStreamServerAt; infer_instance
-
 end run
 
 section reg
@@ -1417,19 +1391,51 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The streaming method `name` of the server at `addr` meets `Spec` at each metadata a stream
-may carry, with the client's content `Up`** (persistent; G2, 2026-10-30, the stream analogue of
-`isGrpcRpcMd`; per-type stage B, B1b): the server listening at `addr` is some `γ`, and `γ`'s Go
-configuration registers `name` with a stream handler that meets it as a run on a fork of grpc's
-(`isGrpcStreamAt`, the run contract `grpcStreamRunOk`). What a client's `NewStream` needs. -/
+/-- **The streaming method `name` at `addr` meets `Spec` at each metadata a stream may carry, with
+the client's content `Up`** (persistent, no heap; G2, 2026-10-30, the stream analogue of
+`isGrpcRpcMd`; since phase 7's switch, SW1, 2026-11-24, read off `addr`'s service table,
+`grpcStreamSvcAt`: until then the server listening at `addr` was some `γ` whose Go configuration
+registered `name` with a handler meeting the run contract, a WP at the server's heap). What a
+client's `NewStream` needs. -/
 def isGrpcStreamMd {Req Rep : StreamMsg GF} (addr name : GoString) (Up : Nat → Req.M → IProp GF)
     (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
-  iprop(∃ γ : GName, grpcAddrIs addr γ ∗ isGrpcStreamAt γ name Up Spec)
+  iprop(∃ (_ : HasExt Net.netExt) (π : Net.NetProtoGS) (σ : Net.NetSlotGS),
+    grpcStreamSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr name Req.wire Rep.wire Up Spec)
 
 instance isGrpcStreamMd_persistent {Req Rep : StreamMsg GF} (addr name : GoString)
     (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
     Persistent (isGrpcStreamMd addr name Up Spec) := by
   unfold isGrpcStreamMd; infer_instance
+
+/-- A stream entry of the table `a` serves, whose specification holds of every stream at its own
+content, registers its method. -/
+theorem isGrpcStreamMd_of_addr {Req Rep : StreamMsg GF} (a name : GoString) (Svc : GrpcSvc GF)
+    [hX : HasExt Net.netExt] [π : Net.NetProtoGS] [σ : Net.NetSlotGS]
+    (Up : Nat → Req.M → IProp GF) (dn : GrpcMd → StreamNames → Nat → Rep.M → IProp GF)
+    (Spec : GrpcMd → StreamSpec Rep)
+    (h : Svc name = some (.stream ⟨Req.wire, Rep.wire, Up, dn, Spec⟩)) :
+    grpcAddrAt (Gg := hG.goose_globalGS) a Svc ∗ (□ ∀ md γ, Spec md γ (dn md γ)) ⊢
+      isGrpcStreamMd a name Up Spec := by
+  iintro ⟨#Ha, #Hs⟩
+  unfold isGrpcStreamMd
+  iexists hX, π, σ
+  iapply (grpcStreamSvcAt_of_addr (Gg := hG.goose_globalGS) a name Svc Req.wire Rep.wire Up dn Spec
+    h) $$ [Ha Hs]
+  iframe Ha Hs
+
+/-- A stream registration holds of any content whose clients meet it after an update, and of any
+weaker specification. -/
+theorem isGrpcStreamMd_mono {Req Rep : StreamMsg GF} (addr name : GoString)
+    (Up Up' : Nat → Req.M → IProp GF) (Spec Spec' : GrpcMd → StreamSpec Rep) :
+    (□ ∀ i m, Up' i m ==∗ Up i m) ∗ (□ ∀ md γ Dn, Spec md γ Dn -∗ Spec' md γ Dn) ∗
+      isGrpcStreamMd addr name Up Spec ⊢ isGrpcStreamMd addr name Up' Spec' := by
+  iintro ⟨#Hu, #Hw, #H⟩
+  iunfold isGrpcStreamMd at H
+  icases H with ⟨%hX, %π, %σ, #Hs⟩
+  unfold isGrpcStreamMd
+  iexists hX, π, σ
+  iapply (grpcStreamSvcAt_mono (Gg := hG.goose_globalGS) addr name Req.wire Rep.wire Up Up'
+    Spec Spec') $$ Hu Hw Hs
 
 /-- **A plain registration**: `isGrpcStreamMd` at a spec that ignores the metadata (one predicate,
 not a family). -/
@@ -1463,41 +1469,6 @@ instance isGrpcStreamsMd_persistent {Req Rep : StreamMsg GF} (addrs : List GoStr
 abbrev isGrpcStreams {Req Rep : StreamMsg GF} (addrs : List GoString) (name : GoString)
     (Up : GoString → Nat → Req.M → IProp GF) (Spec : GoString → StreamSpec Rep) : IProp GF :=
   isGrpcStreamsMd addrs name Up (fun a _ => Spec a)
-
-/-- **Serving streams** (a theorem since per-type stage B, B1b; it was an axiom with a caller-chosen
-run resource and count, `axiom/grpc-serve-pool`, and the stream-flag overclaim of
-`notes/decisions.md`, "Stage B: the stream-flag premise"; the stream analogue of `grpc.serve`): the
-streams `ms` of the server at `addr` with the stream chain `sics` and the registrations `sregs`
-(`grpcStreamServerAt`, made by `grpc.start'`), each registered with its handler and service and
-meeting its run contract (`grpcStreamRunOk`), are registered at `addr` (`isGrpcStreamMd`). -/
-theorem grpc.serveStream (addr : GoString) (sics : List GoFunc)
-    (sregs : List (GoString × GoFunc × GoInterface)) (ms : List (GrpcStreamMethod GF)) (γ : GName) :
-    (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ sregs) →
-    grpcStreamServerAt addr sics sregs γ ∗
-      □ ([∗list] m ∈ ms, grpcStreamRunOk #m.handler m.srv sics m.Up m.spec) ⊢
-    |={⊤}=> [∗list] m ∈ ms, isGrpcStreamMd addr m.name m.Up m.spec := by
-  intro hreg
-  iintro ⟨#Hs, #Hms⟩
-  iunfold grpcStreamServerAt at Hs
-  icases Hs with ⟨#Ha, %ics, %regs, #Hc⟩
-  imodintro
-  have Hm : iprop(□ (grpcAddrIs (GF := GF) addr γ ∗ grpcSrvCfg γ ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF))) ⊢
-      [∗list] m ∈ ms, (grpcStreamRunOk #m.handler m.srv sics m.Up m.spec -∗ isGrpcStreamMd addr m.name m.Up m.spec) :=
-    BigSepL.bigSepL_intro (fun _ m hk => by
-      have hm : m ∈ ms := List.mem_of_getElem? hk
-      iintro #⟨Ha, Hc⟩ #Hr
-      unfold isGrpcStreamMd isGrpcStreamAt
-      iexists γ
-      iframe Ha
-      iexists ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF),
-        m.handler, m.srv
-      iframe Hc
-      isplitr
-      · ipureintro; exact hreg m hm
-      iexact Hr)
-  ihave Hw := Hm $$ []
-  · imodintro; iframe #
-  iapply BigSepL.bigSepL_wand $$ Hms Hw
 
 end reg
 

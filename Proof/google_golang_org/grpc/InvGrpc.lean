@@ -2,9 +2,10 @@
 **gRPC's registrations and its client attempt** (split from `InvGrpcBase.lean`, phase 7 S2's
 interface, 2026-11-24, so that the registration can name `InvGrpcWire.lean`'s service table; the file
 header of `InvGrpcBase.lean` describes both). Since S2's interface a registration
-`isGrpcRpcMd addr name Spec` is heap-free: dialing `addr` reaches an address `a₀` (`grpcReach`)
-whose service table, fixed when its protocols were set, has an entry for `name` that a caller of
-`Spec` meets (`grpcSvcAt`). The single-process start sets the address's table to Go's
+`isGrpcRpcMd addr name Spec` is heap-free: `addr`'s service table, fixed when its protocols were set,
+has an entry for `name` that a caller of `Spec` meets (`grpcSvcAt`). Since phase 7's switch (SW1,
+2026-11-24) there is no reach: a bridge's address serves its target's table (`bridge.New`), so a
+registration is read off the dialed address's own table, as at any address. The single-process start sets the address's table to Go's
 configuration (`grpcGoSvc`, `InvGrpcRun.lean`), so `grpc.serve` stays a theorem.
 -/
 module
@@ -28,25 +29,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Dialing `a` reaches the listener at `a₀`** (persistent; phase 7 S2's interface, 2026-11-24): `a`
-is `a₀`, or a bridge at `a` relays to the server listening at `a₀` (`bridge.New`'s trusted wand over
-`grpcAddrIs`). -/
-def grpcReach (a a₀ : GoString) : IProp GF :=
-  iprop(⌜a = a₀⌝ ∨ □ ∀ γ : GName, grpcAddrIs (GF := GF) a₀ γ -∗ grpcAddrIs a γ)
-
-instance grpcReach_persistent (a a₀ : GoString) : Persistent (grpcReach (GF := GF) a a₀) := by
-  unfold grpcReach; infer_instance
-
 /-- **The method `name` at `addr` meets `Spec`** (persistent; phase 7 S2's interface, 2026-11-24:
 until then `∃ γ, grpcAddrIs addr γ ∗ isGrpcRpcAt γ name Spec`, a WP of the server's handler at the
-holder's heap): dialing `addr` reaches an address `a₀` whose service table, fixed when its protocols
-were set, has an entry for `name` at the messages' wire parts that a caller of `Spec` meets after an
-update (`grpcSvcAt`, no heap). -/
+holder's heap; without `grpcReach` since phase 7's switch, SW1): `addr`'s service table, fixed when
+its protocols were set, has an entry for `name` at the messages' wire parts that a caller of `Spec`
+meets after an update (`grpcSvcAt`, no heap). -/
 def isGrpcRpcMd {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpecMd Req Rep) :
     IProp GF :=
-  iprop(∃ (a₀ : GoString) (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
-    grpcReach addr a₀ ∗
-    grpcSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) a₀ name Req.wire Rep.wire Spec)
+  iprop(∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
+    grpcSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr name Req.wire Rep.wire Spec)
 
 instance isGrpcRpcMd_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
     (Spec : GrpcSpecMd Req Rep) : Persistent (isGrpcRpcMd addr name Spec) := by
@@ -59,9 +50,7 @@ theorem isGrpcRpcMd_of_addr {Req Rep : ProtoMsg GF} (a name : GoString) (Svc : G
     grpcAddrAt (Gg := hG.goose_globalGS) a Svc ⊢ isGrpcRpcMd a name Spec := by
   iintro #Ha
   unfold isGrpcRpcMd
-  iexists a, hX, π, σ
-  isplitl []
-  · unfold grpcReach; ileft; ipureintro; rfl
+  iexists hX, π, σ
   iapply (grpcSvcAt_of_addr (Gg := hG.goose_globalGS) a name Svc ⟨Req.wire, Rep.wire, Spec⟩ h) $$ Ha
 
 /-- **The method `name` of the server at `addr` meets `Spec`** (persistent; see the file
@@ -173,17 +162,16 @@ theorem grpcMethodOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfac
   iapply (grpcSpecAt_mono Spec Spec' h ci m Φ Ψe) $$ HSpec
 
 /-- A registration with the metadata-indexed `Spec` is one with a `Spec'` that gives `Spec` after an
-update (through `grpcSvcAt_mono_upd`; the reach is unchanged). -/
+update (through `grpcSvcAt_mono_upd`). -/
 theorem isGrpcRpcMd_mono_upd {Req Rep : ProtoMsg GF} (addr name : GoString)
     (Spec Spec' : GrpcSpecMd Req Rep) (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
     isGrpcRpcMd addr name Spec ⊢ isGrpcRpcMd addr name Spec' := by
   iintro #H
   iunfold isGrpcRpcMd at H
-  icases H with ⟨%a₀, %hX, %π, %σ, #Hr, #Hs⟩
+  icases H with ⟨%hX, %π, %σ, #Hs⟩
   unfold isGrpcRpcMd
-  iexists a₀, hX, π, σ
-  iframe Hr
-  iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) a₀ name Req.wire Rep.wire Spec Spec') $$ [] Hs
+  iexists hX, π, σ
+  iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) addr name Req.wire Rep.wire Spec Spec') $$ [] Hs
   imodintro
   iintro %md %m %Φ %Ψe HS
   iapply (h md m Φ Ψe) $$ HS
