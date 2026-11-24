@@ -199,8 +199,8 @@ def sendInv (γ : ClientNames) (c cc : Loc) (cn : Nat) (W : RpcWorld GF) (a : Go
     monoListAuthOwn γ.conn.reqs (1 : Qp).half L ∗ ghostVar γ.sq (1 : Qp).half n ∗
     (∃ sd : Bool, ghostVar γ.down (1 : Qp).half.half sd) ∗
     (⌜w0 = interface.nil⌝ ∨ ⌜notServerErr w0⌝ ∗ models_lab.errAny w0) ∗
-    ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ n ∧ Wd <+: reqsWire L ∧
-      (w0 = interface.nil → Wd = reqsWire L ∧ L.length = n)⌝)
+    ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ n ∧ Wd <+: W.hs a ++ reqsWire L ∧
+      (w0 = interface.nil → Wd = W.hs a ++ reqsWire L ∧ L.length = n)⌝)
 
 /-- `c` is an rpc client of address `a` in world `W`, with names `γ`, over the model's codec `cc`
 on the dialer's end of `cn` (the `*TCPConn` `t`) (persistent). -/
@@ -211,7 +211,8 @@ def clientAt (c : Loc) (W : RpcWorld GF) (a : GoString) (γ : ClientNames) (cc t
     structFieldRef net.rpc.clientCodec go!"rwc" cc ↦□
       interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
     net.connAt (GF := GF) t cn false a la ra ∗ connIs (Gg := hG.goose_globalGS) cn ∗
-    isRpcConn (Gg := hG.goose_globalGS) W a cn γ.conn ∗ cliEnv ∗
+    isRpcConn (Gg := hG.goose_globalGS) W a cn γ.conn ∗
+    sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a) ∗ cliEnv ∗
     sync.isMutex (structFieldRef net.rpc.Client go!"reqMutex" c) (sendInv γ c cc cn W a) ∗
     sync.isMutex (structFieldRef net.rpc.Client go!"mutex" c) (muInv γ c))
 
@@ -227,7 +228,8 @@ def isClient (c : Loc) (W : RpcWorld GF) (a : GoString) : IProp GF :=
 the client is not shut down. -/
 def readerOwn (γ : ClientNames) (cn : Nat) (W : RpcWorld GF) (a : GoString) : IProp GF :=
   iprop(∃ C : List Ans,
-    recvTok (Gg := hG.goose_globalGS) cn false (respProto W a) (framesOf (C.flatMap ansPls)) ∗
+    recvTok (Gg := hG.goose_globalGS) cn false (respProto W a)
+      (W.hsAns a ++ framesOf (C.flatMap ansPls)) ∗
     ghostVar γ.down (1 : Qp).half.half false ∗ ⌜∀ x ∈ C, ansOk x⌝)
 
 instance clientAt_persistent (c : Loc) (W : RpcWorld GF) (a : GoString) (γ : ClientNames)
@@ -242,14 +244,15 @@ instance isClient_persistent (c : Loc) (W : RpcWorld GF) (a : GoString) :
     Persistent (isClient c W a) := by
   unfold isClient; infer_instance
 
-/-- A connection just dialed to `a` and registered in `W` (`dialRpc`, `Dial`'s): the dialer's
-end, its tokens (nothing written or read yet), the request list's half and the names' authority. -/
+/-- A connection dialed to `a` and registered in `W`, its handshake done (`Dial`'s, with none;
+`DialHTTPPath`'s): the dialer's end, its tokens (the handshake written and its answer read, nothing
+else), the request list's half and the names' authority. -/
 def rpcDialed (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) : IProp GF :=
   iprop(isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
     monoListAuthOwn γ.reqs (1 : Qp).half ([] : List RpcReq) ∗
     ghostMapAuth γ.nm 1 (∅ : GMap Nat (GName × GName × GName)) ∗
-    sendTok (Gg := hG.goose_globalGS) cn false (reqProto W a) [] ∗
-    recvTok (Gg := hG.goose_globalGS) cn false (respProto W a) [])
+    sendTok (Gg := hG.goose_globalGS) cn false (reqProto W a) (W.hs a) ∗
+    recvTok (Gg := hG.goose_globalGS) cn false (respProto W a) (W.hsAns a))
 
 end defs
 
