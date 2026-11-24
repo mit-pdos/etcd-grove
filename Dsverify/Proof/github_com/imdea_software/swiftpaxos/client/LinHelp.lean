@@ -181,9 +181,11 @@ theorem strW_inj : ∀ {xs ys : List w64}, strW xs = strW ys → xs = ys
   | [], y :: ys, h => by
     have := congrArg List.length h
     simp [strW, List.flatMap_cons, strW1_length] at this
+    omega
   | x :: xs, [], h => by
     have := congrArg List.length h
     simp [strW, List.flatMap_cons, strW1_length] at this
+    omega
   | x :: xs, y :: ys, h => by
     simp only [strW, List.flatMap_cons] at h
     obtain ⟨h1, h2⟩ := List.append_inj h (by rw [strW1_length, strW1_length])
@@ -197,14 +199,14 @@ theorem encE_inj {e e' : PEv} (he : PEvWf e) (he' : PEvWf e') (h : encE e = encE
   have h1 := go.intoVal_inj h
   simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h1
   have h2 := strW_inj (go.intoVal_inj h1)
-  exact (encP_inj he he' (by simpa using h2)).1
+  exact (encP_inj (ws := []) (ws' := []) he he' (by rw [h2])).1
 
 /-- An event's value's words are its words. -/
 theorem valWs_encE {e : PEv} (he : PEvWf e) : valWs (encE e) = encP e := by
   have h : ∃ e', PEvWf e' ∧ encE e = encE e' := ⟨e, he, rfl⟩
   rw [valWs, dif_pos h]
   have hs := Classical.choose_spec h
-  rw [encE_inj he hs.1 hs.2]
+  exact congrArg encP (encE_inj he hs.1 hs.2).symm
 
 /-- Resolving an event's value: the prophecy's words lose the event's. -/
 theorem flatMap_valWs_cons {e : PEv} (he : PEvWf e) (vs : List val) :
