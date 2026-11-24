@@ -557,6 +557,75 @@ instance grpcAttemptMd_persistent (conn : Loc) (om md : GrpcMd) :
     Persistent (grpcAttemptMd (GF := GF) conn om md) := by
   unfold grpcAttemptMd; infer_instance
 
+/-- **What a stream's attempt delivers on the connection `conn`, whose stream interceptor relates
+outgoing metadata by `F`, for a caller's outgoing metadata `om`** (persistent; grpc-trusted-T, T7,
+2026-11-24): the handler sees `md`, an attempt's metadata (`grpcAttemptMd`) for some `om'` the
+interceptor passed on (`F om om'`). -/
+def streamAttemptMd (conn : Loc) (F : GrpcMd → GrpcMd → Prop) (om md : GrpcMd) : IProp GF :=
+  iprop(∃ om' : GrpcMd, ⌜F om om'⌝ ∗ grpcAttemptMd conn om' md)
+
+instance streamAttemptMd_persistent (conn : Loc) (F : GrpcMd → GrpcMd → Prop) (om md : GrpcMd) :
+    Persistent (streamAttemptMd (GF := GF) conn F om md) := by
+  unfold streamAttemptMd; infer_instance
+
+/-- The raw fact behind `grpcConnClosed` (opaque, interim: made only by `ClientConn.Close`'s axiom,
+`Spec/google_golang_org/grpc/ClientConn__Close.lean`; S2d's proof of `Close` over the model defines it
+from the connection's state). -/
+opaque grpcConnClosedRaw (conn : Loc) : IProp GF
+
+/-- **The connection `conn` is closed** (persistent; grpc-trusted-T, T8, 2026-11-24): a
+`conn.Close()` returned. Closing is for good: grpc-go v1.84 `ClientConn.Close` cancels `cc.ctx` and
+sets `cc.conns` to `nil` (the model's `model_clientconn.go`: `cc.streams = nil`), and nothing reopens
+the connection. -/
+def grpcConnClosed (conn : Loc) : IProp GF := iprop(□ grpcConnClosedRaw conn)
+
+instance grpcConnClosed_persistent (conn : Loc) : Persistent (grpcConnClosed (GF := GF) conn) := by
+  unfold grpcConnClosed; infer_instance
+
+/-- **The context `ctx` is canceled with `context.Canceled`** (persistent; grpc-trusted-T, T4,
+2026-11-24): a `*cancelCtx` (`isCancelCtxCtx`, Perennial's: one `WithCancel` made) whose `Err()`
+returns `Canceled`'s value, on every call from now on. A `*cancelCtx`'s `Err()` returns its `err`
+field, which is set once, so the context is done for good and its error is `Canceled`, not
+`DeadlineExceeded` (which `ContextClosed` alone does not say: a context is done for either). -/
+def ctxCanceledIs (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(∃ (cd : context.ContextDesc (IProp GF)) (e : GoInterface),
+    context.isCancelCtxCtx ctx cd ∗ globalAddr _root_.Perennial.context.Canceled ↦□ e ∗
+    □ ∀ Φ : val → IProp GF, ▷ Φ #e -∗ WP (App (Val #(methods ctx.ty go!"Err" ctx.v)) (Val #())) {{ Φ }})
+
+instance ctxCanceledIs_persistent (ctx : GoInterfaceOk) :
+    Persistent (ctxCanceledIs (GF := GF) ctx) := by
+  unfold ctxCanceledIs; infer_instance
+
+/-- **A call grpc's `invoke` fails at once, with `codes.Canceled`** (persistent; grpc-trusted-T, T4,
+2026-11-24; interim, retired with `grpcInvokerOk` by S3's proof of `invoke` over the model; what
+`ClientConn.Invoke`'s axiom promises of its final invoker beside `grpcInvokerOk`): a call of `inv` on
+the connection `conn` when the connection is closed (`grpcConnClosed`), or when its context is
+canceled with `Canceled` (`ctxCanceledIs`) and carries no outgoing metadata (`metadata.outMD ctx
+none`), with a context grpc can use (`ctxOk`) and call options grpc can apply (as `grpcInvokerOk`'s),
+returns a non-nil status error of code `Canceled` (`statusCodeIs err 1`), the peer buffers back; the
+request and the reply are not touched. True of grpc-go v1.84 and the model (`models/grpc`):
+`newClientStream` first starts the call (`onCallBegin`, the idleness manager's `OnCallBegin`), which
+fails with `ErrClientConnClosing` (`status.Error(codes.Canceled, …)`, `clientconn.go:62`) on a closed
+connection; then it checks the outgoing metadata (an `Internal` status for an invalid one: none here)
+and the call options (`before`, which no `grpcOptOk` option fails), makes `cs.ctx := WithCancel(ctx)`,
+which is canceled at once with `ctx.Err()` (`propagateCancel`: `ctx`'s `Done()` channel is closed, its
+`Err()` is `Canceled`), and its first attempt (`newAttemptLocked`, `stream.go`) returns
+`toRPCErr(cs.ctx.Err())`, `errContextCanceled` (`Canceled`), or `ErrClientConnClosing`, before any
+transport is picked; `invoke` returns it. The gRPC driver's `ctx-canceled` and `close` sections. -/
+def grpcInvokerDone (conn : Loc) (inv : GoFunc) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (method : GoString)
+      (req reply : GoInterface) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
+    {{ (grpcConnClosed conn ∨ ctxCanceledIs ctx ∗ metadata.outMD ctx none) ∗ ctxOk ctx cd ∗
+        opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
+      (invokerCall inv #(GoInterface.ok ctx) #method #req #reply #conn #opts)
+    {{ (err : GoInterface), RET #err; ([∗list] p ∈ ps, grpcPeerBuf p) ∗
+        ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.hasGRPCStatus err⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err ∗ go_etcd_io.etcd.cache.v3.statusCodeIs err (W32 1) }})
+
+instance grpcInvokerDone_persistent (conn : Loc) (inv : GoFunc) :
+    Persistent (grpcInvokerDone (GF := GF) conn inv) := by
+  unfold grpcInvokerDone; infer_instance
+
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
 connection's interceptor chain; unit P3a): a call of a method registered at every address `addrs`
 of the connection with `Spec` (`isGrpcRpcs`; D27, 2026-10-21: the attempt goes to one of them),
@@ -646,10 +715,20 @@ credentials are called only from there, by `http2Client.createHeaderFields` → 
 `clientStream.withRetry` (`stream.go:930`) makes synchronously inside the same call; the program's
 clients make no calls of their own on the connection (D7). So the credentials run only while the
 caller holds `R`, one call at a time. The model of this transport that the network part runs is
-`models/grpc/model_transport.go:242,277-345` (`createHeaderFields`'s credential calls). -/
+`models/grpc/model_transport.go:242,277-345` (`createHeaderFields`'s credential calls).
+
+Since grpc-trusted-T (T4, 2026-11-24; interim, retired with this contract by S3's proof of `invoke` over
+the model) the error is a status error (`hasGRPCStatus`: grpc's `*status.Error`) or `io.EOF`'s value
+(`eofIs`): the bound the clauses above already give (`clientErr`'s types, `errCellOk`) less the two
+types no attempt returns and the `errors.New("context canceled")` value, which `toRPCErr` turns into a
+status (`rpc_util.go:1132-1156`: it passes only `nil` and `io.EOF` through; every attempt error goes
+through it, `withRetry`, `models/grpc/stream.go:668`, or is a status error grpc makes, `getTransportConn`'s,
+`ErrClientConnClosing`, the metadata check's). What a caller that tells grpc's errors apart needs (the
+gRPC driver's `errOk`). And it meets the contract of a call that fails at once (`grpcInvokerDone`: a
+closed connection, a context canceled with `Canceled`). -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop) (inv : GoFunc) :
     IProp GF :=
-  iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
+  iprop((□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
       (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
       (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M)
       (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
@@ -666,14 +745,17 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop) 
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
             go_etcd_io.etcd.cache.v3.errCellOk err ∗ Rep.own out ∗ notLearnerErr err ∗
+            (⌜go_etcd_io.etcd.cache.v3.hasGRPCStatus err⌝ ∨ eofIs err) ∗
             ∃ d : GoString, go_etcd_io.etcd.cache.v3.descIs err d ∗
             ⌜(kvMethod method ∧ ∀ a ∈ addrs, noRefusalAt a) →
               d ∉ go_etcd_io.etcd.cache.v3.refusalDescs⌝ ∗
-            (⌜d ∈ handlerDescs⌝ -∗ Ψe d))) }})
+            (⌜d ∈ handlerDescs⌝ -∗ Ψe d))) }}) ∗
+    grpcInvokerDone conn inv)
 
 instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop)
     (inv : GoFunc) : Persistent (grpcInvokerOk (GF := GF) conn addrs Ok inv) := by
   unfold grpcInvokerOk; infer_instance
+
 
 /-- **No key of the credentials' metadata `cm` is a pseudo-header** (grpc's `createHeaderFields` appends the credentials' fields after the
 real `:path`, and a key starting with `:` would be read by the server as the method's path, as
@@ -767,11 +849,17 @@ theorem grpcInvokerOk_of_wp (conn : Loc) (addr : List GoString) (Ok : IProp GF �
     grpcInvokerOk conn addr Ok inv' := by
   iintro ⟨#Hinv, #Hw⟩
   unfold grpcInvokerOk
-  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps %R
-  iintro %Ψ !> Hpre HΨ
-  iapply Hw
-  iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps
-    %R %Ψ Hpre HΨ
+  icases Hinv with ⟨#Hinv, #Hdone⟩
+  isplitl []
+  · iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps %R
+    iintro %Ψ !> Hpre HΨ
+    iapply Hw
+    iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps
+      %R %Ψ Hpre HΨ
+  · unfold grpcInvokerDone
+    iintro !> %ctx %cd %method %req %reply %opts %vs %ps %Ψ !> Hpre HΨ
+    iapply Hw
+    iapply Hdone $$ %ctx %cd %method %req %reply %opts %vs %ps %Ψ Hpre HΨ
 
 /-- An invoker that behaves as one meeting the attempt contract, through a chain's invoker at the
 trivial resource (`chainWP iprop(True)`'s `inv'`), meets it. -/

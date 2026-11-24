@@ -58,6 +58,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Requests
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import Perennial.Proof.context
 public import Proof.google_golang_org.grpc.InvGrpc
+public import Proof.google_golang_org.grpc.InvDial
 public import Proof.google_golang_org.grpc.metadata.Outgoing
 
 @[expose] public section
@@ -1733,6 +1734,12 @@ theorem callOptsOk_singleton (v : GoInterface) : callOptOk (GF := GF) v ⊢ call
 
 /-! ## The connection -/
 
+/-- **What etcd's interceptors' `withVersion` does to a caller's outgoing metadata** (pure): it sets
+`client-api-version` to some value (`withVersion.spec`). The relation of etcd's stream interceptor
+(`etcdStreamInterceptor`, `streamIcMdIs`). -/
+def etcdVersionMd (om om' : GrpcMd) : Prop :=
+  ∃ v : GoString, om' = metadata.mdSet om go!"client-api-version" [v]
+
 /-- **An attempt of a call on an etcd client's connection `conn` with a context whose outgoing
 metadata is `m` reaches a handler that sees the metadata `md`** (the auth plan's E3zc; over the
 metadata since G2): the retry interceptor sends
@@ -1741,13 +1748,39 @@ version's key set (`withVersion.spec`), and grpc's attempt on it delivers `md`
 (`grpcAttemptMd`). (errdesc stage 1, 2026-11-20) Over metadata values only: `withVersion`'s context's
 metadata is `mdSet m …` (until then a context `c` with that pure `metadata.outgoingOf c`). Until
 errdesc stage 1 it took a context; the statements relate the context's outgoing metadata `om` to it by
-`metadata.outMD ci om`. An `IProp` (persistent), over `grpcAttemptMd`. -/
+`metadata.outMD ci om`. An `IProp` (persistent), over `grpcAttemptMd`. (grpc-trusted-T, T7,
+2026-11-24) Stated as gRPC's `streamAttemptMd` at etcd's relation (`etcdVersionMd`), what
+`ClientConn.NewStream` gives on a connection whose stream interceptor is etcd's. -/
 def clientAttemptMd (conn : Loc) (om md : GrpcMd) : IProp GF :=
-  iprop(∃ v : GoString, grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [v]) md)
+  streamAttemptMd conn etcdVersionMd om md
 
 instance clientAttemptMd_persistent (conn : Loc) (om md : GrpcMd) :
     Persistent (clientAttemptMd (GF := GF) conn om md) := by
   unfold clientAttemptMd; infer_instance
+
+/-- `clientAttemptMd` is gRPC's `streamAttemptMd` at etcd's relation (by definition). -/
+theorem clientAttemptMd_eq (conn : Loc) (om md : GrpcMd) :
+    clientAttemptMd (GF := GF) conn om md = streamAttemptMd conn etcdVersionMd om md := rfl
+
+/-- **The connection `conn` was dialed with etcd's stream interceptor** (persistent; grpc-trusted-T,
+T7, 2026-11-24): its options (`grpcConnOpts`, `grpc.NewClient`'s post) have a stream interceptor, of
+etcd's relation (`streamMdOk … etcdVersionMd`: `etcdStreamInterceptor`). What `ClientConn.NewStream`
+needs to state an etcd stream's attempt metadata as `clientAttemptMd`; `Client.dial` gives it. -/
+def etcdConnStream (conn : Loc) : IProp GF :=
+  iprop(∃ d : GrpcConnOpts, grpcConnOpts conn d ∗ ⌜d.streamIc ≠ none ∧ streamMdOk d etcdVersionMd⌝)
+
+instance etcdConnStream_persistent (conn : Loc) : Persistent (etcdConnStream (GF := GF) conn) := by
+  unfold etcdConnStream; infer_instance
+
+/-- **An etcd client's connection to `addrs` for its streams** (persistent; grpc-trusted-T, T7): grpc's
+connection with the unary interceptors `ics` and no default call options, dialed with etcd's stream
+interceptor (`etcdConnStream`). What the `Watch` stub takes. -/
+def etcdWatchConn (conn : Loc) (addrs : List GoString) (ics : List GoFunc) : IProp GF :=
+  iprop(grpcConn conn addrs ics [] anyRes ∗ etcdConnStream conn)
+
+instance etcdWatchConn_persistent (conn : Loc) (addrs : List GoString) (ics : List GoFunc) :
+    Persistent (etcdWatchConn (GF := GF) conn addrs ics) := by
+  unfold etcdWatchConn; infer_instance
 
 /-- **A call's precondition at every attempt** (the auth plan's E3zc): the metadata-indexed `Spec`'s
 for the request `m` and the caller's `Φ`, at every metadata an attempt of the call on `conn` with
@@ -1785,8 +1818,10 @@ theorem attemptPre_attempt {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd) (v
   iintro H %md #h
   unfold attemptPre
   iapply H
-  unfold clientAttemptMd
-  iexists v
+  unfold clientAttemptMd streamAttemptMd
+  iexists metadata.mdSet om go!"client-api-version" [v]
+  isplitr
+  · ipureintro; exact ⟨v, rfl⟩
   iexact h
 
 /-- **The retry interceptor's error outcome** (k8s 7e-1): the caller's `Ψe` at a returned error's
@@ -1960,11 +1995,14 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
 
 /-- **An etcd client's connection `conn` to the server at `addr`** (persistent; unit P3a; see the
 file header): grpc's connection with one unary interceptor, the client's retry interceptor
-(`etcdInterceptorOk`), and no default call options. -/
+(`etcdInterceptorOk`), and no default call options, dialed with etcd's stream interceptor
+(`etcdConnStream`, since grpc-trusted-T T7). -/
 def isEtcdConn (conn : Loc) (addr : List GoString) : IProp GF :=
   iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] anyRes ∗ etcdInterceptorOk ic ∗
     -- (2026-10-21, D29) a write on a refusal-free connection: ordinary, whatever the bound
-    etcdInterceptorOkW ic)
+    etcdInterceptorOkW ic ∗
+    -- (grpc-trusted-T, T7, 2026-11-24) dialed with etcd's stream interceptor, for its streams
+    etcdConnStream conn)
 
 instance isEtcdConn_persistent (conn : Loc) (addr : List GoString) :
     Persistent (isEtcdConn (GF := GF) conn addr) := by

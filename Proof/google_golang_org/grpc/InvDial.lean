@@ -36,12 +36,17 @@ An option a descriptor does not describe (`WithChainUnaryInterceptor`, `WithDefa
 the chain is the last `.unaryInterceptor`'s, or empty. No descriptor sets default call options
 (`WithDefaultCallOptions`): they are `[]`.
 
-**The stream interceptor** (`etcdStreamInterceptor si`, an axiomatized property): grpc's
-`ClientConn.NewStream` axiom (`Spec/google_golang_org/grpc/ClientConn__NewStream.lean`) assumes the
-connection's stream interceptor is etcd's (`streamClientInterceptor`, `retry_interceptor.go`), so
-`NewClient` gives `grpcConn` only for a dial whose stream interceptors are etcd's; the property is
-introduced only by the client's `streamClientInterceptor` axiom
-(`Spec/go_etcd_io/etcd/client/v3/Client__streamClientInterceptor.lean`).
+**The stream interceptor** (`streamIcMdIs si F`, an axiomatized property; grpc-trusted-T, T7,
+2026-11-24): what grpc's `ClientConn.NewStream` axiom assumes of a connection's stream interceptor,
+that it passes the caller's call on with its outgoing metadata `F`-related to the caller's; introduced
+only by an interceptor's own axiom (etcd's `streamClientInterceptor`). `NewClient` gives the
+connection's options (`grpcConnOpts conn (connOptsOf ds)`), from which `NewStream` states the attempt's
+metadata (`streamMdOk`: none, the caller's; one, its `F`) and errors (grpc's own shape with none).
+Until T7 `NewClient` required the dial's stream interceptor to be etcd's (`etcdStreamInterceptor`, now
+etcd's name for `streamIcMdIs` at its relation).
+
+**The passthrough resolver** (`dialPassthrough`, T7): a dial to `passthrough:///a` with no resolver
+option reaches the one address `a`.
 
 **The resolver** (`grpcResolverAt rb scheme addrs`, exclusive, axiomatized): the resolver builder
 `rb` (a `resolver.Builder`), for the scheme `scheme`, resolves to the addresses `addrs`, for good
@@ -125,10 +130,18 @@ theorem unaryIcsOf_perRPCCreds (ds : List GrpcDialOpt) (pc : GoInterface) :
 
 end defs
 
-/-- **`si` is etcd's client stream interceptor** (an axiomatized property: introduced only by the
-client's `streamClientInterceptor` axiom; what grpc's `ClientConn.NewStream` axiom assumes of a
-connection's stream interceptor). -/
-axiom etcdStreamInterceptor [GooseExts] (si : GoFunc) : Prop
+/-- **The stream interceptor `si` gives grpc's streamer the caller's call, its outgoing metadata
+`F`-related to the caller's** (an axiomatized property, grpc-trusted-T, T7, 2026-11-24; introduced
+only by an interceptor's own axiom: etcd's `streamClientInterceptor`, whose `withVersion` sets
+`client-api-version`; until T7 the etcd-specific `etcdStreamInterceptor`, now etcd's name for this at
+its relation, `client/v3/InvKVConn.lean`): called by `ClientConn.NewStream` with the caller's context
+`ctx` (outgoing metadata `om`), a client-streaming descriptor, a method, options and grpc's streamer,
+it calls the streamer at most once (or fails), synchronously, with the descriptor, method and options and a context whose outgoing metadata
+`om'` has `F om om'` (and the caller's other values and cancellation), and returns what the streamer
+returned, the stream possibly wrapped so that its operations are the streamer's stream's, their
+errors those `cliStreamErr` admits. What grpc's `ClientConn.NewStream` axiom assumes of a
+connection's stream interceptor. -/
+axiom streamIcMdIs [GooseExts] (si : GoFunc) (F : GrpcMd → GrpcMd → Prop) : Prop
 
 /-- **The resolver builder `rb` resolves the scheme `scheme` to the addresses `addrs`** (exclusive; an
 axiomatized predicate; see the file header). -/
@@ -211,35 +224,104 @@ instance dialOptsAt_persistent (sl : GoSlice) (ds : List GrpcDialOpt) :
     Persistent (dialOptsAt (GF := GF) sl ds) := by
   unfold dialOptsAt; infer_instance
 
-/-- **A dial `NewClient` connects with** (pure): its stream interceptors are etcd's, and there is
-one (G2, 2026-10-30: `NewStream`'s post states the metadata etcd's interceptor's `withVersion`
-adds, false on a connection with no stream interceptor), and its one resolver is `rb` (every
-`WithResolvers` of the dial gives `rb` alone, and one does). -/
+/-- **A dial whose one resolver is `rb`** (pure): every `WithResolvers` of the dial gives `rb` alone,
+and one does. (grpc-trusted-T, T7, 2026-11-24) Until then it also required the dial's stream
+interceptors to be etcd's, and one (G2: `NewStream`'s post stated the metadata etcd's `withVersion`
+adds); `NewStream` now states the attempt's metadata from the connection's options
+(`grpcConnOpts`, `streamMdOk`), so `NewClient` dials with any interceptors. -/
 def dialOk (ds : List GrpcDialOpt) (rb : GoInterface) : Prop :=
-  (∀ si, GrpcDialOpt.streamInterceptor si ∈ ds → etcdStreamInterceptor si) ∧
-    (∀ rbs, GrpcDialOpt.resolvers rbs ∈ ds → rbs = [rb]) ∧ GrpcDialOpt.resolvers [rb] ∈ ds ∧
-    ∃ si, GrpcDialOpt.streamInterceptor si ∈ ds
+  (∀ rbs, GrpcDialOpt.resolvers rbs ∈ ds → rbs = [rb]) ∧ GrpcDialOpt.resolvers [rb] ∈ ds
+
+/-- **A byte grpc's `passthrough` target keeps as it is** (pure): an ASCII letter or digit, or one of
+`.`, `-`, `_`, `:`, `[`, `]`. `url.Parse` leaves a path of these bytes unchanged (no `%` escape, no
+`?` query, no `#` fragment, no control byte, no `/`), so the passthrough resolver's
+`Target.Endpoint()` (the path less its leading `/`) is the address itself. -/
+def passthroughByteOk (b : w8) : Prop :=
+  (48 ≤ b.toNat ∧ b.toNat ≤ 58) ∨ (65 ≤ b.toNat ∧ b.toNat ≤ 91) ∨ b.toNat = 93 ∨
+    (97 ≤ b.toNat ∧ b.toNat ≤ 122) ∨ b.toNat = 45 ∨ b.toNat = 46 ∨ b.toNat = 95
+
+/-- **A dial to the address `a` through grpc's `passthrough` resolver** (pure; grpc-trusted-T, T7,
+2026-11-24): the target is `passthrough:///a`, `a` a non-empty address of `passthroughByteOk` bytes,
+and the dial sets no resolver (`WithResolvers` would be looked up first): grpc resolves the target to
+the one address `a` (`addrs = [a]`) with no service config, so no retry policy. True of grpc-go v1.84
+and the model (`models/grpc`, `clientconn.go` `parseTargetAndFindResolver`: the target parses, its
+scheme `passthrough` is the global registry's, which `internal/resolver/passthrough` registers at
+init and no verified program re-registers, `resolver.Register` having no spec here;
+`passthrough.go`'s resolver sends `[{Addr: target.Endpoint()}]` once and nothing else). -/
+def dialPassthrough (ds : List GrpcDialOpt) (target : GoString) (addrs : List GoString) : Prop :=
+  (∀ rbs, GrpcDialOpt.resolvers rbs ∉ ds) ∧
+    ∃ a : GoString, a ≠ [] ∧ (∀ b ∈ a, passthroughByteOk b) ∧
+      target = go!"passthrough:///" ++ a ∧ addrs = [a]
+
+/-- **The connection's options a call's behavior depends on** (grpc-trusted-T, T7, 2026-11-24):
+its unary interceptor chain, its stream interceptor (the last `WithStreamInterceptor`'s, or none),
+its per-RPC credentials. -/
+structure GrpcConnOpts where
+  unaryIcs : List GoFunc
+  streamIc : Option GoFunc
+  creds : List GoInterface
+
+/-- The stream interceptor a descriptor sets, if it sets one. -/
+def GrpcDialOpt.streamOf : GrpcDialOpt → Option GoFunc
+  | .streamInterceptor ic => some ic
+  | _ => none
+
+/-- **The stream interceptor of a dial with the options `ds`**: the last `WithStreamInterceptor`'s
+(grpc's `dopts.streamInt`; no descriptor sets a chained one), or none. -/
+def streamIcOf (ds : List GrpcDialOpt) : Option GoFunc :=
+  (ds.filterMap GrpcDialOpt.streamOf).getLast?
+
+/-- **The options of a connection dialed with `ds`**. -/
+def connOptsOf (ds : List GrpcDialOpt) : GrpcConnOpts :=
+  ⟨unaryIcsOf ds, streamIcOf ds, credsOfDial ds⟩
+
+/-- **How a stream's attempt metadata follows from its caller's on a connection with the options
+`d`** (pure; grpc-trusted-T, T7): with no stream interceptor, `F` is equality (grpc sends the
+caller's outgoing metadata); with one, `F` is what it does (`streamIcMdIs`). -/
+def streamMdOk (d : GrpcConnOpts) (F : GrpcMd → GrpcMd → Prop) : Prop :=
+  (d.streamIc = none ∧ ∀ om om', F om om' ↔ om' = om) ∨
+    ∃ si, d.streamIc = some si ∧ streamIcMdIs si F
 
 
-/-- Keepalive sets no stream interceptor and no resolver: a dial with it is `NewClient`'s if the
-dial without it is. -/
+/-- Keepalive sets no resolver: a dial with it is `NewClient`'s if the dial without it is. -/
 theorem dialOk_keepalive (ds : List GrpcDialOpt) (rb : GoInterface) :
     dialOk ds rb → dialOk (.keepalive :: ds) rb := by
-  intro ⟨h1, h2, h3, si, h4⟩
-  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_cons_of_mem _ h3,
-    si, List.mem_cons_of_mem _ h4⟩
-  · simpa using h
-  · simpa using h
+  intro ⟨h2, h3⟩
+  refine ⟨fun rbs h => h2 rbs ?_, List.mem_cons_of_mem _ h3⟩
+  simpa using h
 
-/-- Per-RPC credentials set no stream interceptor and no resolver: a dial with them is
-`NewClient`'s if the dial without them is. -/
+/-- Per-RPC credentials set no resolver: a dial with them is `NewClient`'s if the dial without them
+is. -/
 theorem dialOk_perRPCCreds (ds : List GrpcDialOpt) (rb : GoInterface) (pc : GoInterface) :
     dialOk ds rb → dialOk (ds ++ [.perRPCCreds pc]) rb := by
-  intro ⟨h1, h2, h3, si, h4⟩
-  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_append_left _ h3,
-    si, List.mem_append_left _ h4⟩
-  · simpa using h
-  · simpa using h
+  intro ⟨h2, h3⟩
+  refine ⟨fun rbs h => h2 rbs ?_, List.mem_append_left _ h3⟩
+  simpa using h
+
+/-- **How `NewClient` finds the target's addresses** (persistent; grpc-trusted-T, T7, 2026-11-24): the
+dial's one resolver `rb` (`dialOk`), which resolves the target's scheme `scheme` to `addrs`
+(`grpcResolverAt`, taken), or grpc's `passthrough` resolver (`dialPassthrough`). -/
+def dialTargetOk (ds : List GrpcDialOpt) (target : GoString) (rb : GoInterface) (scheme : GoString)
+    (addrs : List GoString) : IProp GF :=
+  iprop((⌜dialOk ds rb ∧ (scheme ++ go!"://") <+: target⌝ ∗ grpcResolverAt rb scheme addrs) ∨
+    ⌜dialPassthrough ds target addrs⌝)
+
+include hG in
+/-- The raw fact behind `grpcConnOpts` (opaque, interim: made only by `grpc.NewClient`'s axiom; S2d's
+proof of `NewClient` over the model defines it from the connection's `dopts`). Its signature carries
+the heap's instance, which that definition will need. -/
+opaque grpcConnOptsRaw (conn : Loc) (d : GrpcConnOpts) : IProp GF := iprop(True)
+
+/-- **The connection `conn` was dialed with the options `d`** (persistent; grpc-trusted-T, T7,
+2026-11-24; `grpc.NewClient`'s post, `connOptsOf ds`, beside `grpcConn conn addrs (unaryIcsOf ds) …`):
+its unary interceptors, its stream interceptor and its per-RPC credentials are `d`'s. Only
+`NewClient` makes it, once per connection, so every such fact of `conn` names the options it was
+dialed with. What `ClientConn.NewStream` states the attempt's metadata and errors from. -/
+def grpcConnOpts (conn : Loc) (d : GrpcConnOpts) : IProp GF := iprop(□ grpcConnOptsRaw conn d)
+
+instance grpcConnOpts_persistent (conn : Loc) (d : GrpcConnOpts) :
+    Persistent (grpcConnOpts (GF := GF) conn d) := by
+  unfold grpcConnOpts; infer_instance
 
 end defs2
 

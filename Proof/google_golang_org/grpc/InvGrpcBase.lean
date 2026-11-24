@@ -967,6 +967,14 @@ theorem srvChainWP_of_ok (R : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R0) (xs := Rs)).2
         iframe
 
+/-- `err` is `io.EOF`'s value (moved here from `InvGrpcStream.lean` on 2026-11-24, for the unary attempt's
+error shape, `grpcInvokerOk`). -/
+def eofIs (err : GoInterface) : IProp GF :=
+  iprop(globalAddr _root_.Perennial.io.EOF ↦□ err)
+
+instance eofIs_persistent (err : GoInterface) : Persistent (eofIs (GF := GF) err) := by
+  unfold eofIs; infer_instance
+
 end defs
 
 /-! ## Per-type message models: the stores and the role-split registries (stage A, CP2) -/

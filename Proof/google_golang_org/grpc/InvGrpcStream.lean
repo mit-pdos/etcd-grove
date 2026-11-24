@@ -67,6 +67,7 @@ at `nil` false.
 module
 
 public import Proof.google_golang_org.grpc.InvGrpc
+public import Proof.google_golang_org.grpc.InvDial
 public import Spec.google_golang_org.grpc.GenericServerStream__Recv
 public import Spec.google_golang_org.grpc.GenericServerStream__Send
 public import Spec.google_golang_org.grpc.GenericServerStream__Context
@@ -357,29 +358,61 @@ etcd's stream interceptor (`retry_interceptor.go`, `withMax(0)`: no retrying str
 `getToken`'s errors, the unary `Authenticate`'s (which carry `errCellOk`). Checked by
 `examples/k8s/etcd3`'s `TestStreamErrorCells` (Watch and LeaseKeepAlive streams' `NewStream`, `Send`,
 `Recv`, `CloseSend` errors under partitions, cancellations, deadlines, stopped members and a closed
-client: only `*status.Error` and `io.EOF`'s value; 20 runs). -/
-def cliStreamErr (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-    go_etcd_io.etcd.cache.v3.errCellOk err ∗ streamErr err)
+client: only `*status.Error` and `io.EOF`'s value; 20 runs).
 
-instance cliStreamErr_persistent (err : GoInterface) : Persistent (cliStreamErr (GF := GF) err) := by
+Since grpc-trusted-T (T5, 2026-11-24) it takes a refinement `E` of the error (`□ E err`; default
+`True`, every statement before T5): `ClientConn.NewStream` gives the stream's errors grpc's own shape
+(`grpcErrShape`) on a connection with no stream interceptor, and nothing more with one (etcd's adds
+its token refresh's errors). -/
+def cliStreamErr (err : GoInterface) (E : GoInterface → IProp GF := fun _ => iprop(True)) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+    go_etcd_io.etcd.cache.v3.errCellOk err ∗ streamErr err ∗ □ E err)
+
+instance cliStreamErr_persistent (err : GoInterface) (E : GoInterface → IProp GF) :
+    Persistent (cliStreamErr (GF := GF) err E) := by
   unfold cliStreamErr; infer_instance
+
+/-- **grpc's own error shape** (persistent; grpc-trusted-T, T5, 2026-11-24): a status error
+(`hasGRPCStatus`: grpc's `*status.Error`) or `io.EOF`'s value (`eofIs`). What every error of grpc's
+`clientStream` is (the paths above, `toRPCErr`); a stream interceptor may return others (etcd's
+returns its token refresh's, an `rpctypes.EtcdError` among them), so a stream's errors have it only on
+a connection with no stream interceptor (`ClientConn.NewStream`'s `streamErrShape`). -/
+def grpcErrShape (err : GoInterface) : IProp GF :=
+  iprop(⌜go_etcd_io.etcd.cache.v3.hasGRPCStatus err⌝ ∨ eofIs err)
+
+instance grpcErrShape_persistent (err : GoInterface) : Persistent (grpcErrShape (GF := GF) err) := by
+  unfold grpcErrShape; infer_instance
+
+/-- **The errors of a stream on a connection with the options `d`** (grpc-trusted-T, T5): grpc's own
+shape (`grpcErrShape`) with no stream interceptor; nothing more with one. -/
+def streamErrShape (d : GrpcConnOpts) (err : GoInterface) : IProp GF :=
+  match d.streamIc with
+  | none => grpcErrShape err
+  | some _ => iprop(True)
+
+instance streamErrShape_persistent (d : GrpcConnOpts) (err : GoInterface) :
+    Persistent (streamErrShape (GF := GF) d err) := by
+  unfold streamErrShape; split <;> infer_instance
+
+/-- A stream error with a refinement is one without. -/
+theorem cliStreamErr_forget (err : GoInterface) (E : GoInterface → IProp GF) :
+    cliStreamErr (GF := GF) err E ⊢ cliStreamErr err := by
+  unfold cliStreamErr
+  iintro ⟨%h, #Hs, #Hc, #Hst, -⟩
+  iframe #
+  isplitr
+  · ipureintro; exact h
+  iintro !> -
+  itrivial
 
 open Iris.ProofMode in
 /-- A stream error may close a client watch (`closeErrOk`). -/
-theorem cliStreamErr_closeErrOk (err : GoInterface) :
-    cliStreamErr (GF := GF) err ⊢ closeErrOk err := by
+theorem cliStreamErr_closeErrOk (err : GoInterface) (E : GoInterface → IProp GF := fun _ => iprop(True)) :
+    cliStreamErr (GF := GF) err E ⊢ closeErrOk err := by
   unfold cliStreamErr
   iintro ⟨%h, #Hs, #Hc, -⟩
   ihave %hp := errPtrOk_of_cell err $$ Hc
   iapply (closeErrOk_intro err ⟨fun _ => h.2, hp⟩) $$ Hs
-
-/-- `err` is `io.EOF`'s value. -/
-def eofIs (err : GoInterface) : IProp GF :=
-  iprop(globalAddr _root_.Perennial.io.EOF ↦□ err)
-
-instance eofIs_persistent (err : GoInterface) : Persistent (eofIs (GF := GF) err) := by
-  unfold eofIs; infer_instance
 
 namespace client
 
@@ -618,7 +651,8 @@ credentials synchronously, on the caller's goroutine (`models/grpc/model_transpo
 def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Md : GoString → GrpcMd → IProp GF)
     (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) : IProp GF :=
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop)
+    (E : GoInterface → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cs = GoInterface.ok ci⌝ ∗
     □ (∀ (L : List Req.M) (l : Loc) (m : Req.M) (R : IProp GF),
       {{ ⌜Ok R⌝ ∗ R ∗ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m ∗
@@ -626,7 +660,7 @@ def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
         (App (Val #(methods ci.ty go!"SendMsg" ci.v)) (Val #(msgAny Req.ty l)))
       {{ (err : GoInterface), RET #err; R ∗ Req.send l m ∗
           ((⌜err = GoInterface.nil⌝ ∗ cliSendTok (Req := Req) γ (L ++ [m])) ∨
-          (cliStreamErr err ∗ ∃ L' : List Req.M,
+          (cliStreamErr err E ∗ ∃ L' : List Req.M,
             ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ cliSendTok (Req := Req) γ L')) }}) ∗
     □ (∀ (L : List Rep.M) (out : Loc) (R : IProp GF),
       {{ ⌜Ok R⌝ ∗ R ∗ cliRecvTok (Rep := Rep) γ L ∗ Rep.own out }}
@@ -637,20 +671,20 @@ def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
             cliRecvTok (Rep := Rep) γ (L ++ [m])) ∨
           (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ cliRecvTok (Rep := Rep) γ L ∗
             downClosed (Rep := Rep) γ L ∗ Rep.own out) ∨
-          (cliStreamErr err ∗ cliRecvTok (Rep := Rep) γ L ∗ Rep.own out)) }}) ∗
+          (cliStreamErr err E ∗ cliRecvTok (Rep := Rep) γ L ∗ Rep.own out)) }}) ∗
     □ (∀ (L : List Req.M) (R : IProp GF),
       {{ ⌜Ok R⌝ ∗ R ∗ cliSendTok (Req := Req) γ L }}
         (App (Val #(methods ci.ty go!"CloseSend" ci.v)) (Val #()))
       {{ (err : GoInterface), RET #err; R ∗ upClosed (Req := Req) γ L ∗
-          (⌜err = GoInterface.nil⌝ ∨ cliStreamErr err) }}) ∗
+          (⌜err = GoInterface.nil⌝ ∨ cliStreamErr err E) }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Context" ci.v)) (Val #()))
       {{ (cx : GoInterfaceOk), RET #(GoInterface.ok cx); context.isContext cx cd }}))
 
 instance cliStreamIs_persistent (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Md : GoString → GrpcMd → IProp GF)
     (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
-    Persistent (cliStreamIs cs γ Req Rep Up Md Dn cd Ok) := by
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) (E : GoInterface → IProp GF) :
+    Persistent (cliStreamIs cs γ Req Rep Up Md Dn cd Ok E) := by
   unfold cliStreamIs; infer_instance
 
 /-- **The client end of a bidirectional stream, as the generated stub wraps it** (persistent):
@@ -663,7 +697,8 @@ the dispatch, as `cliStreamIs`'s (phase 7's switch, SW1, R2). -/
 def cliBidiStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Md : GoString → GrpcMd → IProp GF)
     (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) : IProp GF :=
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop)
+    (E : GoInterface → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cs = GoInterface.ok ci⌝ ∗
     □ (∀ (L : List Req.M) (l : Loc) (m : Req.M) (R : IProp GF),
       {{ ⌜Ok R⌝ ∗ R ∗ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m ∗
@@ -671,7 +706,7 @@ def cliBidiStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg G
         (App (Val #(methods ci.ty go!"Send" ci.v)) (Val #l))
       {{ (err : GoInterface), RET #err; R ∗ Req.send l m ∗
           ((⌜err = GoInterface.nil⌝ ∗ cliSendTok (Req := Req) γ (L ++ [m])) ∨
-          (cliStreamErr err ∗ ∃ L' : List Req.M,
+          (cliStreamErr err E ∗ ∃ L' : List Req.M,
             ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ cliSendTok (Req := Req) γ L')) }}) ∗
     □ (∀ (L : List Rep.M) (R : IProp GF),
       {{ ⌜Ok R⌝ ∗ R ∗ cliRecvTok (Rep := Rep) γ L }}
@@ -682,20 +717,20 @@ def cliBidiStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg G
             cliRecvTok (Rep := Rep) γ (L ++ [m])) ∨
           (⌜resp = null⌝ ∗ eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ cliRecvTok (Rep := Rep) γ L ∗
             downClosed (Rep := Rep) γ L) ∨
-          (⌜resp = null⌝ ∗ cliStreamErr err ∗ cliRecvTok (Rep := Rep) γ L)) }}) ∗
+          (⌜resp = null⌝ ∗ cliStreamErr err E ∗ cliRecvTok (Rep := Rep) γ L)) }}) ∗
     □ (∀ (L : List Req.M) (R : IProp GF),
       {{ ⌜Ok R⌝ ∗ R ∗ cliSendTok (Req := Req) γ L }}
         (App (Val #(methods ci.ty go!"CloseSend" ci.v)) (Val #()))
       {{ (err : GoInterface), RET #err; R ∗ upClosed (Req := Req) γ L ∗
-          (⌜err = GoInterface.nil⌝ ∨ cliStreamErr err) }}) ∗
+          (⌜err = GoInterface.nil⌝ ∨ cliStreamErr err E) }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Context" ci.v)) (Val #()))
       {{ (cx : GoInterfaceOk), RET #(GoInterface.ok cx); context.isContext cx cd }}))
 
 instance cliBidiStreamIs_persistent (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Md : GoString → GrpcMd → IProp GF)
     (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
-    Persistent (cliBidiStreamIs cs γ Req Rep Up Md Dn cd Ok) := by
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) (E : GoInterface → IProp GF) :
+    Persistent (cliBidiStreamIs cs γ Req Rep Up Md Dn cd Ok E) := by
   unfold cliBidiStreamIs; infer_instance
 
 /-! ## The generated wrappers over the raw ends -/
@@ -797,11 +832,12 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
     (wp_Context : grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG))
     (p : Loc) (cs : GoInterface) (γ : StreamNames) (Up : Nat → Req.M → IProp GF)
     (Md : GoString → GrpcMd → IProp GF) (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop)
+    (E : GoInterface → IProp GF := fun _ => iprop(True)) :
     structFieldRef (google_golang_org.grpc.GenericClientStream V W) go!"ClientStream" p ↦□ cs ∗
-      cliStreamIs cs γ Req Rep Up Md Dn cd Ok ∗ (□ ∀ l : Loc, l ↦ (zero_val W) -∗ Rep.own l) ⊢
+      cliStreamIs cs γ Req Rep Up Md Dn cd Ok E ∗ (□ ∀ l : Loc, l ↦ (zero_val W) -∗ Rep.own l) ⊢
     cliBidiStreamIs (interface.mkOk (go.GoType.PointerType
-      (google_golang_org.grpc.GenericClientStream.ty Req.ty Rep.ty)) #p) γ Req Rep Up Md Dn cd Ok := by
+      (google_golang_org.grpc.GenericClientStream.ty Req.ty Rep.ty)) #p) γ Req Rep Up Md Dn cd Ok E := by
   iintro ⟨#Hf, #Hraw, #Hown⟩
   iunfold cliStreamIs at Hraw
   icases Hraw with ⟨%ci, %Hcs, #HSend, #HRecv, #HClose, #HCtx⟩

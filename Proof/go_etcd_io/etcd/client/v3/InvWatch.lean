@@ -603,7 +603,7 @@ the members' addresses, the `Watch` stream registered at each (its member's cont
 specification, D32), each member's facts, the packages', the prefix not empty, the addresses
 distinct, `V` at one of its members. -/
 def watchConnFacts (V : WEnv GF) : IProp GF :=
-  iprop(grpcConn V.conn V.addrs V.ics [] anyRes ∗
+  iprop(etcdWatchConn V.conn V.addrs V.ics ∗
     isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addrs
       go!"/etcdserverpb.Watch/Watch" (fun a => v3rpc.watchUp (V.memOf a))
       (fun a md => v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md)) ∗

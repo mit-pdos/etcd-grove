@@ -37,7 +37,12 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   intro wc conn addr ctx cd opts vs
   wp_start as ⟨#Hstub, #Hconn, #Hstr0, #Hdesc, #Hctx, #Hopts, #Hok⟩
   iunfold isEtcdConn at Hconn
-  icases Hconn with ⟨%ic, #Hgc, -⟩
+  icases Hconn with ⟨%ic, #Hgc, -, -, #Hcst⟩
+  iunfold etcdConnStream at Hcst
+  icases Hcst with ⟨%d, #Hcod, %hd⟩
+  obtain ⟨si, hsi⟩ : ∃ si, d.streamIc = some si := Option.ne_none_iff_exists'.mp hd.1
+  have hE : streamErrShape (GF := GF) d = fun _ => iprop(True) := by
+    funext err; unfold streamErrShape; rw [hsi]
   iunfold leaseKAStreamOk at Hstr0
   icases Hstr0 with ⟨%Up, %Spec, #Hstr, #Hz⟩
   wp_auto
@@ -86,15 +91,20 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
-  have hNS := wp_NewStream conn [addr] [ic] anyRes go!"/etcdserverpb.Lease/LeaseKeepAlive"
+  have hNS := wp_NewStream conn [addr] [ic] anyRes d etcdVersionMd
+    go!"/etcdserverpb.Lease/LeaseKeepAlive"
     pbLeaseKeepAliveRequestT pbLeaseKeepAliveResponseT pbLeaseKeepAliveRequestT_reg
     pbLeaseKeepAliveResponseT_reg Up (fun _ _ => Spec) ctx cd om
-  simp only [pbLeaseKeepAliveRequestT, pbLeaseKeepAliveResponseT] at hNS
+  simp only [pbLeaseKeepAliveRequestT, pbLeaseKeepAliveResponseT, hE, ← clientAttemptMd_eq] at hNS
   iapply (hNS _ copts ([sm] ++ vs) iprop(True))
   · isplitr
     · iframe #
     isplitr
     · iframe #
+    isplitr
+    · iframe #
+    isplitr
+    · ipureintro; exact hd.2
     isplitr
     · ipureintro; trivial
     isplitr
@@ -103,7 +113,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]
     iframe Hd0
-    ipureintro; exact hcs
+    ipureintro; exact Or.inl hcs
   inext
   iintro %cs %err ⟨-, Hres⟩
   wp_auto

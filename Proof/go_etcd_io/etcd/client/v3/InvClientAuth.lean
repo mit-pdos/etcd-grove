@@ -291,7 +291,9 @@ def clientReady (c conn : Loc) (eps : List GoString) : IProp GF :=
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"Auth" c ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #api :
         GoInterface) ∗
-    authObjS api conn ∗ clientAuthAt c eps P)
+    authObjS api conn ∗ clientAuthAt c eps P ∗
+    -- (grpc-trusted-T, T7, 2026-11-24) its connection dialed with etcd's stream interceptor
+    etcdConnStream conn)
 
 instance clientReady_persistent (c conn : Loc) (eps : List GoString) :
     Persistent (clientReady (GF := GF) c conn eps) := by
@@ -314,7 +316,9 @@ instance etcdInterceptorOkG_persistent (c : Loc) (ic : GoFunc) :
 /-- **The dial's connection of the client `c`** (persistent; see the file header): `isEtcdConn`,
 its interceptor's contract gated on `clientReady`. -/
 def isEtcdConnG (c conn : Loc) (eps : List GoString) : IProp GF :=
-  iprop(∃ ic : GoFunc, grpcConn conn eps [ic] [] anyRes ∗ etcdInterceptorOkG c ic)
+  iprop(∃ ic : GoFunc, grpcConn conn eps [ic] [] anyRes ∗ etcdInterceptorOkG c ic ∗
+    -- (grpc-trusted-T, T7, 2026-11-24) dialed with etcd's stream interceptor
+    etcdConnStream conn)
 
 instance isEtcdConnG_persistent (c conn : Loc) (eps : List GoString) :
     Persistent (isEtcdConnG (GF := GF) c conn eps) := by
@@ -323,7 +327,7 @@ instance isEtcdConnG_persistent (c conn : Loc) (eps : List GoString) :
 theorem isEtcdConnG_ready (c conn : Loc) (eps : List GoString) :
     isEtcdConnG (GF := GF) c conn eps ∗ clientReady c conn eps ⊢ isEtcdConn conn eps := by
   unfold isEtcdConnG etcdInterceptorOkG
-  iintro ⟨⟨%ic, #Hg, #Hok⟩, #Hr⟩
+  iintro ⟨⟨%ic, #Hg, #Hok, #Hcs⟩, #Hr⟩
   ihave ⟨#H1, #H2⟩ := Hok $$ %conn %eps Hr Hg
   unfold isEtcdConn
   iexists ic
@@ -435,7 +439,9 @@ theorem attemptTokOk_of (conn : Loc) (P : GoString → IProp GF) :
   iintro #H
   iintro !> %m %md #h
   iunfold clientAttemptMd at h
-  icases h with ⟨%v, #h⟩
+  iunfold streamAttemptMd at h
+  icases h with ⟨%om', %hF, #h⟩
+  obtain ⟨v, rfl⟩ := hF
   iunfold grpcAttemptMd at h
   icases h with ⟨%cm, #hy, %hp⟩
   obtain ⟨hvals, hne⟩ := hp
