@@ -492,9 +492,10 @@ instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := b
 
 /-- **`NewStorage`'s contract as a law** (wal-item3, 2026-11-21; the import tiers' "a proof takes a linked
 lemma as a law"): given the storage package's initialization, `rnNewStorageOk`. `rnNewStorageOk_law_holds`
-(`RnNewStorageLinked.lean`) proves it under `os`'s `fileStat`/`file` field assumptions (the WAL's), so
-`bootstrappedRaft.newRaftNode`'s spec still takes `rnNewStorageOk` as a premise (and every closed theorem with it);
-the semantic hypothesis `UntypedRuneSemantics` it also took went with Perennial `04b42a139` (2026-11-21). -/
+(`RnNewStorageLinked.lean`) proves it under `os`'s `fileStat`/`file` field assumptions (the WAL's), and
+`bootstrappedRaft.newRaftNode`'s proof takes it (wal-nostorageok, 2026-11-21: until then its spec's premise
+`rnNewStorageOk`, and every closed theorem's; those now take the two field-assumption classes instead). The
+semantic hypothesis `UntypedRuneSemantics` it also took went with Perennial `04b42a139` (2026-11-21). -/
 abbrev rnNewStorageOk.law : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ⊢ rnNewStorageOk (GF := GF)
 

@@ -74,6 +74,7 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
+axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -108,6 +109,7 @@ axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom grpclog.SetLoggerV2.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
+axiom hsEncC_ok
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
@@ -169,11 +171,14 @@ axiom pbCompactionResponseT_reg
 axiom pbDeleteRangeRequestT_reg
 axiom pbDeleteRangeResponseT_reg
 axiom pbEntryC_reg
+axiom pbHsC_reg
 axiom pbMessageC_reg
 axiom pbPutRequestT_reg
 axiom pbPutResponseT_reg
 axiom pbRangeRequestT_reg
 axiom pbRangeResponseT_reg
+axiom pbRecordC_reg
+axiom pbSnapC_reg
 axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
@@ -198,6 +203,7 @@ axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
+axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
@@ -243,7 +249,9 @@ axiom semver.NewVersion.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
+axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof

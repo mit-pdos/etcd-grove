@@ -68,7 +68,7 @@ theorem Run.wp_proof
   iunfold premises at Hprem
   icases Hprem with ⟨#HpremF, #HbR⟩
   iunfold etcdstart.premises at HpremF
-  icases HpremF with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
+  icases HpremF with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (dir id)
       name name urlsOk id (etcdstart.cfgOk name name) urlsOk (fun _ h => h) (fun _ h => h) $$ Hboot
   ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
