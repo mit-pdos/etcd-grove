@@ -19,7 +19,7 @@ is in `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.
 **The premises** are the union of the two drivers' theorems' (`k8s_etcd3_partition_safe`'s and
 `k8s_compactor_partition_safe`'s, now retired): each cluster's member ids and bootstrap log
 (`BootFacts`), the server's four opaque workload and environment premises once, the store workload's
-bounds, the schedules' lengths, the program's metric names, addresses and data directories (both
+bounds, the schedules' lengths, the program's addresses and data directories (both
 clusters', concatenated), `ETCD_VERIFY` off, each cluster's named premises (`Hprem₁`, `Hprem₂`, at one
 step bound), `time.After`'s contract (the compactor's), the file system's initial state and the members'
 WAL areas; and one new premise, `Hlow`: the 16 low bits of the ids of the process's every member
@@ -79,9 +79,6 @@ def k8s_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
-    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
-    [k8s_io.apiserver.pkg.storage.value.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
@@ -107,7 +104,6 @@ def k8s_robust_single_process.spec : Prop :=
     -- the two partition schedules
     (steps₁ steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps₁ : steps₁.length < 2 ^ 63) (Hsteps₂ : steps₂.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) k8sNames)
     (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sDirs k₁ k₂))
     (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂))

@@ -56,12 +56,13 @@ theorem Serve.wp_proof
       (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true)
       (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
         connEnd (Gg := hG.goose_globalGS) cn true (repP (Gg := hG.goose_globalGS) S)
-          (reqP (Gg := hG.goose_globalGS) S a) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true))
+          (reqP (Gg := hG.goose_globalGS) S a) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true ∗
+          rdlTok (Gg := hG.goose_globalGS) cn true false))
       $$ [Hlis]
-    as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hend, Hfresh⟩ | ⟨%k, Hlis, #Herr⟩)
+    as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hend, Hfresh, Hrdl⟩ | ⟨%k, Hlis, #Herr⟩)
   · iframe Hlt Hla
     iunfold svcAddr at Haddr
-    iapply accept_au a (reqP S a) (repP S) _ l true $$ Haddr Hlis
+    iapply accept_rdl_au a (reqP S a) (repP S) _ l true $$ Haddr Hlis
   · -- a connection: serve it
     subst Herr
     wp_auto
@@ -69,8 +70,8 @@ theorem Serve.wp_proof
     -- post-processing (`wp_apply_post`): "unknown free variable" (`tok`), which plain `wp_apply`
     -- turns into a silent `sorry`; `wp_apply_raw` and the steps after it by hand do not.
     ihave #Hsc := wp_serveConn S c cn a sys op cd d tok
-    wp_apply_raw Hsc $$ [Hend Hfresh Htok]
-    · iframe Hpkg Hc Hend Hfresh Hcd Hop Htok
+    wp_apply_raw Hsc $$ [Hend Hfresh Hrdl Htok]
+    · iframe Hpkg Hc Hend Hfresh Hrdl Hcd Hop Htok
     inext
     iintro Htok
     wp_auto

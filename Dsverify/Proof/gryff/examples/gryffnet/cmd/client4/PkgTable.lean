@@ -81,6 +81,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.internal.sync, isPkgInit (PROP := IProp GF) pkg_id.internal.sync),
    (pkg_id.internal.synctest, isPkgInit (PROP := IProp GF) pkg_id.internal.synctest),
    (pkg_id.internal.syscall.unix, isPkgInit (PROP := IProp GF) pkg_id.internal.syscall.unix),
+   (pkg_id.internal.testlog, isPkgInit (PROP := IProp GF) pkg_id.internal.testlog),
    (pkg_id.io, isPkgInit (PROP := IProp GF) pkg_id.io),
    (pkg_id.io.fs, isPkgInit (PROP := IProp GF) pkg_id.io.fs),
    (pkg_id.iter, isPkgInit (PROP := IProp GF) pkg_id.iter),
@@ -224,191 +225,195 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.gryff.examples.gryffnet.cmd.cl
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h22, h24, h0, h6, True.intro⟩
-  have h27 : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
+  have h27 : GetIsPkgInitProp pkg_id.internal.testlog (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h5, True.intro⟩
+  have h28 : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h25, True.intro⟩
-  have h28 : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (GF := GF)) := by
+  have h29 : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h27, h5, h25, h0, True.intro⟩
-  have h29 : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
+    exact ⟨h28, h5, h25, h0, True.intro⟩
+  have h30 : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h26, h5, h25, h28, h0, True.intro⟩
-  have h30 : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
+    exact ⟨h6, h26, h5, h25, h27, h29, h0, True.intro⟩
+  have h31 : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h23, h0, h25, h29, h22, h6, h28, True.intro⟩
-  have h31 : GetIsPkgInitProp pkg_id.log (getIsPkgInit (GF := GF)) := by
+    exact ⟨h23, h0, h25, h30, h22, h6, h29, True.intro⟩
+  have h32 : GetIsPkgInitProp pkg_id.log (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h5, True.intro⟩
-  have h32 : GetIsPkgInitProp pkg_id.crypto.tls (getIsPkgInit (GF := GF)) := by
+  have h33 : GetIsPkgInitProp pkg_id.crypto.tls (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h33 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
+  have h34 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h6, h5, True.intro⟩
-  have h34 : GetIsPkgInitProp pkg_id.net.http.internal.ascii (getIsPkgInit (GF := GF)) := by
+  have h35 : GetIsPkgInitProp pkg_id.net.http.internal.ascii (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h35 : GetIsPkgInitProp pkg_id.net.url (getIsPkgInit (GF := GF)) := by
+  have h36 : GetIsPkgInitProp pkg_id.net.url (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h11, True.intro⟩
+  have h37 : GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h36 : GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts (getIsPkgInit (GF := GF)) := by
+  have h38 : GetIsPkgInitProp pkg_id.net.textproto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h37 : GetIsPkgInitProp pkg_id.net.textproto (getIsPkgInit (GF := GF)) := by
+  have h39 : GetIsPkgInitProp pkg_id.mime.multipart (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
-  have h38 : GetIsPkgInitProp pkg_id.mime.multipart (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h37, True.intro⟩
-  have h39 : GetIsPkgInitProp pkg_id.internal.strconv (getIsPkgInit (GF := GF)) := by
+    exact ⟨h38, True.intro⟩
+  have h40 : GetIsPkgInitProp pkg_id.internal.strconv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h19, True.intro⟩
-  have h40 : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
+  have h41 : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h39, h10, True.intro⟩
-  have h41 : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
+    exact ⟨h0, h40, h10, h9, True.intro⟩
+  have h42 : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h8, True.intro⟩
-  have h42 : GetIsPkgInitProp pkg_id.internal.runtime.sys (getIsPkgInit (GF := GF)) := by
+  have h43 : GetIsPkgInitProp pkg_id.internal.runtime.sys (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h43 : GetIsPkgInitProp pkg_id.internal.runtime.atomic (getIsPkgInit (GF := GF)) := by
+  have h44 : GetIsPkgInitProp pkg_id.internal.runtime.atomic (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h44 : GetIsPkgInitProp pkg_id.runtime (getIsPkgInit (GF := GF)) := by
+  have h45 : GetIsPkgInitProp pkg_id.runtime (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h42, h43, True.intro⟩
-  have h45 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
+    exact ⟨h43, h44, True.intro⟩
+  have h46 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h23, h32, h0, h33, h6, h31, h34, h35, h20, h11, h5, h1, h22, h36, h30, h38, h37, h40, h41, h12, h44, True.intro⟩
-  have h46 : GetIsPkgInitProp pkg_id.go.token (getIsPkgInit (GF := GF)) := by
+    exact ⟨h23, h33, h0, h34, h6, h32, h35, h36, h20, h11, h5, h1, h22, h37, h31, h39, h38, h41, h42, h12, h45, True.intro⟩
+  have h47 : GetIsPkgInitProp pkg_id.go.token (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h47 : GetIsPkgInitProp pkg_id.net.rpc (getIsPkgInit (GF := GF)) := by
+  have h48 : GetIsPkgInitProp pkg_id.net.rpc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h12, h0, h6, h31, h30, h45, h5, h46, True.intro⟩
-  have h48 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
+    exact ⟨h12, h0, h6, h32, h31, h46, h5, h47, True.intro⟩
+  have h49 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h19, h20, True.intro⟩
-  have h49 : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (getIsPkgInit (GF := GF)) := by
+  have h50 : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h23, h48, h22, h33, h11, True.intro⟩
-  have h50 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
+    exact ⟨h23, h49, h22, h34, h11, True.intro⟩
+  have h51 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h51 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest (getIsPkgInit (GF := GF)) := by
+  have h52 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h5, h1, h22, h49, True.intro⟩
-  have h52 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient (getIsPkgInit (GF := GF)) := by
+    exact ⟨h5, h1, h22, h50, True.intro⟩
+  have h53 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h5, h22, h49, h51, True.intro⟩
-  have h53 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote (getIsPkgInit (GF := GF)) := by
+    exact ⟨h5, h22, h50, h52, True.intro⟩
+  have h54 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h30, h22, h49, h50, h51, h52, True.intro⟩
-  have h54 : GetIsPkgInitProp pkg_id.gryff.src.fastrpc (getIsPkgInit (GF := GF)) := by
+    exact ⟨h31, h22, h50, h51, h52, h53, True.intro⟩
+  have h55 : GetIsPkgInitProp pkg_id.gryff.src.fastrpc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h6, True.intro⟩
-  have h55 : GetIsPkgInitProp pkg_id.gryff.src.clientproto (getIsPkgInit (GF := GF)) := by
+  have h56 : GetIsPkgInitProp pkg_id.gryff.src.clientproto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h54, h6, h5, True.intro⟩
-  have h56 : GetIsPkgInitProp pkg_id.gryff.src.state (getIsPkgInit (GF := GF)) := by
+    exact ⟨h55, h6, h5, True.intro⟩
+  have h57 : GetIsPkgInitProp pkg_id.gryff.src.state (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h31, h6, h5, h21, True.intro⟩
-  have h57 : GetIsPkgInitProp pkg_id.gryff.src.epaxosproto (getIsPkgInit (GF := GF)) := by
+    exact ⟨h32, h6, h5, h21, True.intro⟩
+  have h58 : GetIsPkgInitProp pkg_id.gryff.src.epaxosproto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h56, h12, h21, h54, h6, h5, True.intro⟩
-  have h58 : GetIsPkgInitProp pkg_id.gryff.src.dlog (getIsPkgInit (GF := GF)) := by
+    exact ⟨h57, h12, h21, h55, h6, h5, True.intro⟩
+  have h59 : GetIsPkgInitProp pkg_id.gryff.src.dlog (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h31, True.intro⟩
-  have h59 : GetIsPkgInitProp pkg_id.gryff.src.gryffproto (getIsPkgInit (GF := GF)) := by
+    exact ⟨h32, True.intro⟩
+  have h60 : GetIsPkgInitProp pkg_id.gryff.src.gryffproto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h56, h54, h6, h5, h12, h21, True.intro⟩
-  have h60 : GetIsPkgInitProp pkg_id.gryff.src.bitvec (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h61 : GetIsPkgInitProp pkg_id.gryff.src.bloomfilter (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h60, h13, True.intro⟩
-  have h62 : GetIsPkgInitProp pkg_id.gryff.src.genericsmrproto (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h56, h54, h6, h5, True.intro⟩
-  have h63 : GetIsPkgInitProp pkg_id.gryff.src.stats (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h31, h40, h5, True.intro⟩
-  have h64 : GetIsPkgInitProp pkg_id.gryff.src.genericsmr (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h12, h21, h54, h33, h55, h62, h6, h30, h29, h56, h22, h11, h31, h58, h5, h63, True.intro⟩
-  have h65 : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h59, h48, h63, h56, True.intro⟩
-  have h66 : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h5, True.intro⟩
-  have h67 : GetIsPkgInitProp pkg_id.gryff.src.gryff (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h57, h48, h22, h58, h59, h50, h61, h21, h54, h64, h62, h6, h31, h13, h56, h1, h65, h12, h55, h33, h66, h63, h5, True.intro⟩
-  have h68 : GetIsPkgInitProp pkg_id.gryff.src.masterproto (getIsPkgInit (GF := GF)) := by
+    exact ⟨h57, h55, h6, h5, h12, h21, True.intro⟩
+  have h61 : GetIsPkgInitProp pkg_id.gryff.src.bitvec (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h69 : GetIsPkgInitProp pkg_id.gryff.src.masterlib (getIsPkgInit (GF := GF)) := by
+  have h62 : GetIsPkgInitProp pkg_id.gryff.src.bloomfilter (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h5, h47, h30, h68, h45, h22, h33, h31, h62, True.intro⟩
-  have h70 : GetIsPkgInitProp pkg_id.gryff.src.serverlib (getIsPkgInit (GF := GF)) := by
+    exact ⟨h61, h13, True.intro⟩
+  have h63 : GetIsPkgInitProp pkg_id.gryff.src.genericsmrproto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h68, h47, h31, h22, h30, h33, h45, True.intro⟩
-  have h71 : GetIsPkgInitProp pkg_id.gryff.examples.gryffnet (getIsPkgInit (GF := GF)) := by
+    exact ⟨h57, h55, h6, h5, True.intro⟩
+  have h64 : GetIsPkgInitProp pkg_id.gryff.src.stats (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h12, h21, h30, h47, h11, h5, h22, h49, h53, h55, h67, h59, h69, h70, h56, h0, h62, h68, True.intro⟩
-  have h72 : GetIsPkgInitProp pkg_id.gryff.examples.gryffnet.cmd.client4 (getIsPkgInit (GF := GF)) := by
+    exact ⟨h32, h41, h5, True.intro⟩
+  have h65 : GetIsPkgInitProp pkg_id.gryff.src.genericsmr (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h71, True.intro⟩
-  exact h72
+    exact ⟨h12, h21, h55, h34, h56, h63, h6, h31, h30, h57, h22, h11, h32, h59, h5, h64, True.intro⟩
+  have h66 : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h60, h49, h64, h57, True.intro⟩
+  have h67 : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h5, h1, True.intro⟩
+  have h68 : GetIsPkgInitProp pkg_id.gryff.src.gryff (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h58, h49, h22, h59, h60, h51, h62, h21, h55, h65, h63, h6, h32, h13, h57, h1, h66, h12, h56, h34, h67, h64, h5, True.intro⟩
+  have h69 : GetIsPkgInitProp pkg_id.gryff.src.masterproto (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h70 : GetIsPkgInitProp pkg_id.gryff.src.masterlib (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h5, h48, h31, h69, h46, h22, h34, h32, h63, True.intro⟩
+  have h71 : GetIsPkgInitProp pkg_id.gryff.src.serverlib (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h69, h48, h32, h22, h31, h34, h46, True.intro⟩
+  have h72 : GetIsPkgInitProp pkg_id.gryff.examples.gryffnet (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h12, h21, h31, h48, h11, h5, h22, h50, h54, h56, h68, h60, h70, h71, h57, h0, h63, h69, True.intro⟩
+  have h73 : GetIsPkgInitProp pkg_id.gryff.examples.gryffnet.cmd.client4 (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h72, True.intro⟩
+  exact h73
 
 end table
 

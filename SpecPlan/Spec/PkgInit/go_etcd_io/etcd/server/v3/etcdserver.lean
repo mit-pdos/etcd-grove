@@ -14,6 +14,7 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.net.http
+public import Perennial.Proof.strings.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.dustin.go_humanize
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
@@ -37,6 +38,7 @@ public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.mvcc
 public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.runtime
 public import Perennial.Proof.log.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.logutil
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.contention

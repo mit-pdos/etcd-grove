@@ -165,30 +165,6 @@ func modelReadMIMEHeader(b *bufio.Reader, maxHeaders int64) (textproto.MIMEHeade
 	}
 }
 
-// modelCutByte is strings.Cut(s, string(sep)) for a byte sep (the model's ReadResponse and
-// parseRequestLine call it in place of strings.Cut, which Perennial translates as a name only:
-// notes/perennial-changes.md): the text before and after the first sep, and true; or s, "" and
-// false when s holds none. strings.Cut finds the first instance with strings.Index, which for a
-// one-byte separator is the first index of that byte.
-func modelCutByte(s string, sep byte) (before, after string, found bool) {
-	for i := 0; i < len(s); i++ {
-		if s[i] == sep {
-			return s[:i], s[i+1:], true
-		}
-	}
-	return s, "", false
-}
-
-// modelTrimLeftByte is strings.TrimLeft(s, string(c)) for an ASCII byte c (the model's ReadResponse
-// calls it in place of strings.TrimLeft, a name only in Perennial's translation): Go's TrimLeft of a
-// one-byte ASCII cutset is strings' trimLeftByte, this loop.
-func modelTrimLeftByte(s string, c byte) string {
-	for len(s) > 0 && s[0] == c {
-		s = s[1:]
-	}
-	return s
-}
-
 // modelChunked stands for a chunked body's reader: not modelled.
 func modelChunked(r io.Reader) io.Reader {
 	panic(notModelled("net/http model: a chunked message body is not modelled"))

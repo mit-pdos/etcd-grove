@@ -1,11 +1,13 @@
 /-
 `byteorder.BEPutUint32(b, v)` (`internal/byteorder`, go1.27.3 `byteorder.go`): stores `v` big-endian
 into `b[0:4]`, after an early bounds check (`_ = b[3]`). Proved in
-`Proof/internal/byteorder/BEPutUint32.lean`. Lean-first (prove-authcrypto, 2026-11-21).
+`Proof/internal/byteorder/BEPutUint32.lean` from Perennial's stronger
+`internal.byteorder.BEPutUint32.spec` (Perennial's translation of `internal/byteorder` since its pin
+b3f2fc485). Lean-first (prove-authcrypto, 2026-11-21).
 -/
 module
 
-public import Proof.internal.byteorder.Base
+public import Perennial.Proof.internal.byteorder.Base
 
 @[expose] public section
 

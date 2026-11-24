@@ -37,7 +37,7 @@ theorem gaugeSpec_of_isGauge
     (wp_Inc : prometheus.gauge.Inc.spec (GF := GF) (hG := hG))
     (wp_Dec : prometheus.gauge.Dec.spec (GF := GF) (hG := hG))
     (wp_Add : prometheus.gauge.Add.spec (GF := GF) (hG := hG)) (g : GoInterfaceOk) :
-    isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus -∗
+    isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus -∗
       isGauge g -∗ gaugeSpec g := by
   iintro #Hinit #Hg
   iunfold isGauge at Hg
@@ -73,7 +73,7 @@ theorem gaugeSpec_of_isGauge
 
 theorem gaugeSetSpec_of_isGauge
     (wp_Set : prometheus.gauge.Set.spec (GF := GF) (hG := hG)) (g : GoInterfaceOk) :
-    isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus -∗
+    isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus -∗
       isGauge g -∗ gaugeSetSpec g := by
   iintro #Hinit #Hg
   iunfold isGauge at Hg

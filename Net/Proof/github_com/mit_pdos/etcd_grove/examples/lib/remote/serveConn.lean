@@ -48,7 +48,7 @@ theorem serveConn.wp_proof
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG)) :
     serveConn.spec (GF := GF) (hG := hG) (I := I) (O := O) := by
   intro S c cn a sys op cd d tok
-  wp_start as ⟨#Hc, Hend, Hfresh, #Hcd, #Hop, Htok⟩
+  wp_start as ⟨#Hc, Hend, Hfresh, Hrdl, #Hcd, #Hop, Htok⟩
   icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
   icases ed_init $$ Hpkg with ⟨%ed, #Hed⟩
   iunfold connEnd at Hend
@@ -62,16 +62,19 @@ theorem serveConn.wp_proof
   subst Hct
   wp_auto
   wp_apply wp_deadline as %tm -
-  wp_apply wp_SetDeadline t cn true a la ra tm (fun _ => iprop(True)) as %err -
+  wp_apply wp_SetDeadline t cn true a la ra tm
+      (fun _ => iprop(∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b)) $$ [Hrdl]
+    as %err ⟨%res1, ⟨%b1, Hrdl⟩, -⟩
   · iframe Hca
-    imod deadline_au cn true _ _ $$ Hci with ⟨%st, Hst, Hk⟩
+    imod deadline_au cn true _ _ false $$ Hrdl with ⟨%st, Hst, Hk⟩
     imodintro
     iexists st
     iframe Hst
     iintro %res %st' %Hdo Hst'
-    imod Hk $$ %res %st' %Hdo Hst' with -
+    imod Hk $$ %res %st' %Hdo Hst' with ⟨-, Hrdl⟩
     imodintro
-    itrivial
+    iexists st'.rdl
+    iexact Hrdl
   ihave Hrecv := recvTok_L $$ Hrecv
   wp_apply (lc := 3) wp_readFrame _ cn true a (reqP S a) [] eof ed $$ [Hrecv]
     as %b %ok ⟨%got, Hrecv, Hres⟩
@@ -177,9 +180,9 @@ theorem serveConn.wp_proof
         intro n L h1 h2 h3; word
       exact key rep.len _ Hlen.1 Hlen.2 Hif
     wp_apply wp_deadline as %tm' -
-    wp_apply wp_SetDeadline t cn true a la ra tm' (fun _ => iprop(True)) as %err' -
+    wp_apply wp_SetDeadline t cn true a la ra tm' (fun _ => iprop(True)) $$ [Hrdl] as %err' -
     · iframe Hca
-      imod deadline_au cn true _ _ $$ Hci with ⟨%st, Hst, Hk⟩
+      imod deadline_au cn true _ _ b1 $$ Hrdl with ⟨%st, Hst, Hk⟩
       imodintro
       iexists st
       iframe Hst

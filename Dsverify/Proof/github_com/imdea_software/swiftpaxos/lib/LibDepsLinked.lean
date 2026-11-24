@@ -8,6 +8,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDeps
 public import Proof.bufio.NewWriter
 public import Proof.bufio.NewWriterSize
+public import Proof.bufio.NewWriterSizeRep
 public import Proof.bufio.Writer__Flush
 public import Proof.bufio.Writer__WriteByte
 public import Proof.bufio.Writer__Write

@@ -2,7 +2,8 @@
 **The library hypotheses** (notes/dsv-swiftpaxos.md, "Hypotheses"): the specs of the libraries the
 swiftpaxos proof uses that have no proof here, one field each of `SwiftHyps`, named after the lab's
 theorem it stands for; and, below, the lab's theorem names restated from the fields (as `X.wp_hyp` where the lab had `X.wp_proof`, so that this stays a defs module for the import tiers), so that the
-ported proof reads as the lab's (`bufio.wp_ReadFull`, `treemap.Map.wp_Put`, …). A proof that uses one
+ported proof reads as the lab's (`bufio.wp_ReadFull`, …; gods' treemap is verified, its lab names
+in `state/Results.lean`). A proof that uses one
 has `[SwiftHyps netDistGF]` among its variables; `swiftpaxos_remote_robust` takes `SwiftHyps` at
 every heap.
 
@@ -40,16 +41,6 @@ namespace github_com.imdea_software.swiftpaxos
 /-- The library hypotheses: see the file header. -/
 class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
     [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
-  /-- lab `Proof/treemap/NewWith.lean` `treemap.NewWith.wp_proof`: the shared spec
-  (Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean) over the kit's `isTreeMap` -/
-  treemap_NewWith : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
-    github_com.emirpasic.gods.maps.treemap.NewWith.spec (GF := GF) isTreeMap
-  /-- lab `treemap.Map.Put.wp_proof` -/
-  treemap_Put : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
-    github_com.emirpasic.gods.maps.treemap.Map.Put.spec (GF := GF) isTreeMap
-  /-- lab `treemap.Map.Get.wp_proof` -/
-  treemap_Get : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
-    github_com.emirpasic.gods.maps.treemap.Map.Get.spec (GF := GF) isTreeMap
   /-- lab `Spec/gob/NewEncoder.lean` `encoding.gob.NewEncoder.wp_proof`, over the real gob
   (`sp.GobFmt`; Spec/encoding/gob/Defs.lean) -/
   gob_NewEncoder : ∀ [examples.swiftnet.Assumptions], encoding.gob.NewEncoder.spec (GF := GF)
@@ -99,16 +90,6 @@ theorem wp_Write_err : Writer.Write_err.labSpec (GF := GF) := Writer.Write_err.l
 theorem wp_ReadByte_wf : Reader.ReadByte_wf.labSpec (GF := GF) := Reader.ReadByte_wf.labProof
 
 end bufio
-
-namespace github_com.emirpasic.gods.maps.treemap
-variable [treemap.Assumptions]
-theorem wp_NewWith : NewWith.spec (GF := GF) github_com.imdea_software.swiftpaxos.isTreeMap :=
-  h.treemap_NewWith
-theorem Map.wp_Put : Map.Put.spec (GF := GF) github_com.imdea_software.swiftpaxos.isTreeMap :=
-  h.treemap_Put
-theorem Map.wp_Get : Map.Get.spec (GF := GF) github_com.imdea_software.swiftpaxos.isTreeMap :=
-  h.treemap_Get
-end github_com.emirpasic.gods.maps.treemap
 
 namespace encoding.gob
 variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions]

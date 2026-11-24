@@ -172,6 +172,11 @@ theorem wf_io_fs : GetIsPkgInitProp pkg_id.io.fs (getIsPkgInit (GF := GF)) := by
   · rfl
   exact ⟨wf_time, wf_internal_oserror, wf_errors, wf_io, True.intro⟩
 
+theorem wf_internal_testlog : GetIsPkgInitProp pkg_id.internal.testlog (getIsPkgInit (GF := GF)) := by
+  refine And.intro ?_ ?_
+  · rfl
+  exact ⟨wf_sync, True.intro⟩
+
 theorem wf_internal_syscall_unix : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
@@ -185,7 +190,7 @@ theorem wf_internal_poll : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (
 theorem wf_os : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_io, wf_io_fs, wf_sync, wf_syscall, wf_internal_poll, wf_errors, True.intro⟩
+  exact ⟨wf_io, wf_io_fs, wf_sync, wf_syscall, wf_internal_testlog, wf_internal_poll, wf_errors, True.intro⟩
 
 theorem wf_net : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -215,7 +220,7 @@ theorem wf_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal.a
 theorem wf_net_url : GetIsPkgInitProp pkg_id.net.url (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact True.intro
+  exact ⟨wf_strings, True.intro⟩
 
 theorem wf_vendor_golang_org_x_net_http_httpguts : GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -240,7 +245,7 @@ theorem wf_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (getIsPkg
 theorem wf_strconv : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_errors, wf_internal_strconv, wf_internal_stringslite, True.intro⟩
+  exact ⟨wf_errors, wf_internal_strconv, wf_internal_stringslite, wf_unicode_utf8, True.intro⟩
 
 theorem wf_path : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -370,7 +375,7 @@ theorem wf_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon
 theorem wf_math_rand : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_sync, True.intro⟩
+  exact ⟨wf_sync, wf_sync_atomic, True.intro⟩
 
 theorem wf_gryff_src_gryff : GetIsPkgInitProp pkg_id.gryff.src.gryff (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -537,6 +542,11 @@ theorem wfNo_io_fs : GetIsPkgInitProp pkg_id.io.fs (gNo (getIsPkgInit (GF := GF)
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact ⟨wfNo_time, wfNo_internal_oserror, wfNo_errors, wfNo_io, True.intro⟩
 
+theorem wfNo_internal_testlog : GetIsPkgInitProp pkg_id.internal.testlog (gNo (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gNo_ne _ _ (by decide)]; rfl
+  exact ⟨wfNo_sync, True.intro⟩
+
 theorem wfNo_internal_syscall_unix : GetIsPkgInitProp pkg_id.internal.syscall.unix (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
@@ -550,7 +560,7 @@ theorem wfNo_internal_poll : GetIsPkgInitProp pkg_id.internal.poll (gNo (getIsPk
 theorem wfNo_os : GetIsPkgInitProp pkg_id.os (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_io, wfNo_io_fs, wfNo_sync, wfNo_syscall, wfNo_internal_poll, wfNo_errors, True.intro⟩
+  exact ⟨wfNo_io, wfNo_io_fs, wfNo_sync, wfNo_syscall, wfNo_internal_testlog, wfNo_internal_poll, wfNo_errors, True.intro⟩
 
 theorem wfNo_net : GetIsPkgInitProp pkg_id.net (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -580,7 +590,7 @@ theorem wfNo_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal
 theorem wfNo_net_url : GetIsPkgInitProp pkg_id.net.url (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfNo_strings, True.intro⟩
 
 theorem wfNo_vendor_golang_org_x_net_http_httpguts : GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -605,7 +615,7 @@ theorem wfNo_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gNo (g
 theorem wfNo_strconv : GetIsPkgInitProp pkg_id.strconv (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_errors, wfNo_internal_strconv, wfNo_internal_stringslite, True.intro⟩
+  exact ⟨wfNo_errors, wfNo_internal_strconv, wfNo_internal_stringslite, wfNo_unicode_utf8, True.intro⟩
 
 theorem wfNo_path : GetIsPkgInitProp pkg_id.path (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -735,7 +745,7 @@ theorem wfNo_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcomm
 theorem wfNo_math_rand : GetIsPkgInitProp pkg_id.math.rand (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_sync, True.intro⟩
+  exact ⟨wfNo_sync, wfNo_sync_atomic, True.intro⟩
 
 theorem wfNo_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -887,6 +897,11 @@ theorem wfS2_io_fs : GetIsPkgInitProp pkg_id.io.fs (gEx noPkgsS2 (getIsPkgInit (
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS2_time, wfS2_internal_oserror, wfS2_errors, wfS2_io, True.intro⟩
 
+theorem wfS2_internal_testlog : GetIsPkgInitProp pkg_id.internal.testlog (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS2_sync, True.intro⟩
+
 theorem wfS2_internal_syscall_unix : GetIsPkgInitProp pkg_id.internal.syscall.unix (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
@@ -900,7 +915,7 @@ theorem wfS2_internal_poll : GetIsPkgInitProp pkg_id.internal.poll (gEx noPkgsS2
 theorem wfS2_os : GetIsPkgInitProp pkg_id.os (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_io, wfS2_io_fs, wfS2_sync, wfS2_syscall, wfS2_internal_poll, wfS2_errors, True.intro⟩
+  exact ⟨wfS2_io, wfS2_io_fs, wfS2_sync, wfS2_syscall, wfS2_internal_testlog, wfS2_internal_poll, wfS2_errors, True.intro⟩
 
 theorem wfS2_net : GetIsPkgInitProp pkg_id.net (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -930,7 +945,7 @@ theorem wfS2_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal
 theorem wfS2_net_url : GetIsPkgInitProp pkg_id.net.url (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS2_strings, True.intro⟩
 
 theorem wfS2_vendor_golang_org_x_net_http_httpguts : GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -955,7 +970,7 @@ theorem wfS2_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gEx no
 theorem wfS2_strconv : GetIsPkgInitProp pkg_id.strconv (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_errors, wfS2_internal_strconv, wfS2_internal_stringslite, True.intro⟩
+  exact ⟨wfS2_errors, wfS2_internal_strconv, wfS2_internal_stringslite, wfS2_unicode_utf8, True.intro⟩
 
 theorem wfS2_path : GetIsPkgInitProp pkg_id.path (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1085,7 +1100,7 @@ theorem wfS2_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcomm
 theorem wfS2_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_sync, True.intro⟩
+  exact ⟨wfS2_sync, wfS2_sync_atomic, True.intro⟩
 
 theorem wfS2_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1232,6 +1247,11 @@ theorem wfS1_io_fs : GetIsPkgInitProp pkg_id.io.fs (gEx noPkgsS1 (getIsPkgInit (
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS1_time, wfS1_internal_oserror, wfS1_errors, wfS1_io, True.intro⟩
 
+theorem wfS1_internal_testlog : GetIsPkgInitProp pkg_id.internal.testlog (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS1_sync, True.intro⟩
+
 theorem wfS1_internal_syscall_unix : GetIsPkgInitProp pkg_id.internal.syscall.unix (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
@@ -1245,7 +1265,7 @@ theorem wfS1_internal_poll : GetIsPkgInitProp pkg_id.internal.poll (gEx noPkgsS1
 theorem wfS1_os : GetIsPkgInitProp pkg_id.os (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_io, wfS1_io_fs, wfS1_sync, wfS1_syscall, wfS1_internal_poll, wfS1_errors, True.intro⟩
+  exact ⟨wfS1_io, wfS1_io_fs, wfS1_sync, wfS1_syscall, wfS1_internal_testlog, wfS1_internal_poll, wfS1_errors, True.intro⟩
 
 theorem wfS1_net : GetIsPkgInitProp pkg_id.net (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1275,7 +1295,7 @@ theorem wfS1_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal
 theorem wfS1_net_url : GetIsPkgInitProp pkg_id.net.url (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS1_strings, True.intro⟩
 
 theorem wfS1_vendor_golang_org_x_net_http_httpguts : GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1300,7 +1320,7 @@ theorem wfS1_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gEx no
 theorem wfS1_strconv : GetIsPkgInitProp pkg_id.strconv (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_errors, wfS1_internal_strconv, wfS1_internal_stringslite, True.intro⟩
+  exact ⟨wfS1_errors, wfS1_internal_strconv, wfS1_internal_stringslite, wfS1_unicode_utf8, True.intro⟩
 
 theorem wfS1_path : GetIsPkgInitProp pkg_id.path (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1425,7 +1445,7 @@ theorem wfS1_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcomm
 theorem wfS1_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_sync, True.intro⟩
+  exact ⟨wfS1_sync, wfS1_sync_atomic, True.intro⟩
 
 theorem wfS1_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1567,6 +1587,11 @@ theorem wfS0_io_fs : GetIsPkgInitProp pkg_id.io.fs (gEx noPkgsS0 (getIsPkgInit (
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS0_time, wfS0_internal_oserror, wfS0_errors, wfS0_io, True.intro⟩
 
+theorem wfS0_internal_testlog : GetIsPkgInitProp pkg_id.internal.testlog (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS0_sync, True.intro⟩
+
 theorem wfS0_internal_syscall_unix : GetIsPkgInitProp pkg_id.internal.syscall.unix (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
@@ -1580,7 +1605,7 @@ theorem wfS0_internal_poll : GetIsPkgInitProp pkg_id.internal.poll (gEx noPkgsS0
 theorem wfS0_os : GetIsPkgInitProp pkg_id.os (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_io, wfS0_io_fs, wfS0_sync, wfS0_syscall, wfS0_internal_poll, wfS0_errors, True.intro⟩
+  exact ⟨wfS0_io, wfS0_io_fs, wfS0_sync, wfS0_syscall, wfS0_internal_testlog, wfS0_internal_poll, wfS0_errors, True.intro⟩
 
 theorem wfS0_net : GetIsPkgInitProp pkg_id.net (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1610,7 +1635,7 @@ theorem wfS0_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal
 theorem wfS0_net_url : GetIsPkgInitProp pkg_id.net.url (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS0_strings, True.intro⟩
 
 theorem wfS0_vendor_golang_org_x_net_http_httpguts : GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1635,7 +1660,7 @@ theorem wfS0_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gEx no
 theorem wfS0_strconv : GetIsPkgInitProp pkg_id.strconv (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_errors, wfS0_internal_strconv, wfS0_internal_stringslite, True.intro⟩
+  exact ⟨wfS0_errors, wfS0_internal_strconv, wfS0_internal_stringslite, wfS0_unicode_utf8, True.intro⟩
 
 theorem wfS0_path : GetIsPkgInitProp pkg_id.path (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1755,7 +1780,7 @@ theorem wfS0_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcomm
 theorem wfS0_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_sync, True.intro⟩
+  exact ⟨wfS0_sync, wfS0_sync_atomic, True.intro⟩
 
 theorem wfS0_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_

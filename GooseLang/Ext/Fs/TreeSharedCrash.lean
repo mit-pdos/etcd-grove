@@ -1,5 +1,5 @@
 /-
-The shared mode of the tree across a crash (`notes/wal-fsext-i2-design.md`, §4.2): what a region
+The tree across a crash (`notes/wal-fsext-i2-design.md`, §4.2): what a region
 concludes (`crashRest_region'`, from the crash's facts `crashShared` keeps and `regionCrashed_of_cut`)
 and the new generation's tree (`crashRest_treeS'`, well formed: `crashRest_treeWf'`). `TreeShared.lean` states them and takes their
 proofs from here. Untrusted.
@@ -8,6 +8,7 @@ module
 
 public import GooseLang.Ext.Fs.TreeSharedSwitch
 public import GooseLang.Ext.Fs.CrashRegion
+public import GooseLang.Ext.Fs.CrashTok
 
 @[expose] public section
 
@@ -77,20 +78,6 @@ theorem osClaims_log' (L : GooseLocalGS GF) (R : Roots) (cl : List (Claim × DFr
   have hxL : x0 < Vs.2.length := List.mem_range.1 (List.mem_filter.1 hx0).1
   simp [List.getElem?_eq_getElem hxL]
 
-/-- In the legacy mode the restart holds the shared history's authority empty: no shared
-invariant is the generation's. -/
-theorem sharedInv_legacy_excl (L : GooseLocalGS GF) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
-    ⊢ osSharedInv (L := L) R -∗
-      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γs (∅ : GMap Unit (Roots × Hist)) ={E}=∗
-      False := by
-  unfold osSharedInv
-  iintro #Hsi Has
-  imod inv_acc hE $$ Hsi with ⟨Hi, -⟩
-  icases Hi with >Hi
-  icases Hi with ⟨%Vs, %Γn, Hs, -⟩
-  icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %h
-  simp at h
-
 theorem crashRest_region' (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
     (tt : Bool) (V' : Hist) (R : Roots) (cl : List (Claim × DFrac)) (n : Nat) (E : CoPset)
     (hE : ↑osShN ⊆ E) :
@@ -100,14 +87,9 @@ theorem crashRest_region' (Q : OsState → OsState → Prop) (L L' : GooseLocalG
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ∗ osClaims L cl := by
   iintro #Hsi Hr Hcl #Hlb
   unfold crashRest
-  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd,
-    Htl, Hcc⟩
-  unfold crashMode
-  icases Hcc with (⟨Hcc, Has⟩ | Hcc)
-  · imod sharedInv_legacy_excl L R E hE $$ Hsi Has with %h
-    exact h.elim
+  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %hrel, Hab, Ham, Hfs, HAt, Htok, Htl, Hcc⟩
   unfold crashShared
-  icases Hcc with ⟨Hd, Has, %hsh, Hcm⟩
+  icases Hcc with ⟨Has, %hsh, Hcm⟩
   obtain ⟨hwf0, hst, S, hSlt, hcl, hSc, hslot⟩ := hsh
   unfold commitRes
   icases Hcm with ⟨%c, %hc, Hc⟩
@@ -132,12 +114,10 @@ theorem crashRest_region' (Q : OsState → OsState → Prop) (L L' : GooseLocalG
     intro cc hcc
     obtain ⟨c0, hc0, rfl⟩ := List.mem_map.1 hcc
     exact hlk c0 hc0
-  iexists Γb, Γm, F, st, st', Γf, Γt, V
-  iframe Hab Ham Hfs HAt Htok HAd Htl
+  iexists Γb, Γm, F, st, st', Γf, Γt
+  iframe Hab Ham Hfs HAt Htok Htl Has
   isplitr
   · ipureintro; exact hrel
-  iright
-  iframe Hd Has
   isplitr
   · ipureintro; exact ⟨hwf0, hst, S, hSlt, hcl, hSc, hslot⟩
   iexists c
@@ -153,14 +133,9 @@ theorem crashRest_treeWf' (Q : OsState → OsState → Prop) (L L' : GooseLocalG
       ⌜TreeWf R V'.now⌝ ∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' := by
   iintro #Hsi Hr
   unfold crashRest
-  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd,
-    Htl, Hcc⟩
-  unfold crashMode
-  icases Hcc with (⟨Hcc, Has⟩ | Hcc)
-  · imod sharedInv_legacy_excl L R E hE $$ Hsi Has with %h
-    exact h.elim
+  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %hrel, Hab, Ham, Hfs, HAt, Htok, Htl, Hcc⟩
   unfold crashShared
-  icases Hcc with ⟨Hd, Has, %hsh, Hcm⟩
+  icases Hcc with ⟨Has, %hsh, Hcm⟩
   unfold osSharedInv
   imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
   icases Hi with >Hi
@@ -173,30 +148,26 @@ theorem crashRest_treeWf' (Q : OsState → OsState → Prop) (L L' : GooseLocalG
   imodintro
   isplitr
   · ipureintro; rw [← hR]; exact hsh.1
-  iexists Γb, Γm, F, st, st', Γf, Γt, V
-  iframe Hab Ham Hfs HAt Htok HAd Htl
+  iexists Γb, Γm, F, st, st', Γf, Γt
+  iframe Hab Ham Hfs HAt Htok Htl Has Hcm
   isplitr
   · ipureintro; exact hrel
-  iright
-  iframe Hd Has Hcm
   ipureintro; exact hsh
 
+/-- **The new generation's tree**: its shared invariants, allocated from the tree resources the
+restart holds (`osSwitchKit_open`), on the old shared invariant's roots (which are the crashed
+state's, and the new state's). -/
 theorem crashRest_treeS' (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
     (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
     ⊢ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' ={E}=∗
-      ⌜V'.2 = []⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗
+      ⌜V'.2 = []⌝ ∗ osShared (L := L') R V' ∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' := by
   iintro #Hsi Hr
   unfold crashRest
-  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd,
-    Htl, Hcc⟩
-  unfold crashMode
-  icases Hcc with (⟨Hcc, Has⟩ | Hcc)
-  · imod sharedInv_legacy_excl L R E hE $$ Hsi Has with %h
-    exact h.elim
+  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %hrel, Hab, Ham, Hfs, HAt, Htok, Htl, Hcc⟩
   unfold crashShared
-  icases Hcc with ⟨Hd, Has, %hsh, Hcm⟩
+  icases Hcc with ⟨Has, %hsh, Hcm⟩
   unfold osSharedInv
   imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
   icases Hi with >Hi
@@ -206,20 +177,17 @@ theorem crashRest_treeS' (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
   obtain ⟨hR, rfl⟩ := hVs
   imod Hclose $$ [Hs HAn Halen HAlog] with -
   · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
-  imodintro
-  unfold treeLeft osTree
+  unfold treeLeft
   rw [← hR]
-  iframe Htl
+  imod osSwitchKit_open (L := L') st.fs.roots V' E $$ Htl with Hsh
+  imodintro
+  iframe Hsh
   isplitr
-  · ipureintro; exact treeCrashed_log hrel.2.2.2.2.2.2.1
-  iexists Γb, Γm, F, st, st', Γf, Γt, V
-  iframe Hab Ham Hfs HAt Htok HAd
+  · ipureintro; rw [hrel.2.2.2.2.2.2.1]
+  iexists Γb, Γm, F, st, st', Γf, Γt
+  iframe Hab Ham Hfs HAt Htok Has Hcm
   isplitr
   · ipureintro; exact hrel
-  isplitr
-  · iempintro
-  iright
-  iframe Hd Has Hcm
   ipureintro; exact hsh
 
 end crash

@@ -7,6 +7,8 @@ receiver itself for a read (get, list; `(rexecL x m).2.1 = m`). The model's item
 objects (`itemsFitL`) and the input fits (`inFits`), for `update` and `delete`; a list's input
 meets `Model.list.spec`'s premises (`MinRV` parses, a non-negative limit, no limit with
 `MinRV "0"`). (k8s 7g step 3.)
+The model has fewer than `2^62` items (a write may add one; `itemsRO` keeps at most `2^62`, the bound of
+`slices.Sorted(maps.Keys(s.Items))`).
 -/
 module
 
@@ -39,6 +41,7 @@ abbrev Model.execute.spec : Prop :=
   itemsFitL m → k8s_etcd3.inFits x →
   (x.Kind' = W64 4 → (k8s_etcd3.parseRVD x.MinRV').isSome ∧ 0 ≤ sint.Z x.Limit' ∧
     (0 < sint.Z x.Limit' → x.MinRV' ≠ go!"0")) →
+  GMap.size m.items < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness ∗
       modelAt mp m ∗ reqRep r x }}
     (App (Val #(methods (go.GoType.PointerType

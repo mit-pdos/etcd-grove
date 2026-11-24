@@ -38,7 +38,6 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
 	"go.etcd.io/etcd/server/v3/features"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/env"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -137,7 +136,6 @@ func Main(c Config) {
 // (and the process) without a panic: the theorem then has nothing to say about this member's
 // later behavior, and its peers see it as a member that never answers.
 func MainLogger(c Config, lg *zap.Logger) {
-	env.ClearProxy()
 	if !inCluster(c) {
 		return
 	}

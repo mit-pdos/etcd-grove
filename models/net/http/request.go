@@ -1035,9 +1035,8 @@ func (r *Request) SetBasicAuth(username, password string) {
 
 // parseRequestLine parses "GET /foo HTTP/1.1" into its three parts.
 func parseRequestLine(line string) (method, requestURI, proto string, ok bool) {
-	// MODEL: strings.Cut of a one-byte separator is the model's modelCutByte (textproto_model.go).
-	method, rest, ok1 := modelCutByte(line, ' ')
-	requestURI, proto, ok2 := modelCutByte(rest, ' ')
+	method, rest, ok1 := strings.Cut(line, " ")
+	requestURI, proto, ok2 := strings.Cut(rest, " ")
 	if !ok1 || !ok2 {
 		return "", "", "", false
 	}

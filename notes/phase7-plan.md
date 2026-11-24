@@ -1,5 +1,10 @@
 # Phase 7: etcd's gRPC, net and net/http axioms as theorems over the models (plan, Draft)
 
+**Superseded where they differ by `notes/phase7-endstate.md`** (2026-11-24): the end state (one call
+protocol for unary calls and streams, heap-free stream entries, `grpcServeTok` in one form, bridges
+serving their target's table), the interim switch, the overnight decisions and the work plan. This note
+keeps the history and the S2 and S5 drafts.
+
 2026-11-21, claim #24. Phase 7 of `notes/dsverify-net-port-plan.md`, planned on its own as that section
 says. Coordination: #10's `grpc3` (grpc's resolver, `resolver/manual`, `attributes`, `serviceconfig`,
 etcd's `client/v3/internal/resolver`) and `http3` (`Proof/net/http/{Axioms,Boundary}.lean`,
@@ -231,6 +236,27 @@ used only within one machine until S3.
 This generalizes `remote`'s slot (`Net/Proof/.../examples/lib/remote/Defs.lean`: `slotOf`,
 `slotInv`, `slot_register`, `slot_claim`, `slot_done`, `slot_take`) so that grpc and remote share
 it. remote can move onto it later; that is not part of S2.
+
+**On `lean` ahead of S2's core** (2026-11-23, branch `s2-vocab`, for etcd-dist's interim axioms over
+`grpcSvcAt`/`grpcAddrAt`): this file and `Proof/google_golang_org/grpc/InvGrpcWire.lean` (§1.2) as
+built on `phase7-s2-core`, with base64's `rawStdEnc` (pure); definitions and proved laws, no axiom.
+One change from that branch: `grpcAddrAt` sets the address's protocols to the opaques
+`grpcCliPI`/`grpcSrvPI` (trusted text with no law, `notes/audit.md`; intended reading
+`grpcCliP`/`grpcSrvP`), since over the defined protocols raw Go code dialing or listening on a grpc
+address could write or read the model's frames and make an axiom over `grpcAddrAt` unsound; the
+defined protocols and their parse laws stay as a library until S2's proofs of `Invoke` and `Serve`
+put them in place. **The interface switch is done** (2026-11-24, branch `s2-switch`, option (A), the
+user's request: "with the unproved parts as axioms, so etcd-dist can proceed"): `ProtoWire :=
+⟨ty, M, tree⟩` (`ProtoMsg` gains `tree`; `protoEncodes`, opaque, in place of `enc`); `isGrpcRpcMd`
+redefined over `grpcSvcAt` and `grpcReach`; `Server.Serve` an axiom over `grpcServeTok gs lis a Svc` and
+`grpcServes` (with the stream-name clause, C3); the model `Serve`'s leaves retired; the single-process
+start over Go's table (`grpcGoSvc`, `etcdTys`, `netAddrLeft`). Review: `notes/axiom-review/s2-interface.md`;
+ledger: `notes/specs-only/ledger.md`, 2026-11-24. S2's proofs then retire `Serve`'s axiom and the
+opaque protocols, which needs the dec-shaped run contract and F2's world premise (the review).
+How they amend §1.1 and §1.2 (the deposit with the data frame, per-connection refusal, `msgReady`,
+`ProtoWire.enc`, `grpcFieldsMd`) is §0a on `phase7-s2-core`, which lands with the rest of S2's
+core. `headerListOk` and `SrvFrame.oversized` are F1's (§0a), whose model fix is on that branch too:
+until it lands, `lean`'s model does not yet check `headerListOk` before writing a block.
 
 There is one slot per connection, keyed by what the dialer's bytes say. grpc's transparent retries
 need two laws that remote does not use:
@@ -882,6 +908,278 @@ translate. S1 avoided that, and S2 should too.
 - **O9. One machine in the interim.** Until S4, S2's theorems can serve the single-process examples
   only by adding the net extension to them (coupling 2). Whether kaashoek's `NetStart`/`ServerStart`
   lands first decides whether S2 states anything for `etcd_safe`, or only for putget-dist.
+
+## S5 draft signatures (2026-11-24)
+
+Proving session 2 (claim #18), on #24: both halves of S5 over the net/http model (`models/net/http`,
+translated into `Net/`, project `models-net`), after `models-rpc-http` (`af1e3f4675`). Written before
+any proof; nothing below is built. Branch `prove-ps2-s5srv/2026-11-24`. The Lean text is the intended
+statement; `...` marks a body sketched in prose.
+
+### 0. Decisions this draft takes as given
+
+- **No new trusted text.** The client half un-deletes upstream code: `Transport.roundTrip` (deleted to a
+  `notModelled` panic, `models/net/http/transport.go:614`) and the chunked reader (`modelChunked`,
+  `textproto_model.go:169`, back to `internal.NewChunkedReader`). Both shrink the model's diff. Goose
+  takes `net/http/internal` (`chunked.go`, `sniff.go`) from the toolchain, translated with its bodies.
+- **Sticky read errors** are the net extension's (D1 v3.5, landed with `models-rpc-http`). No
+  `connReader*` file and nothing of `GooseLang/Ext/Net` is edited.
+- **`notModelled`.** No spec relies on reaching one (`internal/gomodel.Stuck()`, perennial#694, once
+  pinned). The protocol below makes the model's `notModelled` head-parser branches unreachable: every
+  head a program's client writes is one the model parses (`hdrBlockOk`).
+- **Threads.** `Server.Serve` forks one goroutine per connection (`conn.serve`), and `connReader`
+  forks the background read per request. Perennial's fork rule (`wp_fork_tok`) gives each forked
+  thread a `threadTok`, returned at its exit. So the handler borrows **its connection goroutine's own
+  token**: no `handlerPool`, unlike `SpecPlan`'s `Serve.spec` (§5, C1). The background read runs on its own.
+- **One generation.** Net's protocols are fixed per run; `SpecPlan`'s `protoFam` (one protocol per
+  crash generation) waits for S4's crash story. Here `protoAt` is the run's.
+
+### 1. The HTTP vocabulary: `SpecPlan`'s, defined
+
+The client-facing vocabulary is `SpecPlan/Spec/net/http/Api.lean`'s, with its opaques defined over the
+model and the net extension. So the main tree's `Proof/net/http/{Boundary,Axioms}.lean` can move onto
+it at S4 (§4).
+
+```lean
+-- SpecPlan's, unchanged: HReq (meth, host, path, hdr), Proto (hreq, bodyPre, body, resp), onceOnly,
+-- hdrView, srvKeys, pathUnder, readerAt's Pre/Φ over IProp.
+structure Proto (GF) where
+  hreq    : HReq → GName → IProp GF
+  bodyPre : HReq → GName → List w8 → IProp GF
+  body    : HReq → GName → List w8 → IProp GF
+  resp    : HReq → GName → w64 → List (GoString × GoString) → List w8 → IProp GF
+
+/-- What `reserve` asks of a protocol: the server's own answers (`srvStatuses`, with Go's fixed
+bodies and the two `srvKeys` headers) are in `resp`, and `resp` is prefix-closed in `w`. -/
+def Proto.ok (P : Proto GF) : Prop := ...
+```
+
+**The requests a program's client writes** (`hreqOk R`, pure): `GET` or `POST`; `R.path` a
+`reqPath` (`RequestDefs.lean`: `/` and the bytes `url` leaves alone, which rafthttp's paths are); `R.host`
+an ASCII `host:port` that is not IPv6 (so the Transport dials exactly `R.host`: `canonicalAddr`); the
+headers `hdrBlockOk` after canonicalization, with none of the keys the Transport writes itself (`Host`,
+`Content-Length`, `Transfer-Encoding`, `Connection`, `User-Agent`, `Accept-Encoding`) and **no
+`Expect`** (§5, C3). rafthttp's requests are all of this kind.
+
+**Framing** (pure, `Net/Proof/net/http/Wire.lean`):
+
+```lean
+inductive Frame | none | len (n : Nat) | chunked
+/-- A chunked body's wire: each chunk (non-empty) `hex(len) ++ "\r\n" ++ c ++ "\r\n"`, then, if
+`fin`, `"0\r\n\r\n"`. -/
+def chunkedWire (cs : List (List w8)) (fin : Bool) : List w8
+/-- A request's head as `Request.write` writes it: the line, `Host`, `User-Agent`, the framing's
+header, `R.hdr`'s lines sorted by key, `Accept-Encoding: gzip`, the empty line. -/
+def reqHeadWire (R : HReq) (f : Frame) : List w8
+/-- A response's head as `chunkWriter.writeHeader` writes it: the status line, then a header block
+`hc` with `srvView hs hc` (the handler's committed `hs`, plus some values at `srvKeys`: `Date`,
+`Content-Type` (sniffed), `Content-Length` or `Transfer-Encoding: chunked`, `Connection`). -/
+def respHeadOk (st : w64) (hs hc : List (GoString × GoString)) (f : Frame) : Prop
+```
+
+**A connection's ghost state** (`HttpConnNames`, `httpConnInv`, shaped like net/rpc's `connInv`,
+`Net/Proof/net/rpc/Proto.lean`):
+- the requests in the order written, a mono-list of `(R, τ, f)`;
+- the server's count `k` of request heads taken, half with the serving thread. Taking request `k`
+  moves its ticket out, so a ticket goes to at most one handler run;
+- each `onceOnly` request's `reqTicket τ`, deposited by the client's write loop with the request's
+  **first byte on the wire**. A request of which nothing was written keeps its ticket, which is what
+  makes Go's `nothingWrittenError` retry of a `POST` sound (`shouldRetryRequest`).
+
+**The byte protocols** of an HTTP address (`Net.Proto := Nat → List w8 → IProp`):
+
+```lean
+/-- What a dialer of `a` writes: a prefix of its requests' wires, in order; each request
+`hreqOk`, with `□ P.hreq R τ`, and its body bytes (after the head) a stream with `□ P.bodyPre R τ B`
+of each prefix `B` sent, and `□ P.body R τ B` once complete (the length reached, or the chunked
+terminator). -/
+def httpReqP (P : Proto GF) (a : GoString) : Net.Proto GF := fun cn bs => ...
+/-- What an acceptor at `a` writes: a prefix of responses, the `i`-th one answering the `i`-th
+request (`R, τ`, from the mono-list's lower bound): a head `respHeadOk st hs hc f` and a body framed
+by `f` (length, chunked, or none), whose bytes `w` meet `□ ∃ w', w <+: w' ∗ P.resp R τ st hs w'`;
+or a server answer (`srvStatuses`) that ends the connection. -/
+def httpRespP (P : Proto GF) (a : GoString) : Net.Proto GF := fun cn bs => ...
+
+/-- `SpecPlan`'s `protoAt`: the address `a` serves HTTP with `P` (persistent). -/
+def protoAt (a : GoString) (P : Proto GF) : IProp GF :=
+  iprop(addrProto a (httpReqP P a) (httpRespP P a) ∗ inv httpRegN httpRegInv ∗ ⌜P.ok⌝)
+```
+
+The `SpecPlan` laws then become theorems: `reserve` from `addr_set_proto` (`addrFree a := addrUnset a`;
+a wildcard listener through `lis_set_proto`), `addrFree_protoAt_excl`, `reqTicket_alloc`/`_excl`. The
+main tree's axioms `reserve` and `register` go with S4's swap.
+
+### 2. The server half (`models/net/http/server.go`, `transfer.go`'s `body`)
+
+**Server-side predicates** (definitions sketched):
+- `srvReq r R rd`: `SpecPlan`'s `srvReq_fields` (`Method`, `URL.Path`, `Header` as `hdrRO` of the
+  request's headers without `Host`, `Body` `rd` never `nil`, `RemoteAddr`).
+- `readerAt rd Pre Φ r` for a request body: `rd` is `NoBody` (`r = []`, `Φ []`), or a `*body` over
+  `io.LimitReader(bufr, n)` (length-framed) or over the chunked reader (§4), on the serving thread's
+  `bufio.ownReader` of the connection's `recvTok` (`crStream`, `ConnReaderStream.lean`, in its body
+  phase). The bytes read so far are the request's body prefix, so `□ P.bodyPre R τ r`. `EOF` comes only
+  from the length reached or the chunked terminator, so `□ P.body R τ r`. Exclusive, and given to the handler.
+- `respW w R τ P c hs bs`: `w` is the `*response` `rp`. If `c = none`, its `handlerHeader` map is
+  `hdrMap` of `hs`, the commit's input. `rp.w` (a 2048-byte `bufio.Writer`) over `rp.cw` (the
+  `chunkWriter`) over the connection's 4096-byte `bufw` over `checkConnErrorWriter` over the
+  connection's `sendTok cn true (httpRespP P a) W`. The bytes on the wire, plus the two buffers,
+  are the response head (once `cw.wroteHeader`) and the framed prefix of `bs`. Or the connection has
+  failed (`conn.werr` set, the socket closed: every later write fails, and the client sees a cut
+  response, which its reader reports as an error, never `EOF`).
+
+**Specs** (statements as in `SpecPlan`, proved over the model):
+
+| `SpecPlan` statement | the model's code it is proved over |
+|---|---|
+| `Serve.spec` (below) | `Serve`/`Server.Serve` (accept loop, `newConn`, `go c.serve`), `conn.serve`'s loop, `readRequest` (general heads, bodies), `serverHandler.ServeHTTP`, `finishRequest`, `shouldReuseConnection`, the answers `400`/`431`/`501`/`505`, the deferred `recover` |
+| `respW_header.spec` | `response.Header` |
+| `respW_writeHeader.spec` | `response.WriteHeader` (`checkWriteHeaderCode`) |
+| `respW_write.spec` | `response.Write`/`write`, `bufio.Writer.Write`, `chunkWriter.Write`, `chunkWriter.writeHeader` (Content-Length when the handler ends within the buffer, otherwise chunked; `Date` from `appendTime`, `Content-Type` from `DetectContentType`; the remaining request body drained, at most `maxPostHandlerReadBytes`) |
+| `respW_flush.spec`, `respW_flusher.spec` | `response.Flush`/`FlushError`, `chunkWriter.flush` |
+| `readerAt_read.spec`, `readerAt_close.spec` (request bodies) | `body.Read`/`readLocked`, `body.Close` (the drain, early close), `registerOnHitEOF` with `startBackgroundRead` |
+| `mux_handlerOk.spec`, `NewServeMux`, `Handle`, `muxOwn_freeze` | `ServeMux` (Go 1.22 patterns, literal path patterns only) |
+
+```lean
+/-- `http.Serve(l, h)` / `(&Server{Handler: h}).Serve(l)`: `l` the listener at `a`, `a` serving `P`,
+`h` a handler of `P` (for every path, `pfx = "/"`). It returns only an error (the listener closed
+or failed); each connection is served on its own goroutine. -/
+abbrev Serve.spec : Prop :=
+  ∀ (l h : GoInterface) (a : GoString) (P : Proto GF),
+  {{ httpSrvEnv ∗ listenerAt l a ∗ protoAt a P ∗ handlerOk h P "/" }}
+    (App (App (Val (@! net.http.Serve)) (Val #l)) (Val #h))
+  {{ (err : GoInterface), RET #err; errOk err }}
+```
+
+- `listenerAt l a` := `isListener l` of a listener whose every accepted connection was dialed to an
+  address serving the HTTP protocols (`lisProto la (httpReqP P a) (httpRespP P a)`) and its token `lisInv`.
+- `handlerOk`/`servePre`/`serveDone`: `SpecPlan`'s. The `threadTok` in `servePre` is the connection
+  goroutine's own (§0).
+- `httpSrvEnv` (persistent): `httpEnv` plus what the server path reads that net/http's init does not
+  yet prove (the bufio pools `wPool 2048`, `wPool 4096`, `rPool`, as `ServerConn.lean`; `time`, `log`,
+  `context`). It is the premise until net/http's initialization is proved (phase 5 item 2).
+- The CONNECT/hijack path stays as it is (`hijackOk`, `response.Hijack.spec`, net/rpc's
+  `Server.ServeHTTP.spec`). `conn.serve`'s proof covers both kinds of address: a request on an HTTP
+  address reaches `servePre`, and a `CONNECT` on an rpc address reaches `hjPre`. Question Q4 asks
+  whether `Serve.spec_rpc` (dsverify's `RpcHttpServe`) should come out of the same proof.
+
+**`expectContinueReader`.** Unreachable under the protocol: requests carry no `Expect`, and
+`conn.serve` wraps the body only for `Expect: 100-continue`. Its proof would be the `canWriteContinue`
+race with `writeContinueMu`. Skipped unless a client needs `Expect` (C3).
+
+### 3. The chunked writer (`net/http/internal`, the client's request bodies)
+
+The server's responses do not use it: `chunkWriter.Write` frames chunks itself. The Transport's
+`transferWriter.writeBody` does, for a body of unknown length, which is rafthttp's snapshot.
+
+```lean
+/-- `cw` frames into the writer `wi` (an `io.Writer` contract over `Wr`, as `Spec/bufio/`'s
+`bufio.Writer` specs take: `EtcdGrove.io.writerStream wi Wr`), having written the chunks `cs`
+(non-empty) and not closed. -/
+def chunkedW (cw : GoInterface) (wi : GoInterfaceOk) (Wr : List w8 → IProp GF)
+    (cs : List (List w8)) : IProp GF := ...
+
+abbrev NewChunkedWriter.spec : Prop := ∀ wi Wr,
+  {{ writerStream wi Wr }} internal.NewChunkedWriter #(interface.ok wi)
+  {{ (cw : GoInterface), RET #cw; chunkedW cw wi Wr [] }}
+/-- `Write(p)`: one chunk of `p` (none if `p` is empty), its whole wire written through `wi`,
+or an error with a prefix of the wire written. -/
+abbrev chunkedWriter.Write.spec : Prop := ...
+/-- `Close()`: the terminator `"0\r\n"` (the trailer and the final `"\r\n"` are the Transport's). -/
+abbrev chunkedWriter.Close.spec : Prop := ...
+```
+
+Also `FlushAfterChunkWriter` (the Transport wraps the `bufio.Writer` when the body is chunked). Its
+`Write` flushes after each chunk, which the snapshot's latency relies on, not the proof.
+
+### 4. The client half (`transport.go`, `client.go`, `internal.ChunkedReader`)
+
+**The Transport** (`transportOk t D`, persistent): a `*Transport` as etcd's `NewTimeoutTransport`
+builds it. `Proxy` is `nil` or `ProxyFromEnvironment`, the scheme is `http` (TLS not used),
+`DisableKeepAlives`/`MaxIdleConnsPerHost` are any. `DialContext` or `Dial` is a dialer `D` that
+returns, for an address `a`, a `net.Conn` that is the net extension's (`isConn c cn false a`) or a
+wrapper keeping its contract (etcd's `timeoutConn`). Its locks' invariants are `idleMu` (the idle
+pool: each idle `persistConn` with its dialer-end tokens, between requests), `connsPerHostMu` and
+`reqMu`.
+
+```lean
+/-- SpecPlan's `roundTripperOk` of the Transport: RoundTrip of a request built for `R` (`hreqOk R`)
+to `R.host` serving `P`, with `□ P.hreq R τ`, its body contract, the ticket if `onceOnly`: an error
+(`errOk`), or the response of one handler run: status, committed headers (`hdrView`), a body reader
+of prefixes of what that handler wrote. -/
+theorem Transport.roundTripperOk : transportOk t D ⊢ roundTripperOk (interface.mkOk (ptrT Transport) #t)
+```
+
+The proof is over upstream's `roundTrip`, `getConn` (the idle pool, `queueForIdleConn`,
+`queueForDial`, `dialConnFor`, `wantConn`), `dialConn`, `persistConn.roundTrip`, `readLoop` and
+`writeLoop` (both forked per connection, each with its own `threadTok`), `Request.write`,
+`transferWriter`, `ReadResponse` (general heads, not only CONNECT's), `bodyEOFSignal`, and the retry
+(`shouldRetryRequest`, `rewindBody`). HTTP/2, proxies and TLS stay `notModelled`. The protocol and the
+premises below make them unreachable.
+
+- **Response bodies:** `readerAt_read`/`readerAt_close`/`readerCloser` of `bodyEOFSignal` (its `Close`
+  from another goroutine: the stream reader's `stop`). `Transport.CloseIdleConnections`.
+- **`internal.NewChunkedReader`, `chunkedReader.Read`:** over a `bufio.ownReader` of a stream whose
+  bytes are a prefix of `chunkedWire cs fin ++ trailer`. It yields a prefix of `cs.flatten`, and `EOF`
+  only after the terminator. It is used on both sides: the server's request bodies (§2) and the
+  client's chunked responses (rafthttp's stream reader).
+- **`Client.Do`/`Client.Get`:** needed only by `xiang90/probing` (`rafthttp-gaps`, kaashoek's). A
+  `Client{Transport: t}` with no redirects followed for a `GET` answered `2xx`/`4xx`: `roundTripperOk`
+  plus `send`'s deadline plumbing. Q5 asks whether it is still needed.
+- **The proxy environment (needs the user's sign-off, rule #8).** `ProxyFromEnvironment` calls
+  `envProxyFunc()`, which calls `httpproxy.FromEnvironment()` once (`sync.Once`); that reads `os.Getenv`
+  of `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`, their lower-case forms and `REQUEST_METHOD`. With the four
+  proxy variables (`HTTP_PROXY`, `http_proxy`, `HTTPS_PROXY`, `https_proxy`) empty, `proxyForURL` returns
+  `nil` for every URL, whatever `NO_PROXY` and `REQUEST_METHOD` are (`httpproxy/proxy.go:127-145`), so
+  the Transport dials `R.host` directly. That is
+  coordinator-E's planned `proxyEnvOff` (#24, the grpc model's proxy finding). The proposal follows
+  `envVerifyOff`'s pattern (`Spec/os/Getenv.lean`): a persistent token `envProxyOff`, given at program
+  start under a per-machine pure premise `proxyEnvOff`, and a clause in `os.Getenv.spec`'s post:
+  `envProxyOff -∗ ⌜key ∈ proxyEnvKeys → v = ""⌝` (`proxyEnvKeys` those four). The clause strengthens a trust-boundary axiom,
+  by the same argument as `ETCD_VERIFY`'s: Go's `os.Getenv` reads the process's start environment, and
+  nothing in the run sets these. `golang.org/x/net/http/httpproxy` is translated with its bodies
+  (vendored in the toolchain).
+
+### 5. Where this departs from `SpecPlan` (ledger entries before any edit)
+
+- **C1 (simplification).** `Serve.spec` takes no `handlerPool`. The handler's `threadTok` is its
+  connection goroutine's own, from Perennial's fork rule. `handlerPool_alloc.spec` becomes unused.
+- **C2 (defect, `roundTripperOk`).** For a body of declared length (`NewRequest` of a
+  `*bytes.Buffer`/`*bytes.Reader`/`*strings.Reader`: `ContentLength = n`), the Transport writes
+  `Content-Length: n` before reading the body. The server's body reader returns `EOF` after `n` bytes
+  and must then give `□ P.body R τ B`. But the client gets `Φb B` only from a later `Read` that returns
+  `EOF`, after the last byte is already on the wire. So `roundTripperOk`'s body premise
+  `□ ∀ B, Φb B -∗ P.body R τ B` cannot be used where it is needed. **Proposed:** `reqOwn r R bd` also
+  records the declared length `cl : Option Nat` (`NewRequest` sets it), and for `cl = some n`
+  `RoundTrip` asks `□ ∀ B, Preb B -∗ ⌜B.length = n⌝ -∗ P.body R τ B`. `NewBuffer_reader.spec`'s
+  `Pre B := B <+: ys` gives it at `n = ys.length`. The main tree's `Boundary.lean` does not have this
+  problem: its fixed body's bytes are `HReq.body`.
+- **C3 (premise, `roundTripperOk`).** `hreqOk R`: `GET`/`POST`, a `reqPath`, a `host:port` host, header
+  values the server's parser takes, and none of the Transport's own keys or `Expect`. rafthttp meets all
+  of it. `Expect: 100-continue` would need `expectContinueReader` and the Transport's
+  `ExpectContinueTimeout` path; nobody here sends it.
+- **C4 (scope).** `protoAt` is the run's, not a generation's (`protoFam`, §0).
+- **C5 (shape).** `readerAt`'s count is `uint.nat n` in `SpecPlan`. The model's readers return
+  `0 ≤ n ≤ len(p)`, so the statement is unchanged; `sint` is not needed.
+
+### 6. Questions (on #24)
+
+- **Q1 (coordinator-E, dsverify-net):** take `SpecPlan`'s vocabulary for S5, as above, rather than
+  `Boundary.lean`'s (`req`/`rhdr`/`streamed`/`sreq`, fixed bodies in `HReq`)? At S4, rafthttp's proofs
+  would move from one to the other. Or keep `Boundary.lean`'s statements and define them over this?
+- **Q2 (the user, via coordinator-E):** the `envProxyOff` token and the `os.Getenv` clause (§4).
+- **Q3:** C2's change to `roundTripperOk`/`reqOwn`, and C3's `hreqOk` premise.
+- **Q4 (dsverify-net):** should `conn.serve`'s proof also give net/rpc's `RpcHttpServe` instance (HTTP
+  `Serve` on an rpc address, the handler `Server.ServeHTTP` through `muxHas`)? The loop is the same
+  proof.
+- **Q5 (kaashoek):** does `rafthttp-gaps`' prober still need `http.Client.Do`/`Get` over the Transport?
+- **Q6 (S4):** what dialer contract does etcd's `rwTimeoutDialer.Dial`/`timeoutConn` need of `D`? The
+  draft asks only that `D` return a connection with the net extension's `Read`/`Write`/`Close`/deadline
+  specs.
+
+**Order.** The vocabulary first (`Wire.lean`, the byte protocols, `protoAt`, `reserve`). Then the
+server: `readRequest` on general heads, the body reader, the response writer, `conn.serve`, `Serve`.
+Then the chunked writer and reader, then the Transport. Landed in batches, each on Lean's three
+axioms, and no axiom added.
 
 ## For the user
 

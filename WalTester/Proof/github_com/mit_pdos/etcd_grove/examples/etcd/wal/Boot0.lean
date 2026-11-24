@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # The WAL tester's first boot (W4c U5, `notes/wal-fsext-w4c-plan.md`)
 
-`tBoot0`: from what the shared mode's switch gives the program (`wp_osShare`: the shared invariant,
+`tBoot0`: from the tree's shared view at the first start (`osShared`, `fs_startS`: the shared invariant,
 the whole call permission, a whole claim on all names of every directory of the boot tree `V.now`,
 nothing logged), the first incarnation's `TBoot`: the WAL's area by `walBoot0` (U3) and the oracle
 file's by durable's first boot (`DurBoot0`, proved by U2's `DurFs.durBoot0`: `durBoot0_holds`), the tester's invariant allocated over the fresh oracle and no WAL.

@@ -1,5 +1,6 @@
 /-
-`zap.Logger.Panic`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first (no Rocq counterpart).
+`zap.Logger.Panic`: proved over zap's code (`Proof/go_uber_org/zap/Logger__Panic.lean`; zap-z2, 2026-11-23:
+until then the trust boundary). Lean-first (no Rocq counterpart).
 -/
 module
 

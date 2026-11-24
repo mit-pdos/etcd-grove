@@ -37,10 +37,9 @@ program's package table `PkgTable.lean`) and `mvccfull.wp_Main` (`Link.lean`; `R
 
 **Its hypotheses** are mvccrand's, but `sort.Slice.spec` (`mvccfull.wp_Main` takes no hypothesis:
 the tester's lease checks compare the lessor's list against the model's without sorting it):
-* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset), (etcdstorage,
-  2026-11-20, the user's decision) `namesUnclaimed` of `mvccfullMetricNames` (no other code of the
-  run registers the metric names mvcc's, the lessor's, the backend's and auth's `init()` register:
-  the etcd examples' premise, now that those `init()`s are translated), and the execution's length
+* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset) and the execution's
+  length (prom-registry, route (b), 2026-11-22: no longer `namesUnclaimed` of `mvccfullMetricNames`:
+  the proof allocates the registration rights of the packages' metric IDs itself, `mvccfull_regQsOk`)
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 48`;
   `mvccfull_adequate_below` takes the thread bound `T ≤ 2 ^ 28` along the execution instead, and
   only `n + 1 ≤ 2 ^ 48`);
@@ -354,6 +353,28 @@ instance mvccfullGF_gooseGpreS : GooseGpreS mvccfullGF where
 
 /-! ## The closed theorem -/
 
+/-- The IDs the program's packages register (auth's, the lessor's, the backend's and mvcc's metric
+names' label-free descriptor IDs, in `regQs`' order; computed with cespare/xxhash v2.3.0, and checked by
+the kernel in `mvccfull_regQsOk`). -/
+def mvccfullRegKeys : List w64 :=
+  [0x12ecdedc778f3f77, 0x79b607416929bc6b, 0xb617c6d2d636f8d3, 0x8cdefdfd7fbe0f89,
+   0x4d5dbff2abdff296, 0x7d293418f489e89, 0x1cf0310f1f3cbc4d, 0xaf13cf18762e0410,
+   0xab20cb33e635a4d3, 0x4ea7aecf35604fe8, 0xdfccb0d5dbf98fee, 0x1329a594e50076ed,
+   0xe21d9196734675f, 0x4f14727af435217b, 0x93f9374046090575, 0x1f18f72ac56b959b,
+   0xb99f16de319e8327, 0x6f040a217f98b36f, 0x6e59011109180671, 0x11c28b1620be2404,
+   0x7454d00abfa5eebd, 0x3990ae2951922721, 0xc6dbc11e1f9070ed, 0xee70855f50c035a7,
+   0xe022592a562465ef, 0xc59e341e500edbf0, 0x4ff1a721c3c867d0, 0xddb5f8a18722005e,
+   0x37b32b97f7de5f, 0x9c06bb0ca40cbda8, 0x23dbdcaf102f1686, 0x1de4f1c3b13fe482,
+   0xe4ccc50c7daf4c9c, 0x9b8a677c6e6c1ef8, 0x7133d22463246355, 0xaa607cdd4f5c0a9a]
+
+/-- **The registering packages' IDs can have their rights** (prom-registry, route (b)): pairwise
+distinct, none a built-in's, no name a built-in's. Decided by the kernel once, here, over the IDs as
+literals (`mvccfullRegKeys`: the kernel hashes each name once; deciding `regQsOk` directly rehashes the names
+for every pair `Nodup` compares, and ran out of memory: 21 GB). -/
+theorem mvccfull_regQsOk :
+    prometheus.regQsOk github_com.mit_pdos.etcd_grove.examples.mvccfull.regQs :=
+  prometheus.regQsOk_of_keys _ mvccfullRegKeys (by decide +kernel) (by decide +kernel) (by decide +kernel)
+
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
@@ -368,7 +389,6 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (r : GoString)
-    (HNs : prometheus.namesUnclaimed (mvccfullProgram r) mvccfullMetricNames)
     (HEnv : verifyEnvOff (mvccfullProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
@@ -385,10 +405,9 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := mvccfullGF) (n + 1) T (mvccfullProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
-    ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccfull.initNames [] []
-    (by decide +kernel) List.nodup_nil List.nodup_nil
-    (fun _ h => absurd h List.not_mem_nil) HNs
-    (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
+    ⟨trivial, Hfs, trivial⟩ [] [] List.nodup_nil List.nodup_nil
+    (fun _ h => absurd h List.not_mem_nil) (fun _ h => absurd h List.not_mem_nil)
+    ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
     HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
@@ -401,7 +420,12 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ReceiptBoundLe mvccfullGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨Hns, -, -, -, #Hvoff⟩
+  icases Hrights with ⟨-, -, -, #Hvoff⟩
+  -- (prom-registry, route (b)) the run's registration rights: a fresh ghost map of its packages' IDs,
+  -- the run's registry name
+  imod (prometheus.regKeys_alloc (GF := mvccfullGF) _ mvccfull_regQsOk) with ⟨%γreg, Hregs⟩
+  letI : prometheus.PromRegGS mvccfullGF := ⟨γreg⟩
+  ihave Hregs := prometheus.idToks_regsFree (GF := mvccfullGF) _ $$ Hregs
   have Hst : extsLocalStart (GF := mvccfullGF) σ.world ⊢
       Fs.osStart (Fs.gooseOsGS (L := (inferInstance : HeapGS .hasLC mvccfullGF).goose_localGS))
         (extLocal Fs.fsExt σ.world) :=
@@ -411,13 +435,13 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   iapply start_fileHolds (extLocal Fs.fsExt σ.world) Hfs r j0 mvccfull.mvccfullNames Hr
     mvccfull.mvccfullNames_nodup
     (fun b hb => ⟨mvccfull.mvccfullNames_ok b hb,
-      Fs.pathFits_of_dirFits Hrfit (mvccfull.mvccfullNames_len b hb)⟩) Habs _ rfl _ $$ [Hl]
+      Fs.pathFits_of_dirFits Hrfit (mvccfull.mvccfullNames_len b hb)⟩) Habs _ _ $$ [Hl]
   · iapply Hst $$ Hl
   iintro Hfiles
   unfold mvccfullProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
-  · iframe Hown; iunfold prometheus.namesFree; iexact Hns
+    github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf) $$ [Hown Hregs] as ⟨-, #Hpkg⟩
+  · iframe Hown Hregs
   wp_apply mvccfull.wp_MainConfig as %mx Hmix
   iunfold mvccfull.mainMixOwn at Hmix
   icases Hmix with ⟨%Hp, Hs, Ho, Hc, Hrr, Hrd, Ha, Hstt⟩
@@ -448,7 +472,6 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (r : GoString)
-    (HNs : prometheus.namesUnclaimed (mvccfullProgram r) mvccfullMetricNames)
     (HEnv : verifyEnvOff (mvccfullProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
@@ -462,7 +485,7 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  mvccfull_adequate_below r HNs HEnv σ g Hlctx Hinit Hfs j0 Hr Habs Hrfit Hthreads (n + 2) (by omega)
+  mvccfull_adequate_below r HEnv σ g Hlctx Hinit Hfs j0 Hr Habs Hrfit Hthreads (n + 2) (by omega)
     n κs t2 σ2 (RealNstepsBelow.of_one Hsteps Hthreads) (by omega)
 
 end adequacy

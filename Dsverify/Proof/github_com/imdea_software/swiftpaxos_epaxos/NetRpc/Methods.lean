@@ -8,8 +8,7 @@ bytes (`NetRpc/Wire.lean`): the master's `"Master"` service (`Register`, and `Ge
 Each method spec also accepts any error answer (`∀ msg, msg ≠ [] → Φ [] msg`, a conjunct the
 server chooses): no caller in the kit needs anything from a failed call (the master's `run`
 marks a replica dead or logs, `register` dials again), and so each service meets Net's `errOk`
-(`masterSvc_errOk`, `replicaSvc_errOk`) as it stands (every non-empty message), not only its
-coming restriction to the server's own messages (`srvErrMsg`, #24).
+(`masterSvc_errOk`, `replicaSvc_errOk`): the server's own messages (`srvErrMsg`) are not empty.
 -/
 module
 
@@ -174,7 +173,7 @@ theorem masterSvc_errOk (γ : EpNames) : ⊢ net.rpc.errOk (GF := GF) (masterSvc
     icases HS with ⟨%k, %_, ⟨-, HE⟩⟩
     imodintro
     iapply HE
-    ipureintro; exact hmsg
+    ipureintro; exact net.rpc.srvErrMsg_ne msg hmsg
   · split
     · unfold anySpec
       icases HS with ⟨-, HS⟩
@@ -196,13 +195,13 @@ theorem replicaSvc_errOk : ⊢ net.rpc.errOk (GF := GF) replicaSvc := by
     icases HS with ⟨%_, ⟨-, HE⟩⟩
     imodintro
     iapply HE
-    ipureintro; exact hmsg
+    ipureintro; exact net.rpc.srvErrMsg_ne msg hmsg
   · split
     · unfold pingSpec errAns
       icases HS with ⟨%_, ⟨-, HE⟩⟩
       imodintro
       iapply HE
-      ipureintro; exact hmsg
+      ipureintro; exact net.rpc.srvErrMsg_ne msg hmsg
     · iexfalso; iexact HS
 
 end errs

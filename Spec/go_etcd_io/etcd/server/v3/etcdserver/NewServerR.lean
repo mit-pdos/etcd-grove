@@ -105,7 +105,8 @@ abbrev NewServer.specR : Prop :=
       -- the stopped member's image, in the configuration's data directory
       "Himg" ∷ srvDiskImageAt γ ρo id cfg.DataDir' S σ i A D mb M ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+      "#Hpfxi" ∷ idPfxInv ρ.ids.gen ρ.ids.pfx ∗
       "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       "Hids" ∷ idShare ρ.ids ∗
@@ -142,7 +143,7 @@ abbrev NewServer.specR : Prop :=
           srvServeBuilt srv E cfg ∗
           srvSVRes srv E ∗
           srvMonitorCfg srv cfg ∗
-          srvReadyCloser srv ∗
+          srvReadyCloser srv E ∗
           srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
           -- the lease subsystem's part, its lessor's history from the snapshot `NewLessor` recovers

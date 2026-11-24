@@ -83,6 +83,7 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.lockerMutex__Unlock
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.mkSTM
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.readSet__add
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.readSet__cmps
@@ -287,9 +288,13 @@ theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Warn :
     EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=

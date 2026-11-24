@@ -261,18 +261,30 @@ instance forwards_persistent (a b : GoString) : Persistent (forwards (GF := GF) 
   unfold forwards; infer_instance
 
 /-- A unary method registered with a metadata-indexed spec at `b` is registered at an address that
-forwards to `b` (`isGrpcRpc_forwards`'s; k8s 7e-1, the members' `Range` with its error outcome). -/
+forwards to `b` (`isGrpcRpc_forwards`'s; k8s 7e-1, the members' `Range` with its error outcome; since
+phase 7 S2's interface by composing the forwarding wand with the registration's `grpcReach`). -/
 theorem isGrpcRpcMd_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpecMd Req Rep) :
     forwards (GF := GF) a b ∗ isGrpcRpcMd b name Spec ⊢ isGrpcRpcMd a name Spec := by
   iintro ⟨#Hf, #Hr⟩
   iunfold forwards at Hf
   icases Hf with ⟨#Hf, -⟩
+  iunfold isGrpcRpcMd at Hr
+  icases Hr with ⟨%a₀, %hX, %π, %σ, #Hreach, #Hs⟩
   unfold isGrpcRpcMd
-  icases Hr with ⟨%γ, #Ha, #Hm⟩
-  iexists γ
-  isplitl
-  · iapply Hf $$ %γ Ha
-  · iexact Hm
+  iexists a₀, hX, π, σ
+  iframe Hs
+  iunfold grpcReach at Hreach
+  unfold grpcReach
+  iright
+  icases Hreach with (%he | #Hw)
+  · subst he
+    imodintro
+    iintro %γ #Ha
+    iapply Hf $$ %γ Ha
+  · imodintro
+    iintro %γ #Ha
+    iapply Hf
+    iapply Hw $$ %γ Ha
 
 /-- A method registered at `b` is registered at an address that forwards to `b`. -/
 theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpec Req Rep) :

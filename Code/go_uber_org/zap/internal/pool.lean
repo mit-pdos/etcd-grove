@@ -57,6 +57,37 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (Pool.ty T))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Pool.ty T))))) (Var "$res0")))))
 
+/-- Get gets a T from the pool, or creates a new one if the pool is empty.
+
+    go: pool.go:51:19 -/
+noncomputable def Pool.Get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "p"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Pool.ty T))))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (TypeAssert T))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Pool.ty) go!"Get"))) (App (Val (GoInstruction (StructFieldRef (Pool.ty T) go!"pool"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Pool.ty T))))) (Var "p")))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad T))) (Var "$res0"))))))
+
+/-- Put returns x into the pool.
+
+    go: pool.go:56:19 -/
+noncomputable def Pool.Put.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "p"
+  (Lam "x"
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Pool.ty T))))) (Var "p"))
+  (Let "x" (App (Val (GoInstruction (GoAlloc T))) (Var "x"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert T go.any))) (App (Val (GoInstruction (GoLoad T))) (Var "x")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Pool.ty) go!"Put"))) (App (Val (GoInstruction (StructFieldRef (Pool.ty T) go!"pool"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Pool.ty T))))) (Var "p")))) (Var "$a0")))))))
+  (Val #()))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap.internal.pool where
   pkgImportedPkgs := [pkg_id.sync]
 
@@ -96,6 +127,8 @@ class Pool.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_pool : ∀ (T : go.GoType) (T' : Type) (x : (Pool T')) (y : _root_.Perennial.sync.Pool), go.IsGoStepPureDetTagged under (StructFieldSet (Pool.underlying T) go!"pool") (PairV #x #y) (Val #(({ x with pool' := y } : (Pool T'))))
   method_set : ∀ (T : go.GoType), go.MethodSetIs (Pool.ty T) []
   ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (Pool.ty T)) [(go!"Get", (some (go.signature.Signature [] false [T]))), (go!"Put", (some (go.signature.Signature [T] false [])))]
+  ptr_Get_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Pool.ty T)) go!"Get" (Pool.Get.impl T)
+  ptr_Put_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Pool.ty T)) go!"Put" (Pool.Put.impl T)
 
 attribute [instance] Pool.TypeAssumptions.type_repr
   Pool.TypeAssumptions.underlying
@@ -103,6 +136,8 @@ attribute [instance] Pool.TypeAssumptions.type_repr
   Pool.TypeAssumptions.set_pool
   Pool.TypeAssumptions.method_set
   Pool.TypeAssumptions.ptr_method_set
+  Pool.TypeAssumptions.ptr_Get_unfold
+  Pool.TypeAssumptions.ptr_Put_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Pool_instance : Pool.TypeAssumptions

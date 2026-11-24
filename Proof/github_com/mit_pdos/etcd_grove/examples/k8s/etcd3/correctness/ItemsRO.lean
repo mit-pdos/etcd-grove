@@ -33,6 +33,12 @@ open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Obj)
 theorem pm_get_gmap {K V : Type} [DecidableEq K] [Hashable K] (m : GMap K V) (k : K) :
     Iris.Std.PartialMap.get? m k = m !! k := rfl
 
+/-- An insertion into fewer than `2^62` items leaves at most `2^62`. -/
+theorem size_insert_le_of_lt {V : Type} (items : GMap GoString V) (k : GoString) (o : V)
+    (h : GMap.size items < 2 ^ 62) : GMap.size (<[k := o]> items) ≤ 2 ^ 62 := by
+  have := GMap.map_size_insert items k o
+  split at this <;> omega
+
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -51,10 +57,17 @@ theorem modelAt_pkg (mp : Loc) (m : RM) :
   iintro ⟨#H, -⟩
   iexact H
 
+/-- The items are at most `2^62`. -/
+theorem itemsRO_size (M : GMap GoString GoInterface) (items : GMap GoString Obj) :
+    itemsRO (GF := GF) M items ⊢ ⌜GMap.size items ≤ 2 ^ 62⌝ := by
+  unfold itemsRO
+  iintro ⟨%h, -⟩
+  ipureintro; exact h
+
 theorem itemsRO_dom (M : GMap GoString GoInterface) (items : GMap GoString Obj) (k : GoString) :
     itemsRO (GF := GF) M items ⊢ ⌜(M !! k).isSome ↔ (items !! k).isSome⌝ := by
-  iintro H
   unfold itemsRO mapRep
+  iintro ⟨-, H⟩
   ihave %h := (BigSepM2.bigSepM2_lookup_iff (PROP := IProp GF)) $$ H
   ipureintro
   have := h k
@@ -63,8 +76,8 @@ theorem itemsRO_dom (M : GMap GoString GoInterface) (items : GMap GoString Obj) 
 
 theorem itemsRO_dom_all (M : GMap GoString GoInterface) (items : GMap GoString Obj) :
     itemsRO (GF := GF) M items ⊢ ⌜∀ k, (M !! k).isSome ↔ (items !! k).isSome⌝ := by
-  iintro H
   unfold itemsRO mapRep
+  iintro ⟨-, H⟩
   ihave %h := (BigSepM2.bigSepM2_lookup_iff (PROP := IProp GF)) $$ H
   ipureintro
   intro k
@@ -88,7 +101,9 @@ theorem itemsRO_lookup (M : GMap GoString GoInterface) (items : GMap GoString Ob
   ihave %hd := itemsRO_dom M items k $$ H
   have : (items !! k).isSome := hd.1 (by simp [h])
   obtain ⟨o, ho⟩ := Option.isSome_iff_exists.mp this
-  unfold itemsRO mapRep
+  iunfold itemsRO at H
+  icases H with ⟨-, #H⟩
+  iunfold mapRep at H
   ihave Hx := (BigSepM2.bigSepM2_lookup (Φ := fun _ x d => deepRep (GF := GF) DFrac.discard x d)
     (m1 := M) (m2 := GMap.fmap DeepV.obj items) (i := k) (x1 := x) (x2 := DeepV.obj o)
     h (by simp [pm_get_gmap, ho])) $$ H
@@ -102,16 +117,35 @@ theorem itemsRO_lookup (M : GMap GoString GoInterface) (items : GMap GoString Ob
 theorem itemsRO_empty : ⊢ itemsRO (GF := GF) (∅ : GMap GoString GoInterface) ∅ := by
   unfold itemsRO mapRep
   rw [GMap.fmap_empty]
-  exact (BigSepM2.bigSepM2_empty (PROP := IProp GF) _).2
+  isplitr
+  · ipureintro; rw [GMap.map_size_empty]; omega
+  iapply (BigSepM2.bigSepM2_empty (PROP := IProp GF) _).2
+  itrivial
+
+/-- The model's items and the map's keys are as many. -/
+theorem itemsRO_size_map (M : GMap GoString GoInterface) (items : GMap GoString Obj) :
+    itemsRO (GF := GF) M items ⊢ ⌜GMap.size M ≤ 2 ^ 62⌝ := by
+  iintro #H
+  ihave %hs := itemsRO_size M items $$ H
+  ihave %hd := itemsRO_dom_all M items $$ H
+  ipureintro
+  have e : GMap.size M = GMap.size items :=
+    (GMap.size_eq_length M items.domList (GMap.nodup_dom_list items)
+      (fun k => by rw [GMap.mem_dom_list, hd k])).trans (GMap.size_eq_dom_list_length items).symm
+  omega
 
 /-- Storing a read-only object at a key. -/
 theorem itemsRO_insert (M : GMap GoString GoInterface) (items : GMap GoString Obj) (k : GoString)
-    (p : Loc) (o : Obj) :
+    (p : Loc) (o : Obj) (hs : GMap.size (<[k := o]> items) ≤ 2 ^ 62) :
     itemsRO (GF := GF) M items ∗ p ↦□ o ⊢ itemsRO (<[k := objIface p]> M) (<[k := o]> items) := by
   iintro ⟨#H, #Hp⟩
   ihave #Hx := deepRO_obj (GF := GF) p o $$ Hp
   ihave %hd := itemsRO_none M items k $$ H
+  iunfold itemsRO at H
   unfold itemsRO mapRep
+  icases H with ⟨-, #H⟩
+  isplitr
+  · ipureintro; exact hs
   rw [GMap.fmap_insert]
   cases hm : M !! k with
   | none =>
@@ -138,7 +172,11 @@ theorem itemsRO_delete (M : GMap GoString GoInterface) (items : GMap GoString Ob
     itemsRO (GF := GF) M items ⊢ itemsRO (GMap.delete k M) (GMap.delete k items) := by
   iintro #H
   ihave %hd := itemsRO_none M items k $$ H
+  iunfold itemsRO at H
   unfold itemsRO mapRep
+  icases H with ⟨%hs, #H⟩
+  isplitr
+  · ipureintro; have := GMap.map_size_delete items k; split at this <;> omega
   rw [show GMap.fmap DeepV.obj (GMap.delete k items) = GMap.delete k (GMap.fmap DeepV.obj items)
     from GMap.map_eq (fun k' => by
       by_cases hk : k = k'

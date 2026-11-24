@@ -3,6 +3,7 @@ storage/schema when decoding the membership of a backend snapshot. -/
 module
 public import Proof.net.url.PkgInit
 public import Proof.encoding.json.Base
+public import Net.Proof.models_lab.jsoncodec.Base
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Proof.go_etcd_io.raft.v3.Base
@@ -101,7 +102,7 @@ abbrev membershipInit : IProp GF :=
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   define_is_pkg_init membershipInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.membership

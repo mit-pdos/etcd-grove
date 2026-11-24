@@ -30,7 +30,7 @@ theorem connReader.releaseConn.wp_proof : connReader.releaseConn.spec (GF := GF)
   intro cr γ cn P hs Z
   wp_start as ⟨#Hcr, Hleft⟩
   iunfold crLeft at Hleft
-  icases Hleft with ⟨Hph, Hr, %c, %hb, %ab, %fl, Hc, Hhb, Hir, Hab, Hfl, Hbuf⟩
+  icases Hleft with ⟨Hph, Hr, %c, %hb, %ab, Hc, Hhb, Hir, Hab, Hbuf⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply wp_cr_lock cr γ cn P hs Z $$ [$Hcr] as ⟨Hown, ⟨%cv, #Hcond⟩, Hinv⟩
   iunfold crPh at Hinv
@@ -44,8 +44,8 @@ theorem connReader.releaseConn.wp_proof : connReader.releaseConn.spec (GF := GF)
   iapply HΦ
   iunfold crLeft
   iframe Hph Hr
-  iexists null, hb, ab, fl
-  iframe Hc Hhb Hir Hab Hfl Hbuf
+  iexists null, hb, ab
+  iframe Hc Hhb Hir Hab Hbuf
 
 end proof
 

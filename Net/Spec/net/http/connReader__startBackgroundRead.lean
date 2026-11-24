@@ -32,23 +32,24 @@ variable [π : NetProtoGS]
 /-- See the file header. -/
 abbrev connReader.startBackgroundRead.spec : Prop :=
   ∀ (cr : Loc) (γ : CrNames) (t : Loc) (cn : Nat) (a : GoString) (la ra : GoInterface)
-    (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) (c : Loc) (ab fl : Bool)
+    (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) (c : Loc) (ab b : Bool)
     (arr : GoArray w8 1),
   {{ crIs cr γ cn P hs Z ∗ headLaw P hs Z ∗ readEnv ∗
       structFieldRef net.http.connReader go!"rwc" cr ↦□
         interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
-      connAt t cn true a la ra ∗ connIs (Gg := hG.goose_globalGS) cn ∗
+      connAt t cn true a la ra ∗ rdlTok (Gg := hG.goose_globalGS) cn true b ∗
       ghostVar γ.ph (1 : Qp).half false ∗ ghostVar γ.r (1 : Qp) hs ∗
       structFieldRef net.http.connReader go!"conn" cr ↦ c ∗
       structFieldRef net.http.connReader go!"hasByte" cr ↦ false ∗
       structFieldRef net.http.connReader go!"inRead" cr ↦ false ∗
       structFieldRef net.http.connReader go!"aborted" cr ↦ ab ∗
-      structFieldRef net.http.connReader go!"failed" cr ↦ fl ∗ crConnOk c ∗
+      crConnOk c ∗
       structFieldRef net.http.connReader go!"byteBuf" cr ↦ arr ∗
       recvTok (Gg := hG.goose_globalGS) cn true P hs }}
     (App (Val (cr @!! go.GoType.PointerType net.http.connReader.ty @!! go!"startBackgroundRead"))
       (Val #()))
-  {{ RET #(); ghostVar γ.ph (1 : Qp).half true ∗ ghostVar γ.r (1 : Qp).half hs }}
+  {{ RET #(); ghostVar γ.ph (1 : Qp).half true ∗ ghostVar γ.r (1 : Qp).half hs ∗
+      ∃ b' : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b' }}
 
 end spec
 

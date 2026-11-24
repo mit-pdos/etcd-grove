@@ -3,7 +3,7 @@
 # `etcd/dist`: the distributed etcd theorem, stated (DRAFT)
 
 **Draft for review** (`notes/etcd-dist-plan.md`): not built, not proved, nothing imports it. It takes the
-names `etcd_safe`/`etcd_robust` (2026-11-22, Upamanyu's naming on #24: the distributed theorems take the
+names `etcd_safe`/`etcd_robust` (2026-11-22, the naming decided on #24: the distributed theorems take the
 plain names) of the single-process theorem it replaces (`examples/etcd/all`: eleven drivers in one
 process, each on a cluster of its own; retired with leaseexpiryN's at the net swap, tag
 `single-process-final`). Placeholders are marked in `TopLevelDefs.lean`.
@@ -26,8 +26,9 @@ addresses, distinct, the members' ids apart in their low bits, the server config
 supported set, the workloads compatible and within their bounds); the machines start as the programs
 expect (`ServerStart`: no listener, the member's data directory and WAL area empty; `ClientStart`; a
 network with no connection, `NetStart`); bootstrap's results (`BootFacts`); and, carried over from
-the single-process `etcd_safe` until discharged, the environment premises (`EtcdEnv`), the programs' prometheus names
-(`HNs`) and the trust-boundary contracts (`TrustBoundary`, a placeholder).
+the single-process `etcd_safe` until discharged, the environment premises (`EtcdEnv`) and the
+trust-boundary contracts (`TrustBoundary`, a placeholder). (Until prom-registry, 2026-11-22, also the
+programs' prometheus names, `HNs`: each proof now allocates its registration rights itself.)
 
 What the single-process `etcd_safe` had and this does not: no `Hlow` (one member per process; the issue record is per
 machine), no per-cluster premises (one cluster per deployment, every deployment covered), no
@@ -94,9 +95,6 @@ def etcd_robust.spec : Prop :=
     -- bootstrap's results; the premises not yet discharged
     (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
     (Henv : EtcdEnv d) (Htb : TrustBoundary d ps ctxs boot)
-    (HNs : (∀ m ∈ d.members, prometheus.namesUnclaimed (serverProg d m) serverNames) ∧
-      ∀ w ∈ d.workloads,
-        prometheus.namesUnclaimed (clientProg w (d.members.map Member.client)) clientNames)
     -- `ETCD_VERIFY` off and (non-loopback addresses) no proxy variables, on every machine, until the
     -- programs clear them themselves with a spec (`clearProxyEnv`, review F8, Q10)
     (HEnv : (∀ m ∈ d.members, verifyEnvOff (serverProg d m)) ∧

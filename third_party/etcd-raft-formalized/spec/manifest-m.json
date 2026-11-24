@@ -1,0 +1,9 @@
+{
+  "stream_spec": "EtcdBinding.tla",
+  "stream_config": "EtcdBindingM.cfg",
+  "tools": "../tracekit/tools",
+  "classes": "../tracekit/stream/classes",
+  "library": [
+    "../tracekit/tla"
+  ]
+}

@@ -3,7 +3,7 @@
 `initialModel(st0)` (`realcheck.go`, TestCorrectness's `NewModelFromStorage` of the seeded store): a new, owned
 `*correctness.Model` of the store's abstraction `absR st` (its items at their store keys, its resource version, the
 prefix `/registry`, the keys whose stored data is not canonical). The store's keys are distinct (`Go`'s map
-insertions keep the last binding, `GMap.ofList` the first).
+insertions keep the last binding, `GMap.ofList` the first), and at most `2^62` (`itemsRO`'s bound).
 -/
 module
 
@@ -31,6 +31,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- See the file header. -/
 abbrev initialModel.spec : Prop :=
   ∀ (s0 : mstore) (st : GSt), (st.items.map fun it => storeKeyL it.key').Nodup →
+  st.items.length ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness ∗
       storeOwn s0 st }}

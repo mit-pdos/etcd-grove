@@ -5,7 +5,7 @@
 # that is 4.4 MB of Lean importing most of the standard library. Translated with their bodies: the
 # model's head parser (textproto_model.go), and what net/rpc's HTTP path runs (phase 5.2's Lean
 # half, 2026-11-20): `ReadResponse` (DialHTTPPath's CONNECT answer; with, 2026-11-23, what it
-# runs on that answer: the model's `modelCutByte`/`modelTrimLeftByte`, `ParseHTTPVersion`,
+# runs on that answer: `ParseHTTPVersion`,
 # `badStringError`, `readTransfer` and its helpers on a head without header lines), `Handle` and the ServeMux's
 # registration and dispatch, `Serve`/`ListenAndServe` and the server's connection loop up to a
 # hijack (`conn.serve`, `readRequest`, `Hijack`, the response writer's header and status). The
@@ -14,7 +14,7 @@
 # forwarding module Net/Code/golang_org/x/net/http/httpguts.lean).
 translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessageTooLarge",
              "notModelled", "notModelled.*", "modelChunked", "Method*", "Status*", "!StatusText",
-             "ReadResponse", "modelCutByte", "modelTrimLeftByte", "modelParseRequestURI", "modelPathBytes",
+             "ReadResponse", "modelParseRequestURI", "modelPathBytes",
              "modelPathByte", "modelHeaderValuesContainsToken", "modelHeaderValueContainsToken",
              "modelIndexByte", "modelTrimOWS", "modelLowerASCII", "modelTokenEqual", "ParseHTTPVersion", "badStringError",
              "fixPragmaCacheControl", "readTransfer", "transferReader.parseTransferEncoding",

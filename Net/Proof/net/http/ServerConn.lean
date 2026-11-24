@@ -116,7 +116,8 @@ structure HjNames where
 /-- What `Hijack` needs of the response `w` (its `handlerDone` false, no expect-continue reader,
 nothing written, its buffered writer of 2048 bytes), of its connection (its mutex, the hijacked flag
 false, its reader in the background phase, its writer of 4096 bytes holding nothing, its server)
-and of the network (nothing written yet, the reader's protocol facts `zLaw`): see the file
+and of the network (nothing written yet, the reader's protocol facts `zLaw`, the end's read deadline
+token `rdlTok`, which the abort and the hijack set): see the file
 header. -/
 def hjPre (N : HjNames) (P Q : Proto GF) (hs : List w8) (Z : Nat → IProp GF) : IProp GF :=
   iprop(sync.atomic.ownBool (structFieldRef net.http.response go!"handlerDone" N.w) (DFrac.own 1)
@@ -140,10 +141,12 @@ def hjPre (N : HjNames) (P Q : Proto GF) (hs : List w8) (Z : Nat → IProp GF) :
       interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #N.t ∗
     ghostVar N.γ.ph (1 : Qp).half true ∗ ghostVar N.γ.r (1 : Qp).half hs ∗
     connAt N.t N.cn true N.a N.la N.ra ∗ sendTok (Gg := hG.goose_globalGS) N.cn true Q [] ∗
-    connFresh (Gg := hG.goose_globalGS) N.cn true ∗ zLaw Z Q ∗ wPools)
+    connFresh (Gg := hG.goose_globalGS) N.cn true ∗ zLaw Z Q ∗ wPools ∗
+    ∃ b : Bool, rdlTok (Gg := hG.goose_globalGS) N.cn true b)
 
 /-- What a hijack gives back to the serving thread (`hijackOk`'s `D`): the hijacked flag, the
-reader's fields, the connection's state word, the response's `handlerDone`. -/
+reader's fields, the connection's state word, the response's `handlerDone` (the end's read deadline
+token goes to the handler, with the connection). -/
 def hjDone (N : HjNames) (hs : List w8) : IProp GF :=
   iprop(ghostVar N.γh (1 : Qp).half true ∗ crLeft N.cr N.γ hs ∗
     (∃ v : w64, sync.atomic.ownUint64 (structFieldRef net.http.conn go!"curState" N.c)

@@ -29,8 +29,6 @@ axiom RangeRequest.String.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
-axiom encoding.json.MarshalConfigChangeContext.wp_proof
-axiom encoding.json.MarshalMember.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -55,7 +53,6 @@ axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbAuthEnableRequestT_reg
@@ -72,11 +69,11 @@ axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
-axiom prometheus.Register.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
+axiom rand.Int31.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
@@ -86,7 +83,6 @@ axiom status.Errorf.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom strings.ToLower.wp_proof
-axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v3rpc.codec_proto
@@ -95,7 +91,4 @@ axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom v3rpc.wp_WithTimeout_weak
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof
