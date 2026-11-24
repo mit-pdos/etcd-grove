@@ -171,25 +171,34 @@ abbrev log.Logs.Merge.spec : Prop :=
 
 variable [encoding.json.Assumptions] [models_lab.jsoncodec.JsonCodec GF]
 
-/-- `l.MarshalJSON()` (`json.Marshal([]Log(l))`), as the kit's codec calls it (with its scanner
-`F`, the codec registered), the operations plain: the codec's encoding of the entries, in a
-fresh slice, no error. The codec's fact it uses is a premise (`henc`: `vsrnet.enc_logs`, at the
-kit's codec; codec-5, D5). -/
+/-- A `[]log.Log` goes to the registered codec (no `JSONModelMarshal*`). -/
+omit [models_lab.jsoncodec.JsonCodec GF] in
+theorem log.logs_marshalsByCodec (sl : GoSlice) :
+    encoding.json.marshalsByCodec
+      (interface.mkOk (go.GoType.SliceType log.Log.ty) #sl) := by
+  simp only [encoding.json.marshalsByCodec, interface.mkOk]
+  constructor <;> go_type_set
+
+/-- `l.MarshalJSON()` (`json.Marshal([]Log(l))`), with the registered codec's route at contract
+`J` (`codecRoute J F`: `Marshal` of a `[]log.Log` goes to the codec) and `J`'s deposit for the
+slice (`henc`; for the kit: `encP`'s `[]Log` case at `codecPart vsrnet.jsonCodec`): the codec's
+encoding of the entries, in a fresh slice, no error. Proved in `Proof/log/LogsJson.lean` over the
+main tree's `Marshal.spec` (round 9; it replaces the lab's form, whose `kitCodecOk F` premise was
+never discharged). -/
 abbrev log.Logs.MarshalJSON.spec : Prop :=
-  ∀ (F : List w8 → Bool → w64 × w64) (sl : GoSlice) (dq : DFrac) (es : List VsrModel.Entry),
-  (∀ (sl' : GoSlice) (dq' : DFrac) (es' : List VsrModel.Entry),
-    (∀ e ∈ es', VsrModel.PlainStr e.op) →
-    log.ownLogs (GF := GF) sl' dq' es' ⊢
-    models_lab.jsoncodec.JsonCodec.enc (interface.mkOk (go.GoType.SliceType log.Log.ty) #sl')
-      (fun r => iprop(⌜r = some (log.encLogs es')⌝ ∗ log.ownLogs sl' dq' es'))) →
+  ∀ (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 → Bool → w64 × w64) (sl : GoSlice)
+    (dq : DFrac) (es : List VsrModel.Entry),
+  (log.ownLogs (GF := GF) sl dq es ⊢
+    J.enc (interface.mkOk (go.GoType.SliceType log.Log.ty) #sl)
+      (fun r => iprop(⌜r = some (log.encLogs es)⌝ ∗ log.ownLogs sl dq es))) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.log ∗
-      encoding.json.codecSet (GF := GF) ∗ encoding.json.kitCodecOk F ∗
-      log.ownLogs sl dq es ∗ ⌜∀ e ∈ es, VsrModel.PlainStr e.op⌝ }}
+      encoding.json.codecRoute J F ∗ log.ownLogs sl dq es }}
     (App (Val (sl @!! log.Logs.ty @!! go!"MarshalJSON")) (Val #()))
   {{ (b : GoSlice), RET (PairV #b #(interface.nil : GoInterface)); log.ownLogs sl dq es ∗
       b ↦* log.encLogs es ∗ ownSliceCap w8 b (DFrac.own 1) }}
 
 /-- A `*[]log.Log` goes to the registered codec (no `JSONModelUnmarshal`). -/
+omit [models_lab.jsoncodec.JsonCodec GF] in
 theorem log.logs_unmarshalsByCodec (p : Loc) :
     encoding.json.unmarshalsByCodec
       (interface.mkOk (go.GoType.PointerType (go.GoType.SliceType log.Log.ty)) #p) := by
@@ -197,6 +206,7 @@ theorem log.logs_unmarshalsByCodec (p : Loc) :
   go_type_set
 
 /-- The registered codec's route is persistent (registered for good). -/
+omit [models_lab.jsoncodec.JsonCodec GF] in
 instance log.codecRoute_persistent (J : models_lab.jsoncodec.JsonCodec GF)
     (F : List w8 → Bool → w64 × w64) : Persistent (encoding.json.codecRoute (GF := GF) J F) := by
   unfold encoding.json.codecRoute; infer_instance

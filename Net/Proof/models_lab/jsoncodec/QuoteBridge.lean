@@ -22,7 +22,7 @@ theorem w8_natCast (k : Nat) : W8 ((k : Nat) : Int) = BitVec.ofNat 8 k := by
 
 /-- `AppendUint`'s digits are the scanner's. -/
 theorem decNat_decN (n : Nat) : decNat n = JsonScan.decN n := by
-  induction n using Nat.strong_induction_on with
+  induction n using Nat.strongRecOn with
   | _ n ih =>
     rw [decNat, JsonScan.decN]
     by_cases h : n < 10
@@ -31,46 +31,48 @@ theorem decNat_decN (n : Nat) : decNat n = JsonScan.decN n := by
       rw [ih (n / 10) (by omega)]
 
 theorem decU64_decN (x : w64) : decU64 x = JsonScan.decN (uint.nat x) := by
-  unfold decU64; rw [decNat_decN]; rfl
+  unfold decU64; rw [decNat_decN]
 
 /-- `appendEscapedASCII` writes a plain byte as it is. -/
 theorem escASCII_plain (c : w8) (h : JsonScan.plainEnc c) : escASCII c = [c] := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
-  have ne : ∀ k : Nat, k < 256 → c.toNat ≠ k → c ≠ W8 ((k : Nat) : Int) := by
-    intro k hk hne heq
+  have ne : ∀ k : Int, 0 ≤ k → k < 256 → c.toNat ≠ k.toNat → c ≠ W8 k := by
+    intro k hk0 hk hne heq
     apply hne
-    rw [heq, w8_natCast]
-    simp [Nat.mod_eq_of_lt hk]
+    rw [heq]
+    simp only [W8, BitVec.toNat_ofInt]
+    omega
   unfold escASCII htmlB
   rw [if_neg (by
       rintro (e | e)
-      · exact ne 34 (by omega) h3 e
-      · exact ne 92 (by omega) h4 e),
-    if_neg (ne 8 (by omega) (by omega)), if_neg (ne 12 (by omega) (by omega)),
-    if_neg (ne 10 (by omega) (by omega)), if_neg (ne 13 (by omega) (by omega)),
-    if_neg (ne 9 (by omega) (by omega)), if_neg]
+      · exact ne 34 (by omega) (by omega) (by simpa using h3) e
+      · exact ne 92 (by omega) (by omega) (by simpa using h4) e),
+    if_neg (ne 8 (by omega) (by omega) (by simp; omega)),
+    if_neg (ne 12 (by omega) (by omega) (by simp; omega)),
+    if_neg (ne 10 (by omega) (by omega) (by simp; omega)),
+    if_neg (ne 13 (by omega) (by omega) (by simp; omega)),
+    if_neg (ne 9 (by omega) (by omega) (by simp; omega)), if_neg]
   rintro (e | e)
   · omega
   · simp only [decide_eq_true_eq] at e
     rcases e with e | e | e
-    · exact ne 60 (by omega) h5 e
-    · exact ne 62 (by omega) h6 e
-    · exact ne 38 (by omega) h7 e
+    · exact ne 60 (by omega) (by omega) (by simpa using h5) e
+    · exact ne 62 (by omega) (by omega) (by simpa using h6) e
+    · exact ne 38 (by omega) (by omega) (by simpa using h7) e
 
 theorem quoteFrom_plain (s : List w8) (h : ∀ c ∈ s, JsonScan.plainEnc c) :
     ∀ i, quoteFrom s i = s.drop i := by
   intro i
   induction h' : s.length - i generalizing i with
   | zero =>
-    rw [quoteFrom_end s i (by omega)]
-    simp [List.drop_eq_nil_of_le (show s.length ≤ i by omega)]
+    rw [quoteFrom_end s i (by omega), List.drop_eq_nil_of_le (by omega)]
   | succ n ih =>
     have hi : i < s.length := by omega
     have hc : s.getD i (W8 0) = s[i] := by simp [List.getD_eq_getElem?_getD, hi]
     have hp := h s[i] (List.getElem_mem hi)
     rw [quoteFrom_ascii s i hi (by rw [hc]; obtain ⟨_, h2, _⟩ := hp; omega), hc,
       escASCII_plain _ hp, ih (i + 1) (by omega)]
-    simp [List.drop_eq_getElem_cons hi]
+    rw [List.drop_eq_getElem_cons hi, List.singleton_append]
 
 /-- `AppendString` writes a string of plain bytes as it is, in quotes. -/
 theorem jsonQuote_plain (s : List w8) (h : ∀ c ∈ s, JsonScan.plainEnc c) :
@@ -78,7 +80,6 @@ theorem jsonQuote_plain (s : List w8) (h : ∀ c ∈ s, JsonScan.plainEnc c) :
   unfold jsonQuote
   rw [quoteFrom_plain s h 0]
   simp
-  rfl
 
 end models_lab.jsoncodec
 end Perennial

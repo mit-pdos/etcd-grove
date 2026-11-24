@@ -2516,7 +2516,7 @@ theorem vsrnet.scanL_encPayload (m : Msg) (hm : PlainMsg m) :
     (VsrJson.payJV_maxd m) (by rw [hms]; trivial)
   simpa [JsonScan.scanL, pkg.events.encPayload, VsrJson.encPayload] using this
 
-/-- **`TypeCodecs` of `events.Request`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.Request`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_Request (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -2581,7 +2581,7 @@ theorem vsrnet.unmarshalOk_Request (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (
   try simp only [pkg.events.reqIs]
   and_intros <;> first | rfl | word
 
-/-- **`TypeCodecs` of `events.Reply`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.Reply`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_Reply (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -2646,7 +2646,7 @@ theorem vsrnet.unmarshalOk_Reply (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l 
   try simp only [pkg.events.reqIs]
   and_intros <;> first | rfl | word
 
-/-- **`TypeCodecs` of `events.Prepare`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.Prepare`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_Prepare (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -2711,7 +2711,7 @@ theorem vsrnet.unmarshalOk_Prepare (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (
   try simp only [pkg.events.reqIs]
   and_intros <;> first | rfl | word
 
-/-- **`TypeCodecs` of `events.PrepareOK`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.PrepareOK`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_PrepareOK (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -2776,7 +2776,7 @@ theorem vsrnet.unmarshalOk_PrepareOK (H : vsrnet.DecSpecs (GF := GF) (hG := hG))
   try simp only [pkg.events.reqIs]
   and_intros <;> first | rfl | word
 
-/-- **`TypeCodecs` of `events.Commit`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.Commit`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_Commit (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -2841,7 +2841,7 @@ theorem vsrnet.unmarshalOk_Commit (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l
   try simp only [pkg.events.reqIs]
   and_intros <;> first | rfl | word
 
-/-- **`TypeCodecs` of `events.StartViewChange`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.StartViewChange`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_StartViewChange (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -2906,7 +2906,7 @@ theorem vsrnet.unmarshalOk_StartViewChange (H : vsrnet.DecSpecs (GF := GF) (hG :
   try simp only [pkg.events.reqIs]
   and_intros <;> first | rfl | word
 
-/-- **`TypeCodecs` of `events.DoViewChange`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.DoViewChange`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_DoViewChange (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -2981,7 +2981,7 @@ theorem vsrnet.unmarshalOk_DoViewChange (H : vsrnet.DecSpecs (GF := GF) (hG := h
     iexact Hown
   iexact Hcap
 
-/-- **`TypeCodecs` of `events.StartView`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.StartView`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_StartView (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -3055,7 +3055,7 @@ theorem vsrnet.unmarshalOk_StartView (H : vsrnet.DecSpecs (GF := GF) (hG := hG))
     iexact Hown
   iexact Hcap
 
-/-- **`TypeCodecs` of `events.GetState`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.GetState`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_GetState (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -3120,7 +3120,7 @@ theorem vsrnet.unmarshalOk_GetState (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) 
   try simp only [pkg.events.reqIs]
   and_intros <;> first | rfl | word
 
-/-- **`TypeCodecs` of `events.NewState`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.NewState`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_NewState (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
@@ -3194,7 +3194,7 @@ theorem vsrnet.unmarshalOk_NewState (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) 
     iexact Hown
   iexact Hcap
 
-/-- **`TypeCodecs` of `events.Heartbeat`, proved**: its `JSONModelUnmarshal` meets the kit's contract
+/-- **`TypeMethods` of `events.Heartbeat`, proved**: its `JSONModelUnmarshal` meets the kit's contract
 (`decP`'s payload case at this type; the other cases are at other pointer types). -/
 theorem vsrnet.unmarshalOk_Heartbeat (H : vsrnet.DecSpecs (GF := GF) (hG := hG)) (l : Loc) :
     ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF

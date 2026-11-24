@@ -1,5 +1,6 @@
 /-
-The proof of `log.Logs.UnmarshalJSON` (`Spec/log.lean`): `var logs []Log; json.Unmarshal(data,
+The proofs of `log.Logs.MarshalJSON` (`json.Marshal([]Log(l))`, over the main tree's
+`encoding.json.Marshal.spec`) and of `log.Logs.UnmarshalJSON` (`Spec/log.lean`): `var logs []Log; json.Unmarshal(data,
 &logs)`, then `*l = logs`, over the main tree's `encoding.json.Unmarshal.spec` (a section
 hypothesis, linked in `examples/vsrnet/Link.lean`): a `*[]log.Log` has no `JSONModelUnmarshal`, so
 the dispatch takes the registered codec's route (`codecRoute J F`). Round 9 (notes/dsv-vr.md).
@@ -8,6 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
 public import Spec.encoding.json.Codec.Unmarshal
+public import Spec.encoding.json.Codec.Marshal
 
 @[expose] public section
 
@@ -52,6 +54,27 @@ theorem log.Logs.UnmarshalJSON.wp_proof
   wp_auto
   iapply HΦ
   iexists sl
+  iframe
+
+theorem log.Logs.MarshalJSON.wp_proof
+    (wp_Marshal : encoding.json.Marshal.spec (GF := GF) (hG := hG)) :
+    log.Logs.MarshalJSON.spec (GF := GF) (hG := hG) := by
+  intro J F sl dq es henc
+  wp_start as ⟨#Hroute, Hl⟩
+  wp_auto
+  ihave Henc := henc $$ Hl
+  ihave #Hvia := encoding.json.marshalVia_codec J F _ (log.logs_marshalsByCodec sl) $$ Hroute
+  wp_apply wp_Marshal J F _ _ $$ [Henc] as %s %err Hret
+  · iframe
+    iexact Hvia
+  iunfold encoding.json.marshalRet at Hret
+  icases Hret with (⟨%Herr, %bs, Hs, Hcap, %Hbs, Hl⟩ | ⟨%Herr, %Hbs, -⟩)
+  rotate_left
+  · cases Hbs
+  subst Herr
+  cases Hbs
+  wp_auto
+  iapply HΦ
   iframe
 
 end proofs
