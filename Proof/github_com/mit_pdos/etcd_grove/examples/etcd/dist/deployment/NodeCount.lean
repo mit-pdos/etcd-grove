@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedSimpArgs false
 
 noncomputable section
 
@@ -28,12 +29,39 @@ variable [package_sem : deployment.Assumptions]
 theorem deployment.NodeCount.wp_proof :
     etcd_dist.deployment.NodeCount.spec (GF := GF) (hG := hG) := by
   intro w
+  obtain ⟨kd, cl, op⟩ := w
+  simp only [Workload.val]
+  by_cases h0 : kd = W64 0
+  · subst h0
+    rw [show Workload.goNodeCount ⟨W64 0, cl, op⟩ = cl by simp [Workload.goNodeCount]]
+    wp_start
+    wp_auto
+    wp_end
+  by_cases h1 : kd = W64 1
+  · subst h1
+    rw [show Workload.goNodeCount ⟨W64 1, cl, op⟩ = cl by simp [Workload.goNodeCount]]
+    wp_start
+    wp_auto
+    wp_end
+  by_cases h2 : kd = W64 2
+  · subst h2
+    rw [show Workload.goNodeCount ⟨W64 2, cl, op⟩ = cl by simp [Workload.goNodeCount]]
+    wp_start
+    wp_auto
+    wp_end
+  by_cases h5 : kd = W64 5
+  · subst h5
+    rw [show Workload.goNodeCount ⟨W64 5, cl, op⟩ = W64 4 by simp [Workload.goNodeCount]]
+    wp_start
+    wp_auto
+    wp_end
+  rw [show Workload.goNodeCount ⟨kd, cl, op⟩ = W64 0 by
+    unfold Workload.goNodeCount; dsimp only
+    rw [if_neg (by rintro (h | h | h) <;> contradiction), if_neg h5]]
   wp_start
   wp_auto
-  repeat wp_if_destruct
-  all_goals first
-    | wp_end
-    | (unfold Workload.goNodeCount Workload.val at *; simp_all (config := { decide := true }); wp_end)
+  repeat (simp only [h0, h1, h2, h5, decide_false, Bool.not_false, Bool.false_eq_true, ↓reduceIte]; try wp_auto)
+  wp_end
 
 end proof
 

@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedSimpArgs false
 
 noncomputable section
 
@@ -40,10 +41,10 @@ theorem deployment.alone.wp_proof :
     wp_start
     wp_auto
     wp_end
-  rw [show kindAlone k = false by simp [kindAlone, h5, h6]]
+  rw [show kindAlone k = false by simp only [kindAlone, ne_eq, h5, h6, not_false_eq_true, and_self, or_self, decide_true, decide_false]]
   wp_start
   wp_auto
-  repeat (simp only [h5, h6, decide_false, Bool.not_false, Bool.not_true, Bool.false_eq_true, ↓reduceIte]; wp_auto)
+  repeat (simp only [h5, h6, decide_false, Bool.not_false, Bool.not_true, Bool.false_eq_true, ↓reduceIte]; try wp_auto)
   wp_end
 
 end proof
