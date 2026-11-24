@@ -1,11 +1,11 @@
 ---
 name: dsverify
-description: Prove a dsverify challenge exported from etcd-grove - a Go distributed system (a replicated store, a consensus protocol) deployed over the net extension with clients on machines of their own, whose given top-level robustness statement must be proved in Lean with Perennial and Goose, spec-first - the hubs mapped and the cross-package interface (hub statements, invariants, cross-package specs) drafted, reviewed and frozen before proofs; packages then write their internal specs and prove them in parallel, riskiest step first. Use when starting or continuing work on such a challenge.
+description: Prove a dsverify challenge - a Go distributed system (a replicated store, a consensus protocol) deployed over the net extension with clients on machines of their own, whose given top-level robustness statement must be proved in Lean with Perennial and Goose, spec-first - the hubs mapped and the cross-package interface (hub statements, invariants, cross-package specs) drafted, reviewed and frozen before proofs; packages then write their internal specs and prove them in parallel, riskiest step first. Use when starting or continuing work on such a challenge.
 ---
 
 # Proving a dsverify challenge with Perennial (Lean), spec-first
 
-A **challenge** is a self-contained tree exported from etcd-grove (`CHALLENGE.md`): a Go
+A **challenge** is a self-contained tree (`CHALLENGE.md`): a Go
 distributed system and the program that tests it (a driver machine, client machines,
 server machines, over TCP), Goose's translation of it, the Lean environment it runs in (the net
 extension and its specs, the remote-call library, the generic robustness statement), and one

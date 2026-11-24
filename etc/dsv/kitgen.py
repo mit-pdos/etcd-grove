@@ -1088,13 +1088,8 @@ def tracked():
     return [f for f in r.stdout.split('\0') if f]
 
 
-def dsv_issue(path):
-    """An issue file of a dsverify kit (the export leaves them out)."""
-    try:
-        t = open(os.path.join(ROOT, path), errors='replace').read()
-    except OSError:
-        return False
-    return bool(re.search(r'dsverify|Dsverify|examples/dsverify', t))
+# the coordination tooling and its data: the session registry, the GitHub inbox and its tests
+COORDINATION = ('etc/sessions.txt', 'etc/gh-inbox.py', 'notes/coordination.md', 'etc/dsv/leak-names.txt')
 
 
 def excluded(f, kit, allow, others, roots, other_roots):
@@ -1108,8 +1103,10 @@ def excluded(f, kit, allow, others, roots, other_roots):
         return None if f.startswith(SKILL + '/') else '.claude (not the skill)'
     if f.startswith('old/dsverify/'):
         return 'the lab\'s old harness'
-    if top in ('issues', 'nonissues') and f.endswith('.md') and not f.endswith('INDEX.md') and dsv_issue(f):
-        return 'a dsverify kit\'s issue'
+    if top in ('issues', 'nonissues') or f == 'etc/issues-status.py':
+        return 'the findings tracker (it names people, sessions and forks\' branches)'
+    if f in COORDINATION or f.startswith('etc/gh-inbox-test/'):
+        return 'coordination (sessions, people)'
     mt = re.match(r'etc/tcb-collections/dsv-(\w+)\.txt$', f)
     if mt and mt.group(1) != kit:
         return 'another kit\'s trust-base baseline'
@@ -1338,6 +1335,72 @@ def lean_modules(dest):
     return present
 
 
+# Names the export must not carry: the people of the project (refused) and the sessions' handles
+# (reported), as etc/dsv/leak-names.txt lists them (with the allow-list) and etc/sessions.txt
+# registers them (its handles and GitHub accounts). The export leaves both files out.
+LEAK_NAMES = 'etc/dsv/leak-names.txt'
+
+
+def leak_names():
+    """(the people's names' regex: refused; the handles' regex: reported; the allow-list), or None
+    without the list."""
+    lst = os.path.join(ROOT, LEAK_NAMES)
+    if not os.path.exists(lst):
+        return None
+    people, handles, allow = [], [], []
+    for line in open(lst):
+        if not line.strip() or line.startswith('#'):
+            continue
+        fs = line.rstrip('\n').split('\t')
+        if fs[0] == 'allow':
+            allow.append((re.compile(fs[1]), re.compile(fs[2]), fs[3]))
+        else:
+            {'person': people, 'handle': handles}[fs[0]].append(fs[1])
+    reg = os.path.join(ROOT, 'etc', 'sessions.txt')
+    if os.path.exists(reg):
+        for line in open(reg):
+            if line.strip() and not line.startswith('#'):
+                fs = [x.strip() for x in line.split('|')]
+                handles += [re.escape(x) for x in (fs[0], fs[3] if len(fs) > 3 else '') if x and x != '-']
+    return (re.compile('(?i:' + '|'.join(people) + ')'),
+            re.compile(r'(?<![\w-])(?:' + '|'.join(handles) + r')(?![\w-])'), allow)
+
+
+def name_check(dest):
+    """Every match of the people's names and the sessions' handles in the exported tree's text files,
+    but those the allow-list covers: (failures, warnings)."""
+    names = leak_names()
+    if names is None:
+        return [], [f'name: no {LEAK_NAMES} in {ROOT}: the names were not checked']
+    bad_re, warn_re, allow = names
+    bad, warn = [], {}
+    for dp, dirs, fs in os.walk(dest):
+        dirs[:] = [d for d in dirs if d not in ('.lake', '.git')]
+        for f in fs:
+            full = os.path.join(dp, f)
+            rel = os.path.relpath(full, dest)
+            if os.path.islink(full):
+                continue
+            try:
+                data = open(full, 'rb').read()
+            except OSError:
+                continue
+            if b'\0' in data[:8192]:
+                continue
+            text = data.decode('utf-8', errors='replace')
+            rules = [m for p, m, _ in allow if p.search(rel)]
+            for n, line in enumerate(text.splitlines(), 1):
+                ok = lambda mt: any(a.start() <= mt.start() and mt.end() <= a.end()
+                                    for r in rules for a in r.finditer(line))
+                for mt in bad_re.finditer(line):
+                    if not ok(mt):
+                        bad.append(f'name: {rel}:{n}: {mt.group(0)!r} in {line.strip()[:120]!r}')
+                for mt in warn_re.finditer(line):
+                    if not ok(mt):
+                        warn.setdefault(mt.group(0), set()).add(rel)
+    return bad, [f'handle: {h} in {len(fs)} file(s), e.g. {min(fs)}' for h, fs in sorted(warn.items())]
+
+
 def leak_check(kit, kg, dest):
     """After an export, on the tree as written: (1) of the kit's trees only the allow-list (and the
     goal's stub); (2) of the other kits' trees only what the plan keeps; (3) no notes, no
@@ -1387,7 +1450,8 @@ def leak_check(kit, kg, dest):
             t = GOOSE_SORRY.sub('', t)
         if SORRY.search(COMMENT.sub('', t)):
             bad.append(f'sorry: {m} (in the statement\'s closure)')
-    return bad, warn, (len(present), len(cs), goose_sorry)
+    nb, nw = name_check(dest)
+    return bad + nb, warn + nw, (len(present), len(cs), goose_sorry)
 
 
 def main():

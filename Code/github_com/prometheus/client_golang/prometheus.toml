@@ -2,7 +2,7 @@
 # (below): the other function and method bodies are axiomatized (the metrics mvcc's transactions and
 # key index update: Counter, Gauge).
 #
-# (prom-registry, route (b), 2026-11-22: notes/prom-registry.md; Upamanyu's decision on
+# (prom-registry, route (b), 2026-11-22: notes/prom-registry.md; the decision on
 # mit-pdos/etcd-grove#15) the default registry is client_golang v1.24.1's real code: registry.go's
 # `NewRegistry`, `Registry.Register`, `Registry.MustRegister`, the package-level `Register` and
 # `MustRegister` (calls through `DefaultRegisterer`), the variables `defaultRegistry`,
