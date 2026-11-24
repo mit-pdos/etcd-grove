@@ -191,8 +191,8 @@ theorem chunk_eq (w : w64) (n : Int) (h0 : 0 ≤ n) (h1 : n < 64) :
       Nat.and_two_pow_sub_one_eq_mod, Nat.shiftRight_eq_div_pow]
   have hm : w.toNat / 2 ^ n.toNat % 128 < 128 := Nat.mod_lt _ (by decide)
   have e2 : uint.Z (W8 (uint.Z (w >>> W64 n &&& W64 127))) = ((w.toNat / 2 ^ n.toNat % 128 : Nat) : Int) := by
-    simp only [uint.Z, e1]
-    rw [uint_Z_W8 _ (by omega) (by omega)] <;> rfl
+    simp only [uint.Z, e1, W8, BitVec.toNat_ofInt]
+    omega
   rw [e2]
   exact runeString_small ⟨_, hm⟩
 
