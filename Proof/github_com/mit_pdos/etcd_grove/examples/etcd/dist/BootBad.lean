@@ -74,10 +74,10 @@ local macro "bad_finish" hne:ident : tactic => `(tactic|
     | (ipureintro; rfl)
     | (wp_if_destruct <;> try (exfalso; exact $hne (by simpa using Hif)))
     | (wp_func_call; wp_call)
-    | progress wp_auto))
+    | fail_if_no_progress wp_auto))
 
 /-- `ContextReadErrs` at a ghost state over the local context `lctx`. -/
-abbrev CtxErrsAt [GoGlobalContext] [go.Semantics] (lctx : GoLocalContext)
+abbrev CtxErrsAt [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
     (hG : HeapGS .hasLC etcdDistGF) : Prop :=
   ContextReadErrs (GF := etcdDistGF)
     (hG := ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩)
@@ -88,7 +88,7 @@ variable [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
 
 /-- **A member's machine on a malformed deployment** (see the file header). -/
 theorem serverBootBad [srv_sem : server.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt lctx hG)
+    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (k : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
     Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (serverProg d k) σ (iprop(True) : IProp etcdDistGF) := by
@@ -131,7 +131,7 @@ theorem serverBootBad [srv_sem : server.Assumptions]
 
 /-- **A workload's orchestrator machine on a malformed deployment** (see the file header). -/
 theorem clientBootBad [cl_sem : client.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt lctx hG)
+    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
     Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (clientProg d j) σ (iprop(True) : IProp etcdDistGF) := by
@@ -172,7 +172,7 @@ theorem clientBootBad [cl_sem : client.Assumptions]
 
 /-- **A client machine on a malformed deployment** (see the file header). -/
 theorem nodeBootBad [cl_sem : client.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt lctx hG)
+    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
     Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (nodeProg d n) σ (iprop(True) : IProp etcdDistGF) := by
@@ -215,7 +215,7 @@ end boot
 a top-level premise: it is to be discharged by the per-function context axioms. -/
 theorem etcdBootNCBad_holds
     (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
-      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt lctx hG) :
+      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt hG) :
     EtcdBootNCBad := by
   intro _ lctx _ _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hlo hb i m hm
   rcases machines_prog hm with ⟨k, σ, rfl⟩ | ⟨j, σ, rfl⟩ | ⟨n, σ, rfl⟩
