@@ -4,8 +4,8 @@
 address `a` (`ValidDest`, `GooseLang/Ext/Udp/Impl.lean`, U1: the canonical IPv4 string, `addrOk`),
 through `ListenUDP.impl` (`Net/TrustedCode/net.lean`): the UDP extension's `Listen`. A new socket
 bound to `a`, as a `*UDPConn` (`udpConnAt`, persistent), or a nil `*UDPConn` and the
-`*OpError{Op: "listen", Source: nil, Addr: laddr}` whose `Err` is an `*os.SyscallError`
-(`udpErr`). Any node may bind any valid address, more than once (U1). Proved in
+`*OpError{Op: "listen", Source: nil, Addr: laddr}` whose `Err` is an `*os.SyscallError` or a bare
+nonzero `syscall.Errno` (`udpListenErr`). Any node may bind any valid address, more than once (U1). Proved in
 `Net/Proof/net/ListenUDP.lean`.
 -/
 module
@@ -35,7 +35,7 @@ abbrev ListenUDP.spec : Prop :=
     (App (App (Val (@! net.ListenUDP)) (Val #(go!"udp4"))) (Val #p))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
       (⌜err = interface.nil⌝ ∗ ∃ s, udpConnAt (GF := GF) c s a) ∨
-      (⌜c = null⌝ ∗ udpErr (GF := GF) go!"listen" interface.nil
+      (⌜c = null⌝ ∗ udpListenErr (GF := GF) interface.nil
         (interface.mkOk (go.GoType.PointerType UDPAddr.ty) #p) err) }}
 
 end spec

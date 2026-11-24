@@ -10,7 +10,8 @@ the UDP extension `GooseLang/Ext/Udp`, `notes/net-udp.md`):
 * `udpAddrAt p ip port` (persistent): the `*UDPAddr` `p` holds the IP `ip` (its slice, read-only)
   and the port `port`, for good: what `ListenUDP` and `WriteToUDP` read of their address.
 * `udpErr op src addr err`: `err` is a new `*OpError{Op: op, Net: "udp4", Source: src, Addr: addr}`
-  whose `Err` is an `*os.SyscallError` (U9: the UDP extension's only failure is `sys`).
+  whose `Err` is an `*os.SyscallError` (U9: the UDP extension's only failure is `sys`);
+  `udpListenErr src addr err`: `ListenUDP`'s, whose `Err` may also be a bare nonzero `Errno`.
 -/
 module
 
@@ -29,6 +30,18 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open Net Udp
 
 namespace net
+
+/-! The model's types as goose names them, for proofs over the UDP extension alone (`Base.lean`'s
+equations of the same types carry its section's `HasExt netExt`). -/
+section tys
+variable [GooseExts] [go_gctx : GoGlobalContext]
+
+theorem udp_OpError_ty_eq : model.OpError = OpError.ty := by unfold OpError.ty; rfl
+theorem udp_Addr_ty_eq : model.Addr = Addr.ty := by unfold Addr.ty; rfl
+theorem udp_IP_ty_eq : model.IP = IP.ty := by unfold IP.ty; rfl
+theorem udp_Errno_ty_eq : model.Errno = syscall.Errno.ty := by unfold syscall.Errno.ty; rfl
+
+end tys
 
 section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt udpExt] [go_gctx : GoGlobalContext]
@@ -76,9 +89,36 @@ instance udpErr_persistent (op : GoString) (src addr err : GoInterface) :
     Persistent (udpErr (GF := GF) op src addr err) := by
   unfold udpErr; infer_instance
 
+/-- `err` is a new `*OpError` of `ListenUDP` (`Op` `"listen"`, network `"udp4"`, `Source` `src`,
+`Addr` `addr`), whose `Err` is an `*os.SyscallError` (`sysErr`) or a bare nonzero `syscall.Errno`
+(Go's `fd.init` failing to register the socket with epoll returns the `Errno` unwrapped). -/
+def udpListenErr (src addr err : GoInterface) : IProp GF :=
+  iprop(∃ (pe : Loc) (e : GoInterface),
+    ⌜err = interface.mkOk (go.GoType.PointerType OpError.ty) #pe⌝ ∗
+    pe ↦□ (OpError.mk go!"listen" go!"udp4" src addr e) ∗
+    (sysErr (fun _ => True) e ∨ ⌜∃ n : w64, n ≠ 0 ∧ e = interface.mkOk syscall.Errno.ty #n⌝))
+
+instance udpListenErr_persistent (src addr err : GoInterface) :
+    Persistent (udpListenErr (GF := GF) src addr err) := by
+  unfold udpListenErr; infer_instance
+
+theorem udpListenErr_ne_nil {src addr err : GoInterface} :
+    udpListenErr (GF := GF) src addr err ⊢ ⌜err ≠ interface.nil⌝ := by
+  unfold udpListenErr
+  iintro ⟨%pe, %e, %h, -, -⟩
+  ipureintro
+  rw [h]
+  intro h'
+  cases h'
+
 theorem udpErr_ne_nil {op : GoString} {src addr err : GoInterface} :
     udpErr (GF := GF) op src addr err ⊢ ⌜err ≠ interface.nil⌝ := by
-  sorry
+  unfold udpErr
+  iintro ⟨%pe, %e, %h, -, -⟩
+  ipureintro
+  rw [h]
+  intro h'
+  cases h'
 
 end def_
 
