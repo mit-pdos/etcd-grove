@@ -6,7 +6,6 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 
 @[expose] public section

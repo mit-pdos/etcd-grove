@@ -3,12 +3,12 @@
 // crashes (the interim form of etcd_safe, notes/etcd-dist-plan.md Q7), over a network that may
 // delay, cut or refuse any connection.
 //
-//   - Member(peer, client) is the member machine's program: env.ClearProxy, then the one member of a
+//   - Member(peer, client) is the member machine's program: the one member of a
 //     new cluster (etcdstart.StartServer: NewServer and Start; its peer URL http://peer is not
 //     served, the cluster has no other member), etcd's gRPC API served on a listener at client
 //     (etcdstart.Serve), and the process kept alive. It is the in-process driver
 //     examples/etcd/putget's server half on a machine of its own.
-//   - Client(ep) is the client machine's program: env.ClearProxy, a client of the member's client
+//   - Client(ep) is the client machine's program: a client of the member's client
 //     address ep (etcdstart.NewClient), a Put of key k with value v, a Get of k, and a panic if the
 //     Get returns another value: examples/etcd/putget's client half. An error from any step ends
 //     it without a check (the dist rules, examples/etcd/dist/client's package doc: any non-OK gRPC
@@ -26,7 +26,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/env"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -51,7 +50,6 @@ func holdForever() {
 // served) and the client address client, serving etcd's gRPC API there; it returns only if a step
 // fails (then the client's calls fail: no listener at client, or one whose member never answers).
 func Member(peer string, client string) {
-	env.ClearProxy()
 	s, err := etcdstart.StartServer(Name, peer, client, zap.NewNop())
 	if err != nil {
 		return
@@ -67,7 +65,6 @@ func Member(peer string, client string) {
 // ran: false if a step failed first (each call in a context with the examples' request timeout,
 // cancelled after the call).
 func Client(ep string) bool {
-	env.ClearProxy()
 	cli, err := etcdstart.NewClient(ep, zap.NewNop())
 	if err != nil {
 		return false
