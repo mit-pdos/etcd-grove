@@ -13,6 +13,7 @@ Go's `deployment.WellFormed` is to give when it returns `nil`.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.URLBounds
 
 @[expose] public section
 
@@ -299,6 +300,33 @@ theorem Deployment.WellFormed.addrs {d : Deployment} (h : d.WellFormed) :
   have e := typed.Deployment.addrs_encodes he
   rw [← e]
   exact ⟨hw.2.2.2.2.1, hw.2.2.2.1⟩
+
+/-- **A well-formed deployment's member URLs are within etcd's URL bounds**: every member's peer
+URL list (`[http://peer]`) and client URL list (`[http://client]`) have at most `etcdURLCountMax`
+URLs, each of at most `etcdURLLenMax` bytes (`maxLen` bytes after `http://`). -/
+theorem Deployment.WellFormed.urlBounds {d : Deployment} (h : d.WellFormed) :
+    ∀ m ∈ d.members,
+      [go!"http://" ++ m.peer].length ≤ etcdURLCountMax ∧
+      [go!"http://" ++ m.client].length ≤ etcdURLCountMax ∧
+      (go!"http://" ++ m.peer).length ≤ etcdURLLenMax ∧
+      (go!"http://" ++ m.client).length ≤ etcdURLLenMax := by
+  obtain ⟨t, he, hw⟩ := h
+  have e := typed.Deployment.addrs_encodes he
+  have hm : t.members = d.members := he.1
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, haddr, -⟩ := hw
+  intro m hmem
+  have hp : m.peer ∈ t.addrs := by
+    rw [typed.Deployment.addrs, hm]
+    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hmem, by simp⟩)
+  have hc : m.client ∈ t.addrs := by
+    rw [typed.Deployment.addrs, hm]
+    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hmem, by simp⟩)
+  have h1 := haddr _ hp
+  have h2 := haddr _ hc
+  simp only [typed.maxLen] at h1 h2
+  simp only [List.length_append, List.length_cons, List.length_nil, etcdURLCountMax,
+    etcdURLLenMax]
+  refine ⟨by omega, by omega, ?_, ?_⟩ <;> (have : (go!"http://").length = 7 := rfl) <;> omega
 
 end etcd_dist
 end EtcdGrove
