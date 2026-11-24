@@ -595,7 +595,7 @@ theorem watchUpW_up (V : WEnv GF) (a : GoString) (ha : a ∈ V.addrs) :
 watcher's connection): an address of the members and the metadata of an attempt with the outgoing
 metadata `om`. -/
 abbrev watchMdW (V : WEnv GF) (om : GrpcMd) (a : GoString) (md : GrpcMd) : IProp GF :=
-  iprop(⌜a ∈ V.addrs⌝ ∗ clientAttemptMdI V.conn om md)
+  iprop(⌜a ∈ V.addrs⌝ ∗ clientAttemptMd V.conn om md)
 
 /-- **The facts about the servers, the transport and the packages a watcher rests on, but the
 stub** (persistent; see the file header; W3b, 2026-10-22: of every member): the connection to
@@ -846,7 +846,7 @@ of the watch's request key and range end (`P.key`, `P.ed`) passed for `md`'s tok
 bound `n`. -/
 def wsRow (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(□ (⌜V.nm = 1⌝ → ∃ (m md : GrpcMd),
-    ⌜streamKeyOf m = streamKeyOf P.omd⌝ ∗ clientAttemptMdI V.conn m md ∗
+    ⌜streamKeyOf m = streamKeyOf P.omd⌝ ∗ clientAttemptMd V.conn m md ∗
     v3rpc.watchAuthed (V.mem 0).2.tag (V.mem 0).2.s (auth.mdTokenOf md) P.n P.key P.ed))
 
 instance wsRow_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsRow V P) := by
@@ -943,7 +943,7 @@ watch's create (`watchAuthed`, from its created response), at a token an attempt
 the watch's context's stream key delivered. -/
 theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (md om : GrpcMd)
     (htok : tok = auth.mdTokenOf md) (hkey : streamKeyOf P.omd = streamKeyOf om) :
-    watchConnFacts V ∗ wsBdOk V P ∗ clientAttemptMdI V.conn om md ∗
+    watchConnFacts V ∗ wsBdOk V P ∗ clientAttemptMd V.conn om md ∗
       v3rpc.watchAuthed V.R.tag V.R.s tok P.bd P.key P.ed ⊢ wsRow V P := by
   iintro ⟨#Hc, #Hb, #Hmd, #Ha⟩
   ihave %H1 := watchConnFacts_one V $$ Hc
@@ -1202,7 +1202,7 @@ theorem wsIs_wire (V : WEnv GF) (P : WsPrm GF) (rv : w64) (pn sr : Bool) (bd : N
 range end as its request has them. -/
 theorem wsIs_row (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (md om : GrpcMd)
     (htok : tok = auth.mdTokenOf md) (hkey : streamKeyOf P.omd = streamKeyOf om) :
-    watchConnFacts V ∗ wsIs V P ∗ clientAttemptMdI V.conn om md ∗
+    watchConnFacts V ∗ wsIs V P ∗ clientAttemptMd V.conn om md ∗
       v3rpc.watchAuthed V.R.tag V.R.s tok P.bd P.key P.ed ⊢ wsRow V P := by
   iintro ⟨#Hc, #H, #Hmd, #Ha⟩
   iunfold wsIs at H

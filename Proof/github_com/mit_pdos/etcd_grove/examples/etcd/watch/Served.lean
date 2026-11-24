@@ -75,7 +75,7 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
         ((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
-          grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs) ∗ netAddrLeft addr ∗
+          grpcSrvAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs) ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
         srvStreamInterceptorWOk is (levelTok 0) ∗

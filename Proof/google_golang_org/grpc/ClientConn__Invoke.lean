@@ -31,7 +31,7 @@ which makes one attempt (`grpcInvokerOk`). An attempt dials one of `addrs`, `a�
 once at the start (a bridge's address: to its target's table, `bridge.New`), has an entry for `method` at the
 attempt's registered message models (`grpcSvcAt`, inside `isGrpcRpcsMd`, no heap). The attempt
 converts the caller's `Spec md m Φ Ψe` into the entry's spec by `grpcSvcAt`'s update; the handler's
-view of the metadata is an attempt's (`grpcAttemptMdI`). It writes as
+view of the metadata is an attempt's (`grpcAttemptMd`). It writes as
 `a₀`'s dialer protocol says (`grpcCliPI`, opaque: no program but grpc's transport writes a connection
 to a grpc address meaningfully). On success it returns the `Φ m'` that the server's protocol
 delivers, which `Server.Serve`'s axiom guarantees (`grpc.Server.Serve.wp_proof`: the server runs the

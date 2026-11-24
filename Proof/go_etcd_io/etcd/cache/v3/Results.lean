@@ -290,7 +290,7 @@ theorem etcd_cache_served [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   ihave #Hwr := v3rpc.etcd_watch_served_chain pw V.R V.W ims is γr hγ Htb HL hset $$ []
   · iframe #
   ihave Hgs : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
-      grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgs Hlis]
+      grpcSrvAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgs Hlis]
   · ileft; iframe Hgs Hlis
   imod (client.etcd_kv_started addr gs q p V.R.s lis V.R.E ρ γr cid mid n il im iu ims is svcs regs
     sregs [v3rpc.watchMethod pw V.R V.W] hregs

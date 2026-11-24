@@ -45,7 +45,7 @@ member is not known (a transparent retry may re-pick it), and none of `run`'s st
 def epochAt (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b : Nat) (Dm : List v3rpc.WatchRespM) :
     IProp GF :=
   iprop(epochSt G γs b ∗
-    (⌜Dm = []⌝ ∨ ∃ md : GrpcMd, streamDispIs γs V.addr md ∗ clientAttemptMdI V.conn G.omd md))
+    (⌜Dm = []⌝ ∨ ∃ md : GrpcMd, streamDispIs γs V.addr md ∗ clientAttemptMd V.conn G.omd md))
 
 /-- **A response taken from `respc` in the current epoch is its stream's**: at a position `k` past
 the epoch's first, its tag is the current epoch (an earlier one's count ended at or below `b`), with

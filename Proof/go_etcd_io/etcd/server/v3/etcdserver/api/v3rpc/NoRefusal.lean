@@ -33,7 +33,7 @@ of the server `s` (`kvRegs q` among its registrations) behind etcd's unary chain
 (`v3rpc.etcdUnaryIcs s ics`, by identity: the closures `newLogUnaryInterceptor(s)` and
 `newUnaryInterceptor(s)` return and one of grpc-prometheus's, in `v3rpc.Server`'s order and nothing
 else), about to be served on the listener `lis` at `addr`; it comes back bound to that listener
-(`grpcSrvBound`, which only `grpc.startBound` takes, so the server started on `lis` is `gs`). If `s` runs with authentication off (`E.authOn = false`: a fresh
+(`grpcSrvAtLis`, which only `grpc.startBound` takes, so the server started on `lis` is `gs`). If `s` runs with authentication off (`E.authOn = false`: a fresh
 backend, `NewAuthStore`'s `isAuthStore … false`) and as a voter (the server model boots a new
 cluster's member; a voter stays one unless a conf change re-adds it as a learner, which `ccLogOk`,
 the conf-change policy of `isServerReq`'s raft log invariant, does not exclude: the voter fact is
@@ -75,7 +75,7 @@ axiom etcd_noRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface) (E :
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
     v3rpc.etcdUnaryIcs s ics ∗ grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
-  grpcSrvBound gs lis addr ics sics svcs regs sregs ∗ ⌜noRefusalAt addr⌝
+  grpcSrvAtLis gs lis addr ics sics svcs regs sregs ∗ ⌜noRefusalAt addr⌝
 
 /-- **An etcd member never answers a KV call with a non-auth refusal, in either auth mode** (an
 axiom; F-S2 part 1, 2026-10-29, approved by the user; reviewed: survives under the voter condition,
@@ -107,7 +107,7 @@ axiom etcd_noOtherRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface)
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
     v3rpc.etcdUnaryIcs s ics ∗ grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
-  grpcSrvBound gs lis addr ics sics svcs regs sregs ∗ ⌜noOtherRefusalAt addr⌝
+  grpcSrvAtLis gs lis addr ics sics svcs regs sregs ∗ ⌜noOtherRefusalAt addr⌝
 
 end axioms
 

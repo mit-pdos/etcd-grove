@@ -523,7 +523,7 @@ the configuration `C` `grpcCfgOk_of_started` gives: the KV answers of the server
 `E`, `ρ`, `γr`; the watch server's state `R` at `E`; per-type stage B3: no reader stock of the
 watchable store any more, the watch runs borrow from the run pools), the
 server's resources back, and the listener `lis` at `addr`, or the server and the listener bound by
-the members' no-refusal certificate, with the certificate (`grpcSrvBound`, `noRefusalAt`:
+the members' no-refusal certificate, with the certificate (`grpcSrvAtLis`, `noRefusalAt`:
 `etcd_noRefusal` takes the former and gives the latter, `grpcUp_noRefusal`); the unary chain etcd's
 by identity (`v3rpc.etcdUnaryIcs`, what `etcd_noRefusal` reads). -/
 def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
@@ -536,7 +536,7 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
       ((regs ++ sregs).map Prod.fst).Nodup⌝ ∗
     v3rpc.grpcCfgOk s C ∗
     ((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
-      (grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt addr⌝)) ∗
+      (grpcSrvAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt addr⌝)) ∗
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
     v3rpc.kvServerIs p s C.A cid mid C.n ∗
@@ -553,9 +553,9 @@ single-process start takes (`client.grpcStartAtLis`). -/
 theorem grpcSrvUp_lis (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
     (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
     ((grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr) ∨
-        (grpcSrvBound gs lis addr ics sics svcs regs sregs ∗ ⌜noRefusalAt addr⌝)) ⊢
+        (grpcSrvAtLis gs lis addr ics sics svcs regs sregs ∗ ⌜noRefusalAt addr⌝)) ⊢
       (grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr) ∨
-        grpcSrvBound gs lis addr ics sics svcs regs sregs := by
+        grpcSrvAtLis gs lis addr ics sics svcs regs sregs := by
   iintro (H | ⟨H, -⟩)
   · ileft; iexact H
   · iright; iexact H
@@ -707,7 +707,7 @@ theorem grpcUpM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
     Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu, #Hics⟩
   obtain ⟨hA, hE, hkv, -, hw, h6, h7, h8, h9⟩ := HC
   ihave Hn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
-      (grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt addr⌝))
+      (grpcSrvAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt addr⌝))
     $$ [Hn Hlis]
   · ileft; iframe Hn Hlis
   have hk : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) := by

@@ -937,7 +937,7 @@ metadata `om` (the caller does not know which attempt's metadata the server saw)
 `metadata.outgoingOf`.) -/
 def clientGrant (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (om : GrpcMd)
     (op : KVOp) (L₀ : List EntryModel) (σ : KVState) : IProp GF :=
-  iprop(∃ md, clientAttemptMdI conn om md ∗ v3rpc.opGrantT T E ρ (auth.mdTokenOf md) op L₀ σ)
+  iprop(∃ md, clientAttemptMd conn om md ∗ v3rpc.opGrantT T E ρ (auth.mdTokenOf md) op L₀ σ)
 
 /-- **A client write's update with auth on** (5a): `v3rpc.kvOpAuOn`'s, fired at most once, at a
 lower bound `L₀` of the requested log the caller holds, told the grant of some attempt
@@ -950,13 +950,13 @@ def clientOpAuOn (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
 /-- A client's update is one at the token of each of its attempts. -/
 theorem clientOpAuOn_attempt (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
     (om : GrpcMd) (md : GrpcMd) (op : KVOp) (Q : KVState → IProp GF) :
-    clientAttemptMdI conn om md ⊢ clientOpAuOn (GF := GF) T E ρ conn om op Q -∗
+    clientAttemptMd conn om md ⊢ clientOpAuOn (GF := GF) T E ρ conn om op Q -∗
       v3rpc.kvOpAuOn T E ρ (auth.mdTokenOf md) op Q := by
   unfold clientOpAuOn v3rpc.kvOpAuOn
   iintro #Hmd ⟨%L₀, #H0, Hau⟩
   iexists L₀
   iframe H0
-  have h : ∀ σ, clientAttemptMdI conn om md ∗ v3rpc.opGrantT T E ρ (auth.mdTokenOf md) op L₀ σ ⊢
+  have h : ∀ σ, clientAttemptMd conn om md ∗ v3rpc.opGrantT T E ρ (auth.mdTokenOf md) op L₀ σ ⊢
       clientGrant T E ρ conn om op L₀ σ := by
     intro σ
     unfold clientGrant
@@ -964,7 +964,7 @@ theorem clientOpAuOn_attempt (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (
     iexists md
     iframe Hg Hmd
   iapply (kvAu1G_mono_with ρ.kv (kvOpStep op) (clientGrant T E ρ conn om op L₀)
-    (v3rpc.opGrantT T E ρ (auth.mdTokenOf md) op L₀) Q (clientAttemptMdI conn om md) h) $$ [Hmd Hau]
+    (v3rpc.opGrantT T E ρ (auth.mdTokenOf md) op L₀) Q (clientAttemptMd conn om md) h) $$ [Hmd Hau]
   iframe Hmd Hau
 
 /-- An update not told the grant is one (at the empty lower bound). -/

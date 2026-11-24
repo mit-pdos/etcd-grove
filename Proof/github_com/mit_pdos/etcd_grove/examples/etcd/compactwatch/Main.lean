@@ -237,7 +237,7 @@ theorem Main.wp_proof
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
     -- (phase 7's switch, SW1) the server bound to its listener by the members' certificate
-    ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvBound gs lis go!"127.0.0.1:23794" [il, im, iu] [ims, is] svcs regs sregs ∗
+    ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvAtLis gs lis go!"127.0.0.1:23794" [il, im, iu] [ims, is] svcs regs sregs ∗
         ⌜noRefusalAt go!"127.0.0.1:23794"⌝) $$ [Hgsn]
     · icases Hgsn with (⟨Hgsn, Hlis⟩ | Hb)
       · iapply (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23794" gs q p srv lis R.E
@@ -245,7 +245,7 @@ theorem Main.wp_proof
         iframe Hgsn Hlis; iframe #
       · iexact Hb
     ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis go!"127.0.0.1:23794") ∨
-        grpcSrvBound gs lis go!"127.0.0.1:23794" [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
+        grpcSrvAtLis gs lis go!"127.0.0.1:23794" [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
     · iright; iexact Hgsn
     imod (etcd_watch.wk_served_nd hP (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) go!"127.0.0.1:23794"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs

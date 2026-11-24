@@ -116,7 +116,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := pbLeaseKeepAliveRequest)
       (Rep := pbLeaseKeepAliveResponse) etcdserverpb.LeaseKeepAliveRequest etcdserverpb.LeaseKeepAliveResponse
       wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up
-      (fun a md => iprop(⌜a ∈ [addr]⌝ ∗ clientAttemptMdI conn om md)) Dn cd' anyRes $$ [ClientStream]
+      (fun a md => iprop(⌜a ∈ [addr]⌝ ∗ clientAttemptMd conn om md)) Dn cd' anyRes $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _
@@ -126,7 +126,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists γ, Up, (fun a md => iprop(⌜a ∈ [addr]⌝ ∗ clientAttemptMdI conn om md)), Dn, cd'
+    iexists γ, Up, (fun a md => iprop(⌜a ∈ [addr]⌝ ∗ clientAttemptMd conn om md)), Dn, cd'
     iframe #
     iframe
   · ihave #Herr' := Herr

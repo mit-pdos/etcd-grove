@@ -334,7 +334,7 @@ theorem isEtcdConnG_ready (c conn : Loc) (eps : List GoString) :
 /-- **What the per-RPC credentials of the connection `conn` returned to its attempts is none, or
 the one key `token` with a token meeting `P`** (persistent; see the file header). -/
 def connTokOk (conn : Loc) (P : GoString → IProp GF) : IProp GF :=
-  iprop(□ ∀ cm, credsYieldI conn cm -∗ tokMdOk P cm)
+  iprop(□ ∀ cm, credsYield conn cm -∗ tokMdOk P cm)
 
 instance connTokOk_persistent (conn : Loc) (P : GoString → IProp GF) :
     Persistent (connTokOk conn P) := by
@@ -420,7 +420,7 @@ the `m` of `metadata.outMD ctx m`) sees a token meeting `P` (trimmed of `"Bearer
 `auth.mdTokenOf`), or the token of the outgoing metadata as grpc delivers it
 (`metadata.mdNorm`). -/
 def attemptTokOk (conn : Loc) (P : GoString → IProp GF) : IProp GF :=
-  iprop(□ ∀ (m md : GrpcMd), clientAttemptMdI conn m md -∗
+  iprop(□ ∀ (m md : GrpcMd), clientAttemptMd conn m md -∗
     (∃ t, ⌜auth.mdTokenOf md = some (strings.trimPrefix t go!"Bearer ")⌝ ∗ □ P t) ∨
     ⌜auth.mdTokenOf md = auth.mdTokenOf (metadata.mdNorm m)⌝)
 
@@ -434,9 +434,9 @@ theorem attemptTokOk_of (conn : Loc) (P : GoString → IProp GF) :
   unfold connTokOk attemptTokOk
   iintro #H
   iintro !> %m %md #h
-  iunfold clientAttemptMdI at h
+  iunfold clientAttemptMd at h
   icases h with ⟨%v, #h⟩
-  iunfold grpcAttemptMdI at h
+  iunfold grpcAttemptMd at h
   icases h with ⟨%cm, #hy, %hp⟩
   obtain ⟨hvals, hne⟩ := hp
   have hot : ∀ k, k ≠ go!"client-api-version" →

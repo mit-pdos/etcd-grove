@@ -182,12 +182,12 @@ instance grpcServes_persistent (Svc : GrpcSvc GF) (ics sics : List GoFunc)
 
 /-- **The right to serve `gs` on `lis` at `a`, for the table `Svc`** (what `gs.Serve(lis)` takes):
 Go's configuration `c` of `gs`, being built (`grpcSrvNew`), with the node's open listener at `a`, or
-both bound together by a no-refusal certificate (`grpcSrvBound`); full names jointly distinct; the replies' size premise; `a` serving `Svc`
+both bound together by a no-refusal certificate (`grpcSrvAtLis`); full names jointly distinct; the replies' size premise; `a` serving `Svc`
 (`grpcAddrAt`); `gs` serving `Svc` (`grpcServes`). -/
 def grpcServeTok (gs : Loc) (lis : GoInterface) (a : GoString) (Svc : GrpcSvc GF) : IProp GF :=
   iprop(∃ (c : GrpcSrvCfg GF) (svcs : List GoString),
     ((grpcSrvNew gs c.ics c.sics svcs c.regs c.sregs ∗ netListenerOpen lis a) ∨
-      grpcSrvBound gs lis a c.ics c.sics svcs c.regs c.sregs) ∗
+      grpcSrvAtLis gs lis a c.ics c.sics svcs c.regs c.sregs) ∗
     ⌜grpcSrvNodup c ∧ grpcRepliesFit⌝ ∗
     (∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
       grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) a Svc) ∗
@@ -436,7 +436,7 @@ theorem grpc.startCore (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sic
     (hsnd : (sms.map (·.name)).Nodup)
     (hfit : grpcRepliesFit) (hnd : ((regs ++ sregs).map Prod.fst).Nodup) :
     ((grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerOpen lis addr) ∨
-        grpcSrvBound gs lis addr ics sics svcs regs sregs) ∗ netAddrLeft addr ∗
+        grpcSrvAtLis gs lis addr ics sics svcs regs sregs) ∗ netAddrLeft addr ∗
       □ ([∗list] m ∈ sms, grpcStreamRunOk #m.handler m.srv sics m.Up m.spec ∗
           □ ∀ md γ, m.spec md γ (m.dn md γ)) ⊢
     |={⊤}=> grpcServerAt addr ics regs tys sms ∗
@@ -514,7 +514,7 @@ theorem grpc.start' (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics :
   ileft
   iframe
 
-/-- **The single-process start of a server certified at its listener** (`grpcSrvBound`): as
+/-- **The single-process start of a server certified at its listener** (`grpcSrvAtLis`): as
 `grpc.start'`. -/
 theorem grpc.startBound (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
     (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface))
@@ -524,7 +524,7 @@ theorem grpc.startBound (gs : Loc) (lis : GoInterface) (addr : GoString) (ics si
     (sms : List (GrpcStreamMethod GF)) (hsms : ∀ m ∈ sms, (m.name, m.handler, m.srv) ∈ sregs)
     (hsnd : (sms.map (·.name)).Nodup)
     (hfit : grpcRepliesFit) (hnd : ((regs ++ sregs).map Prod.fst).Nodup) :
-    grpcSrvBound (GF := GF) gs lis addr ics sics svcs regs sregs ∗ netAddrLeft addr ∗
+    grpcSrvAtLis (GF := GF) gs lis addr ics sics svcs regs sregs ∗ netAddrLeft addr ∗
       □ ([∗list] m ∈ sms, grpcStreamRunOk #m.handler m.srv sics m.Up m.spec ∗
           □ ∀ md γ, m.spec md γ (m.dn md γ)) ⊢
     |={⊤}=> grpcServerAt addr ics regs tys sms ∗

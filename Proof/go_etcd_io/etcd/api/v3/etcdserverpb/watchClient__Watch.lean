@@ -97,7 +97,7 @@ theorem watchClient.Watch.wp_proof
     ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := v3rpc.pbWatchRequest)
       (Rep := v3rpc.pbWatchResponse) etcdserverpb.WatchRequest etcdserverpb.WatchResponse
       wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up
-      (fun a md => iprop(⌜a ∈ addrs⌝ ∗ clientAttemptMdI conn om md)) Dn cd' anyRes $$ [ClientStream]
+      (fun a md => iprop(⌜a ∈ addrs⌝ ∗ clientAttemptMd conn om md)) Dn cd' anyRes $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _

@@ -39,7 +39,7 @@ with some metadata `md` an attempt of the call delivers (`clientAttemptMd`), at 
 specification is the registration's. Since phase 7's switch (SW1, 2026-11-24, R2, as `NewStream`'s):
 one client content `Up` for every address, and neither the address nor the metadata is fixed when
 the stream is returned: the stream specification holds at every address of `addrs` and every metadata
-an attempt may deliver (`clientAttemptMdI`), at that dispatch's content `Dn a md`, and each response
+an attempt may deliver (`clientAttemptMd`), at that dispatch's content `Dn a md`, and each response
 says which dispatch it is (`cliWatchStreamIs`' family, `streamDispIs`). -/
 abbrev watchClient.Watch.spec : Prop :=
   ∀ (wc conn : Loc) (addrs : List GoString) (ics : List GoFunc)
@@ -58,10 +58,10 @@ abbrev watchClient.Watch.spec : Prop :=
           (Dn : GoString → GrpcMd → Nat → v3rpc.WatchRespM → IProp GF)
           (cd' : context.ContextDesc (IProp GF)),
         v3rpc.cliWatchStreamIs cs γ Up
-          (fun a md => iprop(⌜a ∈ addrs⌝ ∗ clientAttemptMdI conn om md)) Dn cd' ∗
+          (fun a md => iprop(⌜a ∈ addrs⌝ ∗ clientAttemptMd conn om md)) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γ [] ∗
         cliRecvTok (Rep := v3rpc.pbWatchResponse) γ [] ∗
-        □ (∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMdI conn om md -∗ Spec a md γ (Dn a md))) ∨
+        □ (∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMd conn om md -∗ Spec a md γ (Dn a md))) ∨
       (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err) }}
 
 end spec

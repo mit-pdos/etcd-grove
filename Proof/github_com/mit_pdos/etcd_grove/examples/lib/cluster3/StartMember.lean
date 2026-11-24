@@ -221,7 +221,7 @@ theorem StartMember.wp_proof
       iframe #
       ipureintro; exact Hregs.2.2.2.1
     ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt clis client) ∨
-        (grpcSrvBound gs clis client [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt client⌝))
+        (grpcSrvAtLis gs clis client [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt client⌝))
       $$ [Hgsn Hclis]
     · ileft; iframe Hgsn Hclis
     ihave Hup : etcdstart.grpcUp srv E { ρ with wait := γw } ρ.rd gs clis client cid mid R
@@ -307,7 +307,7 @@ theorem StartMember.wp_proof
   · rw [hRs, hRE]
     iframe #
   ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt clis client) ∨
-      grpcSrvBound gs clis client [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
+      grpcSrvAtLis gs clis client [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
   · iright; iexact Hgsn
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
       cid mid C.n il im iu ims is svcs regs sregs

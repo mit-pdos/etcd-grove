@@ -330,7 +330,7 @@ theorem Main.wp_proof
     rw [HCA]
     -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
     -- (phase 7's switch, SW1) the server bound to its listener by the members' certificate
-    ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvBound gs lis go!"127.0.0.1:23873" [il, im, iu] [ims, is] svcs regs sregs ∗
+    ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvAtLis gs lis go!"127.0.0.1:23873" [il, im, iu] [ims, is] svcs regs sregs ∗
         ⌜noRefusalAt go!"127.0.0.1:23873"⌝) $$ [Hgsn]
     · icases Hgsn with (⟨Hgsn, Hlis⟩ | Hb)
       · iapply (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23873" gs q p srv lis R.E
@@ -338,7 +338,7 @@ theorem Main.wp_proof
         iframe Hgsn Hlis; iframe #
       · iexact Hb
     ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis go!"127.0.0.1:23873") ∨
-        grpcSrvBound gs lis go!"127.0.0.1:23873" [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
+        grpcSrvAtLis gs lis go!"127.0.0.1:23873" [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
     · iright; iexact Hgsn
     -- (the cache over a compacting member, 2026-11-02) the store's fact for watches: no revision
     -- writes a key twice (the writers' plan, `kmInv`'s `wkW`)

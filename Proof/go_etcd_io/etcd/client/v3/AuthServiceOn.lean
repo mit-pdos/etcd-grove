@@ -36,7 +36,7 @@ bound to the token of some attempt of the call on `conn` with a context of outgo
 def clientHistAu (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (om : GrpcMd)
     (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) : IProp GF :=
   histAu ρ.raft ρ.kv srvAuthSt0
-    (fun hm => iprop(∃ md, clientAttemptMdI conn om md ∗
+    (fun hm => iprop(∃ md, clientAttemptMd conn om md ∗
       v3rpc.hdrBoundT T E.authMode (auth.mdTokenOf md) hm)) rq Q
 
 instance clientHistAu_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
@@ -47,17 +47,17 @@ instance clientHistAu_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv G
 /-- A client's update is one at the token of each of its attempts. -/
 theorem clientHistAu_attempt (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
     (om : GrpcMd) (md : GrpcMd) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
-    clientAttemptMdI conn om md ⊢ clientHistAu (GF := GF) T E ρ conn om rq Q -∗
+    clientAttemptMd conn om md ⊢ clientHistAu (GF := GF) T E ρ conn om rq Q -∗
       v3rpc.authHistAuT T E ρ (auth.mdTokenOf md) rq Q := by
   unfold clientHistAu v3rpc.authHistAuT
-  have h : ∀ hm, clientAttemptMdI conn om md ∗ v3rpc.hdrBoundT T E.authMode (auth.mdTokenOf md) hm ⊢
-      iprop(∃ md, clientAttemptMdI conn om md ∗ v3rpc.hdrBoundT T E.authMode (auth.mdTokenOf md) hm) := by
+  have h : ∀ hm, clientAttemptMd conn om md ∗ v3rpc.hdrBoundT T E.authMode (auth.mdTokenOf md) hm ⊢
+      iprop(∃ md, clientAttemptMd conn om md ∗ v3rpc.hdrBoundT T E.authMode (auth.mdTokenOf md) hm) := by
     intro hm
     iintro ⟨#Hmd, Hb⟩
     iexists md
     iframe Hb Hmd
   iintro #Hmd H
-  iapply (histAu_mono_with _ _ _ _ _ _ _ (clientAttemptMdI conn om md) h) $$ [Hmd H]
+  iapply (histAu_mono_with _ _ _ _ _ _ _ (clientAttemptMd conn om md) h) $$ [Hmd H]
   iframe Hmd H
 
 end defs

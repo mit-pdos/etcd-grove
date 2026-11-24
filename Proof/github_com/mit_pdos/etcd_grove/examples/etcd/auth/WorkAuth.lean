@@ -130,7 +130,7 @@ theorem akOut_cases (who : GoString) :
 /-- **The token of an attempt of `who`'s client** with a context of outgoing metadata
 `akOut who`. -/
 theorem akTokSeen_attempt (γa : auth.AuthNames) (who : GoString) (conn : Loc) (md : GrpcMd) :
-    clientAttemptMdI conn (akOut who) md ⊢
+    clientAttemptMd conn (akOut who) md ⊢
       attemptTokOk (GF := GF) conn (akTokP γa who) -∗ akTokSeen γa who (auth.mdTokenOf md) := by
   iintro #Hmd #Ht
   unfold attemptTokOk

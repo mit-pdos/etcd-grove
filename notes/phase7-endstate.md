@@ -498,10 +498,10 @@ are deleted (W5).
      `noRefusalAt addr` is a fact about the address string, and `etcd_noRefusal` gave back
      `grpcSrvNew gs … ∗ netListenerAt lis addr` separately: a program could serve another server on
      `lis` under the certificate. Interim fix: the axioms (`etcd_noRefusal`, `etcd_noOtherRefusal`)
-     return `grpcSrvBound gs lis addr …` (a new axiomatized exclusive predicate), which only
+     return `grpcSrvAtLis gs lis addr …` (a new axiomatized exclusive predicate), which only
      `grpc.startBound` takes and `grpcServeTok` holds as its other form of the server at the listener.
      The end state is decision E's table form (no-refusal a property of the unary entries, checked by
-     `grpcServes`, read by `grpcInvokerOk` from `grpcSvcAt`), which retires `grpcSrvBound`.
+     `grpcServes`, read by `grpcInvokerOk` from `grpcSvcAt`), which retires `grpcSrvAtLis`.
    - **`http.register` consumes `netAddrLeft a`** (the review's finding 4): an address served over HTTP
      never gets a grpc table.
    - **`credsYieldRaw`** carries `hG` (`include hG`), which its definition over `grpcConn` will need;

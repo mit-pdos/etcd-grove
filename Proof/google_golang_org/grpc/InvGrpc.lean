@@ -535,27 +535,27 @@ need. -/
 opaque credsYieldRaw (conn : Loc) (cm : GrpcMd) : IProp GF := iprop(True)
 
 /-- **The per-RPC credentials of `conn` returned `cm` to an attempt** (persistent by construction). -/
-def credsYieldI (conn : Loc) (cm : GrpcMd) : IProp GF := iprop(□ credsYieldRaw conn cm)
+def credsYield (conn : Loc) (cm : GrpcMd) : IProp GF := iprop(□ credsYieldRaw conn cm)
 
-instance credsYieldI_persistent (conn : Loc) (cm : GrpcMd) :
-    Persistent (credsYieldI (GF := GF) conn cm) := by
-  unfold credsYieldI; infer_instance
+instance credsYield_persistent (conn : Loc) (cm : GrpcMd) :
+    Persistent (credsYield (GF := GF) conn cm) := by
+  unfold credsYield; infer_instance
 
 /-- **The handler of an attempt on the connection `conn` with a caller's context whose outgoing
 metadata is `om` sees the metadata `md`** (persistent): on every key grpc does not set itself, the values of the connection's per-RPC credentials'
-metadata `cm` for the attempt (`credsYieldI`), then the context's outgoing metadata `om`; and no key with
+metadata `cm` for the attempt (`credsYield`), then the context's outgoing metadata `om`; and no key with
 no values (grpc writes one header field per value, so a key the context carries with none is not sent;
 C1's review, F2). True of grpc-go v1.84 (`http2Client.createHeaderFields`, to check in C1's phase 2); the
 attempt contract (`grpcInvokerOk`) gives the method's spec at such an `md`. `om` is the context's
 metadata value, which the attempt contract's precondition relates to the context
 (`metadata.outMD ctx om`). -/
-def grpcAttemptMdI (conn : Loc) (om md : GrpcMd) : IProp GF :=
-  iprop(∃ cm, credsYieldI conn cm ∗ ⌜(∀ k, ¬ grpcReservedKey k →
+def grpcAttemptMd (conn : Loc) (om md : GrpcMd) : IProp GF :=
+  iprop(∃ cm, credsYield conn cm ∗ ⌜(∀ k, ¬ grpcReservedKey k →
       metadata.mdVals md k = metadata.mdVals cm k ++ metadata.mdVals om k) ∧ ∀ k, mdGet md k ≠ some []⌝)
 
-instance grpcAttemptMdI_persistent (conn : Loc) (om md : GrpcMd) :
-    Persistent (grpcAttemptMdI (GF := GF) conn om md) := by
-  unfold grpcAttemptMdI; infer_instance
+instance grpcAttemptMd_persistent (conn : Loc) (om md : GrpcMd) :
+    Persistent (grpcAttemptMd (GF := GF) conn om md) := by
+  unfold grpcAttemptMd; infer_instance
 
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
 connection's interceptor chain; unit P3a): a call of a method registered at every address `addrs`
@@ -563,7 +563,7 @@ of the connection with `Spec` (`isGrpcRpcs`; D27, 2026-10-21: the attempt goes t
 for the request `inp` (`Req.send`, given back), into the reply `out` (owned, at any content:
 `Rep.own`), with call options grpc can apply (`grpcOptOk ps`: scalar, or peer options writing the
 buffers `ps`, owned and given back) and the caller's `▷ Spec md m Φ` for every metadata `md` the
-attempt's handler may see (`grpcAttemptMdI`, at the context's outgoing metadata `om`, `metadata.outMD ctx
+attempt's handler may see (`grpcAttemptMd`, at the context's outgoing metadata `om`, `metadata.outMD ctx
 om`: errdesc stage 1, 2026-11-20; since 2026-10-28, the auth plan's E3zb, the spec is
 metadata-indexed, `GrpcSpecMd`: a plain spec is `GrpcSpec.md`), returns
 * `nil`: a run of the handler served for the method at one of `addrs` on a copy of the request
@@ -656,7 +656,7 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop) 
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd)
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc) (R : IProp GF),
     {{ ⌜Ok R⌝ ∗ R ∗ isGrpcRpcsMd addrs method Spec ∗ metadata.outMD ctx om ∗
-        ▷ (∀ md, grpcAttemptMdI conn om md -∗ Spec md m Φ Ψe) ∗
+        ▷ (∀ md, grpcAttemptMd conn om md -∗ Spec md m Φ Ψe) ∗
         ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
@@ -729,8 +729,8 @@ contract at the dial, `perRPCCredsOk`): with no credentials, nothing (`none`); w
 meeting `Q`; with more, nothing is stated. -/
 def connCredsOk (conn : Loc) (pcs : List GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
   match pcs with
-  | [] => iprop(□ ∀ cm, credsYieldI conn cm -∗ ⌜cm = none⌝)
-  | [_] => iprop(□ ∀ cm, credsYieldI conn cm -∗ □ Q cm)
+  | [] => iprop(□ ∀ cm, credsYield conn cm -∗ ⌜cm = none⌝)
+  | [_] => iprop(□ ∀ cm, credsYield conn cm -∗ □ Q cm)
   | _ => iprop(True)
 
 instance connCredsOk_persistent (conn : Loc) (pcs : List GoInterface) (Q : GrpcMd → IProp GF) :

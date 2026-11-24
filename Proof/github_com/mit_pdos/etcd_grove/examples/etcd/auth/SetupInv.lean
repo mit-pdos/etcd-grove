@@ -266,7 +266,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **A header bound to an attempt of `SetUp`'s calls has no user.** -/
 theorem setupHdr_anon (s conn : Loc) (ctx : GoInterface) (M : AuthMode) (hm : apply.HeaderModel)
     (md : GrpcMd) :
-    ⊢ clientAttemptMdI conn none md -∗ setupCtx (GF := GF) s conn ctx -∗ v3rpc.hdrBoundT (srvTLSId s) M (auth.mdTokenOf md) hm -∗
+    ⊢ clientAttemptMd conn none md -∗ setupCtx (GF := GF) s conn ctx -∗ v3rpc.hdrBoundT (srvTLSId s) M (auth.mdTokenOf md) hm -∗
       ⌜hm.username = (zeroValDef : GoString)⌝ := by
   iintro #Hmd #Hc #Hb
   iunfold setupCtx at Hc
@@ -550,7 +550,7 @@ theorem setup_reply (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (
     (γz : GName) (j : Nat) (rq₀ : apply.IRRModel) (hj : setupReqAt j rq₀) (md : GrpcMd)
     (Ek : CoPset) (h1 : (↑authHistN : CoPset) ⊆ Ek)
     (h2 : (↑setupN : CoPset) ⊆ Ek) :
-    ⊢ clientAttemptMdI conn none md -∗ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
+    ⊢ clientAttemptMd conn none md -∗ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       v3rpc.adminReplied (srvTLSId s) E ρ (auth.mdTokenOf md) rq₀ (fun _ => effLb ρ.kv j) ={Ek}=∗
       effLb ρ.kv j := by
   iintro #hmd #Hc #Hn #Hx #Hr
@@ -590,7 +590,7 @@ theorem setup_reply_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
     (hmode : E.authMode = .on γa)
     (hc0 : uint.Z ρ.kv.c0 ≤ uint.Z ρ.raft.ai0) (Ek : CoPset) (h1 : (↑authHistN : CoPset) ⊆ Ek)
     (h2 : (↑setupN : CoPset) ⊆ Ek) :
-    ⊢ clientAttemptMdI conn none md -∗ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
+    ⊢ clientAttemptMd conn none md -∗ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       v3rpc.adminReplied (srvTLSId s) E ρ (auth.mdTokenOf md) irrAuthEnable (setupDone ρ.raft ρ.kv γz)
       ={Ek}=∗
       ∃ (hs : List AuthState) (Lset : List EntryModel) (k : Nat) (r : Nat),
@@ -651,7 +651,7 @@ theorem setup_reply_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
 /-- **What a set-up call's success tells**: some attempt's metadata, and the server's reply. -/
 def setupReplied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
     (R : Option GoString → IProp GF) : Unit → IProp GF :=
-  fun _ => iprop(∃ md, clientAttemptMdI conn none md ∗ R (auth.mdTokenOf md))
+  fun _ => iprop(∃ md, clientAttemptMd conn none md ∗ R (auth.mdTokenOf md))
 
 /-- `UserAdd(name, pw)`, `SetUp`'s `j`-th request. -/
 theorem setup_pre_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)

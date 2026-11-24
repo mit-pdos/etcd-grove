@@ -75,7 +75,7 @@ omit package_sem in
 /-- **The token an attempt of `who`'s call carries** (`akTokSeen_attempt` at `reqCtx`'s context). -/
 theorem akTokSeen_md (γa : auth.AuthNames) (who : GoString) (conn : Loc) (c : GrpcMd) (md : GrpcMd)
     (hout : c = akOut who) :
-    clientAttemptMdI conn c md ⊢
+    clientAttemptMd conn c md ⊢
       attemptTokOk (GF := GF) conn (akTokP γa who) -∗ akTokSeen γa who (auth.mdTokenOf md) := by
   subst hout
   exact akTokSeen_attempt γa who conn md
@@ -119,7 +119,7 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
 theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (c : GrpcMd)
     (n : Nat) (id : w64) (Q : KVState → IProp GF) (Φ : LeaseRevokeRespM → IProp GF) :
     auth.authPubLbM E.authMode n ∗ □ clientOpAuOn (srvTLSId s) E ρ conn c (.leaseRevoke id) Q ∗
-      □ (∀ (md : GrpcMd) (m : LeaseRevokeRespM), clientAttemptMdI conn c md -∗
+      □ (∀ (md : GrpcMd) (m : LeaseRevokeRespM), clientAttemptMd conn c md -∗
           v3rpc.leaseRevokeResT E.authOn (srvTLSId s) E ρ (auth.mdTokenOf md) id Q -∗
           leaseCheckFrom (srvTLSId s) E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗ Φ m) ⊢
     □ ▷ attemptPre conn c (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) id Φ := by

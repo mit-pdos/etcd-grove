@@ -130,7 +130,7 @@ fact about the address string and outlives that listener. Once the listener is c
 (`listen_au` from `grpcAddrAt`) can host a server that refuses while `noRefusalAt addr` still holds
 (`notes/axiom-review/phase7-switch.md`, finding 1). Interim: retired by decision E (no-refusal a
 property of the table's entries). -/
-axiom grpcSrvBound {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (addr : GoString)
+axiom grpcSrvAtLis {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (addr : GoString)
   (ics sics : List GoFunc) (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
   IProp GF
 

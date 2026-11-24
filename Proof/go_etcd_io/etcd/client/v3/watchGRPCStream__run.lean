@@ -767,7 +767,7 @@ theorem watchGRPCStream.run.wp_proof
       ihave HDn : iprop(v3rpc.watchDn γs (V.atIdx (V.idxOf a)).R (V.atIdx (V.idxOf a)).W
           (auth.mdTokenOf md) S.Dm.length m) $$ [HDn]
       · rw [WEnv.atIdx_R, WEnv.atIdx_W]; iexact HDn
-      ihave #Hamd : iprop(clientAttemptMdI (V.atIdx (V.idxOf a)).conn G.omd md) $$ []
+      ihave #Hamd : iprop(clientAttemptMd (V.atIdx (V.idxOf a)).conn G.omd md) $$ []
       · rw [show (V.atIdx (V.idxOf a)).conn = V.conn from rfl]; iexact Hamd0
       ihave Hepst : iprop(client.epochAt (V.atIdx (V.idxOf a)) G γs b (S.Dm ++ [m])) $$ [Hepst]
       · unfold client.epochAt

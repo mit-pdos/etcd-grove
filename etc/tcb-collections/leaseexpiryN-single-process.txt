@@ -75,7 +75,7 @@ axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec
 axiom grpcResolverAt
-axiom grpcSrvBound
+axiom grpcSrvAtLis
 axiom grpcSrvNew
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer

@@ -56,7 +56,7 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
-            ∃ md, clientAttemptMdI conn om md ∗
+            ∃ md, clientAttemptMd conn om md ∗
               v3rpc.writeGrantOn (srvTLSId s) E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hom, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
@@ -107,7 +107,7 @@ theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : appl
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
-            ∃ md, clientAttemptMdI conn om md ∗
+            ∃ md, clientAttemptMd conn om md ∗
               v3rpc.writeGrantOn (srvTLSId s) E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #HF, #Hom, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
@@ -151,7 +151,7 @@ theorem client_Get_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
-            ∃ md, clientAttemptMdI conn om md ∗
+            ∃ md, clientAttemptMd conn om md ∗
               v3rpc.rangeAuthed (srvTLSId s) E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hreg, #Hc, #HF, #Hn, #Hom, #Hctx, #Hce, Hopts, HR, Hsn, %Hg, #Hdq⟩ HΦ
@@ -189,7 +189,7 @@ theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : ap
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗
             deleteReplied E ρ.rd F (txn.deleteOpOf key [] false) Q cid mid m ∗
-            ∃ md, clientAttemptMdI conn om md ∗
+            ∃ md, clientAttemptMd conn om md ∗
               v3rpc.writeGrantOn (srvTLSId s) E ρ (auth.mdTokenOf md)
                 (irrDeleteRange (txn.deleteOpOf key [] false))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by

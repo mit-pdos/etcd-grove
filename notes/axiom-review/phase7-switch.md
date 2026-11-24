@@ -5,7 +5,7 @@
 2026-11-24). The axioms read against it: `grpc.Server.Serve.wp_proof`, `grpc.ClientConn.NewStream.wp_proof`,
 `grpc.ClientConn.Invoke.wp_proof`, `grpc.NewClient.wp_proof`, `bridge.New.wp_proof`, `http.register`,
 `etcd_noRefusal`, `etcd_noOtherRefusal`, and the opaque predicates beneath them (`grpcAddrAt`'s protocols
-`grpcCliPI`/`grpcSrvPI`, `credsYieldRaw`, `grpcSrvNew`, `grpcSrvBound`).
+`grpcCliPI`/`grpcSrvPI`, `credsYieldRaw`, `grpcSrvNew`, `grpcSrvAtLis`).
 
 **Reviewer.** An adversarial review by the `axiom` skill's method (read-only, no Go test and no Lean proof
 built: every counterexample below is **inferred**), on `lean` `91ca351121`, the plan at `1a31ea2a3a`, and
@@ -26,14 +26,14 @@ their resolutions follow.
   registration of its name converts the entry's `up₀`/`dn₀`/`spec₀` to and from its own `Up`/`Dns`/`Spec`
   and runs them (`grpcStreamRunOk`, which loses its `streamSpecOk` conjunct: the content family is given
   explicitly). `grpcServeTok gs lis a Svc` has one form for the server (no started disjunct, no server name
-  `γ`): `grpcSrvNew gs … ∗ netListenerOpen lis a`, or the bound server `grpcSrvBound gs lis a …` (below),
+  `γ`): `grpcSrvNew gs … ∗ netListenerOpen lis a`, or the bound server `grpcSrvAtLis gs lis a …` (below),
   with `grpcAddrAt a Svc` and `grpcServes Svc …`. `Server.Serve.spec`'s text is unchanged.
 - **The single-process start** is a theorem (`grpc.start'`, `grpc.startBound`, over `grpc.startCore`):
   Go's configuration as a table (`grpcStartSvc`: `grpcGoSvc`'s unary entries, then the stream list `sms`).
 - **The attempt's metadata** over an `IProp` (`InvGrpc.lean`): `opaque credsYieldRaw conn cm : IProp GF`
-  (was the opaque `Prop` `credsYield`), `credsYieldI := □ credsYieldRaw`, `grpcAttemptMdI`, `connCredsOk`
-  over `credsYieldI conn cm -∗ …`; `NewClient`'s `perRPCCredsOk` gains `credKeysOk cm` (no metadata key
-  starting with `':'`); client/v3's `clientAttemptMdI`.
+  (was the opaque `Prop` `credsYield`), `credsYield := □ credsYieldRaw`, `grpcAttemptMd`, `connCredsOk`
+  over `credsYield conn cm -∗ …`; `NewClient`'s `perRPCCredsOk` gains `credKeysOk cm` (no metadata key
+  starting with `':'`); client/v3's `clientAttemptMd` (the `I` suffix of SW1's first version dropped, the review's M5).
 - **The client end of a stream** (`InvGrpcStream.lean`): `cliStreamIs cs γ Req Rep Up Md Dn cd Ok`, the
   dispatch family `Md a md` and the content `Dn a md` indexed by the dispatch; `RecvMsg`'s message arm
   returns `∃ a md, Md a md ∗ streamDispIs γ a md ∗ … ∗ Dn a md L.length m`. `streamDispIs γ a md`
@@ -41,17 +41,20 @@ their resolutions follow.
   metadata (`GrpcMdCode`), persistent, with `streamDispIs_agree`.
 - **`NewStream`** (`Spec/google_golang_org/grpc/ClientConn__NewStream.lean`): one client content `Up` for
   every address (the registration at `fun _ => Up`); the post fixes neither address nor metadata:
-  `cliStreamIs … Up (fun a md => ⌜a ∈ addrs⌝ ∗ clientAttemptMdI conn om md) Dn …` and
-  `□ ∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMdI conn om md -∗ Spec a md γ (Dn a md)`.
+  `cliStreamIs … Up (fun a md => ⌜a ∈ addrs⌝ ∗ clientAttemptMd conn om md) Dn …` and
+  `□ ∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMd conn om md -∗ Spec a md γ (Dn a md)`.
 - **`bridge.New`** (`Spec/github_com/mit_pdos/etcd_grove/third_party/bridge/New.lean`): takes
   `grpcAddrAt a Svc ∗ grpcAddrAt addr Svc` at one `Svc` (no longer `netAddrLeft a`; the caller spent it
   setting `a`'s table to the target's) and returns no `grpcAddrIs` wand.
 - **`http.register`** (`Proof/net/http/Axioms.lean`) also consumes `netAddrLeft a`.
-- **`etcd_noRefusal`, `etcd_noOtherRefusal`** (`v3rpc/NoRefusal.lean`) return `grpcSrvBound gs lis addr …`
+- **`etcd_noRefusal`, `etcd_noOtherRefusal`** (`v3rpc/NoRefusal.lean`) return `grpcSrvAtLis gs lis addr …`
   in place of `grpcSrvNew gs … ∗ netListenerAt lis addr`.
 - **Deleted**: the axioms `grpc.start`, `grpcAddrIsRaw`, `grpcSrvCfgRaw`, `grpcSrvLink`, and
   `grpcAddrIs_agree`, `grpcSrvCfg_agree` with them (nothing reads a server name).
-  **Added**: the axiom `grpcSrvBound` and the opaque `credsYieldRaw` (replacing the opaque `credsYield`).
+  **Added**: the axiom `grpcSrvAtLis` and the opaque `credsYieldRaw` (replacing the opaque `credsYield`).
+
+**Names.** The independent spec review (of `fea0c78ee7`) read the bound predicate as `grpcSrvBound`; it is
+`grpcSrvAtLis` since (its M6: "bound" read as the repository's bounds vocabulary).
 
 ## The findings and their resolution
 
@@ -63,13 +66,13 @@ their resolutions follow.
    refusal is proved safe by `grpcInvokerOk`. (A second route: a later listener at `addr` serving the same
    table with other handlers.)
    **Partially resolved (first server only); the second route is open.** Both axioms return
-   `grpcSrvBound gs lis addr …` (a new axiomatized exclusive predicate, intended reading
+   `grpcSrvAtLis gs lis addr …` (a new axiomatized exclusive predicate, intended reading
    `grpcSrvNew gs … ∗ netListenerAt lis addr`), which only `grpc.startBound` consumes and `grpcServeTok`
    holds as its bound form of the server at the listener: the server `Serve` runs on *that* listener is
    the one certified, which closes the first route. It binds only the FIRST server at `addr`:
    `noRefusalAt addr` is a fact about the address string and outlives the listener. The second route
    (the independent spec review of SW1, `fea0c78ee7`, B1; inferred, not built):
-   1. `etcd_noRefusal` gives `grpcSrvBound gs lis a …` and `⌜noRefusalAt a⌝`;
+   1. `etcd_noRefusal` gives `grpcSrvAtLis gs lis a …` and `⌜noRefusalAt a⌝`;
    2. `grpc.startBound` gives the token; the program calls `gs.Serve(lis)` synchronously; grpc-go returns
       on a non-temporary `Accept` error and closes `lis` (`server.go:938-944,979`), the model allows a
       `sys` failure of `Accept` (`GooseLang/Ext/Net/Impl.lean` D7), and `Serve`'s post is `True`;
@@ -90,9 +93,9 @@ their resolutions follow.
    **Restriction until decision E lands:** distributed and restart work must not use `etcd_noRefusal`
    or `etcd_noOtherRefusal` (or `noRefusalAt` of an address that may be listened at again). The fix is
    decision E's table form (no-refusal a property of the unary entries, checked by `grpcServes`, read
-   by `grpcInvokerOk` from `grpcSvcAt`), which retires `grpcSrvBound`.
+   by `grpcInvokerOk` from `grpcSvcAt`), which retires `grpcSrvAtLis`.
 
-   The first route, as `grpcSrvBound`'s docstring told it before the review: without the binding a
+   The first route, as `grpcSrvAtLis`'s docstring told it before the review: without the binding a
    program could take the certificate, drop `gs`, and serve another server `gs2` (one whose KV `Range`
    answers with the learner's refusal) on the same listener; `grpcInvokerOk` would then promise the
    client a refusal it receives.
@@ -141,7 +144,7 @@ text). The user approved SW1 on condition of an independent spec review, which a
 1's second route above; its minor items M1-M4, M6 applied before landing).
 
 **Trust base** (`etc/tcb-report.py --check` on the VM's full build of `phase7-switch`, 2026-11-24): the
-axioms `grpc.start`, `grpcAddrIsRaw`, `grpcSrvCfgRaw`, `grpcSrvLink` gone, `grpcSrvBound` new (in every
+axioms `grpc.start`, `grpcAddrIsRaw`, `grpcSrvCfgRaw`, `grpcSrvLink` gone, `grpcSrvAtLis` new (in every
 collection that starts an etcd member under `etcd_noRefusal`/`etcd_noOtherRefusal`); leaseexpiryN's
 collection gains `rand.Int63n.wp_proof`, `v3rpc.pbWatchRequestT_reg`, `v3rpc.pbWatchResponseT_reg`, all
 already in the trust base (inferred, not traced: its members' start now runs the Watch stream's server

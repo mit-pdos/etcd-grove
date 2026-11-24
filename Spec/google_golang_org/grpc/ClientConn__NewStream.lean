@@ -33,7 +33,7 @@ client-streaming descriptor (`ClientStreams`; a server-streaming retried stream 
 second handler run) and the client's call options (`streamCallOptsOk`). The caller's resource `R` of
 the connection's family (`Ok R`) is lent to the per-RPC credentials and comes back. Post: a client
 stream (`cliStreamIs`, both tokens at `[]`) whose responses carry the dispatch `(a, md)` (`a ∈ addrs`,
-`md` an attempt's metadata, `clientAttemptMdI conn om md`) with the content `Dn a md`, and the stream
+`md` an attempt's metadata, `clientAttemptMd conn om md`) with the content `Dn a md`, and the stream
 specification `Spec a md γ (Dn a md)` at every such dispatch; or a client error and a `nil` stream
 (`cliStreamErr`, which admits a bare `io.EOF`). True of grpc-go v1.84 with etcd's stream interceptor
 (`dialOk`, inside the boundary): every attempt takes one transport and runs one handler; a transparent
@@ -60,9 +60,9 @@ abbrev grpc.ClientConn.NewStream.spec : Prop :=
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
           (cd' : context.ContextDesc (IProp GF)),
         cliStreamIs cs γ Req.toStreamMsg Rep.toStreamMsg Up
-          (fun a md => iprop(⌜a ∈ addrs⌝ ∗ clientAttemptMdI conn om md)) Dn cd' Ok ∗
+          (fun a md => iprop(⌜a ∈ addrs⌝ ∗ clientAttemptMd conn om md)) Dn cd' Ok ∗
         cliSendTok (Req := Req.toStreamMsg) γ [] ∗ cliRecvTok (Rep := Rep.toStreamMsg) γ [] ∗
-        □ (∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMdI conn om md -∗ Spec a md γ (Dn a md))) ∨
+        □ (∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMd conn om md -∗ Spec a md γ (Dn a md))) ∨
       (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err)) }}
 
 end spec
