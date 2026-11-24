@@ -102,3 +102,34 @@ Verdict: sound, not vacuous, the right strength; documentation fixes (report:
   witness is not written.
 - F4 (note): `DistDeploy`'s "no listener" conjunct is unused by every bridge; drop it with F1's plan.
 - F5 (note): `FsInit` asks a stable machine's files to be durable, which no step reads.
+
+## D4c: the bridge over any bundle (2026-11-24, branch `etcd-safe-d4c/2026-11-24`)
+
+`robust_of_netFsBoot{,_addrs}` is hard-wired to `kvnetExts`. Its generalization, proved, untrusted (no new
+trusted definition: it uses `Robust`, `DistBootWpSL`, Perennial's `goose_dist_mixed_crash_adequacy`):
+
+- `Net/Statement/NetFsBridgeG.lean`, two layers.
+  1. `robust_of_crashBootIL`: any `[GooseExts] [GooseSemantics] [GooseInterp] [GooseCrashInterp]` with
+     `HasExt netExt`. Crashing machines: `CrashBootWpE lo bound e P` (the raw `extsCrashStart L L'` after a
+     crash), first generation from the raw `extsLocalStart`; stable machines: `DistBootWpSL`. The
+     initial-state conditions come from `Robust`'s premises through a hypothesis `HI`; bounds as
+     `robust_of_distBootIL` (`max (n + 1) lo` receipts, a receipt floor `lo`, the thread bound one more,
+     given to every obligation). `hasExt_localStart` (the local analog of `hasExt_globalStart`).
+  2. `robust_of_netFsBootG Q X HC`: the bundle also has `fsExt` at any semantics with `FsSemOk`; `HC`
+     splits the crash resources into `Fs.osCrashStart Q` and the other extensions' `X L L'`.
+     `CrashBootWpG Q X` gets `osInv L'`, `crashRest Q … [] false V'` and `X L L'`; the first generation
+     `fsStartResG` (from `FsInit`, which `HI` gives for each crashing machine: `fsSemWithS` has no
+     `initLocal` until D4a). `StableBootWpG` → `DistBootWpSL` given `FsInit`.
+- `Net/Statement/NetFsBridgeGKvnet.lean`: `robust_of_netFsBoot_addrs_ofG`, `robust_of_netFsBoot_addrs`'s
+  exact statement re-derived from layer 2 (`Q := True`, `X := True`, `kvnetInitCompat`).
+- `Proof/.../etcdstart/NetExtsCrash.lean`: `etcdNetExtsCrashInterp C` (`C` any `ExtCrashInterp` of the
+  issue record at `idIssue_semantics`/`idIssue_interp`; the file extension's `fs_crash_interpS etcdSQ True`;
+  the net extension's), `etcdNet_crashStart_split` (`X := etcdIdCrashRest C`, `C.crashStart` of the
+  issue record's local ghost states), `etcdNetExts_crashInitP` (from `FsInit`) and the corollary
+  `robust_of_etcdNetFsBoot C`. `idIssue_crash_interp_keep` (`crashStart L L' := ⌜L' = L⌝`) shows today's
+  semantics already has one; D4b's incarnation-keyed record supplies the one the proofs use, of the same
+  shape (any `@ExtCrashInterp idIssueExt S idIssue_interp'`; if D4b changes the semantics or interp
+  instance, `etcdNetExtsCrashInterp`'s type follows them).
+
+Not done: the shared-mode generation start (the Perennial gap above) is still missing; a crashing
+member's proof (D6) is the first user.
