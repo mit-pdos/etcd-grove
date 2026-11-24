@@ -60,11 +60,12 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote),
    (pkg_id.github_com.rs.zerolog, isPkgInit (PROP := IProp GF) pkg_id.github_com.rs.zerolog),
-   (pkg_id.internal.abi, isPkgInit (PROP := IProp GF) pkg_id.internal.abi),
    (pkg_id.internal.bytealg, isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg),
+   (pkg_id.internal.gomodel, isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel),
    (pkg_id.internal.oserror, isPkgInit (PROP := IProp GF) pkg_id.internal.oserror),
    (pkg_id.internal.poll, isPkgInit (PROP := IProp GF) pkg_id.internal.poll),
    (pkg_id.internal.race, isPkgInit (PROP := IProp GF) pkg_id.internal.race),
+   (pkg_id.internal.reflectcore, isPkgInit (PROP := IProp GF) pkg_id.internal.reflectcore),
    (pkg_id.internal.strconv, isPkgInit (PROP := IProp GF) pkg_id.internal.strconv),
    (pkg_id.internal.stringslite, isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite),
    (pkg_id.internal.sync, isPkgInit (PROP := IProp GF) pkg_id.internal.sync),
@@ -254,7 +255,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.rabia.examples.rabianet.cmd.se
   have h35 : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h34, h27, True.intro⟩
+    exact ⟨h0, h34, h27, h26, True.intro⟩
   have h36 : GetIsPkgInitProp pkg_id.rabia.internal.config (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -271,95 +272,99 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.rabia.examples.rabianet.cmd.se
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h40 : GetIsPkgInitProp pkg_id.internal.abi (getIsPkgInit (GF := GF)) := by
+  have h40 : GetIsPkgInitProp pkg_id.internal.gomodel (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h41 : GetIsPkgInitProp pkg_id.reflect (getIsPkgInit (GF := GF)) := by
+  have h41 : GetIsPkgInitProp pkg_id.internal.reflectcore (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h40, True.intro⟩
-  have h42 : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgInit (GF := GF)) := by
+    exact ⟨h18, True.intro⟩
+  have h42 : GetIsPkgInitProp pkg_id.reflect (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h6, h39, h41, h22, h5, True.intro⟩
-  have h43 : GetIsPkgInitProp pkg_id.github_com.gogo.protobuf.gogoproto (getIsPkgInit (GF := GF)) := by
+    exact ⟨h40, h41, h21, h35, h18, True.intro⟩
+  have h43 : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h0, h6, h39, h42, h22, h5, True.intro⟩
+  have h44 : GetIsPkgInitProp pkg_id.github_com.gogo.protobuf.gogoproto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h44 : GetIsPkgInitProp pkg_id.github_com.gogo.protobuf.proto (getIsPkgInit (GF := GF)) := by
+  have h45 : GetIsPkgInitProp pkg_id.github_com.gogo.protobuf.proto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h45 : GetIsPkgInitProp pkg_id.rabia.internal.message (getIsPkgInit (GF := GF)) := by
+  have h46 : GetIsPkgInitProp pkg_id.rabia.internal.message (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h38, h42, h0, h24, h6, h35, h43, h44, h39, h19, h41, h28, True.intro⟩
-  have h46 : GetIsPkgInitProp pkg_id.rabia.internal.tcp (getIsPkgInit (GF := GF)) := by
+    exact ⟨h38, h43, h0, h24, h6, h35, h44, h45, h39, h19, h42, h28, True.intro⟩
+  have h47 : GetIsPkgInitProp pkg_id.rabia.internal.tcp (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h38, h24, h17, h36, h45, h5, h9, True.intro⟩
-  have h47 : GetIsPkgInitProp pkg_id.github_com.rs.zerolog (getIsPkgInit (GF := GF)) := by
+    exact ⟨h38, h24, h17, h36, h46, h5, h9, True.intro⟩
+  have h48 : GetIsPkgInitProp pkg_id.github_com.rs.zerolog (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h6, True.intro⟩
-  have h48 : GetIsPkgInitProp pkg_id.rabia.internal.ledger (getIsPkgInit (GF := GF)) := by
+  have h49 : GetIsPkgInitProp pkg_id.rabia.internal.ledger (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h36, h45, h23, h5, True.intro⟩
-  have h49 : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
+    exact ⟨h36, h46, h23, h5, True.intro⟩
+  have h50 : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h25, True.intro⟩
-  have h50 : GetIsPkgInitProp pkg_id.rabia.internal.logger (getIsPkgInit (GF := GF)) := by
+  have h51 : GetIsPkgInitProp pkg_id.rabia.internal.logger (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h24, h47, h16, h49, h36, True.intro⟩
-  have h51 : GetIsPkgInitProp pkg_id.os.signal (getIsPkgInit (GF := GF)) := by
+    exact ⟨h24, h48, h16, h50, h36, True.intro⟩
+  have h52 : GetIsPkgInitProp pkg_id.os.signal (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h52 : GetIsPkgInitProp pkg_id.rabia.internal.system (getIsPkgInit (GF := GF)) := by
+  have h53 : GetIsPkgInitProp pkg_id.rabia.internal.system (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h16, h51, h12, True.intro⟩
-  have h53 : GetIsPkgInitProp pkg_id.container.heap (getIsPkgInit (GF := GF)) := by
+    exact ⟨h16, h52, h12, True.intro⟩
+  have h54 : GetIsPkgInitProp pkg_id.container.heap (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h23, True.intro⟩
-  have h54 : GetIsPkgInitProp pkg_id.rabia.internal.queue (getIsPkgInit (GF := GF)) := by
+  have h55 : GetIsPkgInitProp pkg_id.rabia.internal.queue (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h45, True.intro⟩
-  have h55 : GetIsPkgInitProp pkg_id.rabia.roles.server.layers.consensus (getIsPkgInit (GF := GF)) := by
+    exact ⟨h46, True.intro⟩
+  have h56 : GetIsPkgInitProp pkg_id.rabia.roles.server.layers.consensus (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h53, h24, h47, h8, h16, h36, h48, h50, h45, h54, h5, h9, True.intro⟩
-  have h56 : GetIsPkgInitProp pkg_id.rabia.roles.server.layers.network (getIsPkgInit (GF := GF)) := by
+    exact ⟨h54, h24, h48, h8, h16, h36, h49, h51, h46, h55, h5, h9, True.intro⟩
+  have h57 : GetIsPkgInitProp pkg_id.rabia.roles.server.layers.network (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h24, h36, h45, h46, h5, True.intro⟩
-  have h57 : GetIsPkgInitProp pkg_id.github_com.go_redis.redis.v8 (getIsPkgInit (GF := GF)) := by
+    exact ⟨h24, h36, h46, h47, h5, True.intro⟩
+  have h58 : GetIsPkgInitProp pkg_id.github_com.go_redis.redis.v8 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h58 : GetIsPkgInitProp pkg_id.rabia.roles.server.layers.proxy (getIsPkgInit (GF := GF)) := by
+  have h59 : GetIsPkgInitProp pkg_id.rabia.roles.server.layers.proxy (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h10, h24, h57, h47, h16, h36, h48, h50, h45, h46, h5, h9, True.intro⟩
-  have h59 : GetIsPkgInitProp pkg_id.rabia.roles.server (getIsPkgInit (GF := GF)) := by
+    exact ⟨h10, h24, h58, h48, h16, h36, h49, h51, h46, h47, h5, h9, True.intro⟩
+  have h60 : GetIsPkgInitProp pkg_id.rabia.roles.server (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h24, h47, h16, h36, h48, h50, h45, h52, h55, h56, h58, h5, h9, True.intro⟩
-  have h60 : GetIsPkgInitProp pkg_id.rabia.examples.rabianet (getIsPkgInit (GF := GF)) := by
+    exact ⟨h24, h48, h16, h36, h49, h51, h46, h53, h56, h57, h59, h5, h9, True.intro⟩
+  have h61 : GetIsPkgInitProp pkg_id.rabia.examples.rabianet (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h7, h8, h17, h5, h1, h9, h29, h33, h36, h45, h46, h59, True.intro⟩
-  have h61 : GetIsPkgInitProp pkg_id.rabia.examples.rabianet.cmd.server2 (getIsPkgInit (GF := GF)) := by
+    exact ⟨h6, h7, h8, h17, h5, h1, h9, h29, h33, h36, h46, h47, h60, True.intro⟩
+  have h62 : GetIsPkgInitProp pkg_id.rabia.examples.rabianet.cmd.server2 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h60, True.intro⟩
-  exact h61
+    exact ⟨h61, True.intro⟩
+  exact h62
 
 end table
 
