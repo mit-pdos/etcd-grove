@@ -6,7 +6,7 @@ module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__serve
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__serveClient
-public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport__servePeer
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__servePeer
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.readFull
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.closeAfter
 public import KvNet.Spec.net.Conn__Close
@@ -30,15 +30,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assum
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
-theorem Node.serve.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
+theorem Node.serve.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF)
     (cf : GoInterface → List w8 → IProp GF)
-    (wp_serveClient : Node.serveClient.spec (GF := GF) (hG := hG) F rep cf)
-    (wp_servePeer : Transport.servePeer.spec (GF := GF) (hG := hG))
+    (wp_serveClient : Node.serveClient.spec (GF := GF) (hG := hG) F rep stp cf)
+    (wp_servePeer : Node.servePeer.spec (GF := GF) (hG := hG) F rep stp)
     (wp_readFull : readFull.spec (GF := GF) (hG := hG))
     (wp_closeAfter : closeAfter.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG)) :
-    Node.serve.spec (GF := GF) (hG := hG) F rep cf := by
-  intro nd γ N id n c cn a eof ed
+    Node.serve.spec (GF := GF) (hG := hG) F rep stp cf := by
+  intro nd γ N id c cn a eof ed
   wp_start as ⟨#Hnd, #Hcl, #Hc, #Heof, #Hed, #Hcc, Hce⟩
   unfold connEnd
   icases Hce with ⟨HW, HR⟩
@@ -106,14 +106,11 @@ theorem Node.serve.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
   wp_apply wp_load_slice_index _ (sint.Z (W64 0)) [x] (DFrac.own 1) x (by decide) $$ [$Hh] as Hh
   · ipureintro; rfl
   try wp_auto
-  ihave #Hnd' := Hnd
-  iunfold isNodeS at Hnd'
-  icases Hnd' with ⟨%r, %t, %sp, #Hr, #Ht, #Hsp, #Hs, #Hrn, #Hrep, #Htc⟩
   rw [List.nil_append] at *
   wp_if_destruct
   · -- a peer
     try wp_auto
-    wp_apply wp_servePeer F t γ N id n _ cn a eof ed $$ [$Hpkg $Htc $Hc $Heof $Hed $Hcc HR]
+    wp_apply wp_servePeer nd γ N id _ cn a eof ed $$ [$Hpkg $Hnd $Hc $Heof $Hed $Hcc HR]
     · unfold helloPeerB; iexact HR
     try wp_auto
     iapply HΦ
@@ -121,7 +118,7 @@ theorem Node.serve.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
   wp_if_destruct
   · -- a client
     try wp_auto
-    wp_apply wp_serveClient nd γ N id n _ cn a eof ed $$ [$Hpkg $Hnd $Hcl $Hc $Heof $Hed $Hcc HR $HW]
+    wp_apply wp_serveClient nd γ N id _ cn a eof ed $$ [$Hpkg $Hnd $Hcl $Hc $Heof $Hed $Hcc HR $HW]
     · unfold helloClientB; iexact HR
     try wp_auto
     iapply HΦ

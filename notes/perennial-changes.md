@@ -3120,6 +3120,9 @@ sends on a capacity-1 bag channel without waiting; the lemma `bag_nb_send_au : �
 P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
 (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
+**Done** (Perennial bca1cd2e5: `bag_nb_send_au` and `bag_nb_send_au_now`, the latter with `Φ` now and
+no credit). 2026-11-24 (branch `bagsend-perennial/2026-11-24`): the local `BagSend.lean` and kvnet's
+`queue_nb_send_au` (= `bag_nb_send_au_now`) deleted, their users on Perennial's.
 
 
 ## A bag channel's non-blocking receive (2026-10-31, S1)

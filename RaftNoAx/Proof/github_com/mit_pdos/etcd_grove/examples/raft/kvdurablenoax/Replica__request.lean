@@ -15,7 +15,7 @@ module
 
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica__request
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.DefsLaws
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.BagSend
+public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats__add
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.encodeState
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetVotersOutgoing
