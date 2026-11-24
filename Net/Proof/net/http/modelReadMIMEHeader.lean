@@ -8,7 +8,7 @@ nothing follows, so the next `modelReadLine` returns the error). A line read is 
 stream's next bytes (`Htl`): a whole line is the next block line, or the empty line (the loop
 returns); a cut line is a prefix of the next block line without its `"\n"` (`mh_cut_cases`): either
 without a colon (a key's prefix, or the empty line's `"\r"`: the missing-colon `ProtocolError`, its
-`[]byte` argument lent to `fmt.Sprintf`, `fmt.wp_Sprintf_bytes`) or the line's name, a colon and
+line quoted with `%q` as a string, `fmt.Sprintf_pure_of`) or the line's name, a colon and
 some bytes. A line `k:w` (`mh_after`): the `Peek(1)` sees no space or tab (the next line's name, the
 empty line, or nothing: an error), `trimLine` leaves `k:` and `w` without its trailing spaces
 (`wp_trimLine`, `mh_trim_line`), the name passes its checks (`ValidHeaderFieldName` over
@@ -25,6 +25,8 @@ public import Net.Spec.vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldNam
 public import Net.Spec.vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldValue
 public import Spec.bufio.Reader__Peek
 public import Perennial.Spec.fmt.Sprintf
+public import Perennial.Proof.fmt.PureArgs
+public import Perennial.Proof.bytes.BufferBasics
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section
@@ -403,11 +405,11 @@ theorem mh_cut_eol {eol rest l : List w8} (heol : eol = [] ∨ eol = [W8 13]) (h
     have := h.subset hx
     simp at this
 
-open Classical in
-/-- The bytes `bs` of the `[]byte` argument `sl`, lent to `fmt.Sprintf`. -/
-noncomputable def mhB [GooseExts] [GoGlobalContext] (sl : GoSlice) (bs : List w8) :
-    GoInterface → Option fmt.Lent :=
-  fun x => if x = interface.mkOk (go.SliceType go.byte) #sl then some (.bytes bs) else none
+/-- `fmt.Fits` of a literal and `%q` of a string `s` of at most `maxAddr` bytes (the model's error
+messages). -/
+theorem mh_fits_q (lit s : GoString) (hl : W8 37 ∉ lit) (hs : (s.length : Int) ≤ maxAddr) :
+    fmt.Fits [.lit lit, .dir none fmt.verb_q] [.str s] :=
+  .lit _ _ _ hl (.dir _ _ _ _ _ (Or.inr (Or.inr (Or.inr ⟨rfl, hs⟩))) .nil)
 
 end pure
 
@@ -418,17 +420,6 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
 set_option goose.wp.extras true
-
-/-- `fmt.Sprintf` with the bytes of its `[]byte` arguments lent (Perennial's
-`fmt.wp_Sprintf_bytes`). -/
-abbrev SprintfBytes.law : Prop :=
-  ∀ (B : GoInterface → Option fmt.Lent) (dqb : DFrac) (format : GoString) (args_sl : GoSlice)
-    (xs : List GoInterface) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.bytesOwn dqb B xs ∗
-      fmt.argsOkB B fmt.methodVerbs format xs }}
-    (App (App (Val (@! fmt.Sprintf)) (Val #format)) (Val #args_sl))
-  {{ (s : GoString), RET #s; args_sl ↦*{dq} xs ∗ fmt.bytesOwn dqb B xs ∗
-      ⌜fmt.SprintfOutB B format xs s⌝ }}
 
 set_option hygiene false in
 local macro "tl_inv" : tactic => `(tactic| (
@@ -681,31 +672,6 @@ theorem mh_hdrOwn_snoc (mp : Loc) (l : List HdrLine) (ms : GMap GoString GoSlice
     ipureintro
     exact GMap.lookup_insert _ _ _
 
-theorem mh_sprintfB_pre (sl : GoSlice) (bs : List w8) (fs : GoString)
-    (hfs : fmt.fmtDirectives fs = some [⟨W8 113, false⟩]) :
-    (sl ↦*□ bs : IProp GF) ⊢
-      fmt.bytesOwn DFrac.discard (mhB sl bs) [interface.mkOk (go.SliceType go.byte) #sl] ∗
-      fmt.argsOkB (mhB sl bs) fmt.methodVerbs fs [interface.mkOk (go.SliceType go.byte) #sl] := by
-  iintro #Hs
-  have hB : mhB sl bs (interface.mkOk (go.SliceType go.byte) #sl) = some (.bytes bs) := by simp [mhB]
-  isplitl []
-  · unfold fmt.bytesOwn
-    iapply BigSepL.bigSepL_singleton.2
-    iapply (fmt.bytesArgOwn_some hB).2
-    iexists ⟨go.SliceType go.byte, #sl⟩, sl
-    isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl⟩
-    · iexact Hs
-  · unfold fmt.argsOkB
-    iright
-    iexists [⟨W8 113, false⟩]
-    isplitr
-    · ipureintro; exact hfs
-    unfold fmt.argsOkAtB fmt.argOkAtB
-    isplitl []
-    · iright; ipureintro; simp [hB]
-    · unfold fmt.argsOkAtB; itrivial
-
 set_option hygiene false in
 local macro "mh_skip_inv" : tactic => `(tactic| (
   iframe; iexists _; iframe; ipureintro
@@ -898,16 +864,25 @@ local macro "mh_after" fin:tacticSeq : tactic => `(tactic| (
           wp_apply (wp_bytes_to_string _ _ DFrac.discard) $$ [Hc] as -
           · iexact Hc
           try wp_auto
+          ihave %HkvM2 := bytes.ownSlice_bytes_len_le $$ Hkv2
+          have hq : ((hb[n].fst ++ subslice (sint.nat i) (sint.nat kv2.len) line2).length : Int) ≤
+              maxAddr := by
+            have hsub : (subslice (sint.nat i) (sint.nat kv2.len) line2).length ≤
+                line2.length - sint.nat i := by
+              unfold subslice; simp only [List.length_drop, List.length_take]; omega
+            have h1 := Hkl2.1
+            have h2 : sint.nat kv2.len ≤ 2 ^ 47 := by unfold maxAddr at HkvM2; word
+            simp only [List.length_append]
+            unfold maxAddr; omega
           wp_apply wp_slice_literal
           isplitr
           · ipureintro; rfl
           iintro %sl ⟨Hsl, -⟩
           try wp_auto
-          wp_apply wp_Sprintf _ _ _ _ $$ [Hsl] as %msg -
-          · isplitl [Hsl]
-            · iexact Hsl
-            iapply fmt.argsOk_of_argsWf
-            exact fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil
+          wp_apply (fmt.Sprintf_pure_of wp_Sprintf _
+              [.lit go!"malformed MIME header line: ", .dir none fmt.verb_q] _ _ _ _
+              (by fmt_encode) (mh_fits_q _ _ (by decide) hq) (.str _ _ _ .nil)) $$ [Hsl] as %msg -
+          · iexact Hsl
           try wp_auto
           wp_for_post
           iapply HΦ
@@ -1302,16 +1277,25 @@ local macro "mh_loop" : tactic => `(tactic| (
         try rw [decide_eq_true (show sint.Z (W64 (-1)) < sint.Z (W64 0) by decide)]
         cleanup_bool_decide
         try wp_auto
+        ihave %HkvL := ownSlice_len $$ Hkv
+        ihave %HkvM := bytes.ownSlice_bytes_len_le $$ Hkv
+        have hq : (line.length : Int) ≤ maxAddr := by
+          have h1 := HkvL.1
+          have h2 : sint.nat kv.len ≤ 2 ^ 47 := by unfold maxAddr at HkvM; word
+          unfold maxAddr; omega
+        wp_apply (wp_bytes_to_string _ _ DFrac.discard) $$ [Hkv] as -
+        · iexact Hkv
+        try wp_auto
         wp_apply wp_slice_literal
         isplitr
         · ipureintro; rfl
         iintro %sl ⟨Hsl, -⟩
         try wp_auto
-        wp_apply (wp_SprintfB (mhB kv line) DFrac.discard _ _ _ _) $$ [Hsl] as %msg -
-        · isplitl [Hsl]
-          · iexact Hsl
-          iapply (mh_sprintfB_pre kv line _ (by decide))
-          iexact Hkv
+        -- `%q` of `string(kv)` (the model's, byte-identical to textproto's `%q` of `kv`)
+        wp_apply (fmt.Sprintf_pure_of wp_Sprintf _
+            [.lit go!"malformed MIME header: missing colon: ", .dir none fmt.verb_q] _ _ _ _
+            (by fmt_encode) (mh_fits_q _ _ (by decide) hq) (.str _ _ _ .nil)) $$ [Hsl] as %msg -
+        · iexact Hsl
         try wp_auto
         wp_for_post
         iapply HΦ
@@ -1346,8 +1330,7 @@ theorem modelReadMIMEHeader.wp_proof
     (wp_Canon : net.textproto.CanonicalMIMEHeaderKey.spec (GF := GF) (hG := hG))
     (wp_VHFN : vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName.spec (GF := GF) (hG := hG))
     (wp_VHFV : vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldValue.spec (GF := GF) (hG := hG))
-    (wp_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
-    (wp_SprintfB : SprintfBytes.law (GF := GF) (hG := hG)) :
+    (wp_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG)) :
     modelReadMIMEHeader.spec (GF := GF) (hG := hG) := by
   intro b ri S E r hb eol rest maxH hok heol hmax
   iintro #Henv #Hrd #HSb #HSp #Hfin
