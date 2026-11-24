@@ -70,6 +70,21 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `net/url`'s `parse` with its bodies.
 - **Status.** Not proposed yet.
 
+### A field's address is not known to be non-nil: Go 1.22's ServeMux tree unverifiable (2026-11-24, S5 batch 15)
+
+- **Limitation.** `structFieldRef` is abstract (`GoSemanticsFunctions`); only `structFieldRef_plain` ties it
+  to its base, for plain structs. net/http's `mapping.find` begins `if h == nil { return v, false }` with
+  `h = &n.children` (`routingNode.findChild`), so in the model the mux's routing tree may miss every
+  registered pattern (and `addChild` may add a duplicate child): no "the mux routes `p` to `h`" spec is
+  provable for Go 1.22's matcher (`use121` false, the default). `serveMux121` (maps only) is unaffected.
+- **Who needs it.** S5's mux (`http.Handle`, dispatch; the `RpcHttpServe` instance retiring
+  `net.http.Handle.wp_proof` and `Serve.wp_proof_rpc`).
+- **Workaround.** The mux lemmas take the law as a premise (`wp_mapping_find` takes `h ≠ null`,
+  `Net/Proof/net/http/MuxMapping.lean`).
+- **Proposed change.** mit-pdos/perennial#703: `go.CoreSemantics.structFieldRef_not_null :
+  l ≠ null → structFieldRef V f l ≠ null` (trusted base; review requested from upamanyus).
+- **Status.** PR open (#703), awaiting review.
+
 ### `sync.NewCond.spec` does not say its result is not `nil`; `context.WithValue` names-only (2026-11-23, models-rpc-http)
 
 - **Limitation.** (1) `NewCond.spec`'s post is `isCond c m`, without `⌜c ≠ null⌝` (the struct field
