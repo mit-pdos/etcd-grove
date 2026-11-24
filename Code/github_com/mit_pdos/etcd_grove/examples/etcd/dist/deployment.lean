@@ -148,6 +148,9 @@ noncomputable def nameOk [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def AddrOk [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment.AddrOk"
 
+noncomputable def decimal [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment.decimal"
+
 noncomputable def memberIDs [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment.memberIDs"
 
@@ -759,9 +762,9 @@ noncomputable def nameOk.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- AddrOk is the net extension's addrOk (Lean: Net.addrOk; kvnet.AddrOk's, copied: kvnet is a
-    module of its own): a canonical a.b.c.d:p, the first octet 1-223, the port 1-65535 outside
-    Linux's ephemeral range.
+/-- AddrOk is the net extension's addrOk (Lean: Net.addrOk): a canonical a.b.c.d:p, the first octet
+    1-223, the port 1-65535 outside Linux's ephemeral range. kvnet.AddrOk's code, copied (kvnet is a
+    module of its own), with its decimal helper, so that its proof is reused.
 
     go: deployment.go:246:6 -/
 noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
@@ -769,91 +772,42 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "a" (App (Val (GoInstruction (GoAlloc go.string))) (Var "a"))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
-  (Let "$a1" (Val #(go!":"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Cut []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Fst (Var "__p")))
-  (Let "$ret1" (Snd (Fst (Var "__p")))
-  (Let "$ret2" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "$r2" (Var "$ret2")
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "port" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (Let "host" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "parts" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 5 go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 5 go.string)))) (Val #())))
+  (Let "$r0" (Val #(W64 0))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "start" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 5 go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 5 go.uint64)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "host"))
-  (Let "$a1" (Val #(go!"."))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Split []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "octs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 5 go.int)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 5 go.int)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (If (If (If (If (If (If (If (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (Val #(W64 0))))))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (Val #(W64 0))))) (Val #(W64 224)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (Val #(W64 1))))) (Val #(W64 255)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (Val #(W64 2))))) (Val #(W64 255)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (Val #(W64 3))))) (Val #(W64 255)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (Val #(W64 4))))))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (Val #(W64 4))))) (Val #(W64 65535)))) (Val #false)) (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (Val #(W64 4))))) (Val #(W64 32768)))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Val #(W64 60999)) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (Val #(W64 4)))))))) (Val #false))
+  (Let "$r0" (If (If (If (If (If (If (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.uint64)))) (Pair (Var "v") (Val #(W64 0))))))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.uint64)))) (Pair (Var "v") (Val #(W64 0))))) (Val #(W64 224)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.uint64)))) (Pair (Var "v") (Val #(W64 1))))) (Val #(W64 255)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.uint64)))) (Pair (Var "v") (Val #(W64 2))))) (Val #(W64 255)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.uint64)))) (Pair (Var "v") (Val #(W64 3))))) (Val #(W64 255)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.uint64)))) (Pair (Var "v") (Val #(W64 4))))))) (Val #false)) (If (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.uint64)))) (Pair (Var "v") (Val #(W64 4))))) (Val #(W64 32768)))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (Val #(W64 60999)) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.uint64)))) (Pair (Var "v") (Val #(W64 4)))))))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "octs"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "port"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.Atoi []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 5)))))) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.string)))) (Pair (Var "parts") (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$a1" (Val #(W64 65535))
+  (App (App (App (Val (GoInstruction (FuncResolve decimal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "x" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.Itoa []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$value")))))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "octs"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 4))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "octs") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.uint64)))) (Pair (Var "v") (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -864,18 +818,141 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r2")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "port") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "x") (Var "$r0"))))))))))))))
+  (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "host") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))))
+  (Let "end" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "end")) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 46))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 58)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "start"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "start") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.string)))) (Pair (Var "parts") (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (Var "$r0"))))))))
+  (If (If (If (If (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 5)))) (Val #true) (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "end"))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 46)))) (Val #false)) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 3)))) (Val #false))) (Val #true) (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "end"))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 58)))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 3))))) (Val #false))) (Val #true) (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "end")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 4))))) (Val #false)))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "end") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "start") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- decimal is the value of s as a canonical decimal numeral (digits, at least one, no leading
+    zero), at most max; false otherwise.
+
+    go: deployment.go:276:6 -/
+noncomputable def decimal.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "max"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "max" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "max"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "max"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoMul go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (Val #(W64 10)))) (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (GoOp GoSub go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 48)))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 48)))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 57))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 5))))) (Val #true) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 0)))) (Val #(W8 48)))) (Val #false))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- memberIDs are the member ids etcd computes for d's cluster (Lean: Deployment.ids, memberId):
     membership.NewMember's, from the member's one peer URL as server.Config builds it (http://Peer)
     and the token, as bootstrap does; in the members' order.
 
-    go: deployment.go:271:6 -/
+    go: deployment.go:293:6 -/
 noncomputable def memberIDs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
@@ -922,7 +999,7 @@ noncomputable def memberIDs.impl [GooseExts] [GoGlobalContext] : val :=
 /-- IdsOk is WellFormed's condition 3: the member ids' 16 low bits distinct and nonzero, and, if a
     workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart).
 
-    go: deployment.go:282:6 -/
+    go: deployment.go:304:6 -/
 noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1022,7 +1099,7 @@ noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
     int(w.Kind) under %d: fmt calls no method of a basic-typed argument, which the proof's model of fmt
     needs.)
 
-    go: deployment.go:304:6 -/
+    go: deployment.go:326:6 -/
 noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -1053,9 +1130,9 @@ noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "addrs"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))) (Var "$r0")))))))
-  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
-  (App (App (Val (GoInstruction (FuncResolve AddrOk []))) (Val #())) (Var "$a0")))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val MaxLen))))) (Val #true) (App (App (Val (map.lookup1 go.string go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "addrs"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))))
+  (If (If (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val MaxLen)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
+  (App (App (Val (GoInstruction (FuncResolve AddrOk []))) (Val #())) (Var "$a0"))))) (Val #true) (App (App (Val (map.lookup1 go.string go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "addrs"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))))
   (Let "$r0" (Let "$a0" (Val #(go!"address %q"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "a")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
@@ -1687,6 +1764,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   boundsOk_unfold : FuncUnfold boundsOk [] boundsOk.impl
   nameOk_unfold : FuncUnfold nameOk [] nameOk.impl
   AddrOk_unfold : FuncUnfold AddrOk [] AddrOk.impl
+  decimal_unfold : FuncUnfold decimal [] decimal.impl
   memberIDs_unfold : FuncUnfold memberIDs [] memberIDs.impl
   IdsOk_unfold : FuncUnfold IdsOk [] IdsOk.impl
   WellFormed_unfold : FuncUnfold WellFormed [] WellFormed.impl
@@ -1713,6 +1791,7 @@ attribute [instance] Assumptions.Kind_instance
   Assumptions.boundsOk_unfold
   Assumptions.nameOk_unfold
   Assumptions.AddrOk_unfold
+  Assumptions.decimal_unfold
   Assumptions.memberIDs_unfold
   Assumptions.IdsOk_unfold
   Assumptions.WellFormed_unfold

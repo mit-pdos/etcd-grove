@@ -165,17 +165,17 @@ theorem addrsOk_insert (mp : GMap GoString Bool) (ad : List GoString) (a : GoStr
 set_option hygiene false in
 /-- A call of the `addr` closure on a new address: it fails (an error returned at once) or the address
 is valid, short and new, and is added to `addrs` (`Hok` then holds of the longer list). -/
-local macro "addr_call" : tactic => `(tactic| (
-  wp_apply hAddr as %ab %hab
-  cases ab
-  · simp only [Bool.not_false]
-    err_exit
-  simp only [Bool.not_true]
-  wp_auto
+local macro "addr_call" x:term : tactic => `(tactic| (
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hsl
   wp_if_destruct
   · err_exit
   have hl255 := strlen_le _ 255 Hsl (by decide) Hif
+  wp_apply (hAddr $x (by omega))
+  cases hab : Net.addrOk $x
+  · simp only [Bool.not_false]
+    err_exit
+  simp only [Bool.not_true]
+  wp_auto
   wp_apply (wp_map_lookup1 _ _ am _ _) $$ [Ham] as Ham
   · iframe
   rw [Hok.1]
@@ -188,7 +188,7 @@ local macro "addr_call" : tactic => `(tactic| (
   wp_auto
   wp_apply wp_mapInsert $$ [Ham] as Ham
   · iframe
-  have Hok := addrsOk_insert _ _ _ Hok hin (hab rfl) (by unfold etcd_dist.typed.maxLen; exact hl255)))
+  have Hok := addrsOk_insert _ _ _ Hok hin hab (by unfold etcd_dist.typed.maxLen; exact hl255)))
 
 theorem idx_lt (s : GoSlice) (j len : Nat) (hl : len = sint.nat s.len) (h0l : 0 ≤ sint.Z s.len)
     (hj : j < len) : sint.Z (W64 (j : Int)) < sint.Z s.len := by
@@ -374,8 +374,8 @@ theorem deployment.WellFormed.wp_proof
           obtain ⟨mm, hmm⟩ : ∃ mm, d.members[j]? = some mm := ⟨_, List.getElem?_eq_getElem hj⟩
           wp_apply (wp_load_slice_index v.Members' (sint.Z (W64 (j : Int))) (d.members.map Member.val) DFrac.discard mm.val h0) $$ [] as -
           · iframe #; ipureintro; rw [hsj, List.getElem?_map, hmm]; rfl
-          addr_call
-          addr_call
+          addr_call mm.peer
+          addr_call mm.client
           wp_for_post
           iframe
           iexists (j + 1), _, _
@@ -445,7 +445,7 @@ theorem deployment.WellFormed.wp_proof
                 obtain ⟨x, hx⟩ : ∃ x, ns[k]? = some x := ⟨_, List.getElem?_eq_getElem hk⟩
                 wp_apply (wp_load_slice_index sj (sint.Z (W64 (k : Int))) ns DFrac.discard x h0k) $$ [] as -
                 · iframe #; ipureintro; rw [hsk]; exact hx
-                addr_call
+                addr_call x
                 wp_for_post
                 iframe
                 iexists (k + 1), _, _

@@ -1,15 +1,15 @@
 /-
-`deployment.AddrOk(a)`: the net extension's valid address (soundness: `true` only for one).
-Lean-first (no Rocq counterpart); etcd_safe's deployment check (`notes/etcd-dist-plan.md`, D2).
+`AddrOk(a)` (addrs.go): exactly the net extension's `addrOk a` (`GooseLang/Ext/Net/Impl.lean`), the
+top-level theorem's premise on a replica address (`goAddrOk_eq`). For `a` shorter than `2^63 - 1`
+bytes: its first loop runs `i` up to `len(a)` inclusive, and `i + 1` past `len(a) = 2^63 - 1` would
+wrap (a string no Go program can hold).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Addrs
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -18,21 +18,20 @@ namespace EtcdGrove
 namespace etcd_dist
 
 open Iris Iris.BI
-open github_com.mit_pdos.etcd_grove.examples.etcd.dist
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : deployment.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Assumptions]
 
-/-- `AddrOk(a)` returns `true` only if `Net.addrOk a`. -/
+/-- See the file header. -/
 abbrev deployment.AddrOk.spec : Prop :=
-  ∀ (a : GoString),
+  ∀ (a : GoString), a.length + 1 < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
-    (App (Val (@! deployment.AddrOk)) (Val #a))
-  {{ (b : Bool), RET #b; ⌜b = true → Net.addrOk a = true⌝ }}
+    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.AddrOk)) (Val #a))
+  {{ RET #(Net.addrOk a); True }}
 
 end spec
 
