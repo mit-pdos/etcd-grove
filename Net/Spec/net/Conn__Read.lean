@@ -1,7 +1,7 @@
 /-
 `c.Read(b)` on a `Conn` `c` that is the end `s` of a TCP connection `cn` (`connAt`, with the end's
-addresses `la`, `ra`), through the interface (a `*TCPConn`, whose `Read` is `conn`'s, promoted; the
-model `conn.Read.impl`, `Net/TrustedCode/net.lean`): the extension's `Read` of `len(b)` bytes,
+addresses `la`, `ra`), through the interface (a `*TCPConn`, whose `Read` is `conn`'s, promoted; Go's
+`conn.Read`, over the model's `netFD.Read`): the extension's `Read` of `len(b)` bytes,
 whose outcome (`ReadOutcome`, `GooseLang/Ext/Net/Impl.lean`, D1) the caller takes by a logically
 atomic update over the end's state and the direction towards it (`netEnd`, `netDir`), then the
 bytes copied into `b`. The update's result `Q r` is handed back with what the call returns
@@ -9,6 +9,11 @@ bytes copied into `b`. The update's result `Q r` is handed back with what the ca
 `(0, err)` for a failure of kind `k`, `err` an `*OpError{Op: "read", Source: la, Addr: ra}` whose
 `Err` is the kind's (D14: `net.ErrClosed`, `poll.ErrDeadlineExceeded`'s value `ed`, or an
 `*os.SyscallError` of `"read"`), `b` unchanged. Proved in `Net/Proof/net/Conn__Read.lean`.
+
+(2026-11-24, Go-model overlays S6: decided overnight by the lead, for Upamanyu's review) It takes
+`isPkgInit io` and `isPkgInit internal/poll`: Go's `conn.Read` wraps the error only `if err != nil
+&& err != io.EOF`, which compares with `io.EOF`'s value (an `*errorString`, io's package fact) and
+needs the deadline's error (`*DeadlineExceededError`, poll's) to be neither nil nor `io.EOF`.
 -/
 module
 
@@ -57,7 +62,8 @@ def ReadErr (r : ReadRes) (eof la ra ed err : GoInterface) : IProp GF :=
 abbrev Conn.Read.spec : Prop :=
   ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (b : GoSlice)
     (bs0 : List w8) (eof ed : GoInterface) (Q : ReadRes → IProp GF),
-  {{ connAt (GF := GF) t cn s a la ra ∗ b ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.internal.poll ∗
+      connAt (GF := GF) t cn s a la ra ∗ b ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
       (|={⊤,∅}=> ∃ st d, netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ∗ netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn (!s) d ∗
         ∀ r d', ⌜ReadOutcome st d b.len.toNat r d'⌝ -∗
@@ -74,7 +80,8 @@ for a caller whose own post follows the call at once (a stream reader's `Read` i
 abbrev Conn.Read.specLc : Prop :=
   ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (b : GoSlice)
     (bs0 : List w8) (eof ed : GoInterface) (Q : ReadRes → IProp GF),
-  {{ connAt (GF := GF) t cn s a la ra ∗ b ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.internal.poll ∗
+      connAt (GF := GF) t cn s a la ra ∗ b ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
       (|={⊤,∅}=> ∃ st d, netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ∗ netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn (!s) d ∗
         ∀ r d', ⌜ReadOutcome st d b.len.toNat r d'⌝ -∗
