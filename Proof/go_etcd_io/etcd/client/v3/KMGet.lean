@@ -47,23 +47,24 @@ theorem kv_get_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString) (hpfx
     (Hnp : ¬ opGetPanics gs) (Ht : (opGetModel key gs).t = W64 1)
     (Hx : (opGetModel key gs).getExact)
     (Hlin : (opGetModel key gs).base.serializable = false) (Hsz : opSizeOk (opGetModel key gs)) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ.kv dup ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ isKv api γ.kv dup ∗
         kmInv γ ∗ sortNamesIf (opGetModel key gs).base.sortSet ∗ ctxOk ci cd ∗
         ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Get" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         R ∗ kvGetResultC (EM := etcdModelOfKV γ) pfx lo (opGetModel key gs) resp err ∗
         getRespMore (EM := etcdModelOfKV γ) pfx (opGetModel key gs) resp err ∗
-        statusErrOk err }} := by
-  iintro %Φ ⟨#Pc, #Hkv, #Hinv, #Hsi, #Hctx, #Hce, #Hopts, HR, #Hlo⟩ HΦ
+        statusErrOk err) }} := by
+  iintro %Φ ⟨#Pc, Hlt, #Hkv, #Hinv, #Hsi, #Hctx, #Hce, #Hopts, HR, #Hlo⟩ HΦ
   have hws : (rangeWireOf (opGetModel key gs)).base.serializable = false := by
     rw [(wire_fields _).2.2.2.2.2.2.1]; exact Hlin
   -- the floor: changes the client saw, `lo` of them or more, and the read update after them
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
   ihave #Hau := km_read_au γ l0 $$ [$Hinv $Hl0]
-  iapply (v3.kv.wp_Get api γ.kv dup ci cd key sl gs R (kmSeenQ γ l0)) $$ [HR]
+  iapply (v3.kv.wp_Get api γ.kv dup ci cd key sl gs R (kmSeenQ γ l0)) $$ [Hlt HR]
   · iframe #
+    iframe Hlt
     iframe
     isplitl []
     · ipureintro; exact ⟨Hnp, Ht⟩
@@ -77,8 +78,9 @@ theorem kv_get_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString) (hpfx
     iunfold kvAu at Hau
     iexact Hau
   inext
-  iintro %resp %err ⟨HR, Hout⟩
+  iintro %resp %err ⟨Hlt, HR, Hout⟩
   iapply HΦ
+  iframe Hlt
   iframe HR
   icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
   rotate_left
@@ -207,16 +209,18 @@ theorem isEtcdKVTodo_of_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoStri
       isEtcdKVTodo (EM := etcdModelOfKV γ) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hkv, #Hinv, #Hsn⟩
   unfold isEtcdKVTodo
-  iintro !> %key %sl %gs %R %lo %Φ !> ⟨#Hopts, HR, #Hlo, %Hpre⟩ HΦ
+  iintro !> %key %sl %gs %R %lo %Φ !> ⟨Hlt, #Hopts, HR, #Hlo, %Hpre⟩ HΦ
   obtain ⟨Hnp, Ht, Hx, Hlin, Hsz⟩ := Hpre
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   ihave #Hsi := sortNamesIf_of_ok (opGetModel key gs).base.sortSet $$ Hsn
   iapply (kv_get_km api γ dup pfx hpfx todoCtxVal cd key sl gs R lo Hnp Ht Hx Hlin Hsz)
-    $$ [HR] [HΦ]
+    $$ [Hlt HR] [HΦ]
   · iframe #; iframe
+    (try iframe Hlt)
   inext
-  iintro %resp %err ⟨HR, #Hres, #Hmore, -⟩
+  iintro %resp %err ⟨Hlt, HR, #Hres, #Hmore, -⟩
   iapply HΦ
+  iframe Hlt
   iframe HR Hmore
   iapply (kvGetResultC_R (EM := etcdModelOfKV γ)) $$ Hres
 
@@ -231,7 +235,7 @@ theorem isEtcdKVE_of_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString)
       isEtcdKVE (EM := etcdModelOfKV γ) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hkv, #Hinv, #Hall⟩
   unfold isEtcdKVE
-  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, #HctxO, #Hopts, #Hlo, %Hpre⟩ HΦ
+  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨Hlt, #Hctx, #HctxO, #Hopts, #Hlo, %Hpre⟩ HΦ
   obtain ⟨Hnp, Ht, Hx, Hss, Hlin, Hsz⟩ := Hpre
   ihave #Hsi : sortNamesIf (GF := GF) (opGetModel key gs).base.sortSet $$ []
   · rw [Hss]; unfold sortNamesIf; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
@@ -240,11 +244,13 @@ theorem isEtcdKVE_of_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString)
   ihave #Hok := ctxOk_of_isContext ctx cs $$ [$Hctx $HctxO]
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
   iapply (kv_get_km api γ dup pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx Hlin Hsz)
-    $$ [] [HΦ]
+    $$ [Hlt] [HΦ]
   · iframe #
+    (try iframe Hlt)
   inext
-  iintro %resp %err ⟨-, #Hres, -, #Hse⟩
+  iintro %resp %err ⟨Hlt, -, #Hres, -, #Hse⟩
   iapply HΦ
+  iframe Hlt
   iframe Hres
   iapply errStrOk_of_statusErrOk $$ Hse
 

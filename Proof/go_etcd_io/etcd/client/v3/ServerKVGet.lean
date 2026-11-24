@@ -270,17 +270,17 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     (Hnp : ¬ opGetPanics gs) (Ht : (opGetModel key gs).t = W64 1)
     (Hx : (opGetModel key gs).getExact) (Hsz : opSizeOk (opGetModel key gs))
     (hrb : receiptBound GF ≤ 2 ^ 62) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ∗
         sortNamesIf (opGetModel key gs).base.sortSet ∗ kvRangeAu E γr ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Get" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         R ∗ kvGetResultC (EM := v3rpc.etcdModelOfServer E γr false) pfx lo (opGetModel key gs) resp err ∗
         getRespMore (EM := v3rpc.etcdModelOfServer E γr false) pfx (opGetModel key gs) resp err ∗
-        statusErrOk err }} := by
-  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsi, #Hany, #Hctx, #Hce, #Hopts, HR, #Hlo⟩ HΦ
+        statusErrOk err) }} := by
+  iintro %Φ ⟨#Pc, Hlt, #Hsrd, #Hkv, #Hrpc, #Hsi, #Hany, #Hctx, #Hce, #Hopts, HR, #Hlo⟩ HΦ
   -- the floor (unit W-M3): a witnessed log longer than `lo` (or `lo ≤ 0`), and, for a
   -- linearizable get, the client's read update whose result is that the state read is at least
   -- that log
@@ -313,8 +313,9 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     iexact H0
   ihave #Hus := rangeUpd_srvsAt addr E γr cid mid (rangeWireOf (opGetModel key gs)) Q $$ Hdq
   iapply wp_fupd
-  iapply (v3.kv.wp_GetM api (srvsAt addr E γr cid mid) ci cd key sl gs R (W64 0) F Q) $$ [HR]
+  iapply (v3.kv.wp_GetM api (srvsAt addr E γr cid mid) ci cd key sl gs R (W64 0) F Q) $$ [Hlt HR]
   · iframe #
+    iframe Hlt
     iframe
     isplitl []
     · iapply isKV_srvsAt $$ [Hkv Hrpc]; iframe #
@@ -325,10 +326,11 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     iapply knownAt_srvsAt $$ []
     iframe #
   inext
-  iintro %resp %err ⟨HR, Hout, -⟩
+  iintro %resp %err ⟨Hlt, HR, Hout, -⟩
   imod rangeCallOut_persist _ _ _ $$ Hout with Hout
   imodintro
   iapply HΦ
+  iframe Hlt
   iframe HR
   iunfold rangeCallOutP at Hout
   icases Hout with (⟨%Herr, %m, #Hm, #Hq⟩ | ⟨%Herr, #Hse, -⟩)
@@ -491,21 +493,21 @@ theorem kv_get_server (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AE
     (Hnp : ¬ opGetPanics gs) (Ht : (opGetModel key gs).t = W64 1)
     (Hx : (opGetModel key gs).getExact) (Hsz : opSizeOk (opGetModel key gs))
     (hrb : receiptBound GF ≤ 2 ^ 62) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ∗
         sortNamesOk ∗ kvAnyAu E γr ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Get" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         R ∗ kvGetResultC (EM := v3rpc.etcdModelOfServer E γr false) pfx lo (opGetModel key gs) resp err ∗
         getRespMore (EM := v3rpc.etcdModelOfServer E γr false) pfx (opGetModel key gs) resp err ∗
-        statusErrOk err }} := by
-  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hctx, #Hce, #Hopts, HR, #Hlo⟩ HΦ
+        statusErrOk err) }} := by
+  iintro %Φ ⟨#Pc, Hlt, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hctx, #Hce, #Hopts, HR, #Hlo⟩ HΦ
   ihave #Hr := kvAnyAu_range E γr $$ Hany
   ihave #Hsi := sortNamesIf_of_ok (opGetModel key gs).base.sortSet $$ Hsn
   iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ci cd key sl gs R lo Hnp Ht Hx Hsz hrb)
-    $$ [HR] HΦ
+    $$ [Hlt HR] HΦ
   iframe #; iframe
 
 /-- **A real `*kv` meets the recipes' get contract** (`isEtcdKVTodo`) at the server's model, for a
@@ -521,15 +523,17 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : app
       isEtcdKVTodo (EM := v3rpc.etcdModelOfServer E γr false) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany⟩
   unfold isEtcdKVTodo
-  iintro !> %key %sl %gs %R %lo %Φ !> ⟨#Hopts, HR, #Hlo, %Hpre⟩ HΦ
+  iintro !> %key %sl %gs %R %lo %Φ !> ⟨Hlt, #Hopts, HR, #Hlo, %Hpre⟩ HΦ
   obtain ⟨Hnp, Ht, Hx, -, Hsz⟩ := Hpre
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   iapply (kv_get_server api addr s E γr cid mid pfx hpfx todoCtxVal cd key sl gs R lo Hnp Ht Hx Hsz hrb)
-    $$ [HR] [HΦ]
+    $$ [Hlt HR] [HΦ]
   · iframe #; iframe
+    (try iframe Hlt)
   inext
-  iintro %resp %err ⟨HR, #Hres, #Hmore, -⟩
+  iintro %resp %err ⟨Hlt, HR, #Hres, #Hmore, -⟩
   iapply HΦ
+  iframe Hlt
   iframe HR Hmore
   iapply (kvGetResultC_R (EM := v3rpc.etcdModelOfServer E γr false)) $$ Hres
 
@@ -546,7 +550,7 @@ theorem isEtcdKVE_of_kv_r (api : Loc) (addr : List GoString) (s : Loc) (E : appl
       isEtcdKVE (EM := v3rpc.etcdModelOfServer E γr false) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hany, #Hall⟩
   unfold isEtcdKVE
-  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, #HctxO, #Hopts, #Hlo, %Hpre⟩ HΦ
+  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨Hlt, #Hctx, #HctxO, #Hopts, #Hlo, %Hpre⟩ HΦ
   obtain ⟨Hnp, Ht, Hx, Hss, -, Hsz⟩ := Hpre
   ihave #Hsi : sortNamesIf (GF := GF) (opGetModel key gs).base.sortSet $$ []
   · rw [Hss]; unfold sortNamesIf; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
@@ -555,11 +559,13 @@ theorem isEtcdKVE_of_kv_r (api : Loc) (addr : List GoString) (s : Loc) (E : appl
   ihave #Hok := ctxOk_of_isContext ctx cs $$ [$Hctx $HctxO]
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
   iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx Hsz hrb)
-    $$ [] [HΦ]
+    $$ [Hlt] [HΦ]
   · iframe #
+    (try iframe Hlt)
   inext
-  iintro %resp %err ⟨-, #Hres, -, #Hse⟩
+  iintro %resp %err ⟨Hlt, -, #Hres, -, #Hse⟩
   iapply HΦ
+  iframe Hlt
   iframe Hres
   iapply errStrOk_of_statusErrOk $$ Hse
 
