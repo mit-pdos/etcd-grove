@@ -67,3 +67,4 @@ RaftTla.Proof.go_etcd_io.raft.v3.TracedConfChangeHook  # tracedSpec_of_spec appl
 Proof.os.WriteLong  # os.File.WriteAt.wp_proof_long: os.File.WriteAt.wp_proof applied whole (only the WAL's Link imports it)
 KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopClient  # raft_kvnet.kvcheck_wp_program: over kvnet's Link (raft_kvcheck.wp_Check)
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootBad  # etcd_dist.etcdBootNCBad_holds: over server's and client's wp_initialize' and deployment's Link (wp_WellFormed)
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Start  # putgetK_safe_of_S5: putgetK_safe.spec from the skeleton (TopLevelRobustness) and the adequacy modules' linked boots
