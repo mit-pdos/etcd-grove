@@ -77,10 +77,12 @@ local macro "err_exit" : tactic => `(tactic| (
        · iframe
          iapply strArgOk_list
          intro a ha
-         simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
-         first
-           | (rcases ha with rfl | rfl <;> exact ⟨_, rfl, by first | exact argWf_int _ | exact argWf_string _⟩)
-           | (subst ha; exact ⟨_, rfl, by first | exact argWf_int _ | exact argWf_string _⟩))
+         (try simp only [List.set_cons_zero, List.set_cons_succ, List.mem_cons, List.not_mem_nil, _root_.or_false] at ha)
+         (try simp only [show sint.nat (W64 0) = 0 by rfl, show sint.nat (W64 1) = 1 by rfl, show sint.nat (W64 2) = 2 by rfl,
+           show sint.nat (W64 (0 + 1)) = 1 by rfl, show sint.nat (W64 (1 + 1)) = 2 by rfl,
+           List.set_cons_zero, List.set_cons_succ, List.mem_cons, List.not_mem_nil, _root_.or_false] at ha)
+         rcases ha with rfl | rfl | rfl | rfl <;>
+           exact ⟨_, rfl, by first | exact argWf_int _ | exact argWf_string _⟩)
   (try wp_auto)
   repeat wp_for_post
   iapply HΦ
@@ -106,6 +108,59 @@ theorem kind_known (k : w64) (s : GoSlice) (h1 : ¬ sint.Z k < sint.Z (W64 0))
   have h11 : kindNameList.length = 11 := rfl
   unfold kindKnown
   constructor <;> word
+
+/-- The `addrs` map holds the addresses `ad` checked so far: valid, short, distinct. -/
+def addrsOk (mp : GMap GoString Bool) (ad : List GoString) : Prop :=
+  (∀ k, mp !! k = if k ∈ ad then some true else none) ∧ ad.Nodup ∧
+    ∀ a ∈ ad, Net.addrOk a = true ∧ a.length ≤ etcd_dist.typed.maxLen
+
+theorem addrsOk_nil : addrsOk ∅ [] := ⟨fun k => by simp, List.nodup_nil, fun a h => by simp at h⟩
+
+theorem addrsOk_insert (mp : GMap GoString Bool) (ad : List GoString) (a : GoString)
+    (h : addrsOk mp ad) (hn : a ∉ ad) (ha : Net.addrOk a = true) (hl : a.length ≤ etcd_dist.typed.maxLen) :
+    addrsOk (<[a := true]> mp) (ad ++ [a]) := by
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨fun k => ?_, ?_, fun x hx => ?_⟩
+  · by_cases hk : k = a
+    · subst hk; simp
+    · rw [lookup_insert_ne mp true (Ne.symm hk), h1 k]; simp [hk]
+  · rw [List.nodup_append]
+    refine ⟨h2, by simp, ?_⟩
+    intro x hx y hy hxy
+    simp only [List.mem_singleton] at hy
+    subst hy; subst hxy; exact hn hx
+  · rw [List.mem_append, List.mem_singleton] at hx
+    rcases hx with hx | rfl
+    · exact h3 x hx
+    · exact ⟨ha, hl⟩
+
+set_option hygiene false in
+/-- A call of the `addr` closure on a new address: it fails (an error returned at once) or the address
+is valid, short and new, and is added to `addrs` (`Hok` then holds of the longer list). -/
+local macro "addr_call" : tactic => `(tactic| (
+  wp_apply hAddr as %ab %hab
+  cases ab
+  · simp only [Bool.not_false]
+    err_exit
+  simp only [Bool.not_true]
+  wp_auto
+  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hsl
+  wp_if_destruct
+  · err_exit
+  have hl255 := strlen_le _ 255 Hsl (by decide) Hif
+  wp_apply (wp_map_lookup1 _ _ am _ _) $$ [Ham] as Ham
+  · iframe
+  rw [Hok.1]
+  split
+  · simp only [Option.getD_some]
+    err_exit
+  rename_i hin
+  simp only [Option.getD_none]
+  rw [show (zero_val Bool) = false from rfl]
+  wp_auto
+  wp_apply wp_mapInsert $$ [Ham] as Ham
+  · iframe
+  have Hok := addrsOk_insert _ _ _ Hok hin (hab rfl) (by unfold etcd_dist.typed.maxLen; exact hl255)))
 
 theorem deployment.WellFormed.wp_proof
     (hNameOk : etcd_dist.deployment.nameOk.spec (GF := GF) (hG := hG))
@@ -255,7 +310,51 @@ theorem deployment.WellFormed.wp_proof
           · rw [decide_eq_false hb]
             simp only [Bool.not_false]
             err_exit
-    · skip
+    · have hjl := idx_end _ _ _ Hlw.1 Hlw.2 Hif Hk1
+      subst hjl
+      rw [List.take_length] at Hk2
+      ihave %Hln := ownSlice_len _ _ _ $$ Hn
+      ihave %Hlns := BigSepL2.bigSepL2_length $$ Hns
+      by_cases hnl : v.Nodes'.len = v.Workloads'.len
+      · simp only [hnl, _root_.decide_true, Bool.not_true]
+        wp_auto
+        have hnl' : d.nodes.length = d.workloads.length := by
+          rw [← Hlns]; rw [Hln.1, Hlw.1, hnl]
+        wp_apply (wp_map_make1 (K := GoString) (V := Bool)) as %am Ham
+        ihave HA : (∃ (j : Nat) (mv : deployment.Member) (mpA : GMap GoString Bool),
+            "i" ∷ i_ptr ↦ W64 j ∗ "m" ∷ m_ptr ↦ mv ∗ "Ham" ∷ am ↦$ mpA ∗
+            "%Hj" ∷ ⌜j ≤ d.members.length ∧
+              addrsOk mpA ((d.members.take j).flatMap (fun m => [m.peer, m.client]))⌝ : IProp GF)
+          $$ [i m Ham]
+        · iexists 0, _, ∅
+          iframe
+          ipureintro
+          exact ⟨by omega, addrsOk_nil⟩
+        wp_for HA
+        obtain ⟨Hj1', Hok⟩ := Hj
+        wp_if_destruct
+        · obtain ⟨hj, h0, hsj, hw⟩ := idx_facts _ _ _ Hlm.1 Hlm.2 Hif Hj1'
+          simp only [h0, Hif, and_self, ↓reduceIte]
+          obtain ⟨mm, hmm⟩ : ∃ mm, d.members[j]? = some mm := ⟨_, List.getElem?_eq_getElem hj⟩
+          wp_apply (wp_load_slice_index v.Members' (sint.Z (W64 (j : Int))) (d.members.map Member.val) DFrac.discard mm.val h0) $$ [] as -
+          · iframe #; ipureintro; rw [hsj, List.getElem?_map, hmm]; rfl
+          addr_call
+          addr_call
+          wp_for_post
+          iframe
+          iexists (j + 1), _, _
+          rw [hw]
+          iframe
+          ipureintro
+          refine ⟨by omega, ?_⟩
+          have e : (d.members.take (j + 1)).flatMap (fun m => [m.peer, m.client]) =
+              (d.members.take j).flatMap (fun m => [m.peer, m.client]) ++ [mm.peer] ++ [mm.client] := by
+            rw [List.take_add_one, hmm]; simp
+          rw [e]; exact Hok
+        · skip
+      · rw [decide_eq_false hnl]
+        (try simp only [Bool.not_false])
+        err_exit
 
 end proof
 
