@@ -250,7 +250,7 @@ non-`nil` logger, an exclusive event token through the field methods and `Msg`; 
 and the environment assumption `os.signal.NoSignals quietSigs` (nobody sends SIGINT or SIGTERM to the
 deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
 `log.Println` is proved from Perennial's trusted model of `log`; `math/rand`'s initializer and
-package-level `Intn` from Perennial's proofs (math-rand-isinit, 2026-11-24). Proved in
+package-level `Intn` from Perennial's proofs. Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.''',
         imports=['public import Net.Statement.DistDeploy', 'public import Robustness.Statement', 'public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared', 'public import Dsverify.Proof.github_com.rs.zerolog.Init', 'public import Dsverify.Proof.github_com.rs.zerolog.Spec', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec', 'public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init', 'public import Dsverify.Proof.github_com.go_redis.redis.v8.Init', 'public import Dsverify.Proof.os.signal.Init', 'public import Dsverify.Proof.os.signal.Spec', 'public import Dsverify.Proof.math.rand.Spec'],
         opens=['open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)'],
