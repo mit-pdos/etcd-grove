@@ -5,6 +5,7 @@ module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.putFragment
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.putHeader
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.putUint32
 
 @[expose] public section
 
@@ -26,7 +27,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 
 theorem putFragment.wp_proof
-    (wp_putHeader : putHeader.spec (GF := GF) (hG := hG)) :
+    (wp_putHeader : putHeader.spec (GF := GF) (hG := hG))
+    (wp_putUint32 : putUint32.spec (GF := GF) (hG := hG)) :
     putFragment.spec (GF := GF) (hG := hG) := by
   sorry
 

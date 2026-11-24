@@ -4,6 +4,7 @@ The proof of `KvNet/Spec/.../kvnet/putHeader.lean` (kvudp, phase 2: `notes/kvudp
 module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.putHeader
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.putUint32
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.putUint64
 
 @[expose] public section
@@ -26,6 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 
 theorem putHeader.wp_proof
+    (wp_putUint32 : putUint32.spec (GF := GF) (hG := hG))
     (wp_putUint64 : putUint64.spec (GF := GF) (hG := hG)) :
     putHeader.spec (GF := GF) (hG := hG) := by
   sorry

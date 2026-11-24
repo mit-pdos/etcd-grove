@@ -74,9 +74,9 @@ structure UdpNames where
   his : GName
 
 /-- The names' invariant's namespace. -/
-def udpMsgN : Namespace := nroot .@ "kvudp" .@ "msgs"
+def udpMsgN : Namespace := (nroot .@ "kvudp") .@ "msgs"
 /-- The addresses' invariants' namespace (one namespace: no proof opens two at once). -/
-def udpSentN : Namespace := nroot .@ "kvudp" .@ "sent"
+def udpSentN : Namespace := (nroot .@ "kvudp") .@ "sent"
 
 /-- **The names' facts** (see the file header). -/
 def UdpMsgOk (M : GMap MsgKey (List w8)) (T : GMap MsgKey Bool) (C : GMap (w64 × w64) w64)
@@ -203,7 +203,7 @@ def udpNetLockInv (γu : UdpNames) (u : Loc) (id boot : w64) : IProp GF :=
 
 /-- **The process's endpoint** `u` of replica `id`, boot number `boot` (see the file header). -/
 def isUdpNet (F : KvFacts GF) (γu : UdpNames) (u : Loc) (id boot : w64) : IProp GF :=
-  iprop(∃ (c : Loc) (s : w64) (a : GoString) (am : Loc) (A : GMap w64 Loc),
+  iprop(□ ∃ (c : Loc) (s : w64) (a : GoString) (am : Loc) (A : GMap w64 Loc),
     u.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.udpNet, go!"id"] ↦□ id ∗
     u.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.udpNet, go!"conn"] ↦□ c ∗
     net.udpConnAt c s a ∗ udpAddrInv F γu a ∗
@@ -283,15 +283,15 @@ def chunkSlot (F : KvFacts GF) (γu : UdpNames) (k : MsgKey) (n i : Nat) (c : Go
 /-- **A message in progress** `p`, of the sender `src` (see the file header): its name, its chunks
 (`have` of them arrived). -/
 def ownPartial (F : KvFacts GF) (γu : UdpNames) (src : w64) (p : Loc) : IProp GF :=
-  iprop(∃ (id : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.msgID) (cs : GoSlice)
+  iprop(∃ (mid : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.msgID) (cs : GoSlice)
       (chs : List GoSlice) (hv tp : w32) (got : List Bool),
-    p.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.«partial», go!"id"] ↦ id ∗
+    p.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.«partial», go!"id"] ↦ mid ∗
     p.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.«partial», go!"chunks"] ↦ cs ∗
     p.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.«partial», go!"have"] ↦ hv ∗
     p.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.«partial», go!"top"] ↦ tp ∗
-    cs ↦* chs ∗ ⌜got.length = chs.length ∧ uint.nat hv = (got.filter id).length⌝ ∗
+    cs ↦* chs ∗ ⌜got.length = chs.length ∧ uint.nat hv = (got.filter (fun x => x)).length⌝ ∗
     [∗list] i ↦ c ∈ chs,
-      chunkSlot F γu (src, id.boot', id.seq') chs.length i c ∗ ⌜(got[i]? = some true) ↔ c ≠ slice.nil⌝)
+      chunkSlot F γu (src, mid.boot', mid.seq') chs.length i c ∗ ⌜(got[i]? = some true) ↔ c ≠ slice.nil⌝)
 
 /-- **The reassembler** `r`, the receiver's (see the file header). -/
 def ownReassembler (F : KvFacts GF) (γu : UdpNames) (r : Loc) : IProp GF :=

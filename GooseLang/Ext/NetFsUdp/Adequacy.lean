@@ -70,7 +70,17 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- Ghost state for kvudp: `NetFs.kvnetGF`'s slots (the three extensions need only the universal
 camera, `AllG`, at slot 0). -/
-noncomputable def kvudpGF : BundledGFunctors := NetFs.kvnetGF
+noncomputable def kvudpGF : BundledGFunctors := fun
+  | 0 => ⟨AllURF, inferInstance⟩
+  | 1 => ⟨InvMapF, inferInstance⟩
+  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
+  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
+  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
+  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
+  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)), inferInstance⟩
+  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
+  | 8 => ⟨NaInvF, inferInstance⟩
+  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- iris-lean's camera of non-atomic invariants, at slot 8. -/
 instance kvudpGF_naInvG : NaInvG kvudpGF := ⟨⟨8, rfl⟩⟩

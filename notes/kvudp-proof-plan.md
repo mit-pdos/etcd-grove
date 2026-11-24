@@ -75,6 +75,7 @@ only `isNode` and the untraced cluster (`node.ReportSnapshot.spec`), which `isUd
 ## The specs, one line each
 
 Pure (`UdpWire.lean` models):
+* `putUint32(buf, x)`: `buf ++ u32Le x`, cap kept (as `putUint64`).
 * `putHeader(buf, ...)`: `buf ++ headerBytes ...`, cap kept.
 * `putFragment(...)`: a new slice `fragBytes ...`; `putAck(...)`: `ackBytes ...`.
 * `getDatagram(b)`: `parseDg bs`: `some dg` → `true` and `dgOwn d dg`; `none` → `false`.
@@ -135,7 +136,7 @@ the counter), `udp_record` (token → `udpMsgAt`), `udp_boot_bump` (the sync's g
 
 Each `Proof/K/<fn>.lean` declares `<fn>.wp_proof` taking its callees' specs (the files' hypotheses).
 For `etc/gen-link.py` (KvNet's list, `etc/link-lean-first-kvnet*.txt` or wherever the TCP functions
-are listed): add the 35 functions `putHeader, putFragment, putAck, getDatagram, fragments, parseAddr,
+are listed): add the 36 functions `putUint32, putHeader, putFragment, putAck, getDatagram, fragments, parseAddr,
 udpAddr, timer, udpNet.{nextSeq, expectAck, forgetAck, acked, write, newTransport, receive, stepper,
 ack, handle}, udpTransport.{start, stop, Send, dropped, writeAll, runPeer, sendSnapshot},
 newReassembler, reassembler.{add, remember}, BootFileOf, nextBoot, listenUDP, openUDP, startNodeUDP,
@@ -145,8 +146,9 @@ RunUDP, RunNodeUDP`. The parametrized ones are linked at kvnet's instantiation: 
 `kvNodeStart γ vs dir`, callees `startNode`, `start`, `stopIncarnation` at the same, `openUDP`,
 `udpNet.newTransport`); `RunUDP`, `RunNodeUDP` at `F rep cf S` (as `Run`, `RunNode`). Perennial callees
 not yet hypotheses (phase 2 adds them): `time.Sleep`, `time.AfterFunc` (as `listen.lean`, via
-`Perennial.Proof.time.Link`), `littleEndian.Uint32/Uint64`, and `littleEndian.AppendUint32` (**no spec in
-Perennial**: a Perennial change, `notes/perennial-changes.md`).
+`Perennial.Proof.time.Link`), `littleEndian.Uint32/Uint64/PutUint32`. (The Go used
+`binary.LittleEndian.AppendUint32`, which has no Perennial spec; it now calls a helper `putUint32`,
+`PutUint32` into a `[4]byte` then `append`, as `putUint64`: commit `4d73d2d950`.)
 
 ## Design risks
 
@@ -157,15 +159,12 @@ Perennial**: a Perennial change, `notes/perennial-changes.md`).
    `kvGen`/`kvGen_boot`/`kvGen_crash` generalized to leave the other names' claim (and `durFound` of the
    boot file) to the caller. A change to `WalTester/`'s `durable` (`Boot.lean`) and to the kvnet lead's
    `TopBoot.lean`; the call permission of the root is split between the two (`qc`).
-2. **`littleEndian.AppendUint32`** has no Perennial spec (`putHeader`, `putFragment`).
-3. **The reassembler's `chunks[i] != nil`.** `ownPartial` tracks which chunks arrived by a ghost list
+2. **The reassembler's `chunks[i] != nil`.** `ownPartial` tracks which chunks arrived by a ghost list
    (`got`), tied to `c ≠ slice.nil`; the proof must show a chunk `getDatagram` copies is non-nil
    (`append([]byte(nil), nonempty...)`).
-4. **`received`'s channel.** `isChanBag` needs `Pos.Countable received` (defined in `UdpDefs.lean`) and
+3. **`received`'s channel.** `isChanBag` needs `Pos.Countable received` (defined in `UdpDefs.lean`) and
    `IntoValTyped received`; the generated `IntoValTypedUnderlying` should give it.
-5. **`GooseLang/Ext/Udp/Specs.lean`** did not compile on this branch (`recvVal` without `[GooseExts]`):
-   fixed here with the two instance binders (the UDP extension's owner should take the fix).
-6. **Datagrams from outside.** The address invariants hold only the deployment's datagrams: the
+4. **Datagrams from outside.** The address invariants hold only the deployment's datagrams: the
    statement's closed-world assumption (prose, as kvnet's TCP one).
 
 ## The partition (riskiest first; disjoint files)
@@ -182,5 +181,5 @@ Perennial**: a Perennial change, `notes/perennial-changes.md`).
 6. **Endpoint and transport plumbing** (`udpNet.{expectAck, forgetAck, acked, newTransport}`,
    `udpTransport.{start, stop, Send, dropped}`): mirrors TCP's.
 7. **Pure helpers** (`UdpWire.lean`'s laws; `putHeader`, `putFragment`, `putAck`, `getDatagram`,
-   `fragments`, `parseAddr`, `udpAddr`, `timer`; with risk 2's Perennial spec).
+   `fragments`, `parseAddr`, `udpAddr`, `timer`, `putUint32`).
 8. **Entry** (`listenUDP`, `openUDP`, `startNodeUDP`, `RunUDP`, `RunNodeUDP`).

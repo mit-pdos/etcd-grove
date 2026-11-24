@@ -66,7 +66,7 @@ structure UdpBootNames where
   tk : GName
 
 /-- The boot invariant's namespace. -/
-def udpBootN : Namespace := nroot .@ "kvudp" .@ "boot"
+def udpBootN : Namespace := (nroot .@ "kvudp") .@ "boot"
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [HasExt udpExt]
