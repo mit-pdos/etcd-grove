@@ -174,7 +174,7 @@ theorem master.Master.Run.wp_proof_full
   wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
       [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
       _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int (W64 7001)) .nil)
-    $$ [$Hs3] as %str ⟨-, %Hstr⟩
+      $$ [$Hs3] as %str ⟨-, %Hstr⟩
   rw [master.sprintf_colon_d _ _ Hstr, hport]
   wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv %lerr Hl
   · iapply RpcHttpAddr.rpcLisP_lis W go!":7001" _ _ $$ Hlp
@@ -234,9 +234,9 @@ theorem master.Master.Run.wp_proof_full
       iintro %s5 ⟨Hs5, -⟩
       wp_auto
       wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
-      [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
-      _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int (W64 7001))
-        .nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
+          [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+          _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int (W64 7001))
+          .nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
       rw [master.sprintf_colon_d _ _ Hstr', hport]
       wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv2 %lerr2 Hl
       · iapply RpcHttpAddr.rpcLisP_lis W go!":7001" _ _ $$ Hlp

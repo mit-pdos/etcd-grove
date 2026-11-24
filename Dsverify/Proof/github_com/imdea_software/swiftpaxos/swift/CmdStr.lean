@@ -63,9 +63,9 @@ theorem swift.CommandId.String.wp_proof : swift.CommandId.String.specS swift.cmd
   wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%v,%v"
       [.dir none _root_.Perennial.fmt.verb_v, .lit go!",", .dir none _root_.Perennial.fmt.verb_v]
       _ _ _ _ (by fmt_encode) (by fmt_fits)
-    (.int _ _ _ _ (.int32 _)
+      (.int _ _ _ _ (.int32 _)
       (.int _ _ _ _ (.int32 _) .nil))
-    $$ [Hlit] as %s ⟨-, %Hout⟩
+      $$ [Hlit] as %s ⟨-, %Hout⟩
   · iexact Hlit
   rw [swift.SprintfOut_v_comma_v _ _ _ Hout,
     show fmt.decimal (sint.Z x.ClientId') ++ W8 44 :: fmt.decimal (sint.Z x.SeqNum') =
@@ -92,9 +92,9 @@ theorem swift.CommandId.String.wp_proofI : swift.CommandId.String.specI := by
   wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%v,%v"
       [.dir none _root_.Perennial.fmt.verb_v, .lit go!",", .dir none _root_.Perennial.fmt.verb_v]
       _ _ _ _ (by fmt_encode) (by fmt_fits)
-    (.int _ _ _ _ (.int32 _)
+      (.int _ _ _ _ (.int32 _)
       (.int _ _ _ _ (.int32 _) .nil))
-    $$ [Hlit] as %s ⟨-, -⟩
+      $$ [Hlit] as %s ⟨-, -⟩
   · iexact Hlit
   iapply HΦ
   iframe

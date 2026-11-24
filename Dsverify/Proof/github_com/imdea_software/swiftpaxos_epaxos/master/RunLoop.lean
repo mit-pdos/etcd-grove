@@ -206,10 +206,10 @@ theorem Master.run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
       · ipureintro; rfl
       iintro %fa ⟨Hfa, -⟩
       wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
-        [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
-        _ [interface.mkOk go.string #(replicaIp k), interface.mkOk go.int #(portOf k + W64 1000)] _ _
-        (by fmt_encode) (by fmt_fits) (.str _ _ _ (.int _ _ _ _ (.int _) .nil))
-        $$ [$Hfmt $Hfa] as %out ⟨-, %Hout⟩
+          [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+          _ [interface.mkOk go.string #(replicaIp k), interface.mkOk go.int #(portOf k + W64 1000)] _ _
+          (by fmt_encode) (by fmt_fits) (.str _ _ _ (.int _ _ _ _ (.int _) .nil))
+          $$ [$Hfmt $Hfa] as %out ⟨-, %Hout⟩
       have hout := sprintf_str_colon_int _ _ _ Hout
       have hk6 : k ≤ 6 := by
         simp only [replicaNodes, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hkr; omega

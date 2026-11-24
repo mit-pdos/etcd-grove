@@ -51,6 +51,7 @@ theorem NewInternalError.wp_proof : NewInternalError.spec (GF := GF) (hG := hG) 
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
+  iapply wp_fupd
   wp_apply (_root_.Perennial.fmt.wp_Sprintf go!"Internal error occurred: %v"
       [.lit go!"Internal error occurred: ", .dir none _root_.Perennial.fmt.verb_v] _
       [GoInterface.ok ei] [.method fun _ => True] (DFrac.own 1) (by fmt_encode) (by fmt_fits))

@@ -354,11 +354,11 @@ theorem Conf.String.wp_proof : Conf.String.spec := fun p v dq => by
   wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"replicas %d, fast reads %d, pool level %d, max descriptor routines %d"
       [.lit go!"replicas ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", fast reads ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", pool level ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", max descriptor routines ", .dir none _root_.Perennial.fmt.verb_d]
       _ _ _ _ (by fmt_encode) (by fmt_fits)
-    (.int _ _ _ _ (.uint64 _)
+      (.int _ _ _ _ (.uint64 _)
       (.int _ _ _ _ (.uint64 _)
         (.int _ _ _ _ (.uint64 _)
           (.int _ _ _ _ (.uint64 _) .nil))))
-    $$ [Hlit] as %str ⟨-, -⟩
+      $$ [Hlit] as %str ⟨-, -⟩
   · iexact Hlit
   iapply HΦ
   iframe

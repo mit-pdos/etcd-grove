@@ -175,7 +175,7 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
   wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
       [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
       _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int _)
-    .nil) $$ [$Hfmt $Hsl3] as %addr ⟨-, %Haddr⟩
+      .nil) $$ [$Hfmt $Hsl3] as %addr ⟨-, %Haddr⟩
   have haddr := sprintf_colon_int _ _ Haddr
   have h7501 : go!":" ++ fmt.decimal (sint.Z (W64 7501)) = go!":7501" := by
     rw [show sint.Z (W64 7501) = 7501 by rfl]

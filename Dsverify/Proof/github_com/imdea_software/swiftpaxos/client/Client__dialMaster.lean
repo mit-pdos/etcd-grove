@@ -56,7 +56,7 @@ theorem client.Client.dialMaster.wp_proof
   wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
       [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
       _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ (.int _ _ _ _
-    (.int v.masterPort') .nil)) $$ [$Hasl] as %str ⟨-, %Hs⟩
+      (.int v.masterPort') .nil)) $$ [$Hasl] as %str ⟨-, %Hs⟩
   have Hs := master.sprintf_str_d _ _ str Hs
   have hport := client.cn.masterAddr_port Hv.2
   rw [master.decimal_addrPort _ _ (by rw [hport]; decide), Hv.2] at Hs

@@ -67,12 +67,20 @@ def ownedPkgs : List GoString :=
 /-- A program's table gives every package of `swiftnet`'s import closure its fact. -/
 structure KitG (G : GoString → IProp GF) : Prop where
   e_errors : G pkg_id.errors = isPkgInit (PROP := IProp GF) pkg_id.errors
+  e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
+  e_math_bits : G pkg_id.math.bits = isPkgInit (PROP := IProp GF) pkg_id.math.bits
+  e_internal_strconv : G pkg_id.internal.strconv = isPkgInit (PROP := IProp GF) pkg_id.internal.strconv
+  e_internal_stringslite : G pkg_id.internal.stringslite = isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite
+  e_unicode_utf8 : G pkg_id.unicode.utf8 = isPkgInit (PROP := IProp GF) pkg_id.unicode.utf8
+  e_strconv : G pkg_id.strconv = isPkgInit (PROP := IProp GF) pkg_id.strconv
   e_sync_atomic : G pkg_id.sync.atomic = isPkgInit (PROP := IProp GF) pkg_id.sync.atomic
   e_internal_sync : G pkg_id.internal.sync = isPkgInit (PROP := IProp GF) pkg_id.internal.sync
   e_internal_race : G pkg_id.internal.race = isPkgInit (PROP := IProp GF) pkg_id.internal.race
   e_internal_synctest : G pkg_id.internal.synctest = isPkgInit (PROP := IProp GF) pkg_id.internal.synctest
   e_sync : G pkg_id.sync = isPkgInit (PROP := IProp GF) pkg_id.sync
   e_io : G pkg_id.io = isPkgInit (PROP := IProp GF) pkg_id.io
+  e_internal_abi : G pkg_id.internal.abi = isPkgInit (PROP := IProp GF) pkg_id.internal.abi
+  e_reflect : G pkg_id.reflect = isPkgInit (PROP := IProp GF) pkg_id.reflect
   e_fmt : G pkg_id.fmt = isPkgInit (PROP := IProp GF) pkg_id.fmt
   e_log : G pkg_id.log = isPkgInit (PROP := IProp GF) pkg_id.log
   e_math_rand : G pkg_id.math.rand = isPkgInit (PROP := IProp GF) pkg_id.math.rand
@@ -90,18 +98,12 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_net_url : G pkg_id.net.url = isPkgInit (PROP := IProp GF) pkg_id.net.url
   e_cmp : G pkg_id.cmp = isPkgInit (PROP := IProp GF) pkg_id.cmp
   e_iter : G pkg_id.iter = isPkgInit (PROP := IProp GF) pkg_id.iter
-  e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
-  e_math_bits : G pkg_id.math.bits = isPkgInit (PROP := IProp GF) pkg_id.math.bits
   e_slices : G pkg_id.slices = isPkgInit (PROP := IProp GF) pkg_id.slices
   e_internal_bytealg : G pkg_id.internal.bytealg = isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg
-  e_unicode_utf8 : G pkg_id.unicode.utf8 = isPkgInit (PROP := IProp GF) pkg_id.unicode.utf8
-  e_internal_stringslite : G pkg_id.internal.stringslite = isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite
   e_strings : G pkg_id.strings = isPkgInit (PROP := IProp GF) pkg_id.strings
   e_vendor_golang_org_x_net_http_httpguts : G pkg_id.vendor.golang_org.x.net.http.httpguts = isPkgInit (PROP := IProp GF) pkg_id.vendor.golang_org.x.net.http.httpguts
   e_net_textproto : G pkg_id.net.textproto = isPkgInit (PROP := IProp GF) pkg_id.net.textproto
   e_mime_multipart : G pkg_id.mime.multipart = isPkgInit (PROP := IProp GF) pkg_id.mime.multipart
-  e_internal_strconv : G pkg_id.internal.strconv = isPkgInit (PROP := IProp GF) pkg_id.internal.strconv
-  e_strconv : G pkg_id.strconv = isPkgInit (PROP := IProp GF) pkg_id.strconv
   e_path : G pkg_id.path = isPkgInit (PROP := IProp GF) pkg_id.path
   e_bytes : G pkg_id.bytes = isPkgInit (PROP := IProp GF) pkg_id.bytes
   e_bufio : G pkg_id.bufio = isPkgInit (PROP := IProp GF) pkg_id.bufio
@@ -116,8 +118,6 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_github_com_goose_lang_primitive : G pkg_id.github_com.goose_lang.primitive = isPkgInit (PROP := IProp GF) pkg_id.github_com.goose_lang.primitive
   e_github_com_google_uuid : G pkg_id.github_com.google.uuid = isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid
   e_math : G pkg_id.math = isPkgInit (PROP := IProp GF) pkg_id.math
-  e_internal_abi : G pkg_id.internal.abi = isPkgInit (PROP := IProp GF) pkg_id.internal.abi
-  e_reflect : G pkg_id.reflect = isPkgInit (PROP := IProp GF) pkg_id.reflect
   e_encoding_binary : G pkg_id.encoding.binary = isPkgInit (PROP := IProp GF) pkg_id.encoding.binary
   e_encoding_hex : G pkg_id.encoding.hex = isPkgInit (PROP := IProp GF) pkg_id.encoding.hex
   e_github_com_emirpasic_gods_utils : G pkg_id.github_com.emirpasic.gods.utils = isPkgInit (PROP := IProp GF) pkg_id.github_com.emirpasic.gods.utils
@@ -150,6 +150,30 @@ theorem wf_errors {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.errors G :=
   And.intro h.e_errors True.intro
 
+theorem wf_unsafe {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.«unsafe» G :=
+  And.intro h.e_unsafe True.intro
+
+theorem wf_math_bits {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.math.bits G :=
+  And.intro h.e_math_bits ⟨wf_unsafe h, True.intro⟩
+
+theorem wf_internal_strconv {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.strconv G :=
+  And.intro h.e_internal_strconv ⟨wf_math_bits h, True.intro⟩
+
+theorem wf_internal_stringslite {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.stringslite G :=
+  And.intro h.e_internal_stringslite True.intro
+
+theorem wf_unicode_utf8 {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.unicode.utf8 G :=
+  And.intro h.e_unicode_utf8 True.intro
+
+theorem wf_strconv {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.strconv G :=
+  And.intro h.e_strconv ⟨wf_errors h, wf_internal_strconv h, wf_internal_stringslite h, wf_unicode_utf8 h, True.intro⟩
+
 theorem wf_sync_atomic {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.sync.atomic G :=
   And.intro h.e_sync_atomic True.intro
@@ -174,9 +198,17 @@ theorem wf_io {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.io G :=
   And.intro h.e_io ⟨wf_errors h, wf_sync h, True.intro⟩
 
+theorem wf_internal_abi {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.abi G :=
+  And.intro h.e_internal_abi True.intro
+
+theorem wf_reflect {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.reflect G :=
+  And.intro h.e_reflect ⟨wf_internal_abi h, True.intro⟩
+
 theorem wf_fmt {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.fmt G :=
-  And.intro h.e_fmt ⟨wf_errors h, wf_io h, wf_sync h, True.intro⟩
+  And.intro h.e_fmt ⟨wf_errors h, wf_strconv h, wf_unicode_utf8 h, wf_io h, wf_reflect h, wf_sync h, True.intro⟩
 
 theorem wf_log {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.log G :=
@@ -242,14 +274,6 @@ theorem wf_iter {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.iter G :=
   And.intro h.e_iter True.intro
 
-theorem wf_unsafe {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.«unsafe» G :=
-  And.intro h.e_unsafe True.intro
-
-theorem wf_math_bits {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.math.bits G :=
-  And.intro h.e_math_bits ⟨wf_unsafe h, True.intro⟩
-
 theorem wf_slices {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.slices G :=
   And.intro h.e_slices ⟨wf_cmp h, wf_iter h, wf_math_bits h, True.intro⟩
@@ -257,14 +281,6 @@ theorem wf_slices {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_internal_bytealg {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.bytealg G :=
   And.intro h.e_internal_bytealg True.intro
-
-theorem wf_unicode_utf8 {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.unicode.utf8 G :=
-  And.intro h.e_unicode_utf8 True.intro
-
-theorem wf_internal_stringslite {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.stringslite G :=
-  And.intro h.e_internal_stringslite True.intro
 
 theorem wf_strings {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.strings G :=
@@ -281,14 +297,6 @@ theorem wf_net_textproto {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_mime_multipart {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.mime.multipart G :=
   And.intro h.e_mime_multipart ⟨wf_net_textproto h, True.intro⟩
-
-theorem wf_internal_strconv {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.strconv G :=
-  And.intro h.e_internal_strconv ⟨wf_math_bits h, True.intro⟩
-
-theorem wf_strconv {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.strconv G :=
-  And.intro h.e_strconv ⟨wf_errors h, wf_internal_strconv h, wf_internal_stringslite h, wf_unicode_utf8 h, True.intro⟩
 
 theorem wf_path {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.path G :=
@@ -345,14 +353,6 @@ theorem wf_github_com_google_uuid {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_math {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.math G :=
   And.intro h.e_math True.intro
-
-theorem wf_internal_abi {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.abi G :=
-  And.intro h.e_internal_abi True.intro
-
-theorem wf_reflect {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.reflect G :=
-  And.intro h.e_reflect ⟨wf_internal_abi h, True.intro⟩
 
 theorem wf_encoding_binary {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.encoding.binary G :=
@@ -467,6 +467,36 @@ theorem wfO_errors {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.errors ∉ ownedPkgs) (hS _ hm))).trans
     h.e_errors) True.intro
 
+theorem wfO_unsafe {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.«unsafe» (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.«unsafe» ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_unsafe) True.intro
+
+theorem wfO_math_bits {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math.bits (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math.bits ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_math_bits) ⟨wfO_unsafe h S hS, True.intro⟩
+
+theorem wfO_internal_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.strconv (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.strconv ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_strconv) ⟨wfO_math_bits h S hS, True.intro⟩
+
+theorem wfO_internal_stringslite {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.stringslite (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.stringslite ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_stringslite) True.intro
+
+theorem wfO_unicode_utf8 {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.unicode.utf8 (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.unicode.utf8 ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_unicode_utf8) True.intro
+
+theorem wfO_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.strconv (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.strconv ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_strconv) ⟨wfO_errors h S hS, wfO_internal_strconv h S hS, wfO_internal_stringslite h S hS, wfO_unicode_utf8 h S hS, True.intro⟩
+
 theorem wfO_sync_atomic {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.sync.atomic (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.sync.atomic ∉ ownedPkgs) (hS _ hm))).trans
@@ -497,10 +527,20 @@ theorem wfO_io {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.io ∉ ownedPkgs) (hS _ hm))).trans
     h.e_io) ⟨wfO_errors h S hS, wfO_sync h S hS, True.intro⟩
 
+theorem wfO_internal_abi {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.abi (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.abi ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_abi) True.intro
+
+theorem wfO_reflect {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.reflect (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.reflect ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_reflect) ⟨wfO_internal_abi h S hS, True.intro⟩
+
 theorem wfO_fmt {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.fmt (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.fmt ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_fmt) ⟨wfO_errors h S hS, wfO_io h S hS, wfO_sync h S hS, True.intro⟩
+    h.e_fmt) ⟨wfO_errors h S hS, wfO_strconv h S hS, wfO_unicode_utf8 h S hS, wfO_io h S hS, wfO_reflect h S hS, wfO_sync h S hS, True.intro⟩
 
 theorem wfO_log {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.log (gOff S G) :=
@@ -582,16 +622,6 @@ theorem wfO_iter {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.iter ∉ ownedPkgs) (hS _ hm))).trans
     h.e_iter) True.intro
 
-theorem wfO_unsafe {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.«unsafe» (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.«unsafe» ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_unsafe) True.intro
-
-theorem wfO_math_bits {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math.bits (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math.bits ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_math_bits) ⟨wfO_unsafe h S hS, True.intro⟩
-
 theorem wfO_slices {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.slices (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.slices ∉ ownedPkgs) (hS _ hm))).trans
@@ -601,16 +631,6 @@ theorem wfO_internal_bytealg {G : GoString → IProp GF} (h : KitG G) (S : List 
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.bytealg (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.bytealg ∉ ownedPkgs) (hS _ hm))).trans
     h.e_internal_bytealg) True.intro
-
-theorem wfO_unicode_utf8 {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.unicode.utf8 (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.unicode.utf8 ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_unicode_utf8) True.intro
-
-theorem wfO_internal_stringslite {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.stringslite (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.stringslite ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_stringslite) True.intro
 
 theorem wfO_strings {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.strings (gOff S G) :=
@@ -631,16 +651,6 @@ theorem wfO_mime_multipart {G : GoString → IProp GF} (h : KitG G) (S : List Go
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.mime.multipart (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.mime.multipart ∉ ownedPkgs) (hS _ hm))).trans
     h.e_mime_multipart) ⟨wfO_net_textproto h S hS, True.intro⟩
-
-theorem wfO_internal_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.strconv (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.strconv ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_strconv) ⟨wfO_math_bits h S hS, True.intro⟩
-
-theorem wfO_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.strconv (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.strconv ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_strconv) ⟨wfO_errors h S hS, wfO_internal_strconv h S hS, wfO_internal_stringslite h S hS, wfO_unicode_utf8 h S hS, True.intro⟩
 
 theorem wfO_path {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.path (gOff S G) :=
@@ -701,16 +711,6 @@ theorem wfO_math {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math ∉ ownedPkgs) (hS _ hm))).trans
     h.e_math) True.intro
-
-theorem wfO_internal_abi {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.abi (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.abi ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_abi) True.intro
-
-theorem wfO_reflect {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.reflect (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.reflect ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_reflect) ⟨wfO_internal_abi h S hS, True.intro⟩
 
 theorem wfO_encoding_binary {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.encoding.binary (gOff S G) :=

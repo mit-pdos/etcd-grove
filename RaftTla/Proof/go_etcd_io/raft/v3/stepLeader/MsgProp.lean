@@ -190,7 +190,7 @@ local macro "cc_pending" ccm:term:max : tactic => `(tactic| (
         (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil))
         $$ [$(frameH `Hargs)] as %str ⟨Hargs, %Hout⟩
     have Hstr : str ≠ [] := by
-      simp [Hout, _root_.Perennial.fmt.render]
+      simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, Hout, _root_.Perennial.fmt.render]
     have Hstep0 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
         (e, some $ccm) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
       unfold propConfStep

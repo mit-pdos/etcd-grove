@@ -51,8 +51,13 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
   iintro %asl ⟨Hasl, -⟩
   wp_apply (fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"Too large resource version: %d, current: %d"
     [.lit go!"Too large resource version: ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", current: ", .dir none _root_.Perennial.fmt.verb_d]
-    _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil)))
+    _ _ _ _ (by fmt_encode) ?fits ?pa)
     $$ [$Hasl] as %s -
+  case pa =>
+    rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+    simp only [List.set_cons_succ, List.set_cons_zero]
+    exact .int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil)
+  case fits => fmt_fits
   (try wp_auto)
   wp_apply (wp_NewTimeoutError s retry) as %p ⟨%st, %dv, Hp, Hd, %_, %hst, %hr⟩
   (try wp_auto)

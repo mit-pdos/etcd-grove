@@ -16,7 +16,6 @@ public import Proof.go_uber_org.zap.internal.color.Init
 public import Proof.go_uber_org.zap.internal.pool.Init
 public import Proof.go_uber_org.zap.internal.pool.New
 public import Proof.runtime.PkgInitExt
-public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -176,7 +175,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     all_goals (repeat (first
       | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HL as HL
       | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HU as HU
-      | (wp_apply (wp_slice_literal (l := [_, _])); isplitr; (· ipureintro; rfl); iintro %sl ⟨Ssl, -⟩; try wp_auto; wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"\x1b[%dm%s\x1b[0m" [.lit go!"\x1b[", .dir none _root_.Perennial.fmt.verb_d, .lit go!"m", .dir none _root_.Perennial.fmt.verb_s, .lit go!"\x1b[0m"] _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.uint8 _) (.str _ _ _ .nil)) $$ [$Ssl] as %r -)
+      | (wp_apply (wp_slice_literal (l := [_, _])); isplitr; (· ipureintro; rfl); iintro %sl ⟨Ssl, -⟩; try wp_auto; wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint8 _) (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)) $$ [$Ssl] as %r -)
       | wp_method_call
       | wp_auto
       | wp_call))

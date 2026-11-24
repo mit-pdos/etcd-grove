@@ -113,7 +113,6 @@ theorem msgPtsC_snapMeta (ml : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt) (
   iframe #
   ipureintro; exact Hnn
 
-/-- An error whose `Error()` returns is a formatting argument (`fmt.argOk`). -/
 /-- An error `errStrOk` is an argument `fmt` formats by its `Error()` (`fmt.isArg_error`). -/
 theorem isArg_of_errStrOk [_root_.Perennial.fmt.Assumptions] (ei : GoInterfaceOk) :
     http.errStrOk (GF := GF) (.ok ei) ⊢ _root_.Perennial.fmt.isArg (.ok ei) (.method fun _ => True) := by
@@ -121,7 +120,7 @@ theorem isArg_of_errStrOk [_root_.Perennial.fmt.Assumptions] (ei : GoInterfaceOk
   iintro (%h | ⟨%ei', %h, #HE, -, %hF⟩)
   · cases h
   · cases h
-    iapply (fmt.isArg_error ei' hF.1 hF.2)
+    iapply (fmt.isArg_error _ hF.1 hF.2)
     unfold _root_.Perennial.fmt.stringMethodSpec; iexact HE
 
 /-- An application to a panic is that panic. -/
