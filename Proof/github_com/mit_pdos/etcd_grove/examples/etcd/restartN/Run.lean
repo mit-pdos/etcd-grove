@@ -356,6 +356,9 @@ theorem Run.wp_proof
     fun x hx => members_names_utf8 k _ (List.of_mem_zip hx).1
   have hnlen : ∀ x ∈ (members k).zip gs, x.1.Name'.length ≤ 200 :=
     fun x hx => members_names_len k _ (List.of_mem_zip hx).1
+  -- (fmt stage 1, 2026-11-24) the members' addresses within etcd's URL bounds
+  have haf : ∀ x ∈ (members k).zip gs, etcdstart.addrFits x.1.Peer' ∧ etcdstart.addrFits x.1.Client' :=
+    fun x hx => etcdstart.membersOf_addrFits _ _ _ _ x.1 (List.of_mem_zip hx).1
   have hnd : (((members k).zip gs).map (·.1.Name')).Nodup := by
     rw [show ((members k).zip gs).map (·.1.Name') = (((members k).zip gs).map (·.1)).map (·.Name')
       by rw [List.map_map]; rfl, hxs1]
@@ -394,7 +397,7 @@ theorem Run.wp_proof
   -- `srvs, mems, cluster, err := startMembers(ms, lg)`
   wp_apply (wp_startMembers N msl lg ((members k).zip gs) ps (LogEntry.toEntries boot 0) ctxs
       (dirN (members k) ids) Φs γn HwbN (by simp [LogEntry.toEntries, hblen]; omega) hγn2 Hdok Hbc
-      hnd hutf hnlen hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %msl2 %cl %serr Hsr
+      hnd hutf hnlen haf hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %msl2 %cl %serr Hsr
   · rw [hxs1]; iframe; iframe #
   icases Hsr with ⟨Htok, (%Hserr | ⟨%Hserr, %zs, %M, Hssl, Hmsl2, #Hcl, #Hsls, %Hdom, Hups⟩)⟩
   · cases serr with
@@ -647,7 +650,9 @@ theorem Run.wp_proof
   wp_apply (wp_restartMember N z.2 γS x.Name' x.Peer' x.Client' cl lg M (iuOf (members k))
       (urlsN (members k) x) ps (LogEntry.toEntries boot 0) ctxs (dirN (members k) ids) id
       { γ with reg := reg } ρ γn HwbN hvs hrule hboot (by simp [LogEntry.toEntries, hblen]; omega)
-      hγn1 hγn2 Hdok hd Hbc ⟨rfl, rfl, Hdom', rfl⟩ Haf Hbuq Hdbo) $$ [Htok Hrec Hrr] as %sR %err Hr
+      hγn1 hγn2 Hdok hd Hbc ⟨rfl, rfl, Hdom', rfl⟩
+      (etcdstart.membersOf_addrFits _ _ _ _ x hxm).1 (etcdstart.membersOf_addrFits _ _ _ _ x hxm).2
+      Haf Hbuq Hdbo) $$ [Htok Hrec Hrr] as %sR %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ', %E₀', %Hρ', HupR⟩)
   · cases err with

@@ -351,7 +351,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
   haveI := Hp.1
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hscum Hc0 Hch0 Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcon Hcmp0 HNx0
-    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlbc Hbco Hbcf Hbwb
+    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc Hdirs Hauthcfg Hlbc Hbco Hbcf Hbwb
   -- (2026-11-04, the lease-expiry plan's Part C) what the construction takes of the lease slot
   have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m' := ⟨m, lease.bootCfg_run Hlbc⟩
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
@@ -517,7 +517,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iunfold bootCfgRO at Hcfgro
     icases Hcfgro with ⟨-, #H, -⟩
     iexact H
-  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, ⟨%cuss, Hcus, -⟩⟩
+  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, ⟨%cuss, Hcus, %Hcuss⟩⟩
   · iframe ClientURLs; iframe #
   -- (prove-ps2-srvgoroutines, 2026-11-24) the attributes' URLs, read-only for good (`srvAttrsRO`)
   ipersist Hcus
@@ -1243,7 +1243,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   have HLmem : ∀ f, f ∈ ps.filter (· ≠ id) ↔ f ∈ ps ∧ f ≠ id := by
     intro f; simp [List.mem_filter]
   have Hturls : trURLsOk (netRh γn) id U.peer :=
-    trURLsOk_of_dir γn dir Hγn.2 Hdirok ps Hdirps.1 id (Hrid ▸ Hrmem) U.peer HpU
+    trURLsOk_of_dir γn dir Hγn.2 Hdirok ps Hdirps.1 id (Hrid ▸ Hrmem) U.peer HpU HfU
   wp_apply (h38 γn t _ (srvLgReader s) γd (snapRmM γt) (config.snapDirOf cfg.DataDir') U.peer (ps.filter (· ≠ id)))
     $$ [«$r0» Hlsf] as %terr Htres
   · iframe «$r0»
@@ -2114,6 +2114,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iunfold srvAttrsRO
     iexists _, _, _
     iframe NameA ClientURLsA Hcus
+    ipureintro; exact HfC.strings Hcuss.1 Hcuss.2
   ihave #Hrvkb : srvRevokeBuilt s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd on, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt, Wt := srvApi.winTok γwt, stq := (1 : Qp).half.half } : apply.AEnv GF) : apply.AEnv GF) $$ []
   · iapply srvRevokeBuilt_intro s _ astl
     isplitr

@@ -124,18 +124,21 @@ theorem Error.wp_ErrorBody
        wp_apply (wp_SprintfArgs go!"%s: %q" [.dir none _root_.Perennial.fmt.verb_s, .lit go!": ", .dir none _root_.Perennial.fmt.verb_q] _ _
            [.method fun _ => True, .str _] (DFrac.own 1) (by fmt_encode) (by fmt_fits))
          $$ [$Hfmt $Hasl] as %s1 -
-       · iapply BigSepL2.bigSepL2_cons.2
+       · (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+         iapply BigSepL2.bigSepL2_cons.2
          isplitl
-         · iapply (fmt.isArg_stringer (GF := GF) ⟨ErrorType.ty, #v.Type'⟩ Hms.1 Hms.2.1 Hms.2.2.1 Hms.2.2.2)
+         · (try rw [← h]); (try simp only [interface.mkOk])
+           iapply (fmt.isArg_stringer (GF := GF) ⟨ErrorType.ty, #v.Type'⟩ Hms.1 Hms.2.1 Hms.2.2.1 Hms.2.2.2)
            iexact HTs
          iapply BigSepL2.bigSepL2_cons.2
          isplitr; · simp only [_root_.Perennial.fmt.isArg]; ipureintro; rfl
          iapply BigSepL2.bigSepL2_nil.2; itrivial)
     | ((try simp only [method_unfold])
        (try wp_auto)
-       iunfold _root_.Perennial.fmt.stringMethodSpec at HTs
-       wp_apply HTs as %s1)
-    wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as -
+       (try wp_method_call)
+       (try wp_auto)
+       (try (iunfold _root_.Perennial.fmt.stringMethodSpec at HTs; wp_apply HTs as %s1)))
+    wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
     wp_if_destruct
     · iapply HΦ; itrivial
     · wp_apply wp_slice_literal

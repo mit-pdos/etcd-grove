@@ -92,6 +92,16 @@ def putgetRegKeys : List w64 :=
 
 /-- **The registering packages' IDs can have their rights** (prom-registry, route (b)): decided by the
 kernel once, over the IDs as literals (`mvccfull_regQsOk`). -/
+/-- A valid address is within etcd's URL bounds (`etcdstart.addrFits`, `Member.spec`'s premise): `http://`
+and it is a plain peer URL (`etcd_dist.addrOk_plainPeerURL`) of at most `7 + 21` bytes
+(`etcd_dist.addrOk_length_le`). -/
+theorem addrOk_addrFits {a : GoString} (h : Net.addrOk a = true) : etcdstart.addrFits a := by
+  refine ⟨etcd_dist.addrOk_plainPeerURL h, ?_⟩
+  have := etcd_dist.addrOk_length_le h
+  simp only [List.length_append, etcdURLLenMax]
+  have : (go!"http://").length = 7 := rfl
+  omega
+
 theorem putget_regQsOk :
     prometheus.regQsOk github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.regQs :=
   prometheus.regQsOk_of_keys _ putgetRegKeys (by decide +kernel) (by decide +kernel) (by decide +kernel)
@@ -105,7 +115,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (HM : MemberBootHyps) (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
-    (peer client : GoString) (hpeer : Net.addrOk peer = true)
+    (peer client : GoString) (hpeer : Net.addrOk peer = true) (hclient : Net.addrOk client = true)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
@@ -162,6 +172,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
       S peer client id ctxs boot γE (putgetPub S) Hbf (etcd_dist.addrOk_plainPeerURL hpeer)
+      (addrOk_addrFits hpeer) (addrOk_addrFits hclient)
       (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hdd Hwa Hshare]
   · iframe; iframe #
