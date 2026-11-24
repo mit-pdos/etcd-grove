@@ -9,7 +9,6 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.nameOk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.kindNames
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.boundsOk
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind__String
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.AddrOk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.NodeCount
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.IdsOk
@@ -204,7 +203,6 @@ theorem deployment.WellFormed.wp_proof
     (hNameOk : etcd_dist.deployment.nameOk.spec (GF := GF) (hG := hG))
     (hNames : etcd_dist.deployment.kindNames.spec (GF := GF) (hG := hG))
     (hBounds : etcd_dist.deployment.boundsOk.spec (GF := GF) (hG := hG))
-    (hString : etcd_dist.deployment.Kind.String.spec (GF := GF) (hG := hG))
     (hAddr : etcd_dist.deployment.AddrOk.spec (GF := GF) (hG := hG))
     (hNodeCount : etcd_dist.deployment.NodeCount.spec (GF := GF) (hG := hG))
     (hIds : etcd_dist.deployment.IdsOk.spec (GF := GF) (hG := hG))
@@ -573,7 +571,7 @@ theorem deployment.WellFormed.wp_proof
                   rcases hw' with hw' | rfl
                   · have h := Hf2 w hw'
                     first | exact h | (simp only [hau] at h; exact h) | simpa [hau] using h
-                  clear hNameOk hNames hBounds hString hAddr hNodeCount hIds hCompat hAuth hErrorf
+                  clear hNameOk hNames hBounds hAddr hNodeCount hIds hCompat hAuth hErrorf
                   refine ⟨fun h => ?_, fun h => ?_, fun h => ?_⟩ <;> simp_all)
               · have Hif' : ¬ sint.Z (W64 (j : Int)) < sint.Z v.Workloads'.len := by
                   first | exact Hif | exact of_decide_eq_false (GoGlobalContext.intoVal_inj_bool Hif)
@@ -583,7 +581,7 @@ theorem deployment.WellFormed.wp_proof
                 iapply HΦ
                 ipureintro
                 intro _
-                clear hNameOk hNames hBounds hString hAddr hNodeCount hIds hCompat hAuth hErrorf
+                clear hNameOk hNames hBounds hAddr hNodeCount hIds hCompat hAuth hErrorf
                 have hpeers : ∀ m ∈ d.members, Net.addrOk m.peer = true := fun m hm =>
                   (Hok.2.2 m.peer (List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hm, by simp⟩))).1
                 apply goWellFormed_sound

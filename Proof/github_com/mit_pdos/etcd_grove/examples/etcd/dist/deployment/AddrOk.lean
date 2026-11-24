@@ -27,10 +27,9 @@ variable [package_sem : deployment.Assumptions]
 
 theorem deployment.AddrOk.wp_proof :
     etcd_dist.deployment.AddrOk.spec (GF := GF) (hG := hG) := by
-  intro a
-  wp_start
-  wp_auto
-
+  -- WIP (etcd-safe-wf, 2026-11-24): the proof needs pure lemmas relating `strings.cut`/`split`, `strconv.Atoi`
+  -- and `Itoa` (`fmtInt`) to `Net.parseAddr`/`decNat`, and the `[5]int` array loop.
+  sorry
 end proof
 
 end etcd_dist
