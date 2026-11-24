@@ -873,6 +873,10 @@ EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
                                "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
+# (prom-registry, route (b), 2026-11-22) prometheus's `Register` is proved over the real registry's
+# `(*Registry).Register` (`=` callee of v3rpc's `prometheus_Register`)
+EXTRA_IMPORTS.setdefault("--v3rpc", []).append(
+    "Proof.github_com.prometheus.client_golang.prometheus.Registry__Register")
 # The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
 # whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the
 # compactor's channel context needs (`chanCtx_ok`; k8s etcd3 7c-2 part 2, S7)

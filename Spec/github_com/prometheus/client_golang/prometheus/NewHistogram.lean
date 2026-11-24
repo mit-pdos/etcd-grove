@@ -5,6 +5,7 @@ prometheus's `NewHistogram(opts)` (names only): a histogram whose one descriptor
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.github_com.prometheus.client_golang.prometheus.RegInv
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 
 @[expose] public section
@@ -39,7 +40,7 @@ abbrev prometheus.NewHistogram.spec : Prop :=
     (App (Val (@! github_com.prometheus.client_golang.prometheus.NewHistogram)) (Val #o))
   {{ (h : GoInterfaceOk), RET #(GoInterface.ok h);
       prometheus.metric.histSpec h ∗
-      ⌜prometheus.collectorName h (prometheus.fqName ns sub name)⌝ }}
+      prometheus.collectorName h (prometheus.fqName ns sub name) }}
 
 end spec
 
