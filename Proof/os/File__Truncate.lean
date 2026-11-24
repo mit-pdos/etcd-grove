@@ -56,7 +56,7 @@ def ftState (p : Ino) (m : OsMeta) (tg : Nat) (xs : List ByteG) : IProp GF :=
 theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) := by
   intro f fd name dqf sz dq d m xs hfd0 hwr hsz hxs
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hb, Hc⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hm, Hb, Hc⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   try rw [os.file_ty_eq, os.File_ty_eq]
@@ -130,20 +130,20 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         ileft
         iframe
         ipureintro; rfl
       · have he0' : ¬ e = W64 0 := he
         rw [decide_eq_false he0']
         wp_auto
-        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         iright
         isplitr
         · ipureintro; intro h; cases h
@@ -202,19 +202,19 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         ileft
         iframe
         ipureintro; rfl
       · rw [decide_eq_false he0]
         wp_auto
-        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         iright
         ipureintro; intro h; cases h
 

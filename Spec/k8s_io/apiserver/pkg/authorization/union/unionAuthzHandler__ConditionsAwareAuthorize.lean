@@ -1,7 +1,8 @@
 /-
 `h.ConditionsAwareAuthorize(ctx, a)` (`union.go`): a well-formed decision (the chain's decisions
-in a union builder, up to the first containing an unconditional Allow or Deny). Lean-first (no
-Rocq counterpart).
+in a union builder, up to the first containing an unconditional Allow or Deny), at most one level
+deeper than the authorizers' and of at most `authzChainMax` times their size (`caaOk`), with names
+of at most `authzNameMax` bytes (`isUnionAuthz`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -31,7 +32,8 @@ abbrev unionAuthzHandler.ConditionsAwareAuthorize.spec : Prop :=
   ∀ (h : unionAuthzHandler) (ctx attrs : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.union ∗ isUnionAuthz h }}
     (App (App (Val (h @!! unionAuthzHandler.ty @!! go!"ConditionsAwareAuthorize")) (Val #ctx)) (Val #attrs))
-  {{ (d : ConditionsAwareDecision), RET #d; isWFDecision d }}
+  {{ (d : ConditionsAwareDecision), RET #d;
+      isWFDecisionBnd (authzDepthMax + 1) (authzChainMax * authzSizeMax + 1) authzNameMax d }}
 
 end spec
 

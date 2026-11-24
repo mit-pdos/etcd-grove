@@ -7,6 +7,7 @@ Lean-first (W4).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import Proof.os.NsS
 
@@ -30,7 +31,8 @@ variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.syncDir.spec : Prop :=
   ∀ (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (n : Nat),
-  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
+      osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
       osCallPerm (GF := GF) (callKey R p) qc ∗ osLogLb (GF := GF) n }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.syncDir)) (Val #p))
   {{ (err : GoInterface), RET #err; osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗

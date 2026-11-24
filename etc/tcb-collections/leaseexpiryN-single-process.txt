@@ -54,7 +54,6 @@ axiom dataDirsApart
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
-axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor

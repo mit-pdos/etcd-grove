@@ -28,7 +28,7 @@ variable [os.Assumptions]
 theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) := by
   intro f fd name dqf R j ph n
   unfold os.ownFile
-  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn⟩, Hd, #Hlb⟩
+  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hd, #Hlb⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -55,17 +55,17 @@ theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) 
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     iright
     iframe
     ipureintro; rfl
   · simp only [decide_eq_false he0, Bool.not_false]
     wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+    wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hok
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ileft
     iframe Hok
     ipureintro; exact ⟨fun h => (by cases h), hne he0⟩

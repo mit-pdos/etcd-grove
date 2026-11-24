@@ -40,7 +40,7 @@ theorem config.ServerConfig.SnapDir.wp_proof (wp_Join : filepath.Join.spec (GF :
   iintro %sl ⟨Hsl, -⟩
   wp_auto
   have hl := path.joinModel_pair_length d go!"member" (by decide)
-  wp_apply wp_Join _ [path.joinModel [d, go!"member"], go!"snap"] _ (by simp at hl ⊢; omega)
+  wp_apply wp_Join _ [path.joinModel [d, go!"member"], go!"snap"] _ (by simp [_root_.Perennial.strings.joinMax] at hl ⊢; omega)
     $$ [$Hsl] as %r ⟨%hr, -⟩
   rw [path.joinModel_triple d _ _ (by decide) (by decide)] at hr
   subst hr
