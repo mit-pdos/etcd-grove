@@ -629,8 +629,12 @@ proof, `sorry` or axiom. Where they differ from the sketch, and why:
   statement needs the boundary as an index: `ownRawNodeAt` at `ip` (`= offsetInProgress - 1`), the
   input forms' post `ip' = min ip (the common prefix of ps.log and ps'.log)` (`AppTrunc`'s
   physical fact), `Ready`'s `es ≠ [] → es[0].Index' = ip + 1` and reset `ip := |ps.log|`; the Sim side
-  then derives the conflict from `PIdle` (`ip = |dur|`) and one `AppEnd`. Not done: it changes
-  every form (open, with the coordinator).
+  then derives the conflict from `PIdle` (`ip = |dur|`) and one `AppEnd`. **Done (2026-11-24,
+  the coordinator's decision 3):** `ownRawNodeAt γ rn id rs ps qs ip sc` (`"%Hip"`:
+  `uint.nat s.logst.inprogress = ip + 1`, the model's `offsetInProgress`), `rawNode … qs ip`; the
+  input forms and `Advance` give `ip' = min ip (lcpLen ps.log ps'.log)` (`lcpLen`, `RawNodeAt.lean`),
+  `HasReady`'s false arm `ip = ps.log.length`, `Ready` `es[0].Index' = ip + 1` and `ip' = ps.log.length`,
+  `NewRawNode` `ip = 0`; each guarded by the scope flag.
 
 **Not covered: a forwarded proposal.** The harness forwards proposals (`DisableProposalForwarding`
 off), so a leader's `RawNode.Step` receives `MsgProp`s with `From` the follower's id and term `0`.
