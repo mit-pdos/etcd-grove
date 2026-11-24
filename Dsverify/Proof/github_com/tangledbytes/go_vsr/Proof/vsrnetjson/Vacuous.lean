@@ -30,13 +30,18 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- Unfold the kit's named types to `go.GoType.Named` of their paths, and decide an equality of
 two of them (or of a named type and a pointer or slice type). -/
 local macro "vr_ty_ne" : tactic =>
-  `(tactic| (intro h; simp only [pkg.events.Event.ty, pkg.events.Request.ty, pkg.events.Reply.ty,
+  `(tactic| (
+    intro hty
+    simp only [pkg.events.Event.ty, pkg.events.Request.ty, pkg.events.Reply.ty,
       pkg.events.Prepare.ty, pkg.events.PrepareOK.ty, pkg.events.Commit.ty,
       pkg.events.StartViewChange.ty, pkg.events.DoViewChange.ty, pkg.events.StartView.ty,
       pkg.events.GetState.ty, pkg.events.NewState.ty, pkg.events.Heartbeat.ty,
-      vsrwire.Frame.ty, pkg.log.Logs.ty, pkg.log.Log.ty, pkg.events.payloadTy, go.GoType.Named.injEq,
-      go.GoType.PointerType.injEq, reduceCtorEq] at h;
-    first | exact h | exact absurd h.1 (by decide) | exact absurd h (by decide)))
+      vsrwire.Frame.ty, pkg.log.Logs.ty, pkg.log.Log.ty, pkg.events.payloadTy,
+      go.GoType.Named.injEq, go.GoType.PointerType.injEq, reduceCtorEq] at hty
+    all_goals first
+      | exact hty
+      | exact absurd hty.1 (by decide)
+      | exact absurd hty (by decide)))
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]

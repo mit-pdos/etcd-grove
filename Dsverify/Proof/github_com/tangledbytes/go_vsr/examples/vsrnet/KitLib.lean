@@ -73,6 +73,9 @@ theorem wp_RegisterJSON (wp_SetCodec : encoding.json.SetCodec.spec (GF := GF) (h
     · iexact Hun
     isplitr
     · unfold encoding.json.codecFnsWith
+      rw [show encoding.json.kitFn go!"jsonMarshal" = functions jsonMarshal [] from rfl,
+        show encoding.json.kitFn go!"jsonUnmarshal" = functions jsonUnmarshal [] from rfl,
+        show models_lab.jsoncodec.scanFn = functions models_lab.jsoncodec.Scan [] from rfl]
       isplitr
       · iexact Marshal
       isplitr

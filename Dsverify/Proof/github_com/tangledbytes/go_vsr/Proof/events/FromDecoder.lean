@@ -138,7 +138,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.request id cid op) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -183,7 +183,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.reply id cid v res) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -228,7 +228,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.prepare v k c e rid) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -273,7 +273,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.prepareOK v k rid) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -318,7 +318,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.commit v c rid) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -363,7 +363,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.startViewChange v rid) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -408,7 +408,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.doViewChange dv) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -456,7 +456,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.startView v k c logs rid) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -504,7 +504,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.getState v k rid) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -549,7 +549,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF (Msg.newState v logs c k rid) v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
@@ -594,7 +594,7 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
-      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF Msg.heartbeat v_ptr $$ Hok
       simp only [events.payloadTy]
       wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
         $$ [Hdata Hdep] as %err Hpost2
