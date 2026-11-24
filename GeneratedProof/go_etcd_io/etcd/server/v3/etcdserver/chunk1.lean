@@ -60,6 +60,7 @@ public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
 public import GeneratedProof.net.http
+public import Perennial.GeneratedProof.runtime
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
