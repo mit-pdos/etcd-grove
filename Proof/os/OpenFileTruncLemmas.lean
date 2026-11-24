@@ -115,13 +115,18 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm, Hf⟩
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp Hn Hf HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
-  -- PORT: which stub? (CallBeginS)
+  try wp_auto
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
+  try rw [os.file_ty_eq]
+  try rw [os.File_ty_eq]
+  try rw [show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
   isimp only [trFile] at Hf
   icases Hf with ⟨%m, %bs, Hm, Hb, -, %hmb⟩
@@ -141,11 +146,13 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     icases Htr with (⟨%he, -⟩ | ⟨%n, Hd⟩)
     · exact absurd rfl he
     try wp_auto
-    iStructNamed inner
+    os_newfile
+    wp_for_post_core
     iapply wp_fupd
     try wp_auto
     ipersist name
     ipersist f
+    ipersist nonblock
     imodintro
     iapply HΦ
     iframe
@@ -182,10 +189,16 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
       try wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
-      iapply IH $$ Hperm Hp Hn Hm HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp Hn Hm HΦ [$] [$] [$] [$] [$]
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
     try wp_auto
-    wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+    wp_apply os.wp_modelErrno
+    try wp_auto
+    wp_apply os.wp_modelPathError_ok _ _ e he0 as %pe #Hok
+    try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     isplitl [Hm]
