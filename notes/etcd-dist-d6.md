@@ -464,3 +464,42 @@ ahead of the node's own log), not a local edit: a raft-proof design task of its 
 **State of the five steps:** step 1 needs the leader-completeness law (above); step 3 needs raft's
 restart with a configuration point past its stored log (this entry); steps 2, 4 and 5 depend on them.
 Nothing else landed this round; the last green build is `fec7d8cf82`.
+
+**2026-11-24, the leader-completeness law: statement and proof route (nothing written in Lean yet).**
+
+*Use.* `rnReplayJob_of_history` (`ReplayJob.lean`) takes, at the `Ready` that hands the payload (durable
+state `S` after its `Save`, `rt` its hard state's term, `S.term = rt` when the hard state is non-empty):
+`□ ∀ sm, ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < |a0|⌝ -∗ sentMsg γ.node.cl N γ.id sm -∗
+⌜DurAgrees S (a0.map toLE)⌝`, with `a0` committed before the restart (`srvRLogLb γ.srv a0`). The
+`raftNode.start` side holds `raftState γ.node.cl γ.id S` (exclusive) at that point and must make this
+persistent implication before giving `S` up.
+
+*Statement (raft API, `Spec/go_etcd_io/raft/v3/Api.lean`, proved in `InvNode.lean`).* Roughly:
+`raftState γ id S ⊢ raftState γ id S ∗ □ (∀ l, isCommittedLogLb γ l -∗ snapshotLeader γ id S.term -∗
+⌜DurAgrees S l⌝)`, with `l` committed **before** the witness is made (a committed log that grows later
+in a higher term can overwrite `S`'s uncommitted tail, so the law must take the commit witness at the
+`raftState`'s time, e.g. as a hypothesis of the persistent implication's construction:
+`raftState γ id S ∗ isCommittedLogLb γ l ⊢ raftState γ id S ∗ □ (snapshotLeader γ id S.term -∗
+⌜DurAgrees S l⌝)`). `sentMsg_localSnapshotLeader` turns the sent `MsgSnap` into `snapshotLeader γ id rt`.
+
+*Why it is true.* A node with `S.term = T` that leads `T` was a candidate at `T` (a follower at `T`
+cannot campaign in `T`): its log from its campaign on only grows during `T`, so `S`'s log extends the
+campaign log `F0` of `isCamp γ id T F0` (or is it). Leader Completeness (`Protocol/LeaderCompleteness.lean`:
+`lc_core`, for entries committed in terms `< T`; `cq_agree` for the same term) puts every entry committed
+before `T` in any full log with records that reaches `F0`'s last entry; with equal terms at an index,
+the logs agree there (log matching over records, `full_match`).
+
+*What the proof needs from the ghost state (to find or add, in `Protocol/GhostState.lean`):*
+(i) from `ownDurGhost γ id S` (`durPers`) and `isLeader γ id S.term`: `S`'s log reaches the last entry of
+`id`'s campaign log for `S.term` (the durable log at the campaign, and append-only while the term lasts:
+the durable ghost's history at the term); (ii) `logRecs γ base0` of `S`'s full log (records, from
+`durPers`); (iii) `isCommittedLogLb γ l` as commit-quorum facts `cq γ t n F` at terms `≤ T` (the
+`reCommit` authority's justification, `raftCommitInv`); (iv) the votes table (`votesTbl`) inside the
+invariant (`lc_core` takes it), so the law is a view shift opening the cluster invariant (`↑N ⊆ E`).
+
+*Scope.* A raft-proof task: (i) is the open part. If the durable ghost keeps no per-term history
+linking `S` to the campaign, it has to be added to `durPers` and kept by every `Ready`'s *enter*
+(`StepGhost`), which reaches raft's step proofs. Estimate: several hundred lines in the protocol
+layer, plus the API statement and its interface (`etc/gen-interface.py etc/api/raft.txt`), the RaftTla
+copies (`etc/gen-raft-tla.py`) and, if `RaftNoAx`'s closure reaches `InvNode`, `etc/copy-part.py`. Not
+started in this session: its context is spent on scoping (items 1-4 above).
