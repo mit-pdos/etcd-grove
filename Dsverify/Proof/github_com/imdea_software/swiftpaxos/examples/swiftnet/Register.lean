@@ -46,6 +46,25 @@ theorem reg_tagOk (t body : List w8) (ht : t.length < 2 ^ 64) :
   rw [getTag_tagged t body ht] at h
   cases h; rfl
 
+/-- A replica's `RegisterArgs` fit the frames the net/rpc model's server reads (its address is one
+of `replicaAddrs`). -/
+theorem reg_args_fit (ip : GoString) (port : w64) (k : Nat)
+    (hk : replicaAddrs[k]? = some (sp.addrPort ip port)) :
+    (netrpcw.encRegisterArgs ip port).length ≤ net.rpc.maxFrameN := by
+  have hlen : (netrpcw.encRegisterArgs ip port).length ≤
+      27 + netrpcw.tRegisterArgs.length + ip.length := by
+    unfold netrpcw.encRegisterArgs netrpcw.tagged netrpcw.strct netrpcw.fStr netrpcw.fInt
+      netrpcw.fld netrpcw.encStr netrpcw.encU64
+    split <;> split <;> simp [u64Le_length] <;> omega
+  have hmem := List.mem_of_getElem? hk
+  have hl : (sp.addrPort ip port).length ≤ 14 := by
+    simp only [replicaAddrs, List.mem_cons, List.mem_nil_iff, or_false] at hmem
+    rcases hmem with h | h | h | h | h <;> rw [h] <;> simp
+  have hip : ip.length ≤ 14 := by
+    unfold sp.addrPort at hl; simp only [List.length_append] at hl; omega
+  have ht : netrpcw.tRegisterArgs.length ≤ 100 := by simp [netrpcw.tRegisterArgs]
+  unfold net.rpc.maxFrameN; omega
+
 /-- `c.Call("Master.Register", args, &reply)` with the zero reply: no error and the reply's
 fields (with, if ready, the membership's configuration fact and the replica's place in it), or
 an error. -/
@@ -94,12 +113,16 @@ theorem wp_call_register (L : CodecLaws (GF := netDistGF))
     isplitr
     · ipureintro; exact ⟨by decide, HSS, by simp [rv, interface.mkOk]⟩
     isplitr
+    · ipureintro; simp [net.rpc.maxFrameN] <;> omega
+    isplitr
     · simp only [net.rpc.RpcCodec.spec]
       iapply enc_sw C
       iapply L.enc_RegisterArgs pa DFrac.discard ip port
       isplitr
       · iexact Hpa
       iintro -
+      isplitr
+      · ipureintro; exact reg_args_fit ip port k hk
       isplitl
       · unfold withErr
         isplit

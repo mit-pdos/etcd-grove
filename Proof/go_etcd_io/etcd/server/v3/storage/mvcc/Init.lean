@@ -22,6 +22,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.hash.Link
 public import Perennial.Proof.math.Link
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.sync.Link
@@ -40,7 +41,6 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_opentelemetry_io.otel.trace.Init
 public import Proof.go_uber_org.zap.Init
-public import Proof.hash.Init
 public import Proof.hash.crc32.Init
 public import Perennial.Proof.context.NewErrorString
 public import Perennial.Proof.errors.NewVar

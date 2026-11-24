@@ -134,7 +134,7 @@ theorem kvRep_gen
     unfold kvNodeStart
     isplitr
     · ipureintro; rfl
-    iexists fl, 1
+    iexists fl, (1 : Qp).half
     iframe Hst
     isplitr
     · unfold kvStartGlobals
@@ -150,9 +150,12 @@ theorem kvRep_gen
     · iapply Hpeer; ipureintro; exact hM
     ipureintro; exact ⟨hopts, hvs⟩
   · iintro %L' %V' Hlc #Hcr #Hos' Hrest
-    imod kvGen_crash γ vs id fl L' V' $$ Hcl Hk Hlc Hcr Hrest Hos' with Hg'
+    -- (the rest of the file's directory, `kvDirRest`, is dropped: kvnet has no other file)
+    imod kvGen_crash γ vs id fl L' V' $$ Hcl Hk Hlc Hcr Hrest Hos' with ⟨%V'', Hg', -⟩
     rw [hfl1, hfl2]
     imodintro
+    unfold kvGen
+    iexists V''
     iexact Hg'
 
 end replica

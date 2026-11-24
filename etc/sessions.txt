@@ -27,6 +27,8 @@ kaashoek              | kaashoek  | -                 | kaashoek        | human 
 
 coordinator-E         | upamanyus | ip-172-31-231-66  | upamanyus-agent | relay, lands:perennial, reviews, coordinates Upamanyu's sessions | upamanyus coordinator (coordinator-E) || upamanyus-agent (coordinator) | upamanyus coordinator || Upamanyu's coordinator
 dsverify-net | upamanyus | ip-172-31-231-66 | upamanyus-agent | #24: the net extension (GooseLang/Ext/Net, Net/), the models (net/rpc, net/http, grpc), phase 7 S2 and S3; branches models-rpc-http, phase7-s2-core, s2-vocab, net-sticky-read*, grpc-readme-proxy; perennial strings-cut-lastindex | upamanyus session (dsverify-net | #24 session
+axioms-coordinator | upamanyus | etcd-grove | upamanyus-agent | axiom retirement waves (subagents); claims #25 #26 #31 #32 #35 #36 #37 #38 #40 #41; branches proto-*, zap-*, klog-*, rand-retire, featuregate-*, k8s-inits-*, stdlib-leaves-*; perennial branches it lands for these | upamanyus-agent (coordinator) | Upamanyu's axiom coordinator
+hraft-robust | upamanyus | ip-172-31-231-66 | upamanyus-agent | #48: hashicorp/raft top-level robustness theorem (dsverify net harness); branches hraft-robust/* |  |
 
 zeldovich-coordinator | zeldovich | -                 | zeldovich-agent | relay, queue, land queue, build VM, pin bumps, triage | zeldovich coordinator session (etcd-grove-f6) | etcd-grove-f6 || zeldovich coordinator
 zeldovich-proving-2   | zeldovich | -                 | zeldovich-agent | queue, proofs | zeldovich proving session 2 | proving session 2

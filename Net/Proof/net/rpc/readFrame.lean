@@ -51,7 +51,7 @@ theorem readErr_ne_nil (la ra eof ueof ed : GoInterface) (first : Bool) (got : L
 theorem readFrame.wp_proof (wp_readFull : readFull.spec (GF := GF) (hG := hG))
     (wp_getU64 : getU64.spec (GF := GF) (hG := hG)) :
     readFrame.spec (GF := GF) (hG := hG) := by
-  intro t cn s a la ra P eof ueof ed ef
+  intro t cn s a la ra P F eof ueof ed ef
   wp_start as ⟨#Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, HP, #Hacc⟩
   unfold errors.newVar
   icases HefV with ⟨%xf, #Hxf, -⟩
@@ -60,9 +60,9 @@ theorem readFrame.wp_proof (wp_readFull : readFull.spec (GF := GF) (hG := hG))
   wp_auto
   wp_apply (wp_slice_make2 (V := w8) (W64 8)) as %h ⟨Hh, Hhcap⟩
   · ipureintro; decide
-  wp_apply wp_readFull t cn s a la ra h _ true P _ _ ed $$ [$Hc $Hh $Hio $Heof $Hueof $Hed $HP $Hacc]
+  wp_apply wp_readFull t cn s a la ra h _ true P F _ _ ed $$ [$Hc $Hh $Hio $Heof $Hueof $Hed $HP $Hacc]
     as %err ⟨%got, %bs', HP, Hh, %Hbs, Hres⟩
-  icases Hres with (%Hok | ⟨%Hne, #HE⟩)
+  icases Hres with (%Hok | ⟨%Hne, #HE, HF⟩)
   rotate_left
   · -- the length could not be read
     ihave %Hnn := readErr_ne_nil _ _ _ _ _ _ _ _ $$ [$Hio $Heof $Hueof $HE]
@@ -76,7 +76,7 @@ theorem readFrame.wp_proof (wp_readFull : readFull.spec (GF := GF) (hG := hG))
       iright
       isplitr
       · ipureintro; exact Hnn
-      iright; iexact HE
+      iright; iframe HE HF
   obtain ⟨rfl, rfl⟩ := Hok
   have hg8 : got.length = 8 := by rw [Hbs.1]; simp
   rw [← List.append_nil got]
@@ -84,6 +84,10 @@ theorem readFrame.wp_proof (wp_readFull : readFull.spec (GF := GF) (hG := hG))
   wp_apply wp_getU64 h _ got [] hg8 $$ Hh as Hh
   wp_if_destruct
   · -- a length beyond `maxFrame`
+    rename_i Hbig
+    have hbig : maxFrameN < uint.nat (leToU64 got) := by
+      have : uint.Z (W64 1073741824) = 2 ^ 30 := by decide
+      unfold maxFrameN; word
     iapply HΦ
     iexists got
     rw [List.append_nil]
@@ -91,14 +95,14 @@ theorem readFrame.wp_proof (wp_readFull : readFull.spec (GF := GF) (hG := hG))
     iright
     isplitr
     · ipureintro; simp [interface.mkOk]
-    ileft; ipureintro; rfl
+    ileft; ipureintro; exact ⟨rfl, hg8, hbig⟩
   rename_i Hsmall
   have hn : uint.Z (leToU64 got) ≤ 2 ^ 30 := by
     have : uint.Z (W64 1073741824) = 2 ^ 30 := by decide
     omega
   wp_apply (wp_slice_make2 (V := w8) (leToU64 got)) as %p ⟨Hp, Hpcap⟩
   · ipureintro; word
-  wp_apply wp_readFull t cn s a la ra p _ false (fun g => P (got ++ g)) _ _ ed
+  wp_apply wp_readFull t cn s a la ra p _ false (fun g => P (got ++ g)) F _ _ ed
       $$ [$Hc $Hp $Hio $Heof $Hueof $Hed HP]
     as %err ⟨%got2, %bs2, HP, Hp, %Hbs2, Hres⟩
   · iframe HP
@@ -111,7 +115,7 @@ theorem readFrame.wp_proof (wp_readFull : readFull.spec (GF := GF) (hG := hG))
     iintro %r %d' %Hrd HE HD
     rw [← List.append_assoc]
     iapply Hcl $$ %r %d' %Hrd HE HD
-  icases Hres with (%Hok | ⟨%Hne, #HE⟩)
+  icases Hres with (%Hok | ⟨%Hne, #HE, HF⟩)
   rotate_left
   · -- the payload could not be read
     ihave %Hnn := readErr_ne_nil _ _ _ _ _ _ _ _ $$ [$Hio $Heof $Hueof $HE]
@@ -126,6 +130,7 @@ theorem readFrame.wp_proof (wp_readFull : readFull.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact Hnn
       iright
+      iframe HF
       unfold readErr
       icases HE with (%H | %H | ⟨%k, HE⟩)
       · exact absurd H.2.2 (by simp)

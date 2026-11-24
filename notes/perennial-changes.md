@@ -44,6 +44,23 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `runtime/debug.SetMaxStack`'s default on 64-bit, over the 8-byte minimum frame), still any `n` below it;
   Go evidence beside `goose/model/runtime/callers_test.go` (a deep recursion's `Callers` with a buffer
   larger than its depth). A trusted-model change: for upamanyus's review.
+### `strings.Builder.Grow` has no spec (2026-11-24, phase 7 S5)
+
+- **Limitation.** Perennial translates `strings.Builder.Grow` and `grow` with their bodies but has no
+  spec of them at the pin (nor of `internal/bytealg.MakeNoZero`'s trusted model, which `grow` calls).
+  A general spec over `strings.ownBuilder l s` also needs the buffer's capacity `c` bounded
+  (`grow` allocates `MakeNoZero(2*c + n)`, which overflows `int` for a large `c`), and
+  `ownBuilder` does not say `c`.
+- **Who needs it.** net/url's `unescape` (`var t strings.Builder; t.Grow(len(s) - 2*n)`), which the
+  ServeMux's `PathUnescape` and `URL.EscapedPath` call (S5).
+- **Workaround.** `Spec/strings/Builder__Grow.lean` states `Grow(n)` on a zero Builder, `n ≥ 0`
+  (post `ownBuilder l []`), the case `unescape` needs; the Link takes it as a hypothesis `h_Grow`
+  (`Net/Proof/net/http/Results.lean`, `section url`). No axiom, no `sorry`.
+- **Proposed change.** In Perennial: a spec of `MakeNoZero` (its model: `make3` and the
+  `fillArbitrary` loop) and of `Builder.Grow`, either on a zero Builder as here or over an
+  `ownBuilder` that records the capacity (a bound `2*c + n < 2^63` as premise), with their proofs.
+- **Status.** Not proposed yet.
+
 ### `io.WriteString` names only (2026-11-24, phase 7 S5)
 
 - **Limitation.** Perennial's `io` translates `WriteString` as a name only (`Perennial/Code/io.toml`), so a
@@ -138,7 +155,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Workaround.** The statement's step bound is `2^31 - 1` (stated, honest; review of #24).
 - **Proposed change.** A dist adequacy that bounds live threads (`threads ≤ 2^31`, a premise on the
   run) while allowing `2^63` steps would restore the `2^63` bound.
-- **Status.** Not proposed yet.
+- **Status.** Done: perennial#690 (`goose_dist_adequacy_below` and crash variants), lean's pin
+  580868e54 (5f5f28beeb); epaxos and swiftpaxos moved to `2^63` steps with `2^31` threads on
+  dsv-steps63 (notes/dsv-epaxos.md, "Step bound 2^63").
 
 ### Goose copies Go doc comments' tabs into Lean doc comments (2026-11-23, dsv-rabia)
 
@@ -4454,3 +4473,20 @@ the pending hypotheses are discharged.
   plus `GaugeVec.With`/`Set` for the two version gauges (`version.Version` from api/version's fact). After
   `prom-registry` (#15) lands, on its `reg_steps`.
 - **Status.** Not filed.
+
+## 2026-11-24: no step rule for `i == nil` on a variable interface (bootstrap #34, `bootstrapSnapshot`)
+
+- **Limitation.** `InterfaceSemantics.go_eq_interface` steps `GoOp GoEquals (go.InterfaceType _)` to a
+  `match i1, i2 with ...`, which does not reduce when `i1` is a variable, so `wp_auto` cannot evaluate
+  `err != nil` on an error a spec returns as any `GoInterface` (`wp_if_destruct`: "no `decide` or
+  Boolean variable"). `CoreComparisonSemantics` has the analogue for functions
+  (`go_op_go_equals_func_nil_l/r`: `f == nil` steps to `#(decide (f = func.nil))`).
+- **Needed by.** `bootstrapSnapshot.wp_proof` (`RemoveMatchFile`'s `err`, three times); any proof that
+  branches on an unconstrained error without casing on it first.
+- **Workaround here.** A theorem-instance `go_eq_interface_nil_r` in
+  `Proof/go_etcd_io/etcd/server/v3/etcdserver/bootstrapSnapshot.lean`, derived from `go_eq_interface` by
+  cases on `i` (no new assumption).
+- **Proposed change.** Derived instances (not semantics fields) in Perennial's `Golang/Defn/Interface.lean`
+  or its proof lemmas: `⟦GoOp GoEquals (go.InterfaceType elems), (#i, #interface.nil)⟧ ⤳[under]
+  #(decide (i = interface.nil))` and its mirror.
+- **Status.** Open.

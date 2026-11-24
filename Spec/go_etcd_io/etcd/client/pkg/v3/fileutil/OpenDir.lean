@@ -48,7 +48,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specAboveRoot : Prop :=
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir)) (Val #p))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
       ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
-       ⌜err ≠ interface.nil ∧ f = null⌝) }}
+       ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOk err) }}
 
 end spec
 
