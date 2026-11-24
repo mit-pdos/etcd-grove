@@ -256,7 +256,9 @@ fresh copy of the exported tree):
 
 ## Landing (2026-11-24)
 
-- Merged `origin/lean` 54c7e5504e (`dsv-kitgen` with the dsverify skill landed): clean, no conflicts.
+- Merged `origin/lean` 54c7e5504e (`dsv-kitgen` with the dsverify skill landed), then c2118c0b56 (17 more
+  commits, none touching kitgen, the skill or the Perennial pin): both clean. `etc/goose.py` and
+  `etc/gen-init.py` equal lean's.
 - `notes/dsv-kitlibs-check-skill.patch` applied to the landed skill files with no drift
   (`git apply --check` clean); then renamed with the tool.
 - Renamed premcheck to kitlibs-check (user decision): `etc/kitlibs-check.py`, `etc/KitLibsCheck.lean`,
