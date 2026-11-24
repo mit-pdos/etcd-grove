@@ -690,8 +690,13 @@ else the interim axioms. A test-only module (no proof imports it); the gates bui
          f'namespace {pkg}\n\n', 'open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)\n\n']
     for n, t, cls in ps:
         for c in cls:
+            if c.split()[0].endswith('.InitHyp'):
+                # an `InitHyp` is Go's initializer trust, a visible premise with no instance ever
+                # (etc/dsv/README.md, "`InitHyp`"): no stub
+                o.append(f'-- `{c}` (premise `{n}`): an InitHyp, never instantiated (etc/dsv/README.md)\n\n')
+                continue
             o.append(f'/-- `{c}` has an instance (premise `{n}`). -/\n'
-                     f'theorem nonvacuous_{wfname(c)} [GoGlobalContext] [GoLocalContext] :\n'
+                     f'theorem nonvacuous_{wfname(c.split()[0])} [GoGlobalContext] [GoLocalContext] :\n'
                      f'    ∀ G L, letI := heapAt G L; Nonempty ({c} remoteGF) := by\n  sorry\n\n')
     o.append(f'end {pkg}\nend Perennial\n')
     return {os.path.join('Dsverify', 'Proof', pkg_path(kg), 'NonVacuityLinked.lean'): ''.join(o)}
@@ -735,32 +740,31 @@ def generated(kit, kg):
 
 
 def find_class(c):
-    """Where premise class `c` (`a.b.Cls`, Lean name under `Perennial`) is declared: (file, line,
-    line count of the declaration up to the next blank line), or None."""
+    """Where premise class `c` (`a.b.Cls`, maybe applied: `a.NoSignals a.quietSigs`; a Lean name
+    under `Perennial`) is declared: (file, line, the declaration's line count with its doc comment
+    and its fields), or None."""
+    c = c.split()[0]
     parts = c.split('.')
     name, ns = parts[-1], parts[:-1]
-    cands = []
-    for top in ('Dsverify', 'Net', ''):
-        d = os.path.join(ROOT, top, 'Proof', *ns) if top else os.path.join(ROOT, 'Proof', *ns)
-        if os.path.isdir(d):
-            cands += [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith('.lean')]
-    r = subprocess.run(['git', 'grep', '-n', '-E', rf'^(class|structure|def|abbrev) {re.escape(name)}\b',
-                        '--', 'Dsverify/*.lean', 'Net/*.lean'], cwd=ROOT, capture_output=True, text=True)
+    r = subprocess.run(['git', 'grep', '-n', '-E',
+                        rf'^(class|structure|def|abbrev) ({re.escape(".".join(ns))}\.)?{re.escape(name)}\b',
+                        '--', 'Dsverify/*.lean', 'Net/*.lean', 'Proof/*.lean', 'Spec/*.lean'],
+                       cwd=ROOT, capture_output=True, text=True)
     hits = [h.split(':', 2) for h in r.stdout.splitlines()]
     pre = '/'.join(ns)
-    best = [h for h in hits if pre and f'/{pre}/' in '/' + h[0]] or [h for h in hits if h[0] in
-                                                                     [os.path.relpath(x, ROOT) for x in cands]]
+    best = [h for h in hits if f' {c}' in h[2]] or [h for h in hits if pre and f'/{pre}/' in '/' + h[0]]
     if not best:
         return None
     f, ln = best[0][0], int(best[0][1])
     src = open(os.path.join(ROOT, f)).read().split('\n')
-    # the declaration with its doc comment: back to the doc's start, forward to a blank line
-    s = ln - 1
-    while s > 0 and src[s - 1].strip() and not src[s - 1].startswith('end '):
+    s = ln - 1  # back over its doc comment
+    while s > 0 and src[s - 1].strip() and not src[s - 1].startswith(('end ', 'variable', 'section', 'namespace')):
         s -= 1
-    e = ln - 1
-    while e < len(src) and src[e].strip():
+    e = ln  # forward over its continuation lines and fields (indented or blank, up to the next declaration)
+    while e < len(src) and (not src[e].strip() or src[e].startswith((' ', '\t'))):
         e += 1
+    while e > ln and not src[e - 1].strip():
+        e -= 1
     return f, ln, e - s
 
 
