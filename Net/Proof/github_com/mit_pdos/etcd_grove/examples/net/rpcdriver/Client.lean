@@ -51,12 +51,15 @@ theorem Client.wp_proof
     Client.spec (GF := GF) (hG := hG) := by
   intro γid reg
   wp_start as ⟨%Hb, Htok, #Hstr, #Hsync, #Hf, #Hset, %Hrb, #Hcli, #Hhttp, #Hcon, #Htcp, #Hha, Hauth⟩
-  wp_auto
+  try wp_auto
   wp_apply wp_RandomUint64 as %start -
-  wp_auto
+  try wp_auto
   irename «$r0» => Hc
   generalize «$r0_ptr» = c at *
-  iStructNamed Hc
+  -- the counter's fields (its blank `_` field holds `True`)
+  icases typedPointsto_split _ _ _ $$ Hc with Hc
+  try simp only [TypedPointsto.typedPointstoDef]
+  icases Hc with ⟨mu, next, -⟩
   -- the credits and the counter's mutex
   imod ownTokAuth_alloc (GF := GF) with ⟨%γb, Hba⟩
   imod ownTokAuth_add ctrBudget γb 0 $$ Hba with ⟨Hba, Hcred⟩
@@ -72,7 +75,7 @@ theorem Client.wp_proof
   · unfold isCtr; iframe Hsync; iexists start; iexact Hmu
   wp_apply wp_below (W64 4) as %n0 %Hn0
   have hn0 : uint.Z n0 < 4 := Hn0.2 (by decide)
-  wp_auto
+  try wp_auto
   -- the dials
   have hN : uint.nat (W64 1 + n0) ≤ 4 := by word
   -- drop the credits beyond `33` per dial
@@ -99,7 +102,7 @@ theorem Client.wp_proof
     · ipureintro; exact Hrb
     icases Hd with (⟨%He, %a, %Ha, #Hcl⟩ | %He)
     · subst He
-      wp_auto
+      try wp_auto
       have hSS : (drvWorld (GF := GF) γid reg).SS a go!"Svc" = some (echoSvc γid) := by
         rcases Ha with rfl | rfl
         · exact (drvWorld_tcp γid reg).1
@@ -109,7 +112,9 @@ theorem Client.wp_proof
       · ipureintro; exact Hb
       wp_apply wp_Close cl (drvWorld γid reg) a $$ [$Hcl] as %e2 ⟨-, #Hclosed⟩
       wp_apply wp_randomArgs γid γb c $$ [$Hf $Hctr $Hc1] as %pa -
-      wp_auto
+      try wp_auto
+      wp_alloc pr as Hpr
+      try wp_auto
       wp_apply wp_CallClosed cl (drvWorld γid reg) a go!"Svc.Echo" _ _ $$ [$Hcl $Hclosed]
         as %err3 %He3
       obtain ⟨hne3, hns3⟩ := He3
@@ -117,16 +122,16 @@ theorem Client.wp_proof
       | nil => exact absurd rfl hne3
       | ok e3 =>
         have hty : e3.ty ≠ net.rpc.ServerError.ty := hns3 e3 rfl
-        wp_auto
+        try wp_auto
         simp only [hty, ↓reduceIte, decide_false]
-        wp_auto
         iunfold drvFacts at Hf
         icases Hf with ⟨-, %fr, #Hrg, #Hrf⟩
+        try wp_auto
         wp_bind (App (Val #fr) (Val _))
         iapply wp_wand $$ (Hrf $$ %go!"close")
         iintro %v %Hv
         subst Hv
-        wp_auto
+        try wp_auto
         wp_for_post
         iframe
         iexists k + W64 1
@@ -136,14 +141,13 @@ theorem Client.wp_proof
       cases err with
       | nil => exact absurd rfl He
       | ok e =>
-        wp_auto
+        try wp_auto
         wp_for_post
         iframe
         iexists k + W64 1
         iframe
-        iframe Hcred
         ipureintro; word
-  · wp_auto
+  · try wp_auto
     iapply HΦ
     iexact Htok
 

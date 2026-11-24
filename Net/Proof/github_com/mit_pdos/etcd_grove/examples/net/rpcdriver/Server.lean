@@ -65,9 +65,9 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
   intro γid reg γs γf
   wp_start as ⟨#Hf, #Hset, %Hb, #Hhttp, #Hlog, #Hsvcp, #Henv, #Hcon, #Hsenv, #Hds, Hown, Hmux,
     #Htl, #Hhl⟩
-  wp_auto
+  try wp_auto
   wp_apply wp_New γid $$ Hsvcp as %s ⟨%Hsnn, #Hsvc⟩
-  wp_auto
+  try wp_auto
   wp_apply wp_RegisterFresh γs γf ∅ drvCodec _ (echoSvc γid) go!"Svc" (W8 83) go!"vc" rfl
       (by decide) $$ [Hown] as %err1 ⟨%He1, #Hreg, Hown⟩
   · iframe Hds Hown Hset
@@ -77,7 +77,7 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
     iframe Hset Hsvc
     ipureintro; exact Hsnn
   subst He1
-  wp_auto
+  try wp_auto
   ihave #Hsrv := drv_srvServes γid reg γs tcpAddr $$ Hreg
   ihave #Hsrvh := drv_srvServes γid reg γs httpAddr $$ Hreg
   ihave #Hdsa := net.rpc.defaultServerO_any γs γf $$ Hds
@@ -90,14 +90,14 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
   cases err2 with
   | nil => exact absurd rfl He2
   | ok e2 =>
-  wp_auto
+  try wp_auto
   iunfold drvFacts at Hf
   icases Hf with ⟨-, %fr, #Hrg, #Hrf⟩
   wp_bind (App (Val #fr) (Val _))
   iapply wp_wand $$ (Hrf $$ %go!"register")
   iintro %v %Hv
   subst Hv
-  wp_auto
+  try wp_auto
   -- the rpc handler on `DefaultServeMux`
   wp_apply wp_HandleHTTP γs drvCodec (drvWorld γid reg) (fun a => a = httpAddr) [] (by simp)
       (by simp) $$ [Hmux] as ⟨Hmux, #Hrpc⟩
@@ -123,11 +123,11 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
   · ihave %Hne := net.resErr_netErr $$ Hre
     have hne := net.netErr_ne_nil (Hne.2 (by simp))
     rcases herr with ei | _
-    · wp_auto
+    · try wp_auto
       iapply HΦ; itrivial
     · exact absurd rfl hne
   subst He
-  wp_auto
+  try wp_auto
   iapply fupd_wp
   imod (lisInv_alloc ⊤ _ hl httpAddr true) $$ Hhnl with #Hhinv
   imodintro
@@ -168,11 +168,11 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
   · ihave %Hne := net.resErr_netErr $$ Hre
     have hne := net.netErr_ne_nil (Hne.2 (by simp))
     rcases terr with ei | _
-    · wp_auto
+    · try wp_auto
       iapply HΦ; itrivial
     · exact absurd rfl hne
   subst He
-  wp_auto
+  try wp_auto
   iapply fupd_wp
   imod (lisInv_alloc ⊤ _ tl tcpAddr true) $$ Htnl with #Htinv
   imodintro
@@ -187,7 +187,7 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
     iframe Hsrv
     iapply net.rpc.rpcLisP_addr _ _ _ _ _ hok hacc
     iexact Htl
-  wp_auto
+  try wp_auto
   iapply HΦ
   itrivial
 
