@@ -28,9 +28,8 @@ variable [client.Assumptions]
 
 theorem client.BufferClient.Read.wp_proofI
     (wp_SendRead : client.Client.SendRead.specI (hG := hG))
-    (wp_theGhost : client.theGhost.specG (hG := hG))
-    (wp_Invoke : client.Ghost.Invoke.specG (hG := hG))
-    (wp_Accept : client.Ghost.Accept.specG (hG := hG)) :
+    (wp_Invoke : client.resolveInvoke.specG (hG := hG))
+    (wp_Accept : client.resolveAccept.specG (hG := hG)) :
     client.BufferClient.Read.specI (hG := hG) := by
   intro b γ γc γm γl cid s key
   iintro #Hpkg Hready %Hb
@@ -55,11 +54,9 @@ theorem client.BufferClient.Read.wp_proofI
   wp_method_call
   wp_call
   try wp_auto
-  wp_apply wp_theGhost γ (sp.PNode.cl (cid.toNat - 1)) $$ [] as %g #Hg
-  · iframe #
-  ihave #Hg1 : client.isNodeGhost γ (sp.PNode.cl (sp.clOf (⟨cid, W32 (s : Int)⟩ : sp.CmdId))) g $$ []
-  · rw [show sp.clOf (⟨cid, W32 (s : Int)⟩ : sp.CmdId) = cid.toNat - 1 from rfl]; iexact Hg
-  try wp_auto
+  ihave #Hg1 : client.nodeGhostB γ (sp.PNode.cl (sp.clOf (⟨cid, W32 (s : Int)⟩ : sp.CmdId))) $$ []
+  · rw [show sp.clOf (⟨cid, W32 (s : Int)⟩ : sp.CmdId) = cid.toNat - 1 from rfl]
+    iunfold client.nodeGhostOk at Hng; iexact Hng
   ihave #Hbf := Hbv
   iStructNamed Hbf
   obtain ⟨Hcl1, Hcl2, Hcid⟩ := Hcl
@@ -76,7 +73,7 @@ theorem client.BufferClient.Read.wp_proofI
     show (#cid : val) = #(⟨cid, W32 (s : Int)⟩ : sp.CmdId).cl from rfl,
     show (#(W32 (s : Int)) : val) = #(⟨cid, W32 (s : Int)⟩ : sp.CmdId).seq from rfl,
     show (#key : val) = #(sp.Cmd.get key).key from rfl]
-  wp_apply wp_Invoke g γ γc γm γl (⟨cid, W32 (s : Int)⟩ : sp.CmdId) (sp.Cmd.get key) nsl
+  wp_apply wp_Invoke γ γc γm γl (⟨cid, W32 (s : Int)⟩ : sp.CmdId) (sp.Cmd.get key) nsl
     (fun o => iprop(∀ sl : GoSlice, sl ↦*□ o ∗ client.ready b γ γc γm γl cid (s + 1) -∗
       Φ #sl)) $$ [Hcs HAU] as ⟨#Hcmd, Hcs, Hrcpt⟩
   · iframe; iframe #
@@ -115,7 +112,7 @@ theorem client.BufferClient.Read.wp_proofI
   try wp_auto
   rw [show (#cid : val) = #(⟨cid, W32 (n : Int)⟩ : sp.CmdId).cl from rfl,
     show (#(W32 (n : Int)) : val) = #(⟨cid, W32 (n : Int)⟩ : sp.CmdId).seq from rfl]
-  wp_apply wp_Accept g γ γc γm γl (⟨cid, W32 (n : Int)⟩ : sp.CmdId) bs
+  wp_apply wp_Accept γ γc γm γl (⟨cid, W32 (n : Int)⟩ : sp.CmdId) bs
     rr.Val' (fun o => iprop(∀ sl : GoSlice, sl ↦*□ o ∗ client.ready b γ γc γm γl cid (n + 1) -∗
       Φ #sl)) $$ [Hrcpt] as HΨ
   · iframe; iframe #
@@ -137,11 +134,10 @@ theorem client.BufferClient.Read.wp_proofI
 
 /-- The spec (`specI` is its text, over the changed `ready`, change log C4). -/
 theorem client.BufferClient.Read.wp_proof (wp_SendRead : client.Client.SendRead.specI (hG := hG))
-    (wp_theGhost : client.theGhost.specG (hG := hG))
-    (wp_Invoke : client.Ghost.Invoke.specG (hG := hG))
-    (wp_Accept : client.Ghost.Accept.specG (hG := hG)) :
+    (wp_Invoke : client.resolveInvoke.specG (hG := hG))
+    (wp_Accept : client.resolveAccept.specG (hG := hG)) :
     client.BufferClient.Read.spec (hG := hG) := by
-  exact client.BufferClient.Read.wp_proofI wp_SendRead wp_theGhost wp_Invoke wp_Accept
+  exact client.BufferClient.Read.wp_proofI wp_SendRead wp_Invoke wp_Accept
 
 end proof
 

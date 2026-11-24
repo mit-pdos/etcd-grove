@@ -82,22 +82,22 @@ theorem client.Client.wp_SendRead
 theorem client.BufferClient.wp_WriteI
     (wp_Println : dlog.Logger.Println.spec (GF := netDistGF) (hG := hG)) : client.BufferClient.Write.specI (hG := hG) :=
   client.BufferClient.Write.wp_proofI (client.Client.wp_SendWrite wp_Println)
-    client.theGhost.wp_proof client.Ghost.Invoke.wp_proof client.Ghost.Accept.wp_proof
+    client.resolveInvoke.wp_proof client.resolveAccept.wp_proof
 
 theorem client.BufferClient.wp_ReadI
     (wp_Println : dlog.Logger.Println.spec (GF := netDistGF) (hG := hG)) : client.BufferClient.Read.specI (hG := hG) :=
   client.BufferClient.Read.wp_proofI (client.Client.wp_SendRead wp_Println)
-    client.theGhost.wp_proof client.Ghost.Invoke.wp_proof client.Ghost.Accept.wp_proof
+    client.resolveInvoke.wp_proof client.resolveAccept.wp_proof
 
 theorem client.BufferClient.wp_Write
     (wp_Println : dlog.Logger.Println.spec (GF := netDistGF) (hG := hG)) : client.BufferClient.Write.spec (hG := hG) :=
   client.BufferClient.Write.wp_proof (client.Client.wp_SendWrite wp_Println)
-    client.theGhost.wp_proof client.Ghost.Invoke.wp_proof client.Ghost.Accept.wp_proof
+    client.resolveInvoke.wp_proof client.resolveAccept.wp_proof
 
 theorem client.BufferClient.wp_Read
     (wp_Println : dlog.Logger.Println.spec (GF := netDistGF) (hG := hG)) : client.BufferClient.Read.spec (hG := hG) :=
   client.BufferClient.Read.wp_proof (client.Client.wp_SendRead wp_Println)
-    client.theGhost.wp_proof client.Ghost.Invoke.wp_proof client.Ghost.Accept.wp_proof
+    client.resolveInvoke.wp_proof client.resolveAccept.wp_proof
 
 theorem client.wp_NewClientLog : client.NewClientLog.spec (hG := hG) :=
   client.NewClientLog.wp_proof
