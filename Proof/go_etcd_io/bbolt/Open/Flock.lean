@@ -75,8 +75,9 @@ theorem flock.wp_proof [syscall.Assumptions]
   intro db f fd p d dqf ex tmo hd
   obtain ⟨exv, hexv⟩ : ∃ b, ex = b := ⟨ex, rfl⟩
   wp_start as ⟨#Hos, Hf, Hfo, Hfd⟩
-  ihave #Hsys : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  ihave #Hsyspkg : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
   · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsyspkg
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors $$ []
@@ -139,7 +140,7 @@ theorem flock.wp_proof [syscall.Assumptions]
         ileft; iframe; ipureintro; rfl
       obtain rfl := hde (by simp) he
       ihave #HeS : fmtErrorOk (errnoErr e) $$ []
-      · iapply hErr e he
+      · iapply hErr e he $$ Hsys
       rw [show errnoErr e = interface.mkOk syscall.Errno.ty #e by unfold errnoErr; simp only [he, ↓reduceIte]]
       try wp_auto
       by_cases h11 : e = W64 11
