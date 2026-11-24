@@ -223,3 +223,65 @@ Not done:
   (`internal/gomodel`, `internal/reflectcore`) needs `etc/gen-init.py`, `etc/gen-specs-pkginit.py`
   (with `PERENNIAL_DIR`) and `kitgen` reruns. The hand-written `pkgInitTable` in `RaftWitness/.../kvwitness/Adequacy.lean`
   needs a manual edit.
+
+## Pickup (etcd-grove handoff machine), 2026-11-24 later: state and decisions
+
+Supersedes the "Branches" heads, "The axiom-tok gate" and "Next on S0.5" items 1–3 above.
+
+| repo | branch | head | state |
+|---|---|---|---|
+| etcd-grove | `reflect-s0/2026-11-24` | see `git log` (merge 5b4fc914b4, regen ceb684d156, this note) | origin/lean merged; pins Perennial `reflect-s0-lean` 6a49ef67e. VM gates at ceb684d156 (with the `/shared` overrides below): build 28,148 jobs ok; tcb 324 axioms / 0 sorries, matches the baseline; axiom-tok ok; 61 collections match; goose/gen-init/kitgen/gen-specs-pkginit/links ok; premisefix and k8s tests ok. Only `merge-status` fails on the VM (the sync dir is not a git repo). |
+| perennial | `reflect-s0-lean` | 6a49ef67e | NEW name for reflect-s05's first commit: reflect-s0 31718fbea + Perennial lean 2cadd30c2 (lean's tip), no S0.5. S0's trusted text unchanged. |
+| perennial | `reflect-s05` | 3e1ac82bf | + AsDecided strengthened (eb9041388); reflectlite type functions proved, errors.initialize' re-proved (3e1ac82bf). errors.As.wp_proof is still the marked sorry. |
+
+**axiom-tok (validated):** the WIP selftest failure was the toy itself (`st_pass_typedpt`'s post lacked
+`reflNew`'s `iprop(...)`, so `TypedPointsto V` was a stuck instance problem). Fixed; added the control
+`st_unknown_typedpt_nolaw` (no `IntoValTyped` law: the walk still truncates at `Perennial.typedPointsto`),
+and the selftest driver now judges truncations (`st_pass_*` must not truncate, `st_unknown_*` must).
+Selftest: 0 failures. The gates' axiom-tok passes with no `trunc` line (reflect.New.wp_proof walks clean).
+
+**Decision: the pin after merging origin/lean.** lean pins Perennial 2cadd30c2; this branch pinned
+reflect-s0 31718fbea, which lacks it. Options:
+- (a) keep 31718fbea: lean's new proofs need 2cadd30c2's Perennial, so it would not build;
+- (b) pin reflect-s05's head: the S0.5 WIP, unbuilt at the time, and it mixes S0.5 into the S0 branch;
+- (c) pin 6a49ef67e = reflect-s0 + Perennial lean, already on GitHub as reflect-s05's first commit.
+
+Chose (c) and named it `reflect-s0-lean`. Generated files took lean's side in the merge and were
+regenerated at the new pin on the VM:
+- goose: etcd's 4 etcdserver files;
+- gen-init: the PkgTables gain internal/reflectcore;
+- kitgen and gen-specs-pkginit reran; gen-link was unchanged.
+
+The rename/rename conflict in SpecPlan/Spec/PkgInit had left conflict markers in two files; the regen
+fixed them. In kvwitness's hand-written table, `internal.gomodel` was listed twice after the merge; one
+copy was removed.
+
+**S0.5 progress (Perennial reflect-s05):**
+- `AsDecided` (Proof/errors/Base.lean): off the diagonal it now also needs `undecidedKind (underlying T) = false`
+  (not struct/chan/func) or different kinds. That is exactly where reflectlite's `directlyAssignable` returns false.
+  etcd-grove's `errors.asNoMatch_notAssignable` (Proof/errors/AsNoMatch.lean) will need that premise
+  when etcd-grove pins reflect-s05. Its users have pointer `T`s, so it discharges.
+- reflectlite: `TypeOf`, `isModelRType` (both for non-struct kinds only), `toRType`, `toType`, `elem`,
+  `rtype.Elem`, `rtype.Kind` and `initialize'` are proved (ports of reflect's). `#print axioms`: Lean's three.
+- errors: `isInit` gains `errorType ↦□ errorTypeVal`; `initialize'` is re-proved (Lean's three axioms);
+  `As` is still a sorry.
+- `etc/trusted-delta.py 6a49ef67e..HEAD` is the S0.5-only delta (origin/reflect-s0..HEAD mixes in
+  Perennial lean's own changes).
+
+**VM gotchas:**
+- The VM sync dir's `.lake/packages/perennial` was a single-branch clone: fetch the new pin's branch by
+  hand before regenerating.
+- `vmlake build` of all ~2,500 Perennial modules exceeds ssh's 128 KB argument limit: build in chunks.
+- `lake build Perennial` builds only the framework.
+- `etc/gates.sh` on the VM needs `GATES_FAILFAST=0 GATES_GO_TMPDIR=$PWD/.lake/gt/gotest
+  GATES_K8S_LOCK=$PWD/.lake/gt/k8s.lock TCB_CACHE=$PWD/.lake/gt/tcb-cache`, because `/shared/tmp` is not
+  writable there.
+
+**Next:**
+1. Re-prove `errors.As`/`as` over reflectlite. Needed: specs for `ValueOf`, `Value.{Type,Kind,IsNil,Elem,Set}`,
+   `rtype.{Implements,AssignableTo}`, `directlyAssignable`, `implements` and `isDefined`, plus the four new
+   stubs `Store`, `AssertOk`, `TypeUnderlying` and `TypeIdentByName` (reflectcore spec files, as in S0).
+   The old asWalk proof (deleted in 567b4226f) is the template for `as`'s walk.
+2. Then repoint etcd-grove's pin to reflect-s05 (rerun gen-init etc.; AsNoMatch's new premise) and rebuild.
+3. Get an independent adversarial review of the new trusted text (the S0.5 rows, stubs, reflectlite overlay
+   and errors config) and of the axiom-tok change. Then send the ONE packet to Upamanyu; nothing merges before.
