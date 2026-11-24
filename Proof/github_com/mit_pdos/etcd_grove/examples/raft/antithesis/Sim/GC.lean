@@ -120,7 +120,7 @@ theorem nameOf_inj {a b : w64} (h : nameOf a = nameOf b) : a = b := by
   · rw [ha, hb]
   · simp [ha, hb] at h; exact absurd h hb
   · simp [ha, hb] at h; exact absurd h ha
-  · simp only [ha, hb, if_false, List.append_cancel_left_eq] at h
+  · simp only [ha, hb, ite_false, List.append_cancel_left_eq] at h
     have h2 := congrArg (fun s => internal.strconv.parseUint s 10 64) h
     simp only [internal.strconv.parseUint_fmtUint10] at h2
     injection h2 with h2
@@ -173,7 +173,7 @@ theorem garbage_vote {S : State} {g : List Fact} (hg : S.garbage = .ok g) {f : F
     (ht : f.type = go!"vote") : S.over f.term = true := by
   unfold State.garbage at hg
   have h := (filterM_mem hg hf).2
-  simp (config := { decide := true }) only [ht, if_true, epure] at h
+  simp (config := { decide := true }) only [ht, ite_true, epure] at h
   injection h
 
 theorem garbage_grant {S : State} (hc : S.cfg = cfg3) {g : List Fact} (hg : S.garbage = .ok g) {f : Fact}
@@ -181,7 +181,7 @@ theorem garbage_grant {S : State} (hc : S.cfg = cfg3) {g : List Fact} (hg : S.ga
     S.effTerm j.val > f.term := by
   unfold State.garbage at hg
   have h := (filterM_mem hg hf).2
-  simp (config := { decide := true }) only [ht, hd, idx_name hc, if_true, if_false, epure, eok_bind,
+  simp (config := { decide := true }) only [ht, hd, idx_name hc, ite_true, ite_false, epure, eok_bind,
     Bool.false_eq_true] at h
   injection h with h
   exact of_decide_eq_true h
@@ -192,7 +192,7 @@ theorem garbage_ack {S : State} (hc : S.cfg = cfg3) {g : List Fact} (hg : S.garb
       a.term = f.term ∧ a.index > f.index := by
   unfold State.garbage at hg
   have h := (filterM_mem hg hf).2
-  simp (config := { decide := true }) only [ht, hd, idx_name hc, if_true, if_false, epure, eok_bind,
+  simp (config := { decide := true }) only [ht, hd, idx_name hc, ite_true, ite_false, epure, eok_bind,
     Bool.false_eq_true] at h
   by_cases he : S.effTerm j.val > f.term
   · exact .inl he
@@ -218,10 +218,10 @@ theorem garbage_ok {S : State} (hc : S.cfg = cfg3) (hw : FactsWf S) : ∃ g, S.g
   apply filterM_ok
   intro m hm
   by_cases hv : m.type = go!"vote"
-  · simp (config := { decide := true }) only [hv, if_true, epure]; exact ⟨_, rfl⟩
+  · simp (config := { decide := true }) only [hv, ite_true, epure]; exact ⟨_, rfl⟩
   · obtain ⟨⟨i, hi⟩, ⟨j, hj⟩⟩ := hw.1 m hm hv
     have hv' : (m.type == go!"vote") = false := by simp [hv]
-    simp only [hv', hj, idx_name hc, eok_bind, epure, Bool.false_eq_true, if_false]
+    simp only [hv', hj, idx_name hc, eok_bind, epure, Bool.false_eq_true, ite_false]
     split
     · exact ⟨_, rfl⟩
     split
@@ -278,16 +278,16 @@ theorem find?_without {α : Type} (st : List Int) (t : Int) : ∀ f : TermFn α,
     by_cases hp : p.1 = t
     · subst hp
       by_cases hs : st.contains p.1 = true
-      · simp only [hs, Bool.not_true, Bool.false_eq_true, if_false, if_true]
+      · simp only [hs, Bool.not_true, Bool.false_eq_true, ite_false, ite_true]
         rw [find?_without st p.1 ps, if_pos hs]
       · have hs' : st.contains p.1 = false := by simpa using hs
-        simp only [hs', Bool.not_false, if_true, Bool.false_eq_true, if_false, List.find?_cons,
+        simp only [hs', Bool.not_false, ite_true, Bool.false_eq_true, ite_false, List.find?_cons,
           beq_self_eq_true]
     · have hpt : (p.1 == t) = false := by simp [hp]
       by_cases hs : st.contains p.1 = true
-      · simp only [hs, Bool.not_true, Bool.false_eq_true, if_false, List.find?_cons, hpt]
+      · simp only [hs, Bool.not_true, Bool.false_eq_true, ite_false, List.find?_cons, hpt]
         exact find?_without st t ps
-      · simp only [hs, Bool.not_false, if_true, List.find?_cons, hpt]
+      · simp only [hs, Bool.not_false, ite_true, List.find?_cons, hpt]
         exact find?_without st t ps
 
 theorem get_without {α : Type} (f : TermFn α) (st : List Int) (t : Int) :
@@ -311,10 +311,10 @@ theorem has_without {α : Type} (f : TermFn α) (st : List Int) (t : Int) :
     · have hpt : (p.1 == t) = false := by simp [hp]
       by_cases hs : st.contains p.1 = true
       · have hs' : st.contains p.1 = true := hs
-        simp only [List.any_cons, hs', hpt, Bool.not_true, Bool.false_and, Bool.false_or, ih, if_false,
+        simp only [List.any_cons, hs', hpt, Bool.not_true, Bool.false_and, Bool.false_or, ih, ite_false,
           Bool.false_eq_true]
       · have hs' : st.contains p.1 = false := by simpa using hs
-        simp only [List.any_cons, hs', hpt, Bool.not_false, Bool.true_and, Bool.false_or, ih, if_true]
+        simp only [List.any_cons, hs', hpt, Bool.not_false, Bool.true_and, Bool.false_or, ih, ite_true]
 
 theorem exists_max {α : Type} (f : α → Int) (P : α → Prop) : ∀ (l : List α), (∃ x ∈ l, P x) →
     ∃ x ∈ l, P x ∧ ∀ y ∈ l, P y → f y ≤ f x
@@ -669,7 +669,7 @@ theorem gcLoop_rel {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFacts} (hl
       obtain ⟨S', h', hs', hgo'⟩ := gcLoop_rel hl k (gcRes S g o) (by have := gcM_lt hg ho hd; omega) hs1 hgo1
       refine ⟨S', ?_, hs', hgo'⟩
       rw [gcLoop, gcDue_eq hg ho, hd]
-      simp only [eok_bind, Bool.not_true, Bool.false_eq_true, if_false, gc_eq hg ho, hv, bne_self_eq_false]
+      simp only [eok_bind, Bool.not_true, Bool.false_eq_true, ite_false, gc_eq hg ho, hv, bne_self_eq_false]
       exact h'
 
 end rel
@@ -696,7 +696,7 @@ theorem Prefix.snoc {cfg : Config} {evs : List Event} {S S1 S2 : State} {ev : Ev
     change (evs ++ [ev]).foldlM (fun c ev => c.next ev) ({ state := s } : Checker) = _
     have hn : c.next ev = .ok { c with state := S2 } := by
       unfold Checker.next
-      simp only [hd, Bool.false_eq_true, if_false, hgc, eok_bind, hst, hv, bne_self_eq_false]
+      simp only [hd, Bool.false_eq_true, ite_false, hgc, eok_bind, hst, hv, bne_self_eq_false]
       rfl
     rw [List.foldlM_append, hc, eok_bind, List.foldlM_cons, hn, eok_bind]
     rfl

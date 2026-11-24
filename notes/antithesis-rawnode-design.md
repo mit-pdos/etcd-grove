@@ -843,7 +843,8 @@ mutant rejected; a real harness run's stream has the same shapes). Where the ske
 
 Proved so far (`Sim/`, one file per lemma): `antSim_gc` (`GC.lean`, with the shared laws: `filterM`/
 `anyM` evaluation, `nameOf_inj`, `State.idx` of a node's name, `violated_nil`, `Prefix.snoc`),
-`antSim_init` (`Init.lean`). Changes to the relation and the statements, each with its reason:
+`antSim_init` (`Init.lean`), `antSim_boot` (`Boot.lean`: under C1 and `PInit`, `Boot` changes only
+`undo[n]`, `pending[n]` and `i`). Changes to the relation and the statements, each with its reason:
 
 - **C3 (`BindingOk`) gains two conjuncts: every grant's and ack's `src`/`dst` and every vote's
   `voter` is a server's name** (`nameOf (nodeId i)`). `GC`'s `Garbage` and `OldVotes` look them up
