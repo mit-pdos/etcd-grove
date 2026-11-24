@@ -117,6 +117,46 @@ theorem rsView_next {id : w64} {rs : RNState} {v v₁ : AntSim.NodeView} {ps₁ 
   · simp only [hps, pAccepted]; exact hdur
   · simp only [hdel, hce, hce₁, hdl, List.append_nil]
 
+/-- **The next loop head, at the protocol level** (`Reach.advance`): the view `v₁` after the
+iteration's reports (the node at `pAccepted ps₁`, its self-addressed messages queued, nothing left to
+send or apply, the drain's `by` one of the harness's) reaches `Advance`'s end state `ps'`, and
+`Advance`'s in-progress boundary (`min ip' (lcpLen …)`, `ip'` the log's end after `Ready`) is the
+common prefix of the view's log and `ps'`'s. -/
+theorem reach_next {id : w64} {net : List Msg} {v₁ : AntSim.NodeView} {ps₁ ps' : PState}
+    {ip' ip'' : Nat} (hps : v₁.ps = pAccepted ps₁) (hpend : v₁.pend = []) (hce : v₁.ce = [])
+    (hby : ByOk v₁.byE) (hadv : AdvanceEnd AntSim.cfgM3 id (pAccepted ps₁) v₁.qs ps')
+    (hip' : ip' = ps₁.log.length)
+    (hip'' : ip'' = min ip' (lcpLen (pAccepted ps₁).log ps'.log)) :
+    AntSim.Reach id net v₁ ps' ∧ ip'' = lcpLen v₁.ps.log ps'.log := by
+  refine ⟨.advance v₁ ps' hpend hce hby (by rw [hps]; exact hadv), ?_⟩
+  rw [hip'', hip', hps]
+  have := lcpLen_le_left (pAccepted ps₁).log ps'.log
+  simp only [pAccepted] at this ⊢
+  omega
+
+/-- **`nodeOwn`'s loop phase closed** (`nodeOwn_loop_open`'s converse). -/
+theorem nodeOwn_loop_close (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.NodeView)
+    (net₀ : List Msg) (ps₁ : PState) (rn : Loc) (rs : RNState) (ip : Nat)
+    (hrv : RsView rs v) (hR : AntSim.Reach (AntSim.nodeId j) net₀ v ps₁)
+    (hip : ip = lcpLen v.ps.log ps₁.log) :
+    n.[H.node, go!"rn"] ↦□ rn ∗ rawNode (GF := GF) γ.raft.raftNames rn (AntSim.nodeId j) rs ps₁ [] ip ∗
+        loopRest γ j n v net₀ rs ⊢
+      nodeOwn c γ j n v (.loop net₀ ps₁) := by
+  iintro ⟨#Hrn, Hraw, Hrest⟩
+  iunfold loopRest at Hrest
+  icases Hrest with ⟨%ms, %si, %cl, %applied, #Hms, Hbs, %Hsto, Hnr, Hrole, Hterm, Hvote, Hcommit,
+    Happ, Hcause, Hv, Hl, #Hlb, Hco, %hby⟩
+  unfold nodeOwn
+  iexists rn, ms, si, rs, ps₁, [], ip, cl, applied
+  iframe Hrn Hms Hbs Hraw Hnr Hrole Hterm Hvote Hcommit Happ Hcause Hv Hl
+  isplitr
+  · ipureintro; exact Hsto
+  isplitr
+  · ipureintro; exact hrv
+  isplitr
+  · ipureintro; exact ⟨rfl, hR, rfl, hip, hby⟩
+  iframe Hlb Hco
+
 end proof
 
 end AntHarness
