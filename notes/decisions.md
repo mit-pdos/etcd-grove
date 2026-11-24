@@ -42343,6 +42343,8 @@ the bridge returns a value the real store lacks, and the program's check panics,
 
 **Choice.** `New` also consumes `netAddrLeft a`: a bridged address's protocols are its target's, so the program that
 bridges `a` keeps nothing to set them with. Trust-shrinking (a stronger precondition of an axiom); its one caller,
-`cluster3.StartBridge`, passes `Listen`'s `netAddrLeft`, its own spec unchanged. Whether the same route refutes grpc's
-own `Invoke` axiom with a table the program picks is checked separately (reported to the switch's owner).
+`cluster3.StartBridge`, passes `Listen`'s `netAddrLeft`, its own spec unchanged. A second review found the hole on
+`lean` itself, with no interim axiom: the table set to etcd's own KV entries at fabricated read names, and the proved
+`client_Get_own` (over `grpc.ClientConn.Invoke`) promises a value the real store lacks (`examples/axiomcx/bridgeinvoke/`);
+with the fix it found no route (`notes/axiom-review/bridge-addrleft.md`).
 

@@ -22,8 +22,22 @@ consumes `netAddrLeft a`. Then whoever bridges `a` has spent what sets `a`'s pro
 (`netAddrLeft` or `addrUnset`, both holding `a`'s exclusive pending set) cannot form `netAddrLeft a` to bridge.
 Its one caller, `cluster3.StartBridge`, passes `net.Listen`'s.
 
-**Open (reported to the switch's owner, checked separately):** whether the same route refutes grpc's own
-`ClientConn.Invoke.wp_proof` with a table the program picks, without any interim axiom.
+**Without any interim axiom (2026-11-24, second review): `lean` itself was unsound.** The table set from
+`netAddrLeft a` need not promise anything false: it is etcd's own five KV entries (`kvRegsAt`) at fabricated read
+names `γr`, over a fabricated `putGetInv` (a fresh state holding `k ↦ v`, flag at 1). `grpcSvcAt_of_addr`
+(`InvGrpcWire.lean`) with `grpcReach a a` gives `isGrpcRpcMd` per entry, hence `kvRegsAt`; the proved
+`client.client_Get_own` (`ClientPutGet.lean`, over `grpc.ClientConn.Invoke.wp_proof`) then promises `"v"`, and the
+bridge relays to a real member whose store is empty. Trusted beyond the single-process base: only `bridge.New` and
+`Invoke`. Go: `examples/axiomcx/bridgeinvoke/` (5/5 on the review, 1/1 here). Lean: `bridge-addrleft/InvokeCx.lean.txt`
+(not built: `fake_kvRegsAt` in full, `fake_putGetInv` a `sorry` for routine allocation, the program an outline over
+putget's `Main`).
+
+**With the fix** the review found no route: Route A and the bridge both need the one exclusive `netPend a ∅` in
+`netAddrLeft a`; route B leaves it inside `addrProto`'s invariant; a grpc server on the listener must meet the table
+(`grpcServes`), an empty one answers `Unimplemented`; `grpc.start'` sets Go's own table; a raw relay can write nothing
+under the opaque protocols; `grpcReach a a₀` (a₀ ≠ a) needs a bridge's wand. Two conditions the fix must keep: `New`
+never hands `netAddrLeft a` back (its post does not), and no other spec relays a listener taking only `netListenerAt`
+(`bridge.New` is the only one today).
 
 ## The proof sketch
 

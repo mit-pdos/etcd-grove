@@ -670,5 +670,5 @@ The remaining baseline and the two generated admissions have not been discharged
 
 | axiom | verdict | reason |
 |---|---|---|
-| `bridge.New.wp_proof` (D26) | **false before 2026-11-24** with any client axiom over a grpc table (found with etcd-dist's interim `Client_Get_dist`); **fixed**: its precondition also consumes `netAddrLeft a` | A program listened at `a`, set `a`'s grpc table from `net.Listen`'s `netAddrLeft a` (`addr_set_proto_tok`) and bridged `a` to a server meeting none of the table's specs (`TestMainPanics`). With the fix the bridging program has spent what sets `a`'s protocols. |
+| `bridge.New.wp_proof` (D26) | **false before 2026-11-24**, with `grpc.ClientConn.Invoke.wp_proof` alone (the proved `client_Get_own`, `examples/axiomcx/bridgeinvoke/`) and with etcd-dist's interim `Client_Get_dist`; **fixed**: its precondition also consumes `netAddrLeft a` | A program listened at `a`, set `a`'s grpc table from `net.Listen`'s `netAddrLeft a` (`addr_set_proto_tok`) and bridged `a` to a server meeting none of the table's specs (`TestMainPanics`). With the fix the bridging program has spent what sets `a`'s protocols. |
 
