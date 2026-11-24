@@ -41,7 +41,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proofFile
   · ipureintro; rfl
   iintro %jsl ⟨Hjsl, -⟩
   (try wp_auto)
-  wp_apply wp_Join _ [dir, go!".touch"] _ (by simp; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
+  wp_apply wp_Join _ [dir, go!".touch"] _ (by simp [_root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
   rw [join_child hclean touch_nameOk] at hpth
   subst hpth
   (try wp_auto)

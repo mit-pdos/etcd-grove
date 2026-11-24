@@ -116,7 +116,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
     · ipureintro; rfl
     iintro %jsl ⟨Hjsl, -⟩
     (try wp_auto)
-    wp_apply wp_Join _ [d, b] _ (by simp; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
+    wp_apply wp_Join _ [d, b] _ (by simp [_root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
     rw [join_child hclean hbok] at hpth
     subst hpth
     (try wp_auto)

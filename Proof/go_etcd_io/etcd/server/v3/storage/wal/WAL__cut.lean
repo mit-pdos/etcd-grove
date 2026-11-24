@@ -323,7 +323,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   · ipureintro; rfl
   iintro %jsl ⟨Hjsl, -⟩
   (try wp_auto)
-  wp_apply wp_Join _ _ _ (by simp [walFileName_length]; omega) $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
+  wp_apply wp_Join _ _ _ (by simp [walFileName_length, _root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
   rw [join_child hclean (walFileName_nameOk _ _)] at hfpath
   subst hfpath
   (try wp_auto)

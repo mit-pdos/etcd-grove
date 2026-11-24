@@ -6111,3 +6111,16 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   (hex node IDs, `B = 17`), the witness raft's `ReplicationSet.String` (`FormatUint` digits, `B = 65`). Internal
   callee spec; no top-level statement changes.
 - **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`).
+## 2026-11-24: `filepath.join`/`Join`'s length premise at `joinMax`; the WAL's directory bounds `2^61` → `2^60` (prove-ps2-fmtstage1, #9)
+
+- **Spec.** `filepath.join.spec`, `filepath.Join.spec` (`Spec/path/filepath/`); `wal.newFilePipeline.spec`,
+  `wal.openWALFiles.spec`, `wal.segmentContainsSnapshot.spec`, and the WAL's `isFilePipe`/read state (`Pipe.lean`,
+  `ReadDefs.lean`, `ReadAllProbe.lean`).
+- **Defect.** `join` calls the real `strings.Join`, whose spec (Perennial `8e9f1ee59`) needs the output below
+  `2^61` bytes; `join.spec` had no premise and `Join.spec`'s `sum + count < 2^62` does not give it.
+- **Evidence.** Perennial `strings.Join.spec` at `612f4641b` and later.
+- **Proposed change.** Both: `(es.map List.length).sum + es.length ≤ strings.joinMax` (proved: the joined suffix
+  is shorter, `filepath.length_intercalate_sublist_lt`). The WAL's callers join a directory and a name each below
+  `2^60`, which fits; the directory bounds that were `2^61` become `2^60` (every producer already has `2^60` from
+  `datadir`'s premises). No top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`).

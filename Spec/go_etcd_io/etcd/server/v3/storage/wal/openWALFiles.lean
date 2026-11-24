@@ -44,7 +44,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.spec : Prop :=
     (write : Bool) (is : List Ino) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (N : NameSet)
     (dqn : DFrac) (h : NamesH),
   0 ≤ sint.Z k → sint.nat k ≤ names.length → (names.drop (sint.nat k)).length = is.length →
-  d.length < 2 ^ 61 →
+  d.length < 2 ^ 60 →
   (∀ (m : Nat) (b : GoString) (i : Ino), (names.drop (sint.nat k))[m]? = some b → is[m]? = some i →
     N.Mem b ∧ NameOk b ∧ b.length < 2 ^ 60 ∧ h.cur !! b = some (.file i)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗

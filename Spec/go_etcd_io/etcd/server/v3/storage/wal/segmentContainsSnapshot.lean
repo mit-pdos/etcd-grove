@@ -21,7 +21,7 @@ def wal.probeOwn (R : Roots) (dir : GoString) (j : Ino) (dq : DFrac) (qc : Qp)
 abbrev wal.segmentContainsSnapshot.spec (U : WalUnmarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (dir : GoString) (j : Ino) (dq : DFrac) (qc : Qp)
     (N : NameSet) (dqn : DFrac) (hj : NamesH) (g : SegG) (index : w64),
-    dir.length < 2 ^ 61 → N.Mem g.name → NameOk g.name → g.name.length < 2 ^ 60 →
+    dir.length < 2 ^ 60 → N.Mem g.name → NameOk g.name → g.name.length < 2 ^ 60 →
     hj.cur !! g.name = some (.file g.ino) → g.om.size = g.bs.length →
     ProbeBelow walCodec U (uint.nat index) [segImg g] 0 0#32 →
     wal.prefixFileMiss (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗

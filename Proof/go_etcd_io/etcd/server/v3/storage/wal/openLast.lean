@@ -158,7 +158,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     iintro %jsl ⟨Hjsl, -⟩
     try wp_auto
     obtain ⟨sq, ix, hgn⟩ := hnmf gL hgLm
-    have hjl : ([dir, gL.name].map List.length).sum + 2 < 2 ^ 62 := by
+    have hjl : ([dir, gL.name].map List.length).sum + 2 ≤ _root_.Perennial.strings.joinMax := by
+      unfold _root_.Perennial.strings.joinMax
       simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hgn, walFileName_length]
       omega
     wp_apply wp_Join _ _ _ hjl $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
