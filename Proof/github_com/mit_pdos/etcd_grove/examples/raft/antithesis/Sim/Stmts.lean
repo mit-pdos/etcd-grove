@@ -107,6 +107,10 @@ structure ReadyD where
   qs : List Msg
   ce : List EntryM
 
+/-- A `Ready`'s messages to others are to voters (raft's side provides it: every message a node
+queues is to a member of its configuration). -/
+def ReadyMsgsToVoters (rd : ReadyD) : Prop := ∀ q ∈ rd.msgs, ∃ j : Fin 3, q.dst = nodeId j
+
 /-- **The `Ready` binding at the protocol level** (`ReadyOut`, §2.2, over `PState`): a `Ready` taken
 at `ps` from a node whose view (its durable state) is `v` reports `ps`'s role and hard state; its
 entries are what the write appends (the log after it is `ps.log`, from the first entry's index,

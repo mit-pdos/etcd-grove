@@ -198,6 +198,12 @@ def QsOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) (q : Msg) : Prop :=
    (q.ty = .voteResp ∧
       { voter := nameOf (nodeId n), term := uint.Z v.ps.term, cand := nameOf (nodeId n) } ∈ S.votes))
 
+/-- **C1, the leader hint**: a node that does not lead does not name itself as leader (raft's
+`LeadOk`): every step that sets `lead` to the node itself makes it leader, and a leader that steps
+down resets `lead` (`becomeFollower`), or sets it to the sender of a message, never itself (D:
+`m.src ≠ m.dst`). -/
+def LeadOk (n : Fin 3) (v : NodeView) : Prop := v.ps.role ≠ .leader → v.ps.lead ≠ nodeId n
+
 /-- C1, C2 and the drain's facts for node `n`: its pending messages (`PendOk`), its queued
 self-messages (`QsOk`), once its drain's `recv` is reported, `pending[n]` (B 201), and the message
 its drain handles was sent to it (an acknowledgement's `send` reads its `Sendable`, kept by C4). -/
@@ -288,6 +294,17 @@ def HbCommitOk (S : AntCheck.State) (net : List Msg) : Prop :=
     S.currentTerm[j.val]! ≤ uint.Z m.term →
     ((S.confirmed[j.val]!).term = uint.Z m.term ∧ uint.Z m.commit ≤ (S.confirmed[j.val]!).index) ∨
       uint.Z m.commit ≤ S.commitIndex[j.val]!
+
+/-- **C4, a message's shape**: an append carries a well-formed payload that does not wrap
+(`AppPayloadOk`, what `RecvEnd` reads of a received `MsgApp`), no message is to its sender, and a
+forwarded proposal is at term `0` (`ProposeEnd`'s forward). `send` keeps them from `PendOk`
+(`AppOk`'s `AppPayloadOk` and `dst ≠ id`); with `Reach.input`'s `m.term ≠ 0`, a received message is
+never a proposal. -/
+def MsgShape (m : Msg) : Prop :=
+  (m.ty = .app → AppPayloadOk m) ∧ m.src ≠ m.dst ∧ (m.ty = .propose → m.term = W64 0)
+
+/-- Every message sent has `MsgShape`. -/
+def NetShape (net : List Msg) : Prop := ∀ m ∈ net, MsgShape m
 
 /-- **C4**: every message sent (`net`: every `send` so far, delivered, dropped or in flight) is
 between two of the nodes, of a type in scope, of a term its sender has reached, and what the
