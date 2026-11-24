@@ -14,6 +14,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_dist
 
+open Iris Iris.BI Net
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]

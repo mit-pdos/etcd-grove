@@ -52,7 +52,8 @@ theorem Client.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Put_dist : etcd_dist.Client_Put_dist.spec (GF := GF) (hG := hG))
-    (wp_Get_dist : etcd_dist.Client_Get_dist.spec (GF := GF) (hG := hG)) :
+    (wp_Get_dist : etcd_dist.Client_Get_dist.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) :
     Client.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC TB π ep γE mid hplain hAs
   have Htb : threadBound GF ≤ 2 ^ 31 := TB.threadBound_le
@@ -79,7 +80,7 @@ theorem Client.wp_proof
   wp_apply wp_NewNop as %lg #Hlgz
   (try wp_auto)
   -- `NewClient(ep, lg)`, at any watch environment (`Put`/`Get` read none of it)
-  wp_apply (wp_NewClient ep lg (Classical.choice (wenv_nonempty (GF := GF))) hplain Htb)
+  wp_apply (wp_NewClient ep lg (Classical.choice (wenv_nonempty (GF := GF) hne)) hplain Htb)
     as %cl %cerr Hcl
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -, #Hnp⟩ | %Hcfail)
@@ -116,7 +117,7 @@ theorem Client.wp_proof
         client.putGetInv γr γf go!"k" go!"v") $$ []
   · imodintro
     iintro %ν #Hν
-    imod (etcd_dist.envAt_pub (Gg := hG.goose_globalGS) ⊤ γE CoPset.subseteq_top
+    imod (etcd_dist.envAt_pub_h ⊤ γE CoPset.subseteq_top
       (putgetPub (G := hG.goose_globalGS)) ν) $$ Hinv Hν with #Hpub
     imodintro
     inext
@@ -128,7 +129,7 @@ theorem Client.wp_proof
     ihave HL := Hall $$ %hG.goose_localGS
     iexact HL
   -- `cli.Put(pctx, "k", "v")`, before the view is known
-  wp_apply (wp_Put_dist cl ep (Classical.choice (wenv_nonempty (GF := GF))) γE mid pctx pcd
+  wp_apply (wp_Put_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) γE mid pctx pcd
       go!"k" go!"v" slice.nil
       (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
         (by decide))) as %presp %perr Hput
@@ -153,7 +154,7 @@ theorem Client.wp_proof
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
   (try wp_auto)
   -- `cli.Get(gctx, "k")`, at the view the `Put` learned
-  wp_apply (wp_Get_dist cl ep (Classical.choice (wenv_nonempty (GF := GF))) γE mid ν γr γf
+  wp_apply (wp_Get_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) γE mid ν γr γf
       gctx gcd go!"k" go!"v" slice.nil
       (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))
       Hst) as %gresp %gerr Hget

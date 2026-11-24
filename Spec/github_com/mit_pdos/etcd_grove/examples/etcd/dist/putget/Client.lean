@@ -49,7 +49,7 @@ abbrev Client.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget ∗
       clientShare (G := hG.goose_globalGS) client γE mid (putgetPub (G := hG.goose_globalGS)) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Client)) (Val #client))
-  {{ (b : bool), RET #b; True }}
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 

@@ -116,7 +116,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (σm : state) (Hm : MemberFiles σm)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootMember peer client) σm
-      (memberShare client γE id putgetPub) := by
+      (memberShare client γE id (putgetPub (GF := putgetGF))) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -163,7 +163,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
       mvcc.api.mvccApi_names_nonempty_law_holds
-      peer client id ctxs boot γE putgetPub Hbf (etcd_dist.addrOk_plainPeerURL hpeer)
+      peer client id ctxs boot γE (putgetPub (GF := putgetGF)) Hbf (etcd_dist.addrOk_plainPeerURL hpeer)
       (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hdd Hwa Hshare]
   · iframe; iframe #

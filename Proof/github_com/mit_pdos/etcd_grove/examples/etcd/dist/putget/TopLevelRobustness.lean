@@ -145,10 +145,10 @@ theorem putget_safe_of_hyps
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   simp only [addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Hs with ⟨Hp, Hcl, -⟩
-  imod putget_start peer client id putgetPub $$ Hreg Hp Hcl with ⟨%γE, Hms, #Hcs⟩
+  imod putget_start peer client id (putgetPub (GF := putgetGF)) $$ Hreg Hp Hcl with ⟨%γE, Hms, #Hcs⟩
   imodintro
-  iexists (fun i => if i = 0 then memberShare client γE id putgetPub
-    else clientShare client γE id putgetPub)
+  iexists (fun i => if i = 0 then memberShare client γE id (putgetPub (GF := putgetGF))
+    else clientShare client γE id (putgetPub (GF := putgetGF)))
   isplitr
   · ipureintro
     intro i m hm
@@ -161,13 +161,13 @@ theorem putget_safe_of_hyps
     | k + 2, hm => simp [system] at hm
   simp only [system, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   isplitl [Hms]
-  · iapply (show memberShare client γE id putgetPub ⊢ (if (0 : Nat) = 0 then
-        memberShare client γE id putgetPub else clientShare client γE id putgetPub) by
+  · iapply (show memberShare client γE id (putgetPub (GF := putgetGF)) ⊢ (if (0 : Nat) = 0 then
+        memberShare client γE id (putgetPub (GF := putgetGF)) else clientShare client γE id (putgetPub (GF := putgetGF))) by
       rw [if_pos rfl])
     iexact Hms
   isplitl []
-  · iapply (show clientShare client γE id putgetPub ⊢ (if (0 : Nat) + 1 = 0 then
-        memberShare client γE id putgetPub else clientShare client γE id putgetPub) by
+  · iapply (show clientShare client γE id (putgetPub (GF := putgetGF)) ⊢ (if (0 : Nat) + 1 = 0 then
+        memberShare client γE id (putgetPub (GF := putgetGF)) else clientShare client γE id (putgetPub (GF := putgetGF))) by
       rw [if_neg (by decide)])
     iexact Hcs
   iempintro

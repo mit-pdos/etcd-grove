@@ -46,7 +46,7 @@ deriving DecidableEq, Inhabited
 /-- **The view a started member publishes** (its read names' KV state variable's name): what
 `Serve_dist` serves at (`ν = memberView ρ`, review 24's fix 2: an equation of the whole view, so that
 the axiom's statement does not change when `EnvView` gains #24's fields and `memberView` with it). -/
-abbrev memberView (ρ : ReqNames) : EnvView := ⟨ρ.rd.kv.st⟩
+abbrev memberView [GooseExts] (ρ : ReqNames) : EnvView := ⟨ρ.rd.kv.st⟩
 
 instance EnvView.countable : Pos.Countable EnvView :=
   Pos.Countable.ofInjective (fun ν => Pos.Countable.encode ν.st) (fun a b h => by
@@ -172,6 +172,33 @@ theorem envAt_pub (E : CoPset) (γE : GName) (hE : ↑(envPubN γE) ⊆ E)
     iexact HP
 
 end pub
+
+/-! ## The laws at a heap's fancy update
+
+The laws above are stated over the global ghost state (`GooseGlobalGS.gooseInvGS` as the invariants'
+instance); a proof under a heap (`HeapGS`, a WP's) reaches the same fancy update through the heap's
+`IrisGS`, which the proof mode does not unify with it. These restate them there (by `rfl` of the
+instances). -/
+
+section heap
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF]
+
+/-- `env_publish` at the heap's fancy update. -/
+theorem env_publish_h (E : CoPset) (γE : GName) (hE : ↑(envPubN γE) ⊆ E)
+    (Pub : EnvView → IProp GF) (ν : EnvView) :
+    ⊢ envPubHalf (Gg := hG.goose_globalGS) γE -∗ envPubInv (Gg := hG.goose_globalGS) γE Pub -∗
+      □ Pub ν ={E}=∗ envAt (Gg := hG.goose_globalGS) γE ν :=
+  env_publish E γE hE Pub ν
+
+/-- `envAt_pub` at the heap's fancy update. -/
+theorem envAt_pub_h (E : CoPset) (γE : GName) (hE : ↑(envPubN γE) ⊆ E)
+    (Pub : EnvView → IProp GF) (ν : EnvView) :
+    ⊢ envPubInv (Gg := hG.goose_globalGS) γE Pub -∗ envAt (Gg := hG.goose_globalGS) γE ν ={E}=∗
+      ▷ □ Pub ν :=
+  envAt_pub E γE hE Pub ν
+
+end heap
 
 /-! ## The address fact (axiomatized: see `etcdAddrRaw`) -/
 

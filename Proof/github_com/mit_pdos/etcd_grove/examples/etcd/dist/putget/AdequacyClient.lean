@@ -60,7 +60,7 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (client : GoString) (hcl : Net.addrOk client = true) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) (mid : w64) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootClient client) σc
-      (clientShare client γE mid putgetPub) := by
+      (clientShare client γE mid (putgetPub (GF := putgetGF))) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -68,6 +68,7 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
   haveI : ContextReadErrs (GF := putgetGF) (hG := hG) := Hctx hG
   haveI : ContextErrsClient (GF := putgetGF) (hG := hG) := Hcec hG
+  haveI := etcdFsSemOk
   haveI : ThreadBoundLe putgetGF (2 ^ 31) := ⟨by rw [hT]; omega⟩
   iintro #Hshare - Hgs -
   -- (prom-registry) the machine's registration rights: a fresh ghost map of its packages' IDs, the
@@ -91,6 +92,7 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   wp_apply (Client.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClient context.wp_Background
       context.WithTimeoutBackground.wp_proof context.wp_ErrAny
       etcd_dist.Client_Put_dist.wp_proof etcd_dist.Client_Get_dist.wp_proof
+      mvcc.api.mvccApi_names_nonempty_law_holds
       client γE mid (etcd_dist.addrOk_plainEndpoint hcl)
       EtcdGrove.rpctypesEtcdError_asTarget) $$ [] as %b -
   · iframe #

@@ -118,20 +118,59 @@ theorem memberPubOk_putgetPub (L : GooseLocalGS GF) :
 
 end pub
 
-section wenv
-variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
-variable {GF : BundledGFunctors}
-
-/-- **A watch environment exists**: `etcdstart.NewClient.spec` holds at every one, and the client's
-`Put`/`Get` read none of it; the client machine's proof picks one. Built field by field from
-defaults (`True` for the propositions). -/
-theorem wenv_nonempty : Nonempty (client.WEnv GF) := by
-  refine ⟨?_⟩
-  repeat' (first
+/-- Fills a goal of data with defaults (`default`, `True`, `1`, under binders, field by field): for
+`wenv_nonempty`'s watch environment, whose fields `Put`/`Get` never read. -/
+syntax "putget_fill" : tactic
+macro_rules
+  | `(tactic| putget_fill) => `(tactic| first
     | exact default
     | exact iprop(True)
-    | (intro _)
-    | constructor)
+    | exact (1 : Qp)
+    | (intro _; putget_fill)
+    | (constructor <;> putget_fill))
+
+section wenv
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors}
+
+/-- **An etcd model whose propositions are all `False`** (its laws hold vacuously): the watch
+environment's model in `wenv_nonempty`, never read. -/
+def wenvFalseModel : EtcdModel GF where
+  etcdState _ _ _ := iprop(False)
+  etcdState_agree := by intros; exact false_sep.1.trans false_elim
+  etcdState_revs := by intros; exact false_elim
+  etcdState_keys := by intros; exact false_elim
+  etcdState_vals := by intros; exact false_elim
+  etcdState_create_persist := by intros; exact false_sep.1.trans false_elim
+  etcdState_modrev_det := by intros; exact false_sep.1.trans false_elim
+  etcdState_modrev_persist := by intros; exact false_sep.1.trans false_elim
+  etcdReachedAt _ := iprop(False)
+  etcdReachedAt_timeless := by intros; infer_instance
+  etcdReadAt _ := iprop(False)
+  etcdReadAt_persistent := by intros; infer_instance
+  etcdReadAt_timeless := by intros; infer_instance
+  etcdRevToken _ := iprop(False)
+  etcdRevToken_excl := by intros; exact false_sep.1.trans false_elim
+  EtcdStep _ _ _ _ := iprop(False)
+  EtcdStep_persistent := by intros; infer_instance
+  EtcdStep_timeless := by intros; infer_instance
+  etcdStep_transfer := by intros; exact false_sep.1.trans false_elim
+  etcdStep_compose := by intros; exact false_sep.1.trans false_elim
+  etcdStep_restrict := by intros; exact false_elim
+  etcdStep_delete_present := by intros; exact false_sep.1.trans false_elim
+
+/-- **A watch environment exists**: `etcdstart.NewClient.spec` holds at every one, and the client's
+`Put`/`Get` read none of it; the client machine's proof picks one (defaults field by field, the model
+`wenvFalseModel`; a store name from the mvcc API's law, `names_nonempty`, since `MvccName` is sealed). -/
+theorem wenv_nonempty (hne : mvcc.api.names_nonempty.law) : Nonempty (client.WEnv GF) := by
+  haveI : Inhabited mvcc.api.MvccName := Classical.inhabited_of_nonempty hne.1
+  have hA : Nonempty (apply.AEnv GF) := ⟨by putget_fill⟩
+  have hW : Nonempty (v3rpc.SrvW GF) := ⟨by putget_fill⟩
+  obtain ⟨E⟩ := hA
+  obtain ⟨W⟩ := hW
+  exact ⟨⟨⟨null, E, null, 0, 0, 0, null, 0⟩, [], [], null, null, [], null, wenvFalseModel,
+    fun _ => iprop(True), fun _ => ([], ⟨null, E, null, 0, 0, 0, null, 0⟩), 0, default, W,
+    fun _ => W⟩⟩
 
 end wenv
 

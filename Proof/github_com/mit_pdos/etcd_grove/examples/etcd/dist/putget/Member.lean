@@ -94,7 +94,7 @@ theorem Member.wp_proof
     imodintro
     ihave HPg := Hpub $$ %ρ.rd %γf Hpg
     iexact HPg
-  imod (etcd_dist.env_publish ⊤ γE CoPset.subseteq_top Pub (etcd_dist.memberView ρ)) $$ Hhalf Hinv HP
+  imod (etcd_dist.env_publish_h ⊤ γE CoPset.subseteq_top Pub (etcd_dist.memberView ρ)) $$ Hhalf Hinv HP
     with #Hν
   -- `Serve(s, client)` on a member machine (`Serve_dist`)
   wp_apply (wp_Serve_dist srv client ρ E₀ lg γn id γE (etcd_dist.memberView ρ)) $$ [Hup] as %serr -

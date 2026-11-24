@@ -383,6 +383,9 @@ end env
 
 /-! ## The ghost state the statements' Iris premise is stated at -/
 
+-- the bundle's extensions (GooseLang's `val` and the ghost-state slots are over them)
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std in
 /-- **The functors** the statements' Iris premise (`HEnvTok`) is stated at: `putgetGF`'s layout (the
 universal camera `AllG` at slot 0, invariants, later credits, GooseLang's heap, prophecies and package
