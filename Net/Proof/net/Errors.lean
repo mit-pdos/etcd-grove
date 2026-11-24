@@ -65,7 +65,7 @@ theorem wp_closedErr (Φ : val → IProp GF) :
     Φ #closedErr -∗ WP (App (Val (@! net.netClosingErr)) (Val #())) {{ Φ }} := by
   iintro HΦ
   wp_func_call; wp_call
-  wp_auto
+  (try wp_auto)
   unfold closedErr
   iexact HΦ
 
@@ -81,7 +81,7 @@ theorem wp_kindErr (k : NetErr) (ed : Option GoInterface) (name : GoString)
   cases k
   · wp_auto
     wp_apply wp_closedErr
-    wp_auto
+    (try wp_auto)
     iapply HΦ
     unfold kindErr
     ipureintro; rfl
@@ -123,7 +123,9 @@ theorem wp_codeErr (res : Option NetErr) (ed : Option GoInterface) (name : GoStr
     ipureintro; rfl
   | some k =>
     have hk : errCode (some k) ≠ W64 0 := by cases k <;> decide
-    wp_auto
+    (try wp_auto)
+    rw [decide_eq_false hk]
+    (try wp_auto)
     wp_apply wp_kindErr k ed name nm hnm rfl $$ Hed as %e #He
     wp_auto
     iapply HΦ
@@ -219,8 +221,13 @@ theorem wp_conn_ok (c fd : Loc) (hfd : fd ≠ null) (Φ : val → IProp GF) :
   ihave %hc := typedPointsto_not_null _ _ _ $$ Hc
   wp_method_call; wp_call
   wp_auto
+  rw [show (!decide (c = null)) = true by simp [hc]]
+  wp_auto
+  (try rw [show (!decide (fd = null)) = true by simp [hfd]])
+  (try simp only [hfd, decide_false, Bool.not_false])
+  (try wp_auto)
   trace_state
-  sorry
+  iexact HΦ
 
 /-! ### `netFD`'s methods (the model) -/
 
