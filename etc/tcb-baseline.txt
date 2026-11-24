@@ -96,16 +96,13 @@ axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpc.start
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec
 axiom grpcResolverAt
-axiom grpcSrvCfgRaw
-axiom grpcSrvLink
+axiom grpcSrvBound
 axiom grpcSrvNew
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer

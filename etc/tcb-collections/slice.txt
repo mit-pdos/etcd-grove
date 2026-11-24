@@ -20,10 +20,8 @@ axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg
