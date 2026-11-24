@@ -23,6 +23,7 @@ public import Code.path
 public import Code.bufio
 public import Perennial.Code.runtime
 public import Perennial.Golang.Defn
+public import Net.TrustedCode.net.http
 
 @[expose] public section
 
@@ -1395,8 +1396,6 @@ opaque ErrNoLocation.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def httpmuxgo121 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.httpmuxgo121"
-
-opaque httpmuxgo121.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def use121 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.use121"
@@ -10219,6 +10218,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GlobalVarAddr defaultServeMux))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -10556,6 +10556,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.bufio.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.runtime.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc use121 go.bool)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc DefaultServeMux (go.GoType.PointerType ServeMux.ty))) (Val #()))))))
   (App (Val doExecute)
