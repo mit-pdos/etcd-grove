@@ -64,7 +64,9 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
       iframe HQ
       unfold resErr
       iexists e
-      iframe Herr He
+      iframe Herr
+      icases He with (#He | %He)
+      all_goals first | (ileft; iexact He) | (iright; ipureintro; simp_all)
     · wp_apply wp_pollErr (c := NetErr.sys.code) .sys none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
       (try wp_auto)
       wp_apply wp_opError $$ %Hnw as %err #Herr
@@ -76,7 +78,9 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
       iframe HQ
       unfold resErr
       iexists e
-      iframe Herr He
+      iframe Herr
+      icases He with (#He | %He)
+      all_goals first | (ileft; iexact He) | (iright; ipureintro; simp_all)
   · -- a connection, dialed to `a`
     iintro %a %ha
     icases HQ with ⟨-, HQ⟩

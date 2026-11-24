@@ -54,7 +54,9 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
     iframe Hx
     unfold resErr
     iexists e
-    iframe Herr He
+    iframe Herr
+    icases He with (#He | %He)
+    all_goals first | (ileft; iexact He) | (iright; ipureintro; simp_all)
   · icases HQ with ⟨-, HAU⟩
     imod HAU with ⟨%S, Hpend, Hk⟩
     imodintro
@@ -99,7 +101,9 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
       iframe Hx
       unfold resErr
       iexists e
-      iframe Herr He
+      iframe Herr
+      icases He with (#He | %He)
+      all_goals first | (ileft; iexact He) | (iright; ipureintro; simp_all)
 
 end proof
 

@@ -118,7 +118,11 @@ theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] {poll : Bool} (k : Ne
       ⌜∀ ii, err = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
         models_lab.errAny err := by
   iintro H
-  icases net.resErr_opErr _ _ _ _ _ _ _ $$ H with ⟨%e, Hop⟩
+  ihave Hx : iprop(∃ e, net.opErr (GF := GF) op src addr e err) $$ [H]
+  · cases poll
+    · unfold net.resErr; icases H with ⟨%e, Hop, -⟩; iexists e; iexact Hop
+    · unfold net.resErr; icases H with ⟨%e, Hop, -⟩; iexists e; iexact Hop
+  icases Hx with ⟨%e, Hop⟩
   iunfold net.opErr at Hop
   icases Hop with ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩
   subst Herr
