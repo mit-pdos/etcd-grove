@@ -14,6 +14,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.notify
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.version
 public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3.raftpb
 public import Perennial.Proof.errors.Base
+public import SpecPlan.Spec.PkgInit.models_lab.jsoncodec
 public import SpecPlan.Spec.PkgInit.path
 
 @[expose] public section

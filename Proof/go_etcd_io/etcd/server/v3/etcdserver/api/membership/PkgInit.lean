@@ -3,6 +3,7 @@ storage/schema when decoding the membership of a backend snapshot. -/
 module
 public import Proof.net.url.PkgInit
 public import Proof.encoding.json.Base
+public import Net.Proof.models_lab.jsoncodec.Base
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Proof.go_etcd_io.raft.v3.Base

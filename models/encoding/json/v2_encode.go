@@ -183,9 +183,9 @@ import (
 // handle them. Passing cyclic structures to Marshal will result in
 // an error.
 //
-// MODEL: the program's codec encodes (model.go).
+// MODEL: v's own model method or the program's codec encodes (model.go, marshalAny).
 func Marshal(v any) ([]byte, error) {
-	return getCodec().Marshal(v)
+	return marshalAny(v)
 }
 
 // MarshalIndent is like [Marshal] but applies [Indent] to format the output.

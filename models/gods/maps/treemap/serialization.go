@@ -4,17 +4,30 @@
 
 package treemap
 
-// MODEL: only the methods encoding/json reaches through its interfaces (json.Marshaler,
-// json.Unmarshaler), each a panic with a NotModelled value (gods: through the tree's ToJSON and
-// FromJSON, utils.ToString and encoding/json of a map[string]interface{}); ToJSON and FromJSON, which
-// no interface of Go's reaches, are left out, and so are the assertions of containers' interfaces.
+import (
+	"github.com/emirpasic/gods/containers"
+)
+
+// Assert Serialization implementation
+var _ containers.JSONSerializer = (*Map)(nil)
+var _ containers.JSONDeserializer = (*Map)(nil)
+
+// ToJSON outputs the JSON representation of the map.
+func (m *Map) ToJSON() ([]byte, error) {
+	return m.tree.ToJSON()
+}
+
+// FromJSON populates the map from the input JSON representation.
+func (m *Map) FromJSON(data []byte) error {
+	return m.tree.FromJSON(data)
+}
 
 // UnmarshalJSON @implements json.Unmarshaler
 func (m *Map) UnmarshalJSON(bytes []byte) error {
-	panic(notModelled{"UnmarshalJSON"})
+	return m.FromJSON(bytes)
 }
 
 // MarshalJSON @implements json.Marshaler
 func (m *Map) MarshalJSON() ([]byte, error) {
-	panic(notModelled{"MarshalJSON"})
+	return m.ToJSON()
 }

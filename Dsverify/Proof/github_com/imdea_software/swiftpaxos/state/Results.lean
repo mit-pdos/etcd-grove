@@ -11,6 +11,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.KeyCompa
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.NIL
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.InitState
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Command__Execute
+public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Results
 
 @[expose] public section
 
@@ -27,6 +28,18 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
 variable [sync.Assumptions] [SwiftNetPkgState GF] [SwiftHyps GF] [SwiftBufioDeps GF]
+
+/-- The lab's names of gods' treemap's specs over the kit's `isTreeMap` (gods' own
+representation): proved (`treemap.hyps_true`, notes/gods-verified.md). -/
+theorem _root_.Perennial.github_com.emirpasic.gods.maps.treemap.wp_NewWith :
+    github_com.emirpasic.gods.maps.treemap.NewWith.spec (GF := GF) isTreeMap :=
+  github_com.emirpasic.gods.maps.treemap.hyps_true.NewWith_spec
+theorem _root_.Perennial.github_com.emirpasic.gods.maps.treemap.Map.wp_Put :
+    github_com.emirpasic.gods.maps.treemap.Map.Put.spec (GF := GF) isTreeMap :=
+  github_com.emirpasic.gods.maps.treemap.hyps_true.Put_spec
+theorem _root_.Perennial.github_com.emirpasic.gods.maps.treemap.Map.wp_Get :
+    github_com.emirpasic.gods.maps.treemap.Map.Get.spec (GF := GF) isTreeMap :=
+  github_com.emirpasic.gods.maps.treemap.hyps_true.Get_spec
 
 theorem state.wp_KeyComparator : state.KeyComparator.spec (GF := GF) :=
   state.KeyComparator.wp_proof

@@ -41937,6 +41937,23 @@ contract chooses the ghost table, so naming three more buckets in it constrains 
 the backend's invariants do not tie it to the data's buckets; adding that tie is a backend-internal change (claimed
 by #30 at the time).
 
+## The Antithesis checker's actions take one budget premise, `State.BoundedFor` (2026-11-23 · #33 S3b W0 · branch `antithesis-check`)
+
+**Was:** `ActionSpec` (the spec shape of every action of `Bind`, `Rep.lean`) had no bound: `State.Made.spec`, its one
+proved instance, needs none. **Now:** `ActionSpec` takes `s.BoundedFor ev` (`notes/antithesis-check-design.md`
+§10.2, "Bounds"): the state within a budget `b` (`State.Within b E`: logs and per-report lists no longer than `b`,
+facts than `2 * b`, numbers within `±2^62`, configuration sets within `|initVoters| + b * E`) and room for the report
+(`b + ev.weight < 2^61`, `|initVoters| + (b + ev.weight + 1) * E < 2^61`). `State.Made`'s proof only ignores it.
+
+**Why one premise for every action:** `Bind` dispatches to each action; a family of shapes (bounded, unbounded)
+would split its proof. **Why a budget, not fixed bounds:** an in-flight value (`InMemory`'s leader log, the
+report's entries appended) is longer than any log of the state; with fixed bounds (logs below `2^61`) its length
+is not bounded where `HasFirst`'s premise needs it; with a budget it is `b + ev.size`, and each step's bound is
+local (`ActionWithin`, `OnDiskWithin`, ...: no history). **Why `E` per entry, not a sum over the stream:** a log's
+total of configuration changes has no local bound (a step can splice one log's prefix onto another's suffix), but
+its length times the largest change has. `Run.spec` (no proof yet) takes `Stream.ConfBounded` and a doubled report count in
+`Stream.Bounded` to start the budget and keep it below `2^61`.
+
 ## pbgen's subset extended to proto2 and oneofs (2026-11-23 · proving session 2, #18, offered by #24 · branch `ps2-pbgen-proto2/2026-11-23`, not landed: for the user's review)
 
 **Context.** pbgen (`models/protobuf/`, "Trusted generated code: the generator is the trusted
@@ -42016,6 +42033,55 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
 *Not here:* `Message`'s and the WAL record's encoders (`msgEncC_ok`, `recEncC_ok`, stage S2),
 `ccDecodeV1` (still opaque: nothing needed it).
 
+## jsongen's subset extended to embedded structs, pointers and a type's own JSON methods (2026-11-23 · proving session 2, #18, item 1 of #24's split · branch `ps2-jsongen/2026-11-23`, not landed: for Upamanyu's review)
+
+**Context.** jsongen (`models/json/`, "The encoding/json model is of Go 1.27.3's default build; jsongen
+as a trusted generator", above) refused every etcd type the membership axioms need: `membership.Member`
+and `ConfigChangeContext` embed structs, `raftpb.ConfState` has `AutoLeave *bool`, `cluster_util` decodes
+`[]*membership.Member`; and go-vsr's `log.Logs` has its own `MarshalJSON`/`UnmarshalJSON`, so the vr kit had
+no codec (kaashoek's requirement on #24). The design note, `notes/jsongen-extension.md`, was posted on #24
+before the code; upamanyus-agent approved the design, asking for dominance collisions at equal depth in
+the random harness and for the method calls themselves (not only the bytes) to be compared.
+
+**Decision.** The trusted core reproduces encoding/json/v2's own field walk (`makeStructFields`, whose
+errors v1's options ignore) rather than v1's `typeFields`: breadth-first with the `visitChildren =
+!seen[tf]` rule, exact dominance (a name with no dominant field is dropped, silently, as Go), depth-first
+output, case-insensitive matching in breadth-first precedence; this also replaces two old refusals (equal
+and case-equal names in one struct). Pointers `*T` to every accepted non-pointer, non-interface type.
+A type's own `MarshalJSON`/`UnmarshalJSON` are called where Go's `CallMethodsWithLegacySemantics` calls
+them: a pointer receiver only on an addressable value, so the codec gets a second encoder `jencA_<T>(b, p,
+d)` for the types whose encoding depends on it; outputs go through `jencValue` (validated,
+nesting-checked, compacted, as a RawMessage); `UnmarshalJSON` gets `b[j:k:k]` and its error is recorded
+while decoding continues. The default structure of a type with methods is checked only in the direction
+it is used; text methods are accepted only where a JSON method shadows them. jsondesc (trusted with the
+core) now dumps which hook interfaces a type or its pointer implements (reflect's `Implements`) and its
+pointer's exported method names (for the promoted-selector check). Still refused, among others:
+unexported embedded pointers on a used path, embedded types with methods, `**T`, named pointers,
+`,string` on pointers or method types, `MarshalJSONTo`/`UnmarshalJSONFrom`, maps (so map keys and values
+never reach a method). k8s's unexported `storage.continueToken`, `etcd3.etcdHealth` and `controller`'s
+patch structs stay out structurally: a codec in another package cannot name them.
+
+**Evidence.** `models/internal/jsongenrand`: random embedded (exported, unexported, by pointer, repeated,
+self-embedded through a pointer, colliding Go and JSON names at equal and different depths, tagged and
+not), pointer and method types (value and pointer receivers; outputs with whitespace, fixed, invalid,
+nil, empty, failing, nested to the limit; decoders merging, recording their bytes, failing), reached in
+every context, a wrapper `{V M; P *M; S []M; A any}` per method type; the generated test compares bytes,
+values, errors-or-not and the logged method calls in order (`jtCallLog`). Nine mutants of the core (no
+dominance, no addressability, no allocation of embedded pointers, fold order reversed, the seen rule
+dropped, a pointer's null ignored, an `any`'s value addressable, the method's bytes with whitespace, a
+method's nil output taken as null) are each caught by a 12-module run (a tenth, a method's error made a
+NotModelled panic, survives by design: such panics are the model's allowed outcome). `TestRefusals` (one per refusal),
+`TestAccepted` (the formerly refused constructs). Regression codecs: `examples/models/jsonetcd` (Member,
+RaftAttributes, Attributes, ConfigChangeContext, `[]*Member`, DowngradeInfo, Versions, ConfState,
+HashKVRequest/Response) and `models/internal/jsonvsr` (go-vsr's current `log.go`, Logs' methods); the
+dsv-vr kit's own `json.toml` generates (checked in a scratch copy), and so do k8s's `v1.AvoidPods` and
+`metav1.OwnerReference` (`metav1.Time`: both methods, opaque). Goose translates the generated codecs
+(tried on jsonvsr and jsonetcd). The independent review (`notes/axiom-review/jsongen.md`) found three
+divergences: an `UnmarshalJSON` on a slice element ran on a temporary (fixed: decoded in place, the
+slice grown as `reflect.Value.Grow(1)` grows it), pointer cycles (fixed: `NotModelled` from depth 1000,
+where the real encoder's cycle detection starts), and a method's `*jsontext.SyntacticError` stopping the
+real decoding (a stated precondition: only jsontext/v2, outside the model, make one).
+
 ## The protobuf boundary's stage S2: `msgEncC`, `msgDecode`, `recDecode` concrete, `irrDecode`'s `AuthUserGrantRole` concrete; `msgEncC_ok`, `recEncC_ok`, `apply.irrDecode_utf8` theorems (2026-11-23 · #37 · branch `proto-s2`)
 
 **2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37; stacked on stage S1)**
@@ -42080,6 +42146,30 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
   - `irrUgrDecodeRaw` on every input protobuf-go decodes: random requests with other fields set, records with invalid UTF-8, merged and repeated records, and mutations.
   - 252 further inputs protobuf-go rejects are not guarded, since the reader claims nothing there.
 - **The S1 caveat stands.** Zeldovich asked on #37 to run the 17.7M-input D1 harness with the Lean decoders as oracle; that is not done.
+
+## encoding/json per-type dispatch (J3) and the model's bodies (J2) (2026-11-23 · proving session 2, #24 · branch `prove-ps2-jsonj2/2026-11-23`)
+
+**Context.** The model's `Marshal`/`Unmarshal` were `getCodec().X(v)`: with bodies, every call needs a
+registered codec covering its type, a resource (`codecSetWith`) to thread through every spec from
+membership up to `etcdstart`, and a codec package cannot name k8s's unexported `storage.continueToken`
+(the design note on #24, issuecomment-7103223894).
+
+**Decision** (Upamanyu: J3 = (b); the exact statements, issuecomment-7113354607, approved by his
+coordinator). Per-type dispatch, the JSON twin of #37's D1: jsongen's same-package mode emits
+`JSONModelMarshal` (on `T`), `JSONModelMarshalPtr`, `JSONModelUnmarshal` (on `*T`) into each root's own
+package, under `goose || netmodel`, through goose's `-overlay`; the model calls them by the value's
+method set (`marshalAny`), the registered codec otherwise (nil, unnamed types: vr's frames). Each body
+accepts exactly `T`/`*T` and is not modelled otherwise (a type embedding `T` has the methods by
+promotion). In Lean the contract a call meets is an explicit `J : JsonCodec GF`, chosen per route:
+`typeCodecOk J F T` is a theorem of `T`'s package, the codec route `codecSetWith fm fu ∗ codecOkWith F
+fm fu`; `marshalVia`/`unmarshalVia` say which by `typeSetContains` of the dynamic type, a pure fact of
+the caller's `Assumptions`. `codecSetWith` gains `codecMu`'s mutex (`getCodec` locks it) and the
+registry follows net/rpc's (`codecInv`, `codecUnset` from a deployment's boot). Recursion (vr's `Logs`)
+needs no new form: every codec fact is persistent and used under a `WP`, so Löb cuts it. One overlay
+per project (`etc/goose.py`'s `model_overlay`, generators merged), shared with #37's pbmodel files.
+
+**Why not** a stronger `MarshalMember`: Upamanyu's decision (#24): `bootstrap`'s `ctxs = json.Marshal`
+of each member comes from `Marshal`'s proof at membership's own contract.
 
 ## Two protobuf enums' `String` trusted over their name tables; etcdserver's `expvar` inits trusted no-ops (2026-11-23 · claim #39 · branch `etcd-small-3`)
 

@@ -39,7 +39,6 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/env"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -154,15 +153,13 @@ func hasSetUp(k Kind) bool {
 
 // MainReady runs w against the members' client endpoints eps (in the members' order: the workloads
 // that pick a member use eps[i mod len(eps)]), with its client machines nodes (NodeCount(w) of
-// them: nodes.go), after clearing the proxy variables as the server
-// does (review F8). A failed check is a panic inside the workload.
+// them: nodes.go). A failed check is a panic inside the workload.
 //
 // ready is called once the workload's set-up is done (at once, after the cluster's first read, for
 // a workload with none), or not at all if the workload ends before: the test may hold its faults
 // until then (examples/etcd/dist (its test)). It is an observer only: nothing the workload does
 // depends on it.
 func MainReady(w Workload, eps []string, nodes []string, ready func()) Result {
-	env.ClearProxy()
 	if len(eps) == 0 {
 		return ended("no endpoint")
 	}

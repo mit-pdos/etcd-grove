@@ -339,7 +339,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
   have h56 : GetIsPkgInitProp pkg_id.encoding.json (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h5, h6, True.intro⟩
   have h57 : GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.trees.redblacktree (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
