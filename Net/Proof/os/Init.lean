@@ -24,7 +24,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Net.Proof.internal.filepathlite.Init
-public import Proof.internal.gomodel.Init
+public import Net.Proof.internal.gomodel.Init
 public import Net.Proof.internal.poll.Init
 public import Net.Proof.io.fs.Init
 public import Proof.runtime.Init

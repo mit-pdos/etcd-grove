@@ -5612,7 +5612,9 @@ NET_PROGRAMS.update({f'github_com.mit_pdos.etcd_grove.examples.lib.remote.counte
 # The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
 # translations and `IsPkgInit` instances are the main tree's, their `Init.lean` copies in the part.
 NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix',
-            'internal.filepathlite']
+            'internal.filepathlite',
+            # (Go model overlays S5) the models' internal/gomodel, which syscall's and os's import
+            'internal.gomodel']
 # (2026-11-22) and the main tree's packages `examples/lib/remote` imports: lintest's driver and
 # porcupine (their `Init.lean` import the main tree's `PkgInitExt`, which the part's replaces).
 NET_MAIN += ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',
