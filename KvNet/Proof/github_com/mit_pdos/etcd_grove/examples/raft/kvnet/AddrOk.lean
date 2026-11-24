@@ -1,5 +1,6 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/AddrOk.lean`: the first loop follows `scanGo` (the pieces between the separators into `parts`), the second runs `decimal` on each piece (`decimalM`), the result is `goAddrOk a`, which is `addrOk a` (`goAddrOk_eq`).
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/AddrOk.lean`: an address longer
+than 21 bytes is refused at once (no address is longer: `addrOk_length`); otherwise the first loop follows `scanGo` (the pieces between the separators into `parts`), the second runs `decimal` on each piece (`decimalM`), the result is `goAddrOk a`, which is `addrOk a` (`goAddrOk_eq`).
 -/
 module
 
@@ -55,8 +56,21 @@ private theorem addr_close (Φ : val → IProp GF) (b1 b2 : Bool) (h : b1 = b2) 
   itrivial
 
 theorem AddrOk.wp_proof (wp_decimal : decimal.spec (GF := GF) (hG := hG)) : AddrOk.spec (GF := GF) (hG := hG) := by
-  intro a ha
+  intro a
   wp_start
+  try wp_auto
+  -- longer than 21 bytes: not an address
+  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hl63
+  wp_if_destruct
+  · try wp_auto
+    have hno : Net.addrOk a = false := by
+      cases h : Net.addrOk a
+      · rfl
+      · have := addrOk_length h; word
+    rw [hno]
+    iapply HΦ
+    itrivial
+  have ha : a.length + 1 < 2 ^ 63 := by word
   try wp_auto
   ihave HI : (∃ (i n st : w64) (arr : List GoString),
       "i" ∷ i_ptr ↦ i ∗ "n" ∷ n_ptr ↦ n ∗ "start" ∷ start_ptr ↦ st ∗

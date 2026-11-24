@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 
 theorem ValidAddrs.wp_proof (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG)) : ValidAddrs.spec (GF := GF) (hG := hG) := by
-  intro addrs dq l voters hlen
+  intro addrs dq l voters
   wp_start as Hsl
   try wp_auto
   rename Loc => iq_ptr
@@ -52,7 +52,7 @@ theorem ValidAddrs.wp_proof (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG)) : Va
     wp_apply wp_load_slice_index addrs (sint.Z j) l dq x0 Hj0 $$ [$Hsl] as Hsl
     · ipureintro; exact Hx0
     try wp_auto
-    wp_apply wp_AddrOk _ (hlen x0 (List.mem_of_getElem? Hx0))
+    wp_apply wp_AddrOk x0
     have hmem : x0 ∈ l := List.mem_of_getElem? Hx0
     cases hb : addrOk x0
     · simp only [Bool.not_false]

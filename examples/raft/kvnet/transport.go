@@ -42,12 +42,35 @@ type Transport struct {
 	node  raft.Node
 	stats *Stats
 	peers map[uint64]*peer // every other replica the program knows, read-only once started
+	stopc chan struct{}    // closed by stop: the senders return
+}
+
+// peerTransport carries an incarnation's raft messages to its peers: this file's, over TCP
+// (Transport), or UDP's. Node.restart stops one and starts the next incarnation's with the same
+// constructor (newPeerTransport); what a transport receives it steps on the current incarnation's
+// node (Node.stepPeer).
+type peerTransport interface {
+	// start starts it once the incarnation's node exists.
+	start(node raft.Node)
+	// Send hands it the node's messages, without waiting.
+	Send(ms []*pb.Message)
+	// stop ends it once the incarnation's node is stopped.
+	stop()
+}
+
+// newPeerTransport makes the transport of node id, whose peers' addresses are addrs (by id; its
+// own included), counting in stats.
+type newPeerTransport func(id uint64, addrs map[uint64]string, stats *Stats) peerTransport
+
+// newTCPTransport is the TCP transport (newTransport), as a newPeerTransport.
+func newTCPTransport(id uint64, addrs map[uint64]string, stats *Stats) peerTransport {
+	return newTransport(id, addrs, stats)
 }
 
 // newTransport is the transport of node id, whose peers' addresses are addrs (by id; its own
 // included, and left out: raft never sends to itself).
 func newTransport(id uint64, addrs map[uint64]string, stats *Stats) *Transport {
-	t := &Transport{id: id, stats: stats, peers: make(map[uint64]*peer)}
+	t := &Transport{id: id, stats: stats, peers: make(map[uint64]*peer), stopc: make(chan struct{})}
 	for pid, addr := range addrs {
 		if pid != id {
 			t.peers[pid] = &peer{id: pid, addr: addr, queue: make(chan *pb.Message, queueLen)}
@@ -62,6 +85,13 @@ func (t *Transport) start(node raft.Node) {
 	for _, p := range t.peers {
 		go t.runPeer(p)
 	}
+}
+
+// stop ends the senders (the incarnation's node is stopped: Replica.stop): each closes its
+// connection and returns, leaving what its queue still holds unsent (the next incarnation's
+// transport has queues of its own).
+func (t *Transport) stop() {
+	close(t.stopc)
 }
 
 // Send hands each of ms to its peer's sender, without waiting; one to an unknown peer, or one
@@ -113,14 +143,24 @@ func (t *Transport) dial(p *peer) net.Conn {
 	return c
 }
 
-// runPeer writes p's messages to a connection to p, in order, dialing one when it has none. A
-// message whose connection cannot be made, or whose write fails, is dropped, and the connection
-// closed (the next message redials). A snapshot is reported finished once its frame is written:
+// runPeer writes p's messages to a connection to p, in order, dialing one when it has none, until
+// the transport stops (stop), and then closes its connection. A message whose connection cannot
+// be made, or whose write fails, is dropped, and the connection closed (the next message
+// redials). A snapshot is reported finished once its frame is written:
 // the peer may still lose it (crash before it steps it), which raft then learns by the peer's
 // answers, as with etcd's transport.
 func (t *Transport) runPeer(p *peer) {
 	var c net.Conn
-	for m := range p.queue {
+	for {
+		var m *pb.Message
+		select {
+		case m = <-p.queue:
+		case <-t.stopc:
+			if c != nil {
+				c.Close()
+			}
+			return
+		}
 		if c == nil {
 			c = t.dial(p)
 		}
@@ -142,27 +182,5 @@ func (t *Transport) runPeer(p *peer) {
 			t.stats.add(StSnapshotsSent)
 			t.node.ReportSnapshot(m.GetTo(), raft.SnapshotFinish)
 		}
-	}
-}
-
-// servePeer reads messages from a peer's connection and steps them on the node, until the
-// connection fails or ends. A frame that does not decode, or a message not addressed to this
-// node, ends the connection. A message the node does not take within stepTimeout is dropped.
-func (t *Transport) servePeer(c net.Conn) {
-	defer c.Close()
-	for {
-		b, ok := readFrame(c)
-		if !ok {
-			return
-		}
-		m, good := getMsg(b)
-		if !good || m.GetTo() != t.id {
-			t.stats.add(StBadFrames)
-			return
-		}
-		t.stats.add(StMsgsReceived)
-		ctx, cancel := withTimeout(stepTimeout)
-		t.node.Step(ctx, m)
-		cancel()
 	}
 }

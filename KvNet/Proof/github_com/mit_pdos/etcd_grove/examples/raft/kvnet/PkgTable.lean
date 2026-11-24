@@ -306,7 +306,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h53 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h19, h6, h36, h38, h39, h42, h41, h44, h27, h47, h52, h5, h7, True.intro⟩
+    exact ⟨h19, h6, h36, h38, h39, h42, h41, h44, h27, h5, h47, h52, h7, True.intro⟩
   exact h53
 
 end table

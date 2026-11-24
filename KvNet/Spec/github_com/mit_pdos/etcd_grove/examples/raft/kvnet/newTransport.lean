@@ -41,7 +41,9 @@ abbrev newTransport.spec : Prop :=
       t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"id"] ↦□ id ∗
       t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"stats"] ↦□ sts ∗
       (∃ v : GoInterface, t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"node"] ↦ v) ∗
-      isPeers F t }}
+      isPeers F t ∗
+      -- (2026-11-24, G5) the stop channel, with its closer (`Transport.stop`'s)
+      ∃ (sc : Loc) (γsc : ChanNames), isTransportStop t sc γsc ∗ transportStopper sc γsc }}
 
 end spec
 

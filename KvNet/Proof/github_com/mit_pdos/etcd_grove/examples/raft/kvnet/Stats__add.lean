@@ -38,10 +38,10 @@ theorem Stats.add.wp_proof : Stats.add.spec (GF := GF) (hG := hG) := by
   ihave %Hlen := array_len _ _ _ _ $$ Ha
   have hlt : (sint.Z i).toNat < vs.length := by omega
   obtain ⟨v, hv⟩ : ∃ v, vs[(sint.Z i).toNat]? = some v := ⟨_, List.getElem?_eq_getElem hlt⟩
-  icases array_acc (GF := GF) _ (sint.Z i) _ _ (array.mk 23 vs) v Hi0 hv $$ Ha with ⟨Hv, Ha⟩
-  try simp only [show (0 ≤ sint.Z i ∧ sint.Z i < 23) = True from eq_true ⟨Hi0, Hi⟩, ite_true]
+  icases array_acc (GF := GF) _ (sint.Z i) _ _ (array.mk 24 vs) v Hi0 hv $$ Ha with ⟨Hv, Ha⟩
+  try simp only [show (0 ≤ sint.Z i ∧ sint.Z i < 24) = True from eq_true ⟨Hi0, Hi⟩, ite_true]
   try wp_auto
-  try simp only [show (0 ≤ sint.Z i ∧ sint.Z i < 23) = True from eq_true ⟨Hi0, Hi⟩, ite_true]
+  try simp only [show (0 ≤ sint.Z i ∧ sint.Z i < 24) = True from eq_true ⟨Hi0, Hi⟩, ite_true]
   try wp_auto
   ihave Ha := Ha $$ Hv
   wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hs $Hlocked Ha]
