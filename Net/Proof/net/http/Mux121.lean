@@ -1,0 +1,352 @@
+/-
+net/http's Go 1.21 matcher (`servemux121.go`, the `ServeMux`'s `mux121`, used when `GODEBUG`
+sets `httpmuxgo121=1`): its state and the lemmas over its locked part.
+
+* `Mux121St`: the physical state (the map `m`, its contents, the sorted slice `es` of the
+  patterns ending in `/`, its entries). Fixed, so that `rep121` is fractional, for the matcher's
+  `RWMutex` (the readers' `RLock` gets a fraction).
+* `rep121 dq mux st`: the matcher at `mux` is in state `st`, at fraction `dq`: every pattern
+  begins with `/` (so `hosts` stays `false`), and an entry's pattern is its key.
+* `wp_mux121_match_found`, `wp_mux121_shouldRedirect_found`: `match` and
+  `shouldRedirectRLocked` of a registered path (the lock held at `dq`): the path's own entry,
+  and no redirect.
+-/
+module
+
+public import Net.GeneratedProof.net.http
+public import Perennial.Spec.sort.Search
+public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open github_com.mit_pdos.perennial.goose.model.strings (wp_string_len)
+
+namespace net.http
+
+section st
+variable [GooseExts]
+
+/-- The physical state of a `serveMux121` (see the file header). -/
+structure Mux121St where
+  m : GoMap
+  M : GMap GoString net.http.muxEntry
+  es : GoSlice
+  ents : List net.http.muxEntry
+
+/-- What the matcher's state says of its patterns (see the file header). -/
+def Mux121St.ok (st : Mux121St) : Prop :=
+  (st.m = map.nil → st.M = ∅) ∧
+  ∀ k e, st.M !! k = some e → e.pattern' = k ∧ k.head? = some (W8 47)
+
+/-- `appendSorted`'s list: `append`, `copy` one place down, the new entry at `i`. -/
+theorem appendSorted_list {α : Type} (ents : List α) (z e : α) (i : Nat) (hi : i < ents.length) :
+    ((ents ++ [z]).take (i + 1) ++ (((subslice i (ents.length + 1) (ents ++ [z])).take
+        (ents.length + 1 - (i + 1)) ++ (subslice (i + 1) (ents.length + 1) (ents ++ [z])).drop
+        (ents.length + 1 - i)) ++ (ents ++ [z]).drop (ents.length + 1))).set i e =
+      ents.take i ++ e :: ents.drop i := by
+  have h1 : (ents ++ [z]).take (i + 1) = ents.take (i + 1) := by
+    rw [List.take_append_of_le_length (by omega)]
+  have h2 : (subslice i (ents.length + 1) (ents ++ [z])).take (ents.length + 1 - (i + 1)) =
+      ents.drop i := by
+    have ha : (ents ++ [z]).take (ents.length + 1) = ents ++ [z] :=
+      List.take_of_length_le (by simp)
+    have hb : (ents ++ [z]).drop i = ents.drop i ++ [z] :=
+      List.drop_append_of_le_length (by omega)
+    have hc : ents.length + 1 - (i + 1) = (ents.drop i).length := by simp
+    simp only [subslice]
+    rw [ha, hb, hc, List.take_left]
+  have h3 : (subslice (i + 1) (ents.length + 1) (ents ++ [z])).drop (ents.length + 1 - i) = [] := by
+    simp only [subslice]; apply List.drop_eq_nil_of_le; simp; omega
+  have h4 : (ents ++ [z]).drop (ents.length + 1) = [] := by
+    apply List.drop_eq_nil_of_le; simp
+  rw [h1, h2, h3, h4, List.append_nil, List.append_nil]
+  rw [List.set_append_left _ _ (by simp; omega)]
+  have h5 : ents.take (i + 1) = ents.take i ++ [ents[i]] := by
+    rw [List.take_add_one, List.getElem?_eq_getElem hi]; rfl
+  rw [h5, List.set_append_right _ _ (by simp; omega)]
+  have h6 : i - (ents.take i).length = 0 := by simp; omega
+  rw [h6]
+  simp
+
+/-- A pattern's length as `appendSorted` compares it (`len`, a signed `int`). -/
+def plen (x : net.http.muxEntry) : Int := sint.Z (W64 (x.pattern'.length : Int))
+
+/-- `es` sorted from the longest pattern to the shortest (`appendSorted`'s order). -/
+def sortedDesc (ents : List net.http.muxEntry) : Prop :=
+  ents.Pairwise (fun a b => plen b ≤ plen a)
+
+/-- `appendSorted`'s search predicate: the `k`-th entry is shorter than `e`. -/
+def sortF (ents : List net.http.muxEntry) (e : net.http.muxEntry) (k : Int) : Bool :=
+  match ents[k.toNat]? with
+  | some x => decide (plen x < plen e)
+  | none => false
+
+theorem sortedDesc_insert (ents : List net.http.muxEntry) (e : net.http.muxEntry) (i : Nat)
+    (hs : sortedDesc ents) (hlo : ∀ x ∈ ents.take i, plen e ≤ plen x)
+    (hhi : ∀ x ∈ ents.drop i, plen x ≤ plen e) :
+    sortedDesc (ents.take i ++ e :: ents.drop i) := by
+  unfold sortedDesc at *
+  rw [← List.take_append_drop i ents] at hs
+  rw [List.pairwise_append] at hs ⊢
+  obtain ⟨h1, h2, h3⟩ := hs
+  refine ⟨h1, List.pairwise_cons.mpr ⟨hhi, h2⟩, ?_⟩
+  intro a ha b hb
+  rcases List.mem_cons.mp hb with rfl | hb
+  · exact hlo a ha
+  · exact h3 a ha b hb
+
+theorem sortF_lo (ents : List net.http.muxEntry) (e : net.http.muxEntry) (m : Nat)
+    (h : ∀ k : Int, 0 ≤ k ∧ k < m → sortF ents e k = false) :
+    ∀ x ∈ ents.take m, plen e ≤ plen x := by
+  intro x hx
+  obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hx
+  rw [List.length_take] at hj
+  have hf := h (j : Int) ⟨by omega, by omega⟩
+  simp only [sortF, Int.toNat_natCast, List.getElem?_eq_getElem (show j < ents.length by omega),
+    decide_eq_false_iff_not] at hf
+  rw [List.getElem_take]; omega
+
+theorem sortF_hi (ents : List net.http.muxEntry) (e : net.http.muxEntry) (m : Nat)
+    (hs : sortedDesc ents) (hm : m < ents.length) (hf : sortF ents e m = true) :
+    ∀ x ∈ ents.drop m, plen x ≤ plen e := by
+  intro x hx
+  obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hx
+  rw [List.length_drop] at hj
+  simp only [sortF, Int.toNat_natCast, List.getElem?_eq_getElem hm, decide_eq_true_eq] at hf
+  rw [List.getElem_drop]
+  by_cases hj0 : j = 0
+  · subst hj0; simp only [Nat.add_zero]; omega
+  · have := List.pairwise_iff_getElem.mp hs m (m + j) hm (by omega) (by omega)
+    omega
+
+end st
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
+
+/-- The matcher at `mux` in state `st`, at `dq` (see the file header). -/
+def rep121 (dq : DFrac) (mux : Loc) (st : Mux121St) : IProp GF :=
+  iprop(structFieldRef net.http.serveMux121 go!"m" mux ↦{dq} st.m ∗
+    structFieldRef net.http.serveMux121 go!"es" mux ↦{dq} st.es ∗
+    structFieldRef net.http.serveMux121 go!"hosts" mux ↦{dq} false ∗
+    st.es ↦*{dq} st.ents ∗ ownSliceCap net.http.muxEntry st.es dq ∗
+    ⌜st.ok ∧ sortedDesc st.ents⌝ ∗
+    (if st.m = map.nil then True else st.m ↦${dq} st.M))
+
+/-- `mux.match(path)` of a registered path: its entry. -/
+theorem wp_mux121_match_found (mux : Loc) (dq : DFrac) (st : Mux121St) (path : GoString)
+    (e : net.http.muxEntry) (he : st.M !! path = some e) :
+    {{ rep121 (GF := GF) (hG := hG) dq mux st }}
+      (App (Val (mux @!! go.GoType.PointerType net.http.serveMux121.ty @!! go!"match")) (Val #path))
+    {{ RET (PairV #e.h' #path); rep121 dq mux st }} := by
+  by_cases hm : st.m = map.nil
+  · simp only [rep121]
+    wp_start as ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
+    have hf : False := by rw [Hok.1.1 hm] at he; simp at he
+    exact hf.elim
+  simp only [rep121, hm, ↓reduceIte]
+  wp_start as ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
+  wp_auto
+  wp_apply wp_map_lookup2 go.string net.http.muxEntry.ty st.m st.M path dq $$ HM with HM
+  rw [he]
+  simp only [Option.getD_some, Option.isSome_some, decide_true]
+  wp_auto
+  rw [(Hok.1.2 path e he).1]
+  iapply HΦ
+  iframe
+  ipureintro; exact Hok
+
+/-- `mux.shouldRedirectRLocked(host, path)` of a registered path: no redirect. -/
+theorem wp_mux121_shouldRedirect_found (mux : Loc) (dq : DFrac) (st : Mux121St)
+    (host path : GoString) (e : net.http.muxEntry) (he : st.M !! path = some e) :
+    {{ rep121 (GF := GF) (hG := hG) dq mux st }}
+      (App (App (Val (mux @!! go.GoType.PointerType net.http.serveMux121.ty @!!
+        go!"shouldRedirectRLocked")) (Val #host)) (Val #path))
+    {{ RET #false; rep121 dq mux st }} := by
+  by_cases hm : st.m = map.nil
+  · simp only [rep121]
+    wp_start as ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
+    have hf : False := by rw [Hok.1.1 hm] at he; simp at he
+    exact hf.elim
+  simp only [rep121, hm, ↓reduceIte]
+  wp_start as ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
+  wp_auto
+  wp_apply wp_slice_literal (V := GoString) [path, host ++ path]
+  isplitr
+  · ipureintro; rfl
+  iintro %lit ⟨Hlit, -⟩
+  wp_auto
+  ihave HI : (∃ cv : GoString, "i" ∷ i_ptr ↦ W64 0 ∗ "c" ∷ c_ptr ↦ cv : IProp GF) $$ [i c]
+  · iexists _; iframe
+  wp_for HI
+  try wp_auto
+  have hsz : go.arrayLiteralSize [KeyedElement none (ElementExpression go.string #path),
+      KeyedElement none (ElementExpression go.string #(host ++ path))] = 2 := rfl
+  rw [ite_eq_left (show decide (sint.Z (W64 0) < sint.Z (W64 (go.arrayLiteralSize _))) = true by rw [hsz]; decide)]
+  wp_auto
+  wp_apply wp_load_slice_index _ (sint.Z (W64 0)) [path, host ++ path] _ path (by decide) $$ [Hlit] with Hlit
+  · iframe; ipureintro; rfl
+  try wp_auto
+  wp_apply wp_map_lookup2 go.string net.http.muxEntry.ty st.m st.M path dq $$ HM with HM
+  rw [he]
+  simp only [Option.isSome_some, decide_true]
+  wp_auto
+  wp_for_post
+  try wp_auto
+  iapply HΦ
+  iframe
+  ipureintro; exact Hok
+
+/-- `appendSorted(es, e)`: `e` inserted where the order puts it. -/
+theorem wp_appendSorted (wp_Search : sort.Search.spec (GF := GF) (hG := hG)) (es : GoSlice)
+    (ents : List net.http.muxEntry) (e : net.http.muxEntry) (hs : sortedDesc ents) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sort ∗ es ↦* ents ∗
+        ownSliceCap net.http.muxEntry es (DFrac.own 1) }}
+      (App (App (Val (@! net.http.appendSorted)) (Val #es)) (Val #e))
+    {{ (s' : GoSlice), RET #s'; ∃ i, ⌜i ≤ ents.length ∧ sortedDesc (ents.take i ++ e :: ents.drop i)⌝ ∗
+        s' ↦* (ents.take i ++ e :: ents.drop i) ∗ ownSliceCap net.http.muxEntry s' (DFrac.own 1) }} := by
+  wp_start as ⟨Hes, Hcap⟩
+  wp_auto
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hes
+  rw [show ∀ x b, (RecV BAnon x b : val) = #(func.mk BAnon x b) from
+    fun x b => by rw [go.intoVal_unfold GoFunc]]
+  wp_apply wp_Search _ _ (sortF ents e) iprop(es_ptr ↦ es ∗ e_ptr ↦ e ∗ es ↦* ents) $$ [es e Hes]
+  · iframe
+    isplitl []
+    · ipureintro; word
+    isplitl []
+    · unfold sort.predImplements
+      iintro %i
+      wp_start as ⟨⟨Hesp, Hep, Hes⟩, %Hbound⟩
+      wp_auto
+      simp only [Hbound.1, Hbound.2, and_self, ↓reduceIte]
+      list_elem ents (sint.nat i) as x
+      icases ownSlice_elem_acc (sint.Z i) x es _ ents Hbound.1 Hx_lookup $$ Hes with ⟨Hx, Hclose⟩
+      ihave %hxn := typedPointsto_not_null _ _ _ $$ Hx
+      ihave %hen := typedPointsto_not_null _ _ _ $$ Hep
+      iStructNamedPrefix Hx "X"
+      iStructNamedPrefix Hep "E"
+      wp_auto
+      wp_apply wp_string_len as %Hl1
+      wp_apply wp_string_len as %Hl2
+      try wp_auto
+      ihave Hx := typedPointsto_combine (sliceIndexRef net.http.muxEntry (sint.Z i) es) x
+        (DFrac.own 1) hxn $$ [Xh Xpattern]
+      · simp only [TypedPointsto.typedPointstoDef]; iframe
+      ihave Hes := Hclose $$ Hx
+      rw [show (sint.Z i).toNat = sint.nat i from rfl, list_set_lookup_self ents (sint.nat i) x Hx_lookup]
+      ihave Hep := typedPointsto_combine e_ptr e (DFrac.own 1) hen $$ [Eh Epattern]
+      · simp only [TypedPointsto.typedPointstoDef]; iframe
+      iapply HΦ
+      iframe
+      ipureintro
+      simp only [sortF, plen, show (sint.Z i).toNat = sint.nat i from rfl, Hx_lookup]
+      try rfl
+    · ipureintro
+      intro a b hab hfa
+      have hn : (ents.length : Int) = sint.Z es.len := by rw [Hlen.1]; word
+      have ha : a.toNat < ents.length := by omega
+      have hb : b.toNat < ents.length := by omega
+      simp only [sortF, List.getElem?_eq_getElem ha, List.getElem?_eq_getElem hb,
+        decide_eq_true_eq] at hfa ⊢
+      have := List.pairwise_iff_getElem.mp hs a.toNat b.toNat ha hb (by omega)
+      omega
+  iintro %i ⟨⟨Hesp, Hep, Hes⟩, %Hi0, %Hfound, %Hoob, %Hlow⟩
+  wp_auto
+  have hn : (ents.length : Int) = sint.Z es.len := by rw [Hlen.1]; word
+  have hle : sint.Z i ≤ sint.Z es.len := by
+    apply Classical.byContradiction; intro hgt
+    by_cases hall : ∀ k, 0 ≤ k ∧ k < sint.Z es.len → sortF ents e k = false
+    · have := Hoob hall; omega
+    · obtain ⟨k, hk⟩ := Classical.not_forall.mp hall
+      have hk1 : 0 ≤ k ∧ k < sint.Z es.len :=
+        Classical.byContradiction (fun h => hk (fun h' => absurd h' h))
+      have hk2 : sortF ents e k ≠ false := fun h => hk (fun _ => h)
+      exact hk2 (Hlow k ⟨hk1.1, by omega⟩)
+  wp_if_destruct
+  · wp_apply wp_slice_literal (V := net.http.muxEntry) [e]
+    isplitr
+    · ipureintro; rfl
+    iintro %lit ⟨Hlit, -⟩
+    wp_apply wp_slice_append (V := net.http.muxEntry) _ _ _ _ _ $$ [$Hes $Hcap $Hlit] as %sl' ⟨Hsl', Hcap', -⟩
+    try wp_auto
+    iapply HΦ
+    iexists ents.length
+    rw [List.take_of_length_le (Nat.le_refl _), List.drop_of_length_le (Nat.le_refl _)]
+    iframe
+    ipureintro
+    refine ⟨Nat.le_refl _, ?_⟩
+    have h := sortedDesc_insert ents e ents.length hs
+      (sortF_lo ents e ents.length (fun k hk => Hlow k ⟨hk.1, by omega⟩))
+      (by simp)
+    rwa [List.take_of_length_le (Nat.le_refl _), List.drop_of_length_le (Nat.le_refl _)] at h
+  · have hlt : sint.Z i < sint.Z es.len := by
+      have : sint.Z i ≠ sint.Z es.len := fun h => Hif (by word)
+      omega
+    try wp_auto
+    wp_apply wp_slice_literal (V := net.http.muxEntry) [zero_val net.http.muxEntry]
+    isplitr
+    · ipureintro; rfl
+    iintro %lit ⟨Hlit, -⟩
+    wp_apply wp_slice_append (V := net.http.muxEntry) _ _ _ _ _ $$ [$Hes $Hcap $Hlit] as %sl' ⟨Hsl', Hcap', -⟩
+    ihave %Hlen' := ownSlice_len _ _ _ $$ Hsl'
+    ihave %Hwf := ownSlice_wf _ _ _ $$ Hsl'
+    have hl' : sint.Z sl'.len = sint.Z es.len + 1 := by
+      have := Hlen'.1; simp only [List.length_append, List.length_singleton] at this; word
+    have hi1 : sint.Z (i + W64 1) = sint.Z i + 1 := by word
+    try wp_auto
+    rw [ite_eq_left ⟨by omega, by omega, Hwf.2⟩]
+    try wp_auto
+    rw [ite_eq_left ⟨by omega, by omega, Hwf.2⟩]
+    try wp_auto
+    wp_apply wp_slice_copy_within (V := net.http.muxEntry) sl' (ents ++ [zero_val net.http.muxEntry])
+      (i + W64 1) sl'.len i sl'.len
+      ⟨by omega, by omega, by omega⟩ ⟨by omega, by omega, by omega⟩ $$ [$Hsl'] as %ncp ⟨-, Hsl'⟩
+    try wp_auto
+    ihave %HlenC := ownSlice_len _ _ _ $$ Hsl'
+    try rw [ite_eq_left ⟨by omega, by omega⟩]
+    wp_apply wp_store_slice_index sl' (sint.Z i) ((ents ++ [zero_val net.http.muxEntry]).take
+        (sint.nat (i + W64 1)) ++ ((subslice (sint.nat i) (sint.nat sl'.len)
+          (ents ++ [zero_val net.http.muxEntry])).take (sint.nat sl'.len - sint.nat (i + W64 1)) ++
+        (subslice (sint.nat (i + W64 1)) (sint.nat sl'.len) (ents ++ [zero_val net.http.muxEntry])).drop
+          (sint.nat sl'.len - sint.nat i)) ++ (ents ++ [zero_val net.http.muxEntry]).drop (sint.nat sl'.len))
+      e $$ [Hsl'] as Hsl'
+    · iframe; ipureintro; refine ⟨by omega, ?_⟩; rw [HlenC.1]; word
+    try wp_auto
+    have hfin : ((ents ++ [zero_val net.http.muxEntry]).take
+        (sint.nat (i + W64 1)) ++ ((subslice (sint.nat i) (sint.nat sl'.len)
+          (ents ++ [zero_val net.http.muxEntry])).take (sint.nat sl'.len - sint.nat (i + W64 1)) ++
+        (subslice (sint.nat (i + W64 1)) (sint.nat sl'.len) (ents ++ [zero_val net.http.muxEntry])).drop
+          (sint.nat sl'.len - sint.nat i)) ++ (ents ++ [zero_val net.http.muxEntry]).drop (sint.nat sl'.len)).set (sint.Z i).toNat e =
+        ents.take (sint.nat i) ++ e :: ents.drop (sint.nat i) := by
+      have ha : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+      have hb : sint.nat sl'.len = ents.length + 1 := by word
+      rw [show (sint.Z i).toNat = sint.nat i from rfl, ha, hb]
+      simpa only [List.append_assoc] using
+        appendSorted_list ents (zero_val net.http.muxEntry) e (sint.nat i) (by word)
+    iapply HΦ
+    iexists sint.nat i
+    isplitr
+    · ipureintro
+      refine ⟨by word, sortedDesc_insert ents e (sint.nat i) hs
+        (sortF_lo ents e (sint.nat i) (fun k hk => Hlow k ⟨hk.1, by word⟩))
+        (sortF_hi ents e (sint.nat i) hs (by word) ?_)⟩
+      have := Hfound hlt
+      rwa [show sint.Z i = ((sint.nat i : Nat) : Int) by word] at this
+    rw [← hfin]
+    iframe
+
+end defs
+
+end net.http
+end Perennial
