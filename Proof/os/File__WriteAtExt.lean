@@ -280,10 +280,11 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
   have hl0 : sl.len ≠ W64 0 := by
     intro h; have h1 := Hlen.1; rw [h, show sint.nat (W64 0) = 0 from rfl] at h1; omega
   rw [decide_eq_false hl0]
-  wp_pure
-  wp_pure
-  iapply wa_wp_call1_gen
-  iintro %nw %hnw
+  try wp_auto
+  try simp only [os.modelMaxRW]
+  obtain ⟨nw, hnw⟩ : ∃ nw : w64, nw = W64 0 := ⟨_, rfl⟩
+  ihave Hnnp : (nn_ptr ↦ nw : IProp GF) $$ [nn]
+  · rw [hnw]; iexact nn
   have hslz : sint.Z sl.len = data.length := by
     have h1 := Hlen.1; have h2 := Hlen.2
     simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
@@ -318,8 +319,10 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
   have hcn : (off.toNat + nn) % osPageSize = 0 ∨ nn % 0x40000000 = 0 := by
     right; rw [hnn0]
   clear hmj hy hj0 hnn0 ha0 hE0
+  wp_for_bind
   iloeb as IH generalizing %nw %nn %j %a %E %mj %ys %hnw' %hj %hnj %hnl %hys %hinv %hcj %hcn
     Hm Hbs Hc Hosfd Hsl Hfd HΦ
+  wp_for_step
   subst hnw'
   -- one attempt, of the chunk `[nn, nn + c)`
   have hmsz : mj.size = pwSize m.size off.toNat j := by
@@ -335,17 +338,21 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
   obtain ⟨c, hcdef⟩ : ∃ c, c = min (data.length - nn) 1073741824 := ⟨_, rfl⟩
   have hcn' : nn + c ≤ data.length := by omega
   have hc0 : 0 < c := by omega
-  wp_join (Q := fun v => iprop(⌜v = #(W64 ↑(nn + c))⌝)) at (if: _ then _ else _) with [] as %Hv
+  wp_join (Q := fun v => iprop(⌜v = executeVal⌝ ∗ (max_ptr ↦ W64 ↑(nn + c) : IProp GF) ∗
+      (nn_ptr ↦ W64 ↑nn : IProp GF)))
+    at (if: _ then _ else _) with [max Hnnp] as ⟨%Hv, max, Hnnp⟩
   · by_cases hbig' : 1073741824 < data.length - nn
     · rw [decide_eq_true (by rw [hlZ, h30]; omega)]
       try wp_auto
-      ipureintro
-      rw [show (1073741824 : Int) = ((1073741824 : Nat) : Int) from rfl, wa_W64_add]
-      congr 3; omega
+      isplitr; · ipureintro; rfl
+      rw [show (W64 ↑(nn + c) : w64) = W64 ↑nn + W64 1073741824 by
+        rw [show (1073741824 : Int) = ((1073741824 : Nat) : Int) from rfl, wa_W64_add]; congr 2; omega]
+      iframe
     · rw [decide_eq_false (by rw [hlZ, h30]; omega)]
       try wp_auto
-      ipureintro
-      rw [hsln]; congr 3; omega
+      isplitr; · ipureintro; rfl
+      rw [show (W64 ↑(nn + c) : w64) = sl.len by rw [hsln]; congr 2; omega]
+      iframe
   subst Hv
   try wp_auto
   have hsb : 0 ≤ sint.Z (W64 ↑nn) ∧ sint.Z (W64 ↑nn) ≤ sint.Z (W64 ↑(nn + c)) ∧
@@ -495,9 +502,11 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
   clear hend hL2 hyl hsz hlZ hsb hsb2 hys hcd hslz Hlen Hwf hmsz hmaps
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_pure
+    try wp_auto
+    wp_for_post
+    inext
     iapply IH $$ %(W64 ↑nn) %nn %(max j (nn + k)) %(nn + c) %E' %_ %_ %rfl %hJ %hnJ %hnl %hys'
-      %(hinv' nn (Nat.le_refl _)) %hcj' %hcn Hm Hbs Hc Hosfd Hsl Hfd HΦ
+      %(hinv' nn (Nat.le_refl _)) %hcj' %hcn Hm Hbs Hc Hosfd Hsl Hfd HΦ [$] [$] [$] [$] [$] [$] [$] [$]
   · rw [decide_eq_false he4]
     try wp_auto
     rcases hke with ⟨hkc', rfl⟩ | he0
@@ -506,6 +515,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
           rw [wa_W64_add, hsln]; congr 2)]
         try wp_auto
         ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
@@ -515,13 +525,13 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
           exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj', .inl ⟨by omega, hsln, rfl⟩⟩
       · rw [decide_eq_false (show ¬ W64 ↑nn + W64 ↑k = sl.len by
           rw [wa_W64_add, hsln, wa_W64_inj _ _ (by omega) (by omega)]; omega)]
-        wp_pure
-        wp_pure
-        wp_pure
-        wp_pure
-        wp_pure
-        wp_pure
-        wp_pure
+        try wp_auto
+        try wp_auto
+        try wp_auto
+        try wp_auto
+        try wp_auto
+        try wp_auto
+        try wp_auto
         have hk0 : 0 < k := by
           rcases hkc' with h | h
           · omega
@@ -530,9 +540,11 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
         have hnJ2 : nn + k ≤ max j (nn + k) := by omega
         have hnl2 : nn + k < data.length := by omega
         have hcn2 := waCut_short _ _ _ _ _ hcn hcdef hk0 hfull hk hnl hpc
+        wp_for_post
+        inext
         iapply IH $$ %(W64 ↑nn + W64 ↑k) %(nn + k) %(max j (nn + k)) %(nn + c) %E' %_ %_
           %hnw2 %hJ %hnJ2 %hnl2 %hys' %(hinv' (nn + k) (by omega)) %hcj' %hcn2
-          Hm Hbs Hc Hosfd Hsl Hfd HΦ
+          Hm Hbs Hc Hosfd Hsl Hfd HΦ [$] [$] [$] [$] [$] [$] [$] [$]
     · have he0' : ¬ e = W64 0 := he0
       by_cases hkl : W64 ↑nn + W64 ↑k = sl.len
       · rw [decide_eq_true hkl]
@@ -543,6 +555,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
         try wp_auto
         wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
@@ -557,6 +570,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
         try wp_auto
         wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
