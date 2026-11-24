@@ -618,3 +618,65 @@ reach `Refinement.lean` (5800 lines) and `StepGhost.lean`/`Enter.lean`: about 1-
 VM builds of the raft tree, then (C)-(D) and the API, interface and copies.
 
 Checkpoint 2026-11-24: no Lean changed; waiting on the `T0 < rt` decision; last green build `fec7d8cf82`.
+
+**2026-11-24, L1/L2 implementation, round 1: steps (A), (B), (C) written; L2's `t > T` case is
+not what (B) gives in raft's dynamic mode.**
+
+*Written (Lean).*
+- (A) `campLink γ id camps T F` (`Protocol/GhostState.lean`: `⌜∀ F0 k, camps !! T = some (F0, k) →
+  F0 <+: F⌝ ∨ ∃ L, isLeader γ L T ∗ ⌜L ≠ id⌝`, with `campLink_none`/`_prefix`/`_leader`/`_cand`). Not
+  inside `campOwn` but a conjunct of its own of `ownLogGhost` (`"#Hclink"`, at `W.camps`, `s.term`,
+  `fp ++ s.log`, every role), so that a leader stepping down keeps it with no new `campOwn` fact; and
+  the last conjunct of `durPers` (at `E.camps`, `S.term`, `fp ++ S.ents`). Kept by: `ownLogGhost_upd`
+  (its log-change obligation gains a last conjunct: the full log extended, or a higher term, or
+  `∃ L ≠ id, isLeader L s.term`; `ownLogGhost_mono'` gives the first, `step_app_accept` and
+  `step_snap_restore` the third from the message's `isLeader m.src`), `ownLogGhost_stepDown`, the
+  campaign (`campLink_cand`), the win and `pappend` (prefix), `cut_durPers`, `durPers_rebase` (its
+  output gains the link), the restarts (both), `durPers_init`.
+- (B) `EvsOk` gains a fourth clause (every vote event's term in `voted`); `AcksEvs` (Enter) is now
+  `EvsOk`'s last two clauses; `voteEv` carries `⌜EvSorted (L0 ++ [vote])⌝`; `ackEv` carries
+  `∀ T d F, vote T d F ∈ L → ∃ c, isVote γ v T c` (minted in `mint_one` from `durFrags`'s vote
+  fragments). `ownEvs_ack`/`ownEvs_vote` (unused) deleted.
+- (C) `api_committed_cert` (`InvApi.lean`): `clusterInv ∗ isCommittedLogLb γ l ={E}=∗ ⌜l = []⌝ ∨ ∃ P,
+  ⌜l <+: strip P ∧ IdxOk P⌝ ∗ isCommitted γ.raft P ∗ (boot log ∨ ∃ t n G ldr, cq γ.raft t n G ∗
+  ⌜P = G.take n⌝ ∗ isLeader γ.raft ldr t)`.
+
+*The gap: (B) does not close `t > T` when the cluster is dynamic.* (B)'s argument takes a voter `v` in
+both the commit quorum at `t` and `id`'s winning quorum at `T`. In the static mode `CfgAt.overlap`
+gives one. In the dynamic mode (`γ.reDyn = some _`, the unified API's clusters, the server's) the two
+quorums are of the configurations at `G.take a` and `F0.take kw`, which overlap only when their conf
+counts differ by at most one (`CfgAt.overlap_adj`); `lc_core` needs `lc_far_newer`/`lc_far_older` and
+its induction for the far cases. The mirror for `t > T`:
+- campaign config ≥ 2 newer: `campDyn`'s witnesses are at terms ≤ `T < t`, so `lc_core` at `t` puts
+  their conf entries in `G` past `a`: two of them, against `ConfI1 G a` (no timing needed);
+- commit config ≥ 2 newer: `cqDyn`'s witnesses (certs at `t' ≤ t`) of two conf entries past `kw`:
+  `t' < T` → `lc_core` puts them in `F0` past `kw`, against the campaign's I1; `t' = T` → a cert of
+  `id` at `T` that existed at the witness, so `T ≤ T0`; `T < t' ≤ t` → the same argument again, by
+  induction on the witness's `a`.
+So the timing facts (every cert in the `cqAt` tree: its leader is not `id` or its term is `≤ T0`;
+every ack of its quorum: the vote events before it are for `(T', c)` with `c = id → T' ≤ T0`) are
+needed for the whole witness tree, not only the top certificate: `cmtBefore` must be a recursive
+predicate over `cqAt`'s structure (as `cqAt` is, `termination_by` the config index), proved at L1 by
+the same recursion, and L2's `t > T` case is a new theorem of `lc_core`'s size. Estimate 600-1000
+lines in `Protocol/LeaderCompleteness.lean` plus the recursive `cmtBefore`.
+
+A cheaper alternative, if the server can discharge it: L2 with a premise that every committed
+prefix has one membership (the server's `srv_confAt_simple`), e.g. `□ ∀ k m, confAt γ k m -∗ ⌜m =
+m0⌝`; then both quorums are of `m0` and (B)'s single-voter argument works. It needs a bridge from
+the API's `confAt` (`decFold`) to the internal `CfgAt` of `G.take a`/`F0.take kw`. Decision needed.
+
+*Built (VM):* the protocol layer, `InvApi`, the modules that unfold the changed definitions
+(`DurableLogView`, `InvRawnode`, `CommitWit`, `Term0`, `TraceSimFacts`, `TracedRaftStepPropBundle`)
+and raft's `Link`, `Linked`, `Results`: 3475 jobs, green. RaftTla copies regenerated
+(`etc/gen-raft-tla.py`, 8 written), RaftNoAx/KvNet copies (`etc/copy-part.py`); `etc/tier-check.py
+--check` ok. No axiom, no `sorry`, no spec or top-level statement changed.
+
+Not written: `cmtBefore`, L1, L2, the API laws, the T0-lifetime law ("a term this node leads in its
+current lifetime is > its restart term": it falls out of the same camps bound as L1's, `durPers`'s
+`camps T isSome → T ≤ S.term` at the restart state, plus `campLink`; not yet stated).
+
+*Next lemma (whichever option is chosen), exact statement:* L1,
+`raftState γ id S0 ∗ isCluster γ N ∗ isCommittedLogLb γ l ⊢ |={E}=> raftState γ id S0 ∗ cmtBefore γ id S0.term l`
+(`↑N ⊆ E`), from `api_committed_cert` and, for the certificate's leader `ldr`, `isCamp γ ldr t F0`
+(`cq_base`, `leadFull_camp`) against `raftState`'s half of the camps authority (`durShares`):
+`ldr = id → t ≤ S0.term`.

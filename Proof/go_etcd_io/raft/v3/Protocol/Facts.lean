@@ -811,7 +811,7 @@ private theorem durPers_init (γ : RaftNames) (id : w64) :
     refine ⟨⟨fun t h => by simp at h, by simp [RaftState.init]⟩, fun k h => by simp at h,
       fun T h => by simp at h,
       ⟨fun p1 p2 e1 e2 _ H1 _ => by simp at H1, fun e He => by simp at He,
-        fun t i Hi => by simp at Hi⟩,
+        fun t i Hi => by simp at Hi, fun T d F Hi => by simp at Hi⟩,
       FullOk_base0, fun k e h => by simp at h, ?_, by rw [base0_index]; exact Int.le_refl _, ?_⟩
     · intro j x Hx
       rw [List.nil_append] at Hx
@@ -848,7 +848,9 @@ private theorem durPers_init (γ : RaftNames) (id : w64) :
   isplitr
   · simp only [List.nil_append, List.take_nil]
     iexact Hc0
+  isplitr
   · imodintro; iintro -; iapply (BigSepM.bigSepM_empty).2; iempintro
+  · iapply campLink_none γ id ∅ _ _ (by simp)
 
 /-- (stage II helper) A fresh node's durable half at the initial state and its vacant slot, from
 its fresh authorities and slot: the slot invariant allocated with the other halves. -/

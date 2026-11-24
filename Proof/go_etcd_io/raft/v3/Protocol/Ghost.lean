@@ -1666,7 +1666,9 @@ def isEntry (γ : RaftNames) (e : EntryM) : IProp GF :=
 (2026-10-05). -/
 def ackEv (γ : RaftNames) (v t i : w64) : IProp GF :=
   iprop(∃ γe L, ⌜γ.reEvs !! v = some γe ∧ Aev.ack t i ∈ L ∧ EvSorted L⌝ ∗
-          monoListLbOwn γe L)
+          monoListLbOwn γe L ∗
+          -- (2026-11-24, the leader-completeness law) every vote before it, with its candidate
+          ∀ (T : w64) (d : Bool) (F : List EntryM), ∀ (_ : Aev.vote T d F ∈ L), ∃ c, isVote γ v T c)
 
 def isAcked (γ : RaftNames) (v t i : w64) : IProp GF :=
   iprop(⌜uint.Z i = 0⌝ ∨

@@ -197,14 +197,30 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
            isCommitted γ (cprefix fp' s') ∗
            □ (∀ t i, ⌜uint.Z t ≤ uint.Z s.term⌝ -∗
                 hist γ (fp ++ s.log) t i (bnd s kl) -∗
-                hist γ (fp' ++ s'.log) t i (bnd s' kl'))) -∗
+                hist γ (fp' ++ s'.log) t i (bnd s' kl')) ∗
+           -- (2026-11-24) the campaign link: the full log extended, or the term's leader another
+           -- node (`campLink`)
+           (⌜fp ++ s.log <+: fp' ++ s'.log ∨ uint.Z s.term < uint.Z s'.term⌝ ∨
+             ∃ L, isLeader γ L s.term ∗ ⌜L ≠ id⌝)) -∗
       ownLogGhost γ id s' kl' W := by
   intro Hlead Hdown Hcand Hle Hcm Hkl Hok'
   iintro H #Hkeep #Hr' #Hm' #Hb' Hnew
   unfold ownLogGhost
   icases H with ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
-  icases Hnew $$ %fp %Hfull Hfrecs Hcommit Hcmt with ⟨%fp', %Hfp', #Hfr', #Hc', #Hcmt', #Hh⟩
+  icases Hnew $$ %fp %Hfull Hfrecs Hcommit Hcmt with
+    ⟨%fp', %Hfp', #Hfr', #Hc', #Hcmt', #Hh, #Hlk⟩
+  ihave #Hclink' : campLink (GF := GF) γ id W.camps s'.term (fp' ++ s'.log) $$ []
+  · by_cases Hlt : uint.Z s.term < uint.Z s'.term
+    · iapply campLink_none
+      exact Option.not_isSome_iff_eq_none.mp (fun h => by have := Hcamps_ok _ h; omega)
+    · have Hte : s'.term = s.term := uint_Z_inj.mp (by omega)
+      rw [Hte]
+      icases Hlk with (%Hp | ⟨%L, #HL, %HLne⟩)
+      · rcases Hp with Hp | Hp
+        · iapply campLink_prefix γ id W.camps s.term _ _ Hp $$ Hclink
+        · exact absurd Hp (Int.lt_irrefl _)
+      · iapply campLink_leader γ id L W.camps s.term _ HLne $$ HL
   obtain ⟨Hfull', Hfeq⟩ := Hfp'
   have Hevs' : EvsOk s'.term W := EvsOk_mono _ _ _ Hle Hevs
   ihave #Hacks' := acksOk_upd γ s s' W.acks Hle Hdown Hcm Hacks_term $$ Hkeep Hacks_ok
@@ -466,10 +482,12 @@ theorem ownLogGhost_mono' (γ : RaftNames) (id : w64) (s s' : PState)
     isplitr; · iexact Hfr
     isplitr; · rw [Hlog]; iexact Hc'
     isplitr; · iexact Hcm'
-    imodintro
-    iintro %t %i %_ #Hh
-    rw [Hlog]
-    iapply hist_mono γ _ t i _ _ (KlStep_bnd s s' kl kl' Hkl) $$ Hh
+    isplitr
+    · imodintro
+      iintro %t %i %_ #Hh
+      rw [Hlog]
+      iapply hist_mono γ _ t i _ _ (KlStep_bnd s s' kl kl' Hkl) $$ Hh
+    · ileft; ipureintro; left; rw [Hlog]; exact List.prefix_refl _
 
 variable [CrashGS GF] in
 /-- The same, when `Match` and the commit index do not change either, at the same
@@ -793,6 +811,8 @@ theorem ownLogGhost_stepDown (γ : RaftNames) (id : w64) (s s' : PState) (kl : O
   · rw [Hb]; iexact Hbase
   ihave #Hcown' : campOwn (GF := GF) γ id W.camps s' (fp ++ s'.log) $$ []
   · unfold campOwn; rw [Hr']; ipureintro; trivial
+  ihave #Hclink' : campLink (GF := GF) γ id W.camps s'.term (fp ++ s'.log) $$ []
+  · rw [Hte, Hlg]; iexact Hclink
   ihave #Hvlogs' : vlogsOk (GF := GF) γ s' W.acks W.vlogs $$ []
   · unfold vlogsOk; rw [Hte]; iexact Hvlogs_ok
   ihave #Hhists' : histsOk (GF := GF) γ s' kl (fp ++ s'.log) W.acks $$ []
@@ -969,8 +989,17 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
         (<[s.term + W64 1 := (fp ++ s.log, s.commit)]> W.camps)
         (<[vlogKey W.vlogs := ((s.term + W64 1, false), fp ++ s.log)]> W.vlogs)
         (W.evs ++ [Aev.vote (s.term + W64 1) false (fp ++ s.log)])) := by
-    obtain ⟨Hs, Ht, Hk⟩ := Hevs
-    refine ⟨EvSorted_snoc _ _ Hs (fun e He => ?_), fun e He => ?_, fun t i Hi => ?_⟩
+    obtain ⟨Hs, Ht, Hk, Hvo⟩ := Hevs
+    refine ⟨EvSorted_snoc _ _ Hs (fun e He => ?_), fun e He => ?_, fun t i Hi => ?_,
+      fun T' d' F' Hi => ?_⟩
+    rotate_right
+    · show ((<[s.term + W64 1 := id]> W.voted) !! T').isSome
+      by_cases Heq : s.term + W64 1 = T'
+      · rw [Heq, GMap.lookup_insert_eq]; rfl
+      · rw [GMap.lookup_insert_ne _ _ Heq]
+        rcases List.mem_append.mp Hi with Hi | Hi
+        · exact Hvo T' d' F' Hi
+        · simp only [List.mem_singleton, Aev.vote.injEq] at Hi; exact absurd Hi.1.symm Heq
     · have := Ht e He; show _ ≤ uint.Z (s.term + W64 1); omega
     · rcases List.mem_append.mp He with He | He
       · have := Ht e He; omega
@@ -1002,6 +1031,12 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
       show (pbecomeCandidate id s).term = s.term + W64 1 from rfl]
     ipureintro
     exact GMap.lookup_insert_eq _ _ _
+  ihave #Hclink' : campLink (GF := GF) γ id (<[s.term + W64 1 := (fp ++ s.log, s.commit)]> W.camps)
+      (s.term + W64 1) (fp ++ s.log) $$ []
+  · have H := campLink_cand (GF := GF) γ id (<[s.term + W64 1 := (fp ++ s.log, s.commit)]> W.camps)
+      (pbecomeCandidate id s) (fp ++ s.log) rfl
+    rw [show (pbecomeCandidate id s).term = s.term + W64 1 from rfl] at H
+    iapply H $$ Hcown'
   ihave #Hkl' : klOk (GF := GF) γ id (pbecomeCandidate id s) none $$ []
   · unfold klOk; ipureintro; exact Hnl
   ihave #Hvlogs' : vlogsOk (GF := GF) γ (pbecomeCandidate id s) W.acks
@@ -1105,8 +1140,17 @@ theorem ownLogGhost_vote (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
     rw [vbnd_bnd]
     iexact Hh
   have Hevs' : EvsOk s.term (W.add (.vote s.term c kl.isSome (fp ++ s.log))) := by
-    obtain ⟨Hs, Ht, Hk⟩ := Hevs
-    refine ⟨EvSorted_snoc _ _ Hs (fun e He => ?_), fun e He => ?_, fun t i Hi => ?_⟩
+    obtain ⟨Hs, Ht, Hk, Hvo⟩ := Hevs
+    refine ⟨EvSorted_snoc _ _ Hs (fun e He => ?_), fun e He => ?_, fun t i Hi => ?_,
+      fun T' d' F' Hi => ?_⟩
+    rotate_right
+    · show ((<[s.term := c]> W.voted) !! T').isSome
+      by_cases Heq : s.term = T'
+      · rw [Heq, GMap.lookup_insert_eq]; rfl
+      · rw [GMap.lookup_insert_ne _ _ Heq]
+        rcases List.mem_append.mp Hi with Hi | Hi
+        · exact Hvo T' d' F' Hi
+        · simp only [List.mem_singleton, Aev.vote.injEq] at Hi; exact absurd Hi.1.symm Heq
     · exact Ht e He
     · rcases List.mem_append.mp He with He | He
       · exact Ht e He

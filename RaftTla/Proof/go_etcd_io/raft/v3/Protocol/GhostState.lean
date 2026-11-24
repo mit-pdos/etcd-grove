@@ -595,6 +595,54 @@ def campOwn (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) 
 instance campOwn_persistent (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64))
     (s : PState) (F : List EntryM) : Persistent (campOwn (GF := GF) γ id camps s F) := by
   unfold campOwn; split <;> infer_instance
+
+/-- (2026-11-24, the leader-completeness law: `notes/etcd-dist-d6.md`, T4 round 4) **The campaign
+link**: node `id`'s campaign record of term `T` in `camps`, if any, is a prefix of its full log
+`F`, unless another node leads `T` (whose messages may have cut `F` since: a candidate that lost
+`T`). A node's full log changes within its term only by its own leader appends (which extend it)
+or by a message of the term's leader. -/
+def campLink (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (T : w64)
+    (F : List EntryM) : IProp GF :=
+  iprop(⌜∀ F0 k, camps !! T = some (F0, k) → F0 <+: F⌝ ∨ ∃ L, isLeader γ L T ∗ ⌜L ≠ id⌝)
+
+instance campLink_persistent (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64))
+    (T : w64) (F : List EntryM) : Persistent (campLink (GF := GF) γ id camps T F) := by
+  unfold campLink; infer_instance
+
+/-- No record at `T`: the link holds of any log. -/
+theorem campLink_none (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (T : w64)
+    (F : List EntryM) : camps !! T = none → ⊢ campLink (GF := GF) γ id camps T F := by
+  intro H
+  unfold campLink
+  ileft; ipureintro; intro F0 k Hk; rw [H] at Hk; cases Hk
+
+/-- The link of a log holds of its extensions. -/
+theorem campLink_prefix (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (T : w64)
+    (F F' : List EntryM) : F <+: F' → campLink (GF := GF) γ id camps T F ⊢ campLink γ id camps T F' := by
+  intro Hp
+  unfold campLink
+  iintro (%H | H)
+  · ileft; ipureintro; intro F0 k Hk; exact (H F0 k Hk).trans Hp
+  · iright; iexact H
+
+/-- Another node leading `T`: the link holds of any log. -/
+theorem campLink_leader (γ : RaftNames) (id L : w64) (camps : GMap w64 (List EntryM × w64)) (T : w64)
+    (F : List EntryM) : L ≠ id → isLeader (GF := GF) γ L T ⊢ campLink γ id camps T F := by
+  intro Hne
+  unfold campLink
+  iintro #Hl
+  iright; iexists L; iframe Hl; ipureintro; exact Hne
+
+/-- A candidate's record is its full log. -/
+theorem campLink_cand (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (s : PState)
+    (F : List EntryM) : s.role = .candidate →
+    campOwn (GF := GF) γ id camps s F ⊢ campLink γ id camps s.term F := by
+  intro Hr
+  unfold campOwn campLink
+  rw [Hr]
+  iintro %H
+  ileft; ipureintro; intro F0 k Hk
+  rw [H] at Hk; cases Hk; exact List.prefix_refl _
 /-- Node `v`'s `k`-th vote-time log: it voted in `T` with full log `F`, knowing the leader
 of `T` iff `d` (so its histories then are bounded by `vbnd T d`). -/
 def vbnd (T : w64) (d : Bool) : Int := uint.Z T + (if d then 1 else 0)
@@ -644,6 +692,8 @@ Completeness (`ev_pair`): an acknowledgement of an earlier term than the vote's 
 before it in the history, which is in term order. -/
 def voteEv (γ : RaftNames) (v T : w64) (d : Bool) (F : List EntryM) : IProp GF :=
   iprop(∃ γe L0, ⌜γ.reEvs !! v = some γe⌝ ∗ monoListLbOwn γe (L0 ++ [Aev.vote T d F]) ∗
+    -- (2026-11-24, the leader-completeness law) in term order
+    ⌜EvSorted (L0 ++ [Aev.vote T d F])⌝ ∗
     ∀ (t i : w64), ∀ (_ : Aev.ack t i ∈ L0 ∧ uint.Z t < uint.Z T), hist γ F t i (vbnd T d))
 
 instance voteEv_persistent (γ : RaftNames) (v T : w64) (d : Bool)
@@ -680,7 +730,7 @@ theorem ev_pair (γ : RaftNames) (v t i T : w64) (d : Bool) (F : List EntryM) :
     ⊢ ackEv (GF := GF) γ v t i -∗ voteEv γ v T d F -∗ hist γ F t i (vbnd T d) := by
   intro HtT
   unfold ackEv voteEv
-  iintro ⟨%γe, %La, %HLa, #Ha⟩ ⟨%γe', %L0, %Hγe', #Hv, #Hh⟩
+  iintro ⟨%γe, %La, %HLa, #Ha, -⟩ ⟨%γe', %L0, %Hγe', #Hv, -, #Hh⟩
   obtain ⟨Hγe, Hin, Hsort⟩ := HLa
   rw [Hγe] at Hγe'; cases Hγe'
   icases mono_list_lb_valid _ _ _ $$ Ha Hv with %Hp
@@ -728,66 +778,7 @@ theorem ownEvs_mono (γ : RaftNames) (id T T' : w64) (acks acks' : GMap (w64 × 
   refine ⟨Hs, fun e He => ?_, fun t i Hi => Hsub _ (Hk t i Hi)⟩
   have := Ht e He; omega
 
-theorem ownEvs_ack (γ : RaftNames) (id T : w64) (acks : GMap (w64 × w64) Unit) (i : w64) :
-    ⊢ ownEvs (GF := GF) γ id T acks ==∗ ownEvs γ id T (<[(T, i) := ()]> acks) ∗ ackEv γ id T i := by
-  unfold ownEvs ackEv
-  iintro ⟨%γe, %evs, %Hγe, Ha, %Hs, %Ht, %Hk⟩
-  imod monoListAuthOwn_update_app [Aev.ack T i] $$ Ha with ⟨Ha, #Hlb⟩
-  have Hs' : EvSorted (evs ++ [Aev.ack T i]) :=
-    EvSorted_snoc _ _ Hs (fun e He => Ht e He)
-  imodintro
-  isplitl [Ha]
-  · iexists γe, evs ++ [Aev.ack T i]
-    isplitr; · ipureintro; exact Hγe
-    isplitl [Ha]; · iexact Ha
-    ipureintro
-    refine ⟨Hs', fun e He => ?_, fun t i' Hi => ?_⟩
-    · rcases List.mem_append.mp He with He | He
-      · exact Ht e He
-      · simp only [List.mem_singleton] at He; subst He; simp [aevTerm]
-    · rcases List.mem_append.mp Hi with Hi | Hi
-      · by_cases Heq : (T, i) = (t, i')
-        · simp [Heq]
-        · simp only [GMap.lookup_insert_eq_iff, Heq, ↓reduceIte]; exact Hk t i' Hi
-      · simp only [List.mem_singleton, Aev.ack.injEq] at Hi
-        obtain ⟨rfl, rfl⟩ := Hi; simp
-  · iexists γe, evs ++ [Aev.ack T i]
-    isplitr; · ipureintro; exact ⟨Hγe, by simp, Hs'⟩
-    iexact Hlb
-
-theorem ownEvs_vote (γ : RaftNames) (id T T' : w64) (acks : GMap (w64 × w64) Unit)
-    (d : Bool) (F : List EntryM) :
-    uint.Z T ≤ uint.Z T' →
-    ⊢ ownEvs (GF := GF) γ id T acks -∗
-      ([∗map] k ↦ _u ∈ acks, ∀ (_ : uint.Z k.1 < uint.Z T'), hist γ F k.1 k.2 (vbnd T' d)) ==∗
-      ownEvs γ id T' acks ∗ voteEv γ id T' d F := by
-  intro HT
-  unfold ownEvs voteEv
-  iintro ⟨%γe, %evs, %Hγe, Ha, %Hs, %Ht, %Hk⟩ #Hh
-  imod monoListAuthOwn_update_app [Aev.vote T' d F] $$ Ha with ⟨Ha, #Hlb⟩
-  imodintro
-  isplitl [Ha]
-  · iexists γe, evs ++ [Aev.vote T' d F]
-    isplitr; · ipureintro; exact Hγe
-    isplitl [Ha]; · iexact Ha
-    ipureintro
-    refine ⟨EvSorted_snoc _ _ Hs (fun e He => ?_), fun e He => ?_, fun t i Hi => ?_⟩
-    · have := Ht e He; show _ ≤ uint.Z T'; omega
-    · rcases List.mem_append.mp He with He | He
-      · have := Ht e He; omega
-      · simp only [List.mem_singleton] at He; subst He; simp [aevTerm]
-    · rcases List.mem_append.mp Hi with Hi | Hi
-      · exact Hk t i Hi
-      · simp at Hi
-  · iexists γe, evs
-    isplitr; · ipureintro; exact Hγe
-    isplitr; · iexact Hlb
-    iintro %t %i %Hin2
-    obtain ⟨Hin, Hlt⟩ := Hin2
-    obtain ⟨u, Hu⟩ := Option.isSome_iff_exists.mp (Hk t i Hin)
-    ihave Hx := BigSepM.bigSepM_lookup (i := (t, i)) Hu $$ Hh
-    iapply Hx
-    exact Hlt
+-- (2026-11-24) `ownEvs_ack`/`ownEvs_vote` deleted: unused since the durable maps' minting (`mint_one`).
 
 /-! ### The commit invariant (2026-10-05)
 
@@ -2764,7 +2755,9 @@ acknowledgement in it in the acknowledgement map (`ownEvs`'s, as a pure fact of 
 maps). -/
 def EvsOk (T : w64) (W : DurMaps) : Prop :=
   EvSorted W.evs ∧ (∀ e, e ∈ W.evs → uint.Z (aevTerm e) ≤ uint.Z T) ∧
-    (∀ t i, Aev.ack t i ∈ W.evs → (W.acks !! (t, i)).isSome)
+    (∀ t i, Aev.ack t i ∈ W.evs → (W.acks !! (t, i)).isSome) ∧
+    -- (2026-11-24, the leader-completeness law) every vote in it is in the vote map
+    (∀ T' d F, Aev.vote T' d F ∈ W.evs → (W.voted !! T').isSome)
 
 /-! #### Fragments, justifications and outbox messages across a larger map state (stage II
 helpers) -/
@@ -2900,12 +2893,17 @@ theorem outMsgOk_snapDst (γ : RaftNames) (id : w64) (s : PState) (πc : List Pr
 
 theorem EvsOk_mono (T T' : w64) (W : DurMaps) :
     uint.Z T ≤ uint.Z T' → EvsOk T W → EvsOk T' W := by
-  rintro HT ⟨Hs, Ht, Hk⟩
-  exact ⟨Hs, fun e He => by have := Ht e He; omega, Hk⟩
+  rintro HT ⟨Hs, Ht, Hk, Hvo⟩
+  exact ⟨Hs, fun e He => by have := Ht e He; omega, Hk, Hvo⟩
 
 theorem EvsOk_add_ack (T i : w64) (W : DurMaps) : EvsOk T W → EvsOk T (W.add (.ack T i)) := by
-  rintro ⟨Hs, Ht, Hk⟩
-  refine ⟨EvSorted_snoc _ _ Hs (fun e He => Ht e He), fun e He => ?_, fun t i' Hi => ?_⟩
+  rintro ⟨Hs, Ht, Hk, Hvo⟩
+  refine ⟨EvSorted_snoc _ _ Hs (fun e He => Ht e He), fun e He => ?_, fun t i' Hi => ?_,
+    fun T' d F Hi => ?_⟩
+  rotate_right
+  · rcases List.mem_append.mp Hi with Hi | Hi
+    · exact Hvo T' d F Hi
+    · simp at Hi
   · rcases List.mem_append.mp He with He | He
     · exact Ht e He
     · simp only [List.mem_singleton] at He; subst He; simp [aevTerm]
@@ -2919,8 +2917,17 @@ theorem EvsOk_add_ack (T i : w64) (W : DurMaps) : EvsOk T W → EvsOk T (W.add (
 
 theorem EvsOk_add_vote (T T' c : w64) (d : Bool) (F : List EntryM) (W : DurMaps) :
     uint.Z T ≤ uint.Z T' → EvsOk T W → EvsOk T' (W.add (.vote T' c d F)) := by
-  rintro HT ⟨Hs, Ht, Hk⟩
-  refine ⟨EvSorted_snoc _ _ Hs (fun e He => ?_), fun e He => ?_, fun t i Hi => ?_⟩
+  rintro HT ⟨Hs, Ht, Hk, Hvo⟩
+  refine ⟨EvSorted_snoc _ _ Hs (fun e He => ?_), fun e He => ?_, fun t i Hi => ?_,
+    fun T'' d' F' Hi => ?_⟩
+  rotate_right
+  · show ((<[T' := c]> W.voted) !! T'').isSome
+    by_cases Heq : T' = T''
+    · rw [Heq, GMap.lookup_insert_eq]; rfl
+    · rw [GMap.lookup_insert_ne _ _ Heq]
+      rcases List.mem_append.mp Hi with Hi | Hi
+      · exact Hvo T'' d' F' Hi
+      · simp only [List.mem_singleton, Aev.vote.injEq] at Hi; exact absurd Hi.1.symm Heq
   · have := Ht e He; show _ ≤ uint.Z T'; omega
   · rcases List.mem_append.mp He with He | He
     · have := Ht e He; omega
@@ -2983,7 +2990,9 @@ def durPers (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps) : IProp GF
     raftCommitInv γ ∗
     -- (2026-11-01, stage II(d), approved repair 1) every acknowledgement's leader (`ackInF`), given
     -- the maps' fragments (a pending one's justification needs them, `promJust`)
-    □ (durFrags γ id E -∗ [∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2))
+    □ (durFrags γ id E -∗ [∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2) ∗
+    -- (2026-11-24, the leader-completeness law) the campaign link of `S`'s term (`campLink`)
+    campLink γ id E.camps S.term (fp ++ S.ents))
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 2048 in
@@ -3207,6 +3216,9 @@ def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : 
     "#Hfrecs"  ∷ logRecs γ base0 fp ∗
     "%Hcamps_ok" ∷ ⌜∀ T, (W.camps !! T).isSome → uint.Z T ≤ uint.Z s.term⌝ ∗
     "#Hcown"   ∷ campOwn γ id W.camps s (fp ++ s.log) ∗
+    -- 2026-11-24 (the leader-completeness law): the campaign record of the term, a prefix of the
+    -- full log unless another node leads the term
+    "#Hclink"  ∷ campLink γ id W.camps s.term (fp ++ s.log) ∗
     "#Hvlogs_ok" ∷ vlogsOk γ s W.acks W.vlogs ∗
     "#Hhists"  ∷ histsOk γ s kl (fp ++ s.log) W.acks ∗
     -- 2026-10-05: winning quorums and the known leader

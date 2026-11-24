@@ -1058,6 +1058,55 @@ theorem api_committed_lb (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   obtain ⟨r, rfl⟩ := HDP
   exact Hidx.1 k e (by rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp Hk).1]; exact Hk)
 
+/-- (2026-11-24, the leader-completeness law: `notes/etcd-dist-d6.md`, T4 round 4, (C)) **A committed
+lower bound's certificate**: `l` is empty, or a prefix of the global committed log `P` (at its
+indices, `IdxOk`), which is the bootstrap log or is justified by a commit quorum `cq γ t n G`
+(`P = G.take n`) of the leader `ldr` of `t` (`committedJust`). -/
+theorem api_committed_cert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (l : List LogEntry) :
+    ⊢ clusterInv (GF := GF) γ N -∗ isCommittedLogLb γ l ={E}=∗
+      ⌜l = []⌝ ∨ ∃ P, ⌜l <+: strip P ∧ IdxOk P⌝ ∗ isCommitted γ.raft P ∗
+        (⌜P = γ.raft.reBoot ∧ PlogWf base0 γ.raft.reBoot ∧ ∀ e ∈ γ.raft.reBoot, e.Term' = W64 1⌝ ∨
+          ∃ t n G ldr, cq γ.raft t n G ∗ ⌜P = G.take (uint.Z n).toNat⌝ ∗ isLeader γ.raft ldr t) := by
+  iintro #Hci Hlb
+  unfold isCommittedLogLb
+  icases Hlb with (%Hl | ⟨#Hflb, -⟩)
+  · imodintro; ileft; ipureintro; exact Hl
+  unfold clusterInv
+  icases Hci with ⟨%HNs, #Hcinv, #Hinv, -⟩
+  unfold apiInv apiInvBody
+  have Ha := apiN_sub N HE
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩ Hclose
+  ihave #Hli := raftCommitInv_log γ.raft $$ Hcinv
+  have Hl : (↑(raftLogN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
+    unfold raftLogN raftN; rw [HNs]; exact raftN_api N HE "log"
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose1
+  iunfold rLog at HrL
+  ihave %HLeq := ghostVar_agree γ.raft.reRLog P rlq L (1 : Qp).half $$ Hq1 HrL
+  subst HLeq
+  ihave #HPc := ownCommitted_lb γ.raft P $$ HP
+  icases mono_list_auth_lb_valid $$ Hfull Hflb with %Hpre
+  imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+  · inext
+    iexists P, F, RF
+    unfold rLog
+    iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
+    ipureintro; exact Hidx
+  imodintro
+  iright
+  iexists P
+  isplitr; · ipureintro; exact ⟨Hpre.2, Hidx.1⟩
+  iframe HPc
+  iunfold committedJust at Hj
+  icases Hj with (%Hb | ⟨%t, %n, %G, %ldr, #Hcq, %HG, #Hld, -⟩)
+  · ileft; ipureintro; exact Hb
+  · iright; iexists t, n, G, ldr; iframe Hcq Hld; ipureintro; exact HG
+
 /-- A log whose term at `c` is known is at least `c` long. -/
 theorem termAt_len (F : List EntryM) (c : w64) (h : plogTermAt base0 F c ≠ none) :
     uint.nat c ≤ F.length := by
