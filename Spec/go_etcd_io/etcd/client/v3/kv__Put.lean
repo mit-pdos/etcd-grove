@@ -39,24 +39,23 @@ abbrev kv.Put.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key val : GoString) (opts_sl : GoSlice)
     (opts : List (OpFull → OpFull)) (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
       ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜¬ (opPutModel key val opts).putPanics ∧ (opPutModel key val opts).t = W64 2 ∧
         (putWireOf (opPutModel key val opts)).leaseID = W64 0⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>) ∗
-      ⌜opSizeOk (opPutModel key val opts)⌝ }}
+      ⌜opSizeOk (opPutModel key val opts)⌝) }}
     (App (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Put")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #val)) (Val #opts_sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
         ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
           m.prev = (if (putWireOf (opPutModel key val opts)).base.prevKV then
             (σ.store.lookup (putWireOf (opPutModel key val opts)).key).map (KVRec.toKv (putWireOf (opPutModel key val opts)).key) else none) ∧
           kvRevFits (σ.rev + 1) ∧ kvLogOk σ ∧
           kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ)⌝ ∗
         kvRevLb γ m.hdr.revision) ∨
-      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
 
 end spec
 

@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.sync
 public import Code.google_golang_org.grpc.credentials
+public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -105,6 +106,56 @@ noncomputable def perRPCCredential.RequireTransportSecurity.impl [GooseExts] [Go
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- go: credentials.go:69:29 -/
+noncomputable def perRPCCredential.GetRequestMetadata.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "rc"
+  (Lam "ctx"
+  (Lam "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.string)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType perRPCCredential.ty)))) (Var "rc"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "s"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef perRPCCredential.ty go!"authToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredential.ty)))) (Var "rc"))))
+  (Let "authToken" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC))) (Val #())))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "authToken"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.string (Var "$v1")))]))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "authToken")) (Val #(go!"")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.string)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef perRPCCredential.ty go!"authTokenMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredential.ty)))) (Var "rc")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "authToken") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef perRPCCredential.ty go!"authTokenMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredential.ty)))) (Var "rc")))) (Val #()))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
 /-- go: credentials.go:79:29 -/
 noncomputable def perRPCCredential.UpdateAuthToken.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rc"
@@ -124,7 +175,7 @@ noncomputable def perRPCCredential.UpdateAuthToken.impl [GooseExts] [GoGlobalCon
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.credentials where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.google_golang_org.grpc.credentials]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.google_golang_org.grpc.credentials, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -133,10 +184,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3.credentials)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #())))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.credentials.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.credentials.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.initialize') (Val #()))))))))
 
 abbrev PerRPCCredentialsBundle [GooseExts] : Type := GoInterface
 
@@ -222,6 +276,7 @@ class perRPCCredential.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_authTokenMu : ∀ (x : perRPCCredential) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet perRPCCredential.underlying go!"authTokenMu") (PairV #x #y) (Val #(({ x with authTokenMu' := y } : perRPCCredential)))
   method_set : go.MethodSetIs perRPCCredential.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType perRPCCredential.ty) [(go!"GetRequestMetadata", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.string)] true [(go.GoType.MapType go.string go.string), go.error]))), (go!"RequireTransportSecurity", (some (go.signature.Signature [] false [go.bool]))), (go!"UpdateAuthToken", (some (go.signature.Signature [go.string] false [])))]
+  ptr_GetRequestMetadata_unfold : MethodUnfold (go.GoType.PointerType perRPCCredential.ty) go!"GetRequestMetadata" perRPCCredential.GetRequestMetadata.impl
   ptr_RequireTransportSecurity_unfold : MethodUnfold (go.GoType.PointerType perRPCCredential.ty) go!"RequireTransportSecurity" perRPCCredential.RequireTransportSecurity.impl
   ptr_UpdateAuthToken_unfold : MethodUnfold (go.GoType.PointerType perRPCCredential.ty) go!"UpdateAuthToken" perRPCCredential.UpdateAuthToken.impl
 
@@ -233,6 +288,7 @@ attribute [instance] perRPCCredential.TypeAssumptions.type_repr
   perRPCCredential.TypeAssumptions.set_authTokenMu
   perRPCCredential.TypeAssumptions.method_set
   perRPCCredential.TypeAssumptions.ptr_method_set
+  perRPCCredential.TypeAssumptions.ptr_GetRequestMetadata_unfold
   perRPCCredential.TypeAssumptions.ptr_RequireTransportSecurity_unfold
   perRPCCredential.TypeAssumptions.ptr_UpdateAuthToken_unfold
 
@@ -243,6 +299,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewPerRPCCredentialBundle_unfold : FuncUnfold NewPerRPCCredentialBundle [] NewPerRPCCredentialBundle.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
+  import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
 
 attribute [instance] Assumptions.PerRPCCredentialsBundle_instance
   Assumptions.perRPCCredentialBundle_instance
@@ -250,6 +307,7 @@ attribute [instance] Assumptions.PerRPCCredentialsBundle_instance
   Assumptions.NewPerRPCCredentialBundle_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_credentials_Assumption
+  Assumptions.import_rpctypes_Assumption
 
 end go_etcd_io.etcd.client.v3.credentials
 

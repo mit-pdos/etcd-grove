@@ -86,7 +86,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
-  have hNS := wp_NewStream conn [addr] [ic] anyRes go!"/etcdserverpb.Lease/LeaseKeepAlive"
+  have hNS := wp_NewStream conn [addr] [ic] clientRes go!"/etcdserverpb.Lease/LeaseKeepAlive"
     pbLeaseKeepAliveRequestT pbLeaseKeepAliveResponseT pbLeaseKeepAliveRequestT_reg
     pbLeaseKeepAliveResponseT_reg (fun _ => Up) (fun _ _ => Spec) ctx cd om
   simp only [pbLeaseKeepAliveRequestT, pbLeaseKeepAliveResponseT] at hNS
@@ -115,7 +115,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     ipersist ClientStream
     ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := pbLeaseKeepAliveRequest)
       (Rep := pbLeaseKeepAliveResponse) etcdserverpb.LeaseKeepAliveRequest etcdserverpb.LeaseKeepAliveResponse
-      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up Dn cd' anyRes $$ [ClientStream]
+      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up Dn cd' clientRes $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _

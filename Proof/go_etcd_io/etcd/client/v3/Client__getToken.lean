@@ -37,7 +37,7 @@ theorem Client.getToken.wp_proof
   intro c conn eps ctx cd
   wp_start as ⟨#Hrc, #Hready, Hconn, #Hctx⟩
   iunfold retryClientOk at Hrc
-  icases Hrc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb⟩
+  icases Hrc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb, -⟩
   iunfold clientReady at Hready
   icases Hready with ⟨%api, %P, #Hauth, #HapiS, #Hca⟩
   iunfold clientAuthAt at Hca

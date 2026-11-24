@@ -27,18 +27,17 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 non-nil client error grpc's `status` accepts, returns some boolean. -/
 abbrev isSafeRetry.spec : Prop :=
   ∀ (c : Loc) (err : GoInterface) (o : Loc) (p : go_etcd_io.etcd.client.v3.retryPolicy) (m : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ retryOptsAt o ∗ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗
+  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ retryOptsAt o ∗ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗
       statusErrOk err ∗
       -- (2026-10-21, D29) the call's retry policy
       retryOptsPol o p ∗
       -- (errdesc stage 2b, 2026-11-21) its description, and not the learner's refusal value itself
       -- (which `errors.Is` matches by `==`, reading no description)
-      go_etcd_io.etcd.cache.v3.descIs err m ∗ notLearnerErr err }}
+      go_etcd_io.etcd.cache.v3.descIs err m ∗ notLearnerErr err) }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.isSafeRetry)) (Val #c)) (Val #err)) (Val #o))
-  {{ (b : Bool), RET #b;
-      -- (D29) `true` only for a refusal, or for the repeatable policy (`W8 0`, a read's)
+  {{ (b : Bool), RET #b; levelTok 0 ∗ (-- (D29) `true` only for a refusal, or for the repeatable policy (`W8 0`, a read's)
       ⌜b = true → m ∈ go_etcd_io.etcd.cache.v3.refusalDescs ∨
-        p = W8 0⌝ }}
+        p = W8 0⌝) }}
 
 end spec
 

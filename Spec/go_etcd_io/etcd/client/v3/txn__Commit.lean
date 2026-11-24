@@ -38,7 +38,7 @@ abbrev txn.Commit.spec : Prop :=
   ∀ (txn_ptr : Loc) (addr : List GoString) (kv : Loc) (γ : KVNames) (dup : Bool)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       txnObjAt txn_ptr addr ctx ctx_desc b ∗ txnKvIs txn_ptr kv ∗ isKv kv γ dup ∗
       ⌜TxnModel.plain b.model ∧ txnModelIn (txnWireOf b.model)⌝ ∗
       □?dup (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
@@ -48,11 +48,10 @@ abbrev txn.Commit.spec : Prop :=
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model)⌝ ∗
           AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
             <{ etcdKV γ (kvOpStep (.txn (txnWireOf b.model)) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)) ∗
-      ⌜txnSizeOk (txnWireOf b.model)⌝ }}
+      ⌜txnSizeOk (txnWireOf b.model)⌝) }}
     (App (Val (txn_ptr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
       (Val #()))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
         (if txn.txnReadonly (txnWireOf b.model) then
           (if txn.txnSerializable (txnWireOf b.model) then iprop(True) else iprop(□ Q σ)) else Q σ) ∗
         ⌜m.succeeded = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).1 ∧
@@ -65,7 +64,7 @@ abbrev txn.Commit.spec : Prop :=
         -- (U1 of `notes/k8s-compactor-plan.md`, 2026-11-04, the user's approval) a writing
         -- transaction's reply's revision reached (`kvRevLb`, as `kv.Put.spec`'s)
         client.txnRevLb γ (txnWireOf b.model) m) ∨
-      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
 
 end spec
 

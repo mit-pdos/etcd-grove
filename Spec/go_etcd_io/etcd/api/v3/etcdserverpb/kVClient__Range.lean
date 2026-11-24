@@ -36,16 +36,15 @@ abbrev kVClient.Range.spec : Prop :=
     (Φ : RangeRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.RangeRequest) (k e : GoString) (opts : GoSlice)
     (vs : List GoInterface) (Ψe : GoString → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
+  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Range" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec (rangeReqOp req k e) Φ Ψe ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ callOptsOk vs ∗
-      ⌜req.unknownFields' = slice.nil ∧ (pbRangeRequest (GF := GF)).wireLen (rangeReqOp req k e) < grpcMsgMax⌝ }}
+      ⌜req.unknownFields' = slice.nil ∧ (pbRangeRequest (GF := GF)).wireLen (rangeReqOp req k e) < grpcMsgMax⌝) }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (∃ req' : etcdserverpb.RangeRequest, inp ↦ req') ∗ rangeCallOut Φ resp err ∗
-      (⌜err ≠ GoInterface.nil⌝ -∗ ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψe err) }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((∃ req' : etcdserverpb.RangeRequest, inp ↦ req') ∗ rangeCallOut Φ resp err ∗
+      (⌜err ≠ GoInterface.nil⌝ -∗ ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψe err)) }}
 
 end spec
 

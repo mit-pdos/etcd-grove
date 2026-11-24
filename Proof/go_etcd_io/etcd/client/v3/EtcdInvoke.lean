@@ -55,7 +55,7 @@ abbrev etcdConn.Invoke.spec : Prop :=
   ∀ (Spec : GrpcSpec Req.toProtoMsg Rep.toProtoMsg)
     (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
+  {{ levelTok 0 ∗ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
       isGrpcRpcs addr method Spec ∗ reqPre conn method addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
       Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
     (App (App (App (App (App
@@ -65,7 +65,7 @@ abbrev etcdConn.Invoke.spec : Prop :=
       (Val #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface)))
       (Val #opts))
   {{ (err : GoInterface), RET #err;
-      Req.send inp m ∗
+      levelTok 0 ∗ Req.send inp m ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
         (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }}
 
@@ -80,7 +80,7 @@ abbrev etcdConn.InvokeMd.spec : Prop :=
   ∀ (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
     (om : GrpcMd) (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
     (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
+  {{ levelTok 0 ∗ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
       isGrpcRpcsMd addr method Spec ∗ metadata.outMD ctx om ∗
       reqPre conn method addr vs (attemptPre conn om Spec m Φ) ∗ ctxOk ctx cd ∗
       Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
@@ -91,7 +91,7 @@ abbrev etcdConn.InvokeMd.spec : Prop :=
       (Val #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface)))
       (Val #opts))
   {{ (err : GoInterface), RET #err;
-      Req.send inp m ∗
+      levelTok 0 ∗ Req.send inp m ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
         (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }}
 
@@ -104,7 +104,7 @@ abbrev etcdConn.InvokeMdE.spec : Prop :=
   ∀ (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
     (om : GrpcMd) (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
     (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
+  {{ levelTok 0 ∗ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
       isGrpcRpcsMd addr method Spec ∗ metadata.outMD ctx om ∗
       reqPre conn method addr vs (attemptPre conn om Spec m Φ Ψe) ∗ ctxOk ctx cd ∗
       Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
@@ -115,73 +115,104 @@ abbrev etcdConn.InvokeMdE.spec : Prop :=
       (Val #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface)))
       (Val #opts))
   {{ (err : GoInterface), RET #err;
-      Req.send inp m ∗
+      levelTok 0 ∗ Req.send inp m ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
         (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err ∗
           ifcErrOut method addr Ψe err)) }}
 
+/-- **An invoker that behaves as one meeting the attempt contract, through a chain's invoker at the
+client connection's resource** (`chainWP (levelTok 0)`'s `inv'`; prove-ps2-clientrdlock,
+2026-11-24), meets it: the family `clientRes` has the one resource `levelTok 0`. -/
+theorem grpcInvokerOk_of_chainRes (conn : Loc) (addr : List GoString) (inv inv' : GoFunc) :
+    grpcInvokerOk (GF := GF) conn addr clientRes inv ∗
+      (□ ∀ (ctx' method' req' reply' opts' : val) (Ψ' : val → IProp GF),
+        (levelTok 0 -∗ WP (invokerCall inv ctx' method' req' reply' #conn opts')
+          {{ v, levelTok 0 ∗ Ψ' v }}) -∗
+        levelTok 0 -∗ WP (invokerCall inv' ctx' method' req' reply' #conn opts')
+          {{ v, levelTok 0 ∗ Ψ' v }}) ⊢
+    grpcInvokerOk conn addr clientRes inv' := by
+  iintro ⟨#Hinv, #Hw⟩
+  unfold grpcInvokerOk
+  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps %R
+  iintro %Ψ !> ⟨%HR, HRr, Hpre⟩ HΨ
+  subst HR
+  iapply wp_wand_r
+  isplitl [HRr Hpre HΨ]
+  · iapply (Hw $$ %_ %_ %_ %_ %_ %(fun v => iprop(levelTok 0 -∗ Ψ v)) [Hpre HΨ] HRr)
+    iintro Htok
+    iapply (Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs
+      %ps %(levelTok 0) %(fun v => iprop(levelTok 0 ∗ (levelTok 0 -∗ Ψ v))) [Htok Hpre])
+    · iframe
+      ipureintro; rfl
+    · inext
+      iintro %err ⟨Htok, Hpost⟩
+      iframe Htok
+      iintro Htok
+      iapply HΨ
+      iframe
+  · iintro %v ⟨Htok, Hv⟩
+    iapply Hv $$ Htok
+
 /-- **`Invoke` on an etcd client's connection, for a metadata-indexed spec** (`etcdConn.InvokeMdE.spec`), from grpc's contract:
 the chain is the one interceptor, called with an invoker that behaves as grpc's `invoke`, which
-meets the attempt contract (`grpcInvokerOk_of_wp`); the interceptor's contract does the rest. -/
+meets the attempt contract (`grpcInvokerOk_of_chainRes`); the interceptor's contract does the rest,
+lent the caller's `levelTok 0` (the connection's resource, `clientRes`). -/
 theorem etcdConn_InvokeMdE (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdConn.InvokeMdE.spec (GF := GF) (hG := hG) := by
   intro conn addr method Req Rep hreq hrep Spec m Φ Ψe ctx om cd inp out opts vs
-  iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, #Hom, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
-  iunfold reqPre at Hpre
-  icases Hpre with (#Hpre | ⟨%Hw, Hpre⟩)
-  · -- any number of attempts
-    iunfold isEtcdConn at Hconn0
-    icases Hconn0 with ⟨%ic, #Hgc, #Hic, -⟩
-    iapply wp_true_sep
-    iapply (wp_Invoke conn addr [ic] [] anyRes (GoInterface.ok ctx) method
+  iintro %Ψ ⟨Htok, #Hg, #Hconn0, #Hrpc, #Hom, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
+  iunfold isEtcdConn at Hconn0
+  icases Hconn0 with ⟨%ic, #Hgc, #Hic, #HicW⟩
+  iapply wp_wand_r
+  isplitl [Htok Hsend Hblank Hpre HΨ]
+  · iapply (wp_Invoke conn addr [ic] [] clientRes (GoInterface.ok ctx) method
       (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
-      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs iprop(True) Ψ)
+      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs (levelTok 0)
+      (fun v => iprop(levelTok 0 -∗ Ψ v)))
     iframe #
+    iframe Htok
     isplitr
-    · ipureintro; trivial
-    isplitr
-    · itrivial
+    · ipureintro; rfl
     iintro %inv %opts' #Hinv #Hopts'
     simp only [List.nil_append, chainWP]
-    iintro %inv' #Hinv' -
-    iapply wp_true_sep_intro
-    ihave #Hinv'' := grpcInvokerOk_of_chainTrue conn addr anyRes inv inv' $$ [Hinv Hinv']
+    iintro %inv' #Hinv' Htok
+    ihave #Hinv'' := grpcInvokerOk_of_chainRes conn addr inv inv' $$ [Hinv Hinv']
     · iframe #
-    iunfold etcdInterceptorOk at Hic
-    ihave Hic' := Hic $$ %conn %addr %([ic] : List GoFunc) %([] : List GoInterface) %inv' %method %Req
-      %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out
-    iapply Hic' $$ [Hsend Hblank] HΨ
-    iframe #
-    iframe
-  · -- (2026-10-21, D29) a write on a refusal-free connection, with scalar call options: never
-    -- retried
-    iunfold isEtcdConn at Hconn0
-    icases Hconn0 with ⟨%ic, #Hgc, -, #Hic⟩
-    iapply wp_true_sep
-    iapply (wp_Invoke conn addr [ic] [] anyRes (GoInterface.ok ctx) method
-      (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
-      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs iprop(True) Ψ)
-    iframe #
-    isplitr
-    · ipureintro; trivial
-    isplitr
-    · itrivial
-    iintro %inv %opts' #Hinv #Hopts'
-    simp only [List.nil_append, chainWP]
-    iintro %inv' #Hinv' -
-    iapply wp_true_sep_intro
-    ihave #Hinv'' := grpcInvokerOk_of_chainTrue conn addr anyRes inv inv' $$ [Hinv Hinv']
-    · iframe #
-    iunfold etcdInterceptorOkW at Hic
-    iunfold etcdInterceptorOkM at Hic
-    ihave Hic' := Hic $$ %conn %addr %([ic] : List GoFunc) %([] : List GoInterface) %inv' %method %Req
-      %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out
-    iapply Hic' $$ [Hsend Hblank Hpre] HΨ
-    iframe #
-    iframe
-    simp only [modePre]
-    iframe
-    ipureintro; exact Hw
+    iunfold reqPre at Hpre
+    icases Hpre with (#Hpre | ⟨%Hw, Hpre⟩)
+    · -- any number of attempts
+      iunfold etcdInterceptorOk at Hic
+      ihave Hic' := Hic $$ %conn %addr %([ic] : List GoFunc) %([] : List GoInterface) %inv' %method %Req
+        %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out
+      iapply Hic' $$ [Htok Hsend Hblank] [HΨ]
+      · iframe #
+        iframe
+      · inext
+        iintro %err ⟨Htok, Hpost⟩
+        iframe Htok
+        iintro Htok
+        iapply HΨ
+        iframe
+    · -- (2026-10-21, D29) a write on a refusal-free connection, with scalar call options: never
+      -- retried
+      iunfold etcdInterceptorOkW at HicW
+      iunfold etcdInterceptorOkM at HicW
+      ihave Hic' := HicW $$ %conn %addr %([ic] : List GoFunc) %([] : List GoInterface) %inv' %method %Req
+        %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out
+      iapply Hic' $$ [Htok Hsend Hblank Hpre] [HΨ]
+      · iframe #
+        iframe
+        simp only [modePre]
+        iframe
+        ipureintro; exact Hw
+      · inext
+        iintro %err ⟨Htok, Hpost⟩
+        iframe Htok
+        iintro Htok
+        iapply HΨ
+        iframe
+  · iintro %v ⟨Htok, Hv⟩
+    iapply Hv $$ Htok
 
 /-- `etcdConn.InvokeMd.spec`: `etcdConn_InvokeMdE` at no error outcome. -/
 theorem etcdConn_InvokeMd (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
@@ -190,9 +221,9 @@ theorem etcdConn_InvokeMd (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (h
   iintro %Ψ Hpre HΨ
   iapply (etcdConn_InvokeMdE wp_Invoke conn addr method Req Rep hreq hrep Spec m Φ (fun _ => iprop(True))
     ctx om cd inp out opts vs) $$ Hpre
-  iintro %err !> ⟨Hsend, Hr⟩
+  iintro %err !> ⟨Htok, Hsend, Hr⟩
   iapply HΨ
-  iframe Hsend
+  iframe Htok Hsend
   icases Hr with (H | ⟨%He, #Hse, #Hcl, -⟩)
   · ileft; iexact H
   · iright; iframe Hse Hcl; ipureintro; exact He
@@ -202,12 +233,12 @@ plain spec's metadata-indexed form (`GrpcSpec.md`, `isGrpcRpcs_md`, `attemptPre_
 theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdConn.Invoke.spec (GF := GF) (hG := hG) := by
   intro conn addr method Req Rep hreq hrep Spec m Φ ctx cd inp out opts vs
-  iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
+  iintro %Ψ ⟨Htok, #Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
   ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
   iapply (etcdConn_InvokeMd wp_Invoke conn addr method Req Rep hreq hrep (GrpcSpec.md Spec) m Φ ctx om cd
-    inp out opts vs) $$ [Hpre Hsend Hblank] HΨ
+    inp out opts vs) $$ [Htok Hpre Hsend Hblank] HΨ
   iframe #
   iframe
   isplitr

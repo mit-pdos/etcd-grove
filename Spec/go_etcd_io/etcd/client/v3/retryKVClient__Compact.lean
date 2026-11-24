@@ -29,16 +29,15 @@ abbrev retryKVClient.Compact.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbCompactionRequest pbCompactionResponse)
     (Q : CompactRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.CompactionRequest) (opts : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
+  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Compact" Spec ∗
       metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/Compact" addr vs
         (attemptPre conn om Spec ⟨req.Revision', req.Physical'⟩ Q) ∗
       ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
-      ⌜req.unknownFields' = slice.nil⌝ }}
+      ⌜req.unknownFields' = slice.nil⌝) }}
     (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!
         go!"Compact")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (∃ req' : etcdserverpb.CompactionRequest, inp ↦ req') ∗ compactCallOut Q resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((∃ req' : etcdserverpb.CompactionRequest, inp ↦ req') ∗ compactCallOut Q resp err) }}
 
 end spec
 

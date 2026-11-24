@@ -34,20 +34,19 @@ abbrev lessor.Grant.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Q : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (ttl : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec (ttl, W64 0) Q ∗
-      ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+      ctxOk ctx cd ∗ ctxErrClient ctx cd) }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
       (Val #(GoInterface.ok ctx))) (Val #ttl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseGrantRespM) (h : Loc),
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseGrantRespM) (h : Loc),
         structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗
         hdrFull h m.hdr ∗
         structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ID" resp ↦□ m.id ∗
         structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"TTL" resp ↦□ m.ttl ∗ Q m) ∨
       (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
+        go_etcd_io.etcd.cache.v3.statusErrOk err)) }}
 
 end spec
 

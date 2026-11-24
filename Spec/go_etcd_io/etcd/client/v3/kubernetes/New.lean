@@ -32,19 +32,18 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 abbrev New.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
     (P : GoString → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
+  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       clientCfgOk cfg eps ∗
       -- (the auth plan's C1, 2026-10-28) `New`'s premise on the credentials
-      clientAuthPre cfg eps P }}
+      clientAuthPre cfg eps P) }}
     (App (Val (@! go_etcd_io.etcd.client.v3.kubernetes.New)) (Val #cfg))
-  {{ (kc : Loc) (err : GoInterface), RET (PairV #kc #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ cl : Loc,
+  {{ (kc : Loc) (err : GoInterface), RET (PairV #kc #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ cl : Loc,
         kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
             #kc)) ∗
         isNewClient cl eps V ∗ clientTokAt cl eps P) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

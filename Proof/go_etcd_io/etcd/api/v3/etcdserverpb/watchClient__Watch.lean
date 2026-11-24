@@ -68,7 +68,7 @@ theorem watchClient.Watch.wp_proof
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   ihave #Hok3 := streamCallOptsOk_of ([sm] ++ vs) $$ Hok2
-  have hNS := wp_NewStream conn addrs ics anyRes go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequestT
+  have hNS := wp_NewStream conn addrs ics clientRes go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequestT
     v3rpc.pbWatchResponseT v3rpc.pbWatchRequestT_reg v3rpc.pbWatchResponseT_reg Up Spec ctx cd om
   simp only [v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT] at hNS
   iapply (hNS _ copts ([sm] ++ vs) iprop(True))
@@ -96,7 +96,7 @@ theorem watchClient.Watch.wp_proof
     ipersist ClientStream
     ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := v3rpc.pbWatchRequest)
       (Rep := v3rpc.pbWatchResponse) etcdserverpb.WatchRequest etcdserverpb.WatchResponse
-      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ (Up a) Dn cd' anyRes $$ [ClientStream]
+      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ (Up a) Dn cd' clientRes $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _
