@@ -35,7 +35,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.encoding.json.Results
 public import Net.Proof.models_lab.Results
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Registered
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.PayloadDec
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.PayloadEnc
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.LogsJson
 
 @[expose] public section
@@ -103,9 +103,17 @@ theorem vsrDecSpecs : examples.vsrnet.DecSpecs (GF := GF) (hG := hG) :=
     pkg.log.Logs.UnmarshalJSON.wp_proof encoding.json.Unmarshal.wp, vsrRegisteredCodecOk,
     vsrScanOk⟩
 
-/-- The kit's types' `JSONModelUnmarshal` methods meet the kit's contract (round 9). -/
-theorem vsrTypeUnmarshals : examples.vsrnet.TypeUnmarshals (GF := GF) (hG := hG) :=
-  ⟨examples.vsrnet.unmarshalOk_Request vsrDecSpecs, examples.vsrnet.unmarshalOk_Reply vsrDecSpecs,
+/-- The specs the event encoder's proofs take (all proved). -/
+theorem vsrEncSpecs : examples.vsrnet.EncSpecs (GF := GF) (hG := hG) :=
+  ⟨models_lab.jsoncodec.AppendRaw.wp, models_lab.jsoncodec.AppendUint.wp,
+    models_lab.jsoncodec.AppendQuotedUint.wp, models_lab.jsoncodec.AppendString.wp,
+    models_lab.jsoncodec.Valid.wp, models_lab.jsoncodec.Nesting.wp,
+    models_lab.jsoncodec.AppendCompact.wp, pkg.log.Logs.MarshalJSON.wp_proof encoding.json.Marshal.wp⟩
+
+/-- The kit's types' `JSONModel*` methods meet the kit's contract (round 9). -/
+theorem vsrTypeMethods : examples.vsrnet.TypeMethods (GF := GF) (hG := hG) :=
+  ⟨examples.vsrnet.eventMarshalOk vsrEncSpecs vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_Request vsrDecSpecs, examples.vsrnet.unmarshalOk_Reply vsrDecSpecs,
     examples.vsrnet.unmarshalOk_Prepare vsrDecSpecs,
     examples.vsrnet.unmarshalOk_PrepareOK vsrDecSpecs,
     examples.vsrnet.unmarshalOk_Commit vsrDecSpecs,
@@ -118,7 +126,7 @@ theorem vsrTypeUnmarshals : examples.vsrnet.TypeUnmarshals (GF := GF) (hG := hG)
 
 /-- The kit's JSON facts (`vsrnet.codecOk`) from the premises `j` and the proved parts. -/
 theorem vsrCodecOk (j : JsonHyps (GF := GF) (hG := hG)) : examples.vsrnet.codecOk (GF := GF) (hG := hG) :=
-  j.codecOk vsrRegisteredCodecOk vsrScanOk vsrTypeUnmarshals
+  j.codecOk vsrRegisteredCodecOk vsrScanOk vsrTypeMethods
 
 theorem wp_Orch (h : LibHyps (GF := GF) (hG := hG)) : Orch.spec (GF := GF) (hG := hG) :=
   Orch.wp_proof EtcdGrove.remote.wp_Check CfgAddrs.wp_proof

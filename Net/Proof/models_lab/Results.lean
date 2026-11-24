@@ -100,3 +100,5 @@ end Perennial
 #print axioms Perennial.models_lab.jsoncodec.AppendQuotedUint.wp
 #print axioms Perennial.models_lab.jsoncodec.Valid.wp
 #print axioms Perennial.models_lab.jsoncodec.scanOk_scanF
+#print axioms Perennial.models_lab.jsoncodec.Nesting.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendCompact.wp

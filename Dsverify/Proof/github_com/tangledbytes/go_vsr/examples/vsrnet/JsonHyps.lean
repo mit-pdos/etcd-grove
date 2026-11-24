@@ -25,12 +25,11 @@ codec, `vsrnet.registeredCodecOk` (`Proof/vsrnetjson/Registered.lean`) with `jso
     (`Spec/events.lean`): `json.NewDecoder` over a connection and `Decoder.Decode` of a
     `vsrwire.Frame` (over the dispatch `unmarshalVia` at the frame), stated at go-vsr's stream
     (`events.rstream` over `DecoderRep`). The main tree has no `NewDecoder`/`Decode` spec yet.
-  - `types`: `vsrnet.TypeCodecs` (`Spec/json.lean`): the kit's named types' own `JSONModel*`
-    methods (jsongen's same-package mode) meet `vsrnet.jsonCodec` where it gives a deposit (one
-    field: `*Event`'s `JSONModelMarshalPtr`); the rest of the main tree's `typeCodecOk` for the 14 types (`log.Logs`
-    whole) is proved (`Proof/vsrnetjson/Vacuous.lean`); so are the payloads' and `Frame`'s
-    `JSONModelUnmarshal` (round 9, `vsrnet.TypeUnmarshals`, `Proof/vsrnetjson/{FrameDec,PayloadDec}.lean`),
-    which `codecOk` takes from `Link.lean`.
+* Proved, not premises (round 9): the kit's named types' own `JSONModel*` methods (jsongen's
+  same-package mode) meet `vsrnet.jsonCodec` (`vsrnet.TypeMethods`, `Spec/json.lean`:
+  `*Event`'s `JSONModelMarshalPtr`, the payloads' and `Frame`'s `JSONModelUnmarshal`;
+  `Proof/vsrnetjson/{FrameDec,PayloadDec,PayloadEnc}.lean`; the rest of the main tree's
+  `typeCodecOk` in `Proof/vsrnetjson/Vacuous.lean`), which `codecOk` takes from `Link.lean`.
 -/
 module
 
@@ -72,16 +71,15 @@ structure JsonHyps : Prop where
   Encode_conn : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
   newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG)
   Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG)
-  types : examples.vsrnet.TypeCodecs (GF := GF) (hG := hG)
 
 /-- The kit's JSON facts (`vsrnet.codecOk`: what the proofs take), from the premises. -/
 theorem JsonHyps.codecOk (j : JsonHyps (GF := GF) (hG := hG))
     (hc : examples.vsrnet.registeredCodecOk (GF := GF) (hG := hG))
     (hs : ⊢ models_lab.jsoncodec.scanOk (GF := GF) examples.vsrnet.scanF
       models_lab.jsoncodec.scanFn)
-    (hu : examples.vsrnet.TypeUnmarshals (GF := GF) (hG := hG)) :
+    (hu : examples.vsrnet.TypeMethods (GF := GF) (hG := hG)) :
     examples.vsrnet.codecOk (GF := GF) (hG := hG) :=
-  examples.vsrnet.codecOk_of hc hs j.types hu
+  examples.vsrnet.codecOk_of hc hs hu
 
 end hyps
 

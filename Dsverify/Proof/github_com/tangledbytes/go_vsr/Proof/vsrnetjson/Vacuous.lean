@@ -1,5 +1,5 @@
 /-
-The parts of the kit's per-type premise `vsrnet.TypeCodecs` (`Spec/json.lean`; the main tree's
+The parts of the kit's per-type facts `vsrnet.TypeMethods` (`Spec/json.lean`; the main tree's
 `typeCodecOk`) that hold because the kit's contract `vsrnet.jsonCodec` gives no deposit there
 (notes/dsv-vr.md, "Round 7", goal 4): `typeCodecOk J F T` constrains a method only where `J.enc`
 (marshalling) or `J.dec` (unmarshalling) gives a resource for the value, and `encP` has one only
@@ -11,8 +11,8 @@ payload and a `*[]log.Log`. So:
 * `typeCodecOk_logs`: all of `log.Logs` (the kit's code never hands a `Logs` to encoding/json:
   `DoViewChange`'s generated methods call its `MarshalJSON`/`UnmarshalJSON` directly);
 * `typeCodecOk_of_unmarshal`, `typeCodecOk_event`, and `codecOk_of`: the kit's JSON facts
-  (`vsrnet.codecOk`) from the premises `registeredCodecOk` and `TypeCodecs` (which state only the
-  substantive parts) and the scanner's proved `scanOk`.
+  (`vsrnet.codecOk`) from `registeredCodecOk`, `TypeMethods` (the substantive parts) and the
+  scanner's `scanOk`, all proved.
 -/
 module
 
@@ -135,7 +135,7 @@ theorem vsrnet.unmarshal_ptr_none (T : go.GoType) (F : List w8 → Bool → w64 
       have := ((interface_mkOk_inj _ _ _ _).1 h).1
       simpa only [go.GoType.PointerType.injEq] using this))
 
-/-- **`TypeCodecs.logs`, proved**: `log.Logs`' generated methods, at the kit's contract (no
+/-- **`log.Logs`, proved**: `log.Logs`' generated methods, at the kit's contract (no
 deposit anywhere). -/
 theorem vsrnet.typeCodecOk_logs :
     ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF pkg.log.Logs.ty := by
@@ -189,12 +189,12 @@ theorem vsrnet.typeCodecOk_event
     iapply (vsrnet.unmarshal_ptr_none _ _ _ l (by vr_ty_ne) (fun m => by cases m <;> vr_ty_ne)
       (by vr_ty_ne))
 
-/-- **The kit's JSON facts, from the two premises** (`vsrnet.registeredCodecOk`,
-`vsrnet.TypeCodecs`), the proved `JSONModelUnmarshal` methods (`hu`) and the
-vacuous parts above. -/
+/-- **The kit's JSON facts**, from the registered codec's (`vsrnet.registeredCodecOk`, `scanOk`)
+and the kit's types' methods' (`vsrnet.TypeMethods`) facts, all proved, and the vacuous parts
+above. -/
 theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
     (hs : ⊢ models_lab.jsoncodec.scanOk (GF := GF) vsrnet.scanF models_lab.jsoncodec.scanFn)
-    (ht : vsrnet.TypeCodecs (GF := GF)) (hu : vsrnet.TypeUnmarshals (GF := GF)) :
+    (hu : vsrnet.TypeMethods (GF := GF)) :
     vsrnet.codecOk (GF := GF) := by
   unfold vsrnet.codecOk encoding.json.kitCodecOk
   unfold vsrnet.registeredCodecOk at hc
@@ -211,7 +211,7 @@ theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
   iintro %T %hT
   simp only [encoding.json.kitTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at hT
   rcases hT with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · iapply (vsrnet.typeCodecOk_event ht.event)
+  · iapply (vsrnet.typeCodecOk_event hu.event)
   · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.request)
   · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.reply)
   · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.prepare)

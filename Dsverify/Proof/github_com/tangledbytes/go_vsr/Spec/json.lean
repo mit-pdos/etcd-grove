@@ -91,31 +91,17 @@ def vsrnet.registeredCodecOk : Prop :=
      iprop(models_lab.jsoncodec.marshalOk (GF := GF) (encoding.json.kitFn go!"jsonMarshal") ∗
        models_lab.jsoncodec.unmarshalOk (GF := GF) vsrnet.scanF (encoding.json.kitFn go!"jsonUnmarshal")))
 
-/-- **Premise** (#24 J3): the substantive part of the main tree's `typeCodecOk vsrnet.jsonCodec
-scanF T` for the kit's types (`encoding.json.kitTypes`) that is not proved yet:
-`(*events.Event).JSONModelMarshalPtr`. The `JSONModelUnmarshal` methods of the payload types and
-of `vsrwire.Frame` are proved (round 9: `vsrnet.TypeUnmarshals` below,
-`Proof/vsrnetjson/{FrameDec,PayloadDec}.lean`); every other part of `typeCodecOk` holds because
-`jsonCodec` gives no deposit there (`Proof/vsrnetjson/Vacuous.lean`: `vsrnet.codecOk_of`).
-
-True of the code (jsongen's same-package methods): `marshalAt` constrains a method only at `J`'s
-deposits. `event`: on a `*events.Event` of a message with plain strings (`encP`),
-`JSONModelMarshalPtr` encodes, never failing, `VsrWire.encEvent m`: `jenc_Event` writes
-`{"@type":N,"data":…}`, the payload by `jencAny`, a `Logs` by its `MarshalJSON`, i.e.
-`json.Marshal([]Log)` through the registered codec, which `encP`'s `codecSet` registers and
-`registeredCodecOk` covers; this is real encoding/json's output (jsongen's same-package tests,
-`json_model_gen_test.go`, run by `jsonmodel_forks.py`, compare the methods with it), which
-`encEvent` is. -/
-structure vsrnet.TypeCodecs : Prop where
+/-- The substantive part of the main tree's `typeCodecOk vsrnet.jsonCodec scanF T` for the kit's
+types (`encoding.json.kitTypes`), one field per method/type pair where the kit's contract gives a
+deposit: `(*events.Event).JSONModelMarshalPtr`, and `JSONModelUnmarshal` of the 11 payload types and
+of `vsrwire.Frame`. **Not a premise** (round 9; rounds 7–8 had it as `JsonHyps.types`): proved in
+`Proof/vsrnetjson/{FrameDec,PayloadDec,PayloadEnc}.lean`, built in `examples/vsrnet/Link.lean`
+(`vsrTypeMethods`). Every other part of `typeCodecOk` holds because `jsonCodec` gives no deposit
+there (`Proof/vsrnetjson/Vacuous.lean`: `vsrnet.codecOk_of`). -/
+structure vsrnet.TypeMethods : Prop where
   event : ∀ l : Loc, ⊢ encoding.json.marshalAt (vsrnet.jsonCodec (GF := GF))
     #(methods (go.GoType.PointerType pkg.events.Event.ty) go!"JSONModelMarshalPtr" #l)
     (interface.mkOk (go.GoType.PointerType pkg.events.Event.ty) #l)
-
-/-- The kit's types' `JSONModelUnmarshal` methods meet the kit's contract where it gives a deposit
-(the 11 payload types and `vsrwire.Frame`). **Not a premise**: proved (round 9,
-`Proof/vsrnetjson/{FrameDec,PayloadDec}.lean`), built in `examples/vsrnet/Link.lean`
-(`vsrTypeUnmarshals`). -/
-structure vsrnet.TypeUnmarshals : Prop where
   request : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
     #(methods (go.GoType.PointerType pkg.events.Request.ty) go!"JSONModelUnmarshal" #l)
     (interface.mkOk (go.GoType.PointerType pkg.events.Request.ty) #l)

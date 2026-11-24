@@ -2,7 +2,7 @@
 The linked results of `models.lab/jsoncodec`'s encoders (#24 J2) and (dsv-vr, round 8/9) its
 scanner `SkipSpace`, `Scan` (`JsonScan.scanF`; `scanOk_scanF`), decoding helpers `ValueEnd`, `At`,
 `Next`, `Empty`, `Str`, `Member`, `Digits`, `Uint`, `QuotedUint`, `String` (at valid input),
-`AppendQuotedUint` and `Valid` (on one complete value), apart from `Results.lean` so that
+`AppendQuotedUint`, `Valid` (on one complete value), `Nesting` and `AppendCompact` (round 9), apart from `Results.lean` so that
 a main-tree linking module (the server's `Link`, whose membership JSON proofs take them) imports
 them without the part's package initializers (`Init`, Net's `PkgInitExt`).
 -/
@@ -21,6 +21,8 @@ public import Net.Proof.models_lab.jsoncodec.SkipSpace
 public import Net.Proof.models_lab.jsoncodec.Scan
 public import Net.Proof.models_lab.jsoncodec.ScanOk
 public import Net.Proof.models_lab.jsoncodec.Valid
+public import Net.Proof.models_lab.jsoncodec.Nesting
+public import Net.Proof.models_lab.jsoncodec.AppendCompact
 public import Net.Proof.models_lab.jsoncodec.AppendQuotedUint
 public import Net.Proof.models_lab.jsoncodec.ValueEnd
 public import Net.Proof.models_lab.jsoncodec.At
@@ -143,6 +145,15 @@ theorem jsoncodec.Valid.wp [jsoncodec.Assumptions] :
 theorem jsoncodec.scanOk_scanF [jsoncodec.Assumptions] :
     ⊢ jsoncodec.scanOk (GF := GF) JsonScan.scanF jsoncodec.scanFn :=
   jsoncodec.scanOk_of jsoncodec.Scan.wp
+
+theorem jsoncodec.Nesting.wp [jsoncodec.Assumptions] :
+    jsoncodec.Nesting.spec (GF := GF) (hG := hG) :=
+  jsoncodec.Nesting.wp_proof
+
+theorem jsoncodec.AppendCompact.wp [jsoncodec.Assumptions] :
+    jsoncodec.AppendCompact.spec (GF := GF) (hG := hG) :=
+  jsoncodec.AppendCompact.wp_proof jsoncodec.Valid.wp jsoncodec.IsSpace.wp_proof
+    jsoncodec.htmlByte.wp
 
 end results
 
