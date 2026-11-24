@@ -69,6 +69,7 @@ theorem NewServer.wp_proofC (hRAt : NewServer.specRAt (GF := GF) (hG := hG)) :
       iframe %Hdisk
       iframe %Hmmap
       iframe #
+    inext
     iintro %srv %err Hq
     iapply HΦ
     iframe HcT Hq

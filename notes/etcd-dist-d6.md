@@ -274,3 +274,32 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
   as the graceful boot does; a generation that must survive its own crash needs that token kept (T2/T7:
   arm in the crash law and keep the token in the generation's invariant, i.e. the image carries
   `nodeVacantA`, or `specC`'s post returns `nodeCrashTok`).
+
+### T4 round 2 (2026-11-24)
+
+* `specC`'s post returns raft's crash token (`∃ x, nodeCrashTok γ.cl id x`, beside the old post;
+  lead's decision): the proved case arms with `nodeVacant_arm`. `MemberGen` names `specC` only in
+  prose; T7 takes the token into the generation's invariant.
+* `NewServer.wp_proofRAt` (`NewServerR.lean`) is linked (`etcdserver_NewServer+RAt`, server `Link.lean`
+  regenerated); `wp_proofC` gets its `NewServer+C` entry once its `sorry` is gone.
+* **The backend-ahead case, scoped (not started).** The snapshot regression is a non-issue for clients
+  (`nonissues/etcd-crash-backend-ahead-snapshot-regress.md`, branch `etcd-safe-snapreg`), but the proof
+  must model it, and the apply side's ghost state is monotone where Go's backend is not:
+  `applyAll.specSnapM` takes the snapshot strictly above the ghost applied index `g` (`= |a0|` in the
+  window) and installs the snapshot's image as the KV state at `g`; the mvcc API's history
+  (`mvccImage`, `kv.Restore`'s spec) and the ghost applied log `A` (`srvAppliedOwn`, lower bounds given
+  to readers) only grow. Admitting a snapshot at `k ∈ (ai, g]` means a second ghost track for the
+  backend (its index `ci ≤ g` and data `model(A.take ci)`, regressing at such a snapshot, re-applied
+  up to `g` before the ghost moves) through `applyAll`, `ApplyAllSnap`, `applyEntries`/`applyEntryNormal`
+  (the skip `index ≤ ci` now against the backend's track), `kv.Restore`/`lessor.Recover` at a lower
+  revision, and `rnRestartOk`/`raftNode.start` (`|a0| ≤ commit0` dropped), `replaySeed_*` (`|A₀|` may
+  pass `σ.last`), `NodeStartSpecR`/`rnBootPre`, `rnStopImage` (then the graceful stop image drops
+  `i ≤ σ.commit` too). Estimate: several thousand lines over the server's largest proofs.
+* **Recommended instead (a fork change, proof-driven, rule 14):** in `applySnapshot`, when the
+  snapshot's index is at or below the backend's consistent index (only inside a restart window, after a
+  crash), do not swap the backend: advance `appliedi`/`appliedt`/`confState` to the snapshot's and
+  keep the backend, which already holds every entry up to `ci ≥ k` (the replay skips them). Go then
+  never regresses the backend, `specSnapM`'s branch at `k ≤ g` is a skip (as `applyEntryNormal`'s
+  `index ≤ ci`), and the monotone ghost state stays. What remains after it is the raft-side
+  generalization (`rnRestartOk`, `replaySeed`, `NodeStartSpecR`, `rnStopImage`), smaller. Needs the
+  lead's decision (a fork change, with a `nonissues/` cross-reference).
