@@ -426,7 +426,55 @@ theorem deployment.WellFormed.wp_proof
             · rw [decide_eq_true hnc]
               (try simp only [Bool.not_true])
               wp_auto
-              skip
+              simp only [h0, hcN, _root_.and_self, ↓reduceIte]
+              wp_apply (wp_load_slice_index v.Nodes' (sint.Z (W64 (j : Int))) ss DFrac.discard sj h0) $$ [] as -
+              · iframe #; ipureintro; rw [hsj]; exact hsj'
+              have Hok0 := Hok
+              ihave HK : (∃ (k : Nat) (av : GoString) (mpA' : GMap GoString Bool),
+                  "i" ∷ i_ptr ↦ W64 k ∗ "a" ∷ a_ptr ↦ av ∗ "Ham" ∷ am ↦$ mpA' ∗
+                  "%Hk" ∷ ⌜k ≤ ns.length ∧ addrsOk mpA' (d.members.flatMap (fun m => [m.peer, m.client]) ++
+                    (d.nodes.take j).flatten ++ ns.take k)⌝ : IProp GF) $$ [i a Ham]
+              · iexists 0, _, _
+                iframe
+                ipureintro
+                exact ⟨by omega, by simpa using Hok0⟩
+              wp_for HK
+              obtain ⟨Hk1', Hok⟩ := Hk
+              wp_if_destruct
+              · obtain ⟨hk, h0k, hsk, hwk⟩ := idx_facts _ _ _ Hsjl.1 Hsjl.2 Hif Hk1'
+                simp only [h0k, Hif, _root_.and_self, ↓reduceIte]
+                obtain ⟨x, hx⟩ : ∃ x, ns[k]? = some x := ⟨_, List.getElem?_eq_getElem hk⟩
+                wp_apply (wp_load_slice_index sj (sint.Z (W64 (k : Int))) ns DFrac.discard x h0k) $$ [] as -
+                · iframe #; ipureintro; rw [hsk]; exact hx
+                addr_call
+                wp_for_post
+                iframe
+                iexists (k + 1), _, _
+                rw [hwk]
+                iframe
+                ipureintro
+                refine ⟨by omega, ?_⟩
+                rw [List.take_add_one, hx]
+                simpa [List.append_assoc] using Hok
+              · have hkl := idx_end _ _ _ Hsjl.1 Hsjl.2 Hif Hk1'
+                subst hkl
+                rw [List.take_length] at Hok
+                wp_for_post
+                iframe
+                iexists (j + 1), _, _, _
+                rw [hw]
+                iframe
+                ipureintro
+                refine ⟨by omega, ?_, ?_⟩
+                · rw [List.take_add_one, hns]
+                  simpa [List.append_assoc] using Hok
+                · intro j' w' ns' hj' hw' hns'
+                  by_cases hjj : j' = j
+                  · subst hjj
+                    rw [hww] at hw'; cases hw'
+                    rw [hns] at hns'; cases hns'
+                    exact ⟨by rw [← hnc, hsjlen], hsjlt⟩
+                  · exact Hn3 j' w' ns' (by omega) hw' hns'
             · rw [decide_eq_false hnc]
               (try simp only [Bool.not_false])
               wp_auto
