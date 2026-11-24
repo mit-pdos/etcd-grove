@@ -2,7 +2,8 @@
 # Run inside a run's check view (sandbox.sh start-shell RUN bash /opt/lab/check-env.sh):
 # what the agent can and cannot reach. Each line PASS or FAIL; exit 1 on a FAIL.
 # Uses /home/agent/tmp/check (removed at the end).
-#   check-env.sh              the generic checks (run.sh runs them in the throwaway run test1)
+#   check-env.sh              the generic checks: isolation, the proxy, the tools (run.sh runs them in
+#                             the throwaway run test1)
 #   check-env.sh --challenge  a challenge run's own view (sandbox.sh new --challenge; run.sh runs it
 #                             in the run, after the generic checks): isolation, the leak checks of the
 #                             exported tree against the lab's copy of the export's MANIFEST.txt (mounted
@@ -101,6 +102,11 @@ if [ -n "$CHALLENGE" ]; then
     for p in old/dsverify notes etc/premcheck-test etc/kitlibs-check-test .claude; do
         [ -e "$W/$p" ] && bad "present: $p" || ok "absent: $p"
     done
+    # the experiment scripts' section of etc/dsv/README.md (the export strips it: MANIFEST.txt's
+    # `left etc/dsv/README.md#...` line)
+    if grep -q '^## Running an experiment on a challenge$' "$W/etc/dsv/README.md" 2>/dev/null; then
+        bad "etc/dsv/README.md has the section on the experiment scripts"
+    else ok "etc/dsv/README.md has no section on the experiment scripts"; fi
     hits=$(find "$W" -path "$W/.lake" -prune -o -name 'dsv-*.md' -path '*/notes/*' -print | head -3)
     [ -z "$hits" ] && ok "no notes/dsv-*.md" || bad "notes found: $hits"
     want=$(sed -n 's/^claude-md: sha256 //p' "$W/CHALLENGE.txt"); have=$(sha256sum "$W/CLAUDE.md" | cut -d' ' -f1)
@@ -153,45 +159,15 @@ if [ -n "$CHALLENGE" ]; then
     exit $fail
 fi
 
-# dependencies, offline
-step "cloning perennial from the mirror"
-git clone -q https://github.com/mit-pdos/perennial perennial 2>&1 && ok "git clone perennial (mirror)" || bad "git clone perennial"
-git -C perennial checkout -q lean 2>/dev/null
+# the tools, offline. The rest of what a challenge run needs offline (OFFLINE.txt) is the run's own
+# and is checked in its view by --challenge: the Go toolchains and modules (cache/gomod-challenge, from
+# `sandbox.sh prefetch --challenge`; the kit's module builds), the built Lake packages (Perennial and its
+# dependencies at the manifest's pins, copied in by `sandbox.sh new --challenge`; `lake build
+# --no-build`), goose (built from Perennial's pin by the checks CLAUDE.md lists)
+step "the tools"
+v=$(lean --version 2>&1) && ok "lean runs offline: $v" || bad "lean: $v"
+v=$(go version 2>&1) && ok "go runs offline: $v" || bad "go: $v"
+v=$(claude --version 2>&1) && ok "claude runs: $v" || bad "claude: $v"
 git clone -q https://github.com/etcd-io/etcd etcd 2>/dev/null && bad "cloned a repository with no mirror" || ok "unmirrored clone fails"
-step "building goose (a minute or so)"
-(cd perennial && go build -o "$T/goose" ./goose/cmd/goose) && ok "goose builds offline" || bad "goose build"
-mkdir m && cd m && cat >go.mod <<'EOF'
-module example.com/m
-
-go 1.22
-EOF
-cat >main.go <<'EOF'
-package main
-
-import "github.com/anishathalye/porcupine"
-
-func main() { _ = porcupine.CheckOperations }
-EOF
-step "building against porcupine"
-(go mod tidy >/dev/null 2>&1 && go build ./...) && ok "porcupine module offline" || bad "porcupine module"
-cd "$T"
-mkdir -p lp && cd lp && cat >lakefile.toml <<'EOF'
-name = "lp"
-defaultTargets = ["Lp"]
-
-[[require]]
-name = "perennial"
-git = "https://github.com/mit-pdos/perennial"
-rev = "lean"
-
-[[lean_lib]]
-name = "Lp"
-EOF
-cp ../perennial/lean-toolchain .
-echo 'def hello : Nat := 1' >Lp.lean
-step "lake update (resolving perennial and its dependencies)"
-lake update >lake.log 2>&1 && ok "lake resolves perennial, iris, batteries, Qq offline" || { bad "lake update"; tail -5 lake.log; }
-step "lake build (can take several minutes)"
-lake build Lp >>lake.log 2>&1 && ok "lean builds" || { bad "lake build"; tail -5 lake.log; }
 cd /; rm -rf "$T"
 exit $fail

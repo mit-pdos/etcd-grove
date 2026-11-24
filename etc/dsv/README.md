@@ -19,7 +19,7 @@ name is optional; a kit without `GOOSE` has no goose project.
 | `MAIN` | gen-init.py | main-tree packages the kit's closure adds to `NET_MAIN` (always the main tree's inventory and instances, with those of their imports `Net/` lacks; not raft's `Init` if listed in `RAFT_INIT`) |
 | `MAIN_GEN` | gen-init.py | the `MAIN` packages whose `Init.lean` is generated into the part (default: all of `MAIN`) |
 | `OWN` | gen-init.py | the part's own translations of packages the main tree translates otherwise: the main tree's `SPECIAL` does not apply to them |
-| `KITGEN` | etc/dsv/kitgen.py | the kit's generated plumbing (below, "Adding a kit"; notes/dsv-kitgen.md) |
+| `KITGEN` | etc/dsv/kitgen.py | the kit's generated plumbing (below, "Adding a kit"; notes/dsv-kitgen.md), and its `prompt` (`system`, `check`: the system and what its driver checks, for the challenge's opening prompt, `challenge-prompt.txt`) |
 | `special(g)` | gen-init.py | returns `{package: configuration}` for the kit's packages, added to `SPECIAL` (`g`: gen-init.py's globals, `g.newvars_cfg`, `g.FIN_PRE`, ...); a package configured twice is an error |
 
 Each kit is generated in a context of its own (`gen-init.py`'s `dsv_kit_raw`): one kit's
@@ -85,7 +85,7 @@ The generator is untrusted: a reader reads the committed statement, not the scri
 ### Exporting a proving challenge
 
 `etc/dsv/kitgen.py --export-challenge DIR <kit>` writes the kit as a challenge for an automatic-proving
-run (the experiment scripts, below, run agents in containers that cannot see etcd-grove; the interface is
+run (etcd-grove's experiment scripts run agents in containers that cannot see etcd-grove; the interface is
 notes/dsv-skill.md's, copied in notes/dsv-kitgen.md). From a clean work tree (`--allow-dirty` notes
 a dirty one), `DIR` gets this repository's tracked files but:
 - the kit's own Lean (`Dsverify/{Proof,Spec}/<proof_roots>/`) but what KITGEN's explicit
@@ -98,8 +98,9 @@ a dirty one), `DIR` gets this repository's tracked files but:
 - other kits' Lean but what this kit's landed proof uses and what gen-init's generated files import;
 - `notes/`, `CLAUDE.md`, `.claude/` but the dsverify skill, `old/dsverify/`, dsverify kits' issues,
   other kits' `etc/tcb-collections/dsv-*.txt`, `etc/kitlibs-check-test/` (its `rabia*` KitLibs are
-  rabia's reference solution), the experiment scripts (below: kitgen's `EXPERIMENT` and
-  `etc/dsv/statement/`), the landed statement's premise classes nothing else shipped imports,
+  rabia's reference solution), the experiment scripts (kitgen's `EXPERIMENT`, `etc/dsv/statement/`)
+  and the prompt's template `challenge-prompt.txt`, this README's section on them (stripped from
+  the exported copy), the landed statement's premise classes nothing else shipped imports,
   the kit's `NonVacuityLinked.lean`, and every module importing a left-out one;
 - **the library premise is the agent's** (notes/dsv-kitlibs-check.md): the statement
   `Spec/.../TopLevelRobustness.lean` is the KitLibs variant (`etc/kitlibs-check.py --variant`'s
@@ -117,7 +118,8 @@ a dirty one), `DIR` gets this repository's tracked files but:
 
 Beside it, `DIR.lab/` (outside the agent's tree): `comparator/{challenge.conf,Challenge.lean}` in the
 lab's comparator conventions (`etc/dsv/statement/comparator-check.sh`; plus `tree=` and `statement=`),
-`MANIFEST.txt` (every module kept or left out, and why), `OFFLINE.txt` (the toolchains, the built
+`MANIFEST.txt` (every module kept or left out, and why), `prompt.txt` (the run's opening prompt:
+`challenge-prompt.txt` filled from KITGEN's `prompt`), `OFFLINE.txt` (the toolchains, the built
 Perennial and the Go modules a run needs without network) and `kitlibs-check/` (the lab's own copies of
 `kitlibs-check.py`, `KitLibsCheck.lean`, the conf and the fixed list, to run against the solution).
 
@@ -131,17 +133,21 @@ instances of axiomatized types (`sorry -- axiomatized type`, counted).
 
 The experiment scripts run a fresh Claude Code agent on an exported challenge, in a container that
 sees nothing of the host but the challenge and its prefetched dependencies, and check its result
-independently. They are the lab's side of a run: the export leaves them out, and nothing of them is
-mounted in the agent's view but `inside.sh`, the proxy and the two hooks.
+independently. They are the lab's side of a run: the export leaves them out (and this section of the
+README), and nothing of them is mounted in the agent's view but `inside.sh`, the proxy and the two
+hooks. `sandbox.sh new` copies the scripts a container mounts into the run (`runs/RUN/etc/dsv/`;
+`meta.txt` names the commit), so a change to the checkout (another branch) does not reach a live run;
+`verify` and the generic check in `test1` mount the checked run's copy.
 
 | file | what |
 |---|---|
 | `sandbox.sh` | everything below (`sandbox.sh --help`: its usage): mirrors, module caches, tools, the built Lake packages, runs, their containers and settings, `verify` |
-| `run.sh` | `run.sh RUN PROMPT`: the token (asked for once), the container checks (`check-env.sh` in the throwaway run `test1`, then `check-env.sh --challenge` in the run's own view), then the agent; `run.sh RUN --continue` resumes |
-| `experiment.sh` | unattended runs: `launch RUN PROMPT` (`run.sh` in a detached tmux session named RUN, with `loadlog.sh` and `snapshot.sh`), `wait RUN [HOURS]`, `resume RUN MESSAGE`, `finish RUN` (stop, tag the newest branch `final`, `sandbox.sh verify RUN final`) |
+| `challenge-prompt.txt` | the template of a run's opening prompt; `kitgen.py --export-challenge` fills it (KITGEN's `prompt`) into `DIR.lab/prompt.txt` |
+| `run.sh` | `run.sh RUN [PROMPT]` (default: the challenge's `prompt.txt`): the token (asked for once), the container checks (`check-env.sh` in the throwaway run `test1`, then `check-env.sh --challenge` in the run's own view), then the agent; `run.sh RUN --continue` resumes |
+| `experiment.sh` | unattended runs: `launch RUN [PROMPT]` (`run.sh` in a detached tmux session named RUN, with `loadlog.sh` and `snapshot.sh`), `wait RUN [HOURS]`, `resume RUN MESSAGE`, `finish RUN` (stop, tag the newest branch `final`, `sandbox.sh verify RUN final`) |
 | `proxy.py`, `inside.sh` | the allowlisting HTTPS proxy (`serve`, on the host; only `api.anthropic.com` and `platform.claude.com`, every request logged) and its bridge inside; `inside.sh` is the container's pid 2 (the bridge, then claude or a shell) |
 | `ask-hook.sh`, `model-hook.sh`, `managed-settings.json` | the managed settings of every run (read-only at `/etc/claude-code/managed-settings.json`): every `AskUserQuestion` is answered "take the option you would recommend and record it as your decision"; every subagent runs on the run's `subagents` model (default opus); workflows disabled |
-| `check-env.sh` | the environment and leak checks, in check views only: isolation, the proxy, offline Go and Lean; with `--challenge`, the exported tree against `DIR.lab/MANIFEST.txt`, the skill's tree hash, `OFFLINE.txt`, the built packages and the checks `CLAUDE.md` lists |
+| `check-env.sh` | the environment and leak checks, in check views only: isolation, the proxy, the tools; with `--challenge`, the exported tree against `DIR.lab/MANIFEST.txt` (and no section of this README on the scripts), the skill's tree hash, `OFFLINE.txt`'s Go, the built packages and the checks `CLAUDE.md` lists |
 | `verify.sh`, `statement/comparator-check.sh`, `statement/goal-check.sh` | the independent check of a result (below) |
 | `statement/comparator-tools.sh` | builds the comparator, lean4export, landrun and nanoda into `cache/tools/comparator` |
 | `loadlog.sh`, `snapshot.sh` | while a run's container runs, once a minute: the host's load (`load.log`), and the work tree as a commit of `snapshots.git`, outside the agent's view |
@@ -170,11 +176,11 @@ mounted in the agent's view but `inside.sh`, the proxy and the two hooks.
 ### The experiment directory
 
 `DSV_LAB` (required) names a directory outside the repository that holds all state: `mirrors/` (bare
-git mirrors; inside a run `https://github.com/...` resolves to them), `cache/` (`gomod` and
-`gomod-challenge`, Go module download caches served to a run as a file proxy; `tools`, the frozen
+git mirrors; inside a run `https://github.com/...` resolves to them), `cache/` (`gomod-challenge`,
+the Go module download cache served to a run as a file proxy; `tools`, the frozen
 claude binary, elan and Lean toolchain, and the comparator's tools; `lean/lakepkgs-<key>`, the
 challenge's Lake packages, built), `prompts/` (opening prompts, optional) and `runs/`. A run
-`runs/RUN/` holds the container's root, `home/` (the agent's only writable tree: `home/work` is the
+`runs/RUN/` holds the container's root, its copy of the experiment scripts it mounts (`etc/dsv/`), `home/` (the agent's only writable tree: `home/work` is the
 challenge's repository, `home/.claude/projects` the transcripts), `goal/` (the export's `DIR.lab`,
 `CHALLENGE.txt` and the challenge commit: never in the agent's view), `meta.txt` (the challenge, the
 `DIR.lab` files' sha256s, the packages' key, the claude, Lean and Go versions, every mirror's head,
@@ -195,26 +201,32 @@ resumes the run.
 ```
 export DSV_LAB=/path/to/experiments IMAGE=/path/to/image   # outside the repository
 S=etc/dsv/sandbox.sh
-# once (with network): the tools, the comparator's tools, the generic check's dependencies
+# once (with network): the tools and the comparator's tools
 $S tools                                     # CLAUDE_BIN, ELAN_HOME: where claude and elan are
 etc/dsv/statement/comparator-tools.sh
-for r in mit-pdos/perennial leanprover-community/iris-lean leanprover-community/batteries \
-    leanprover-community/quote4; do $S mirror https://github.com/$r; done
-git clone -q "$DSV_LAB/mirrors/github.com/mit-pdos/perennial.git" /tmp/perennial-lean
-$S prefetch $(find /tmp/perennial-lean -name go.mod -printf '%h\n') github.com/anishathalye/porcupine@v1.3.1
-$S new test1                                 # the throwaway run of the generic check and of verify
 # per challenge
-etc/dsv/kitgen.py --export-challenge DIR KIT # DIR and DIR.lab; --no-skill: the control arm
-$S mirror ...                                # every package of DIR/lake-manifest.json, at its pin (Perennial's
-                                             #   pin, OFFLINE.txt: tag it, refs/tags/lab-pin-<rev>, in the mirror)
-$S prefetch --challenge DIR                  # OFFLINE.txt's Go: modules, Perennial's, toolchains
-$S lakepkgs DIR                              # offline: the Lake packages, built
-$S new RUN --challenge DIR                    # as root (sudo)
+etc/dsv/kitgen.py --export-challenge DIR KIT # DIR and DIR.lab (prompt.txt among it); --no-skill: the control arm
+$S mirror https://github.com/OWNER/REPO      # with network: every package of DIR/lake-manifest.json (Perennial,
+                                             #   iris-lean, batteries, quote4), holding its pin; tag Perennial's
+                                             #   (refs/tags/lab-pin-<rev>) so that no later fetch loses it
+$S prefetch --challenge DIR                  # with network: OFFLINE.txt's Go: modules, Perennial's, toolchains
+$S lakepkgs DIR                              # offline: the Lake packages, built from the mirrors
+$S new test1                                 # once, after the first prefetch: the throwaway run of the
+                                             #   generic check and of verify
+$S new RUN --challenge DIR                   # as root (sudo)
 # the run
-etc/dsv/experiment.sh launch RUN PROMPT      # PROMPT: a file, or NAME for $DSV_LAB/prompts/NAME.txt
+etc/dsv/experiment.sh launch RUN [PROMPT]    # default: the challenge's prompt.txt; PROMPT: a file, or NAME
+                                             #   for $DSV_LAB/prompts/NAME.txt
 etc/dsv/experiment.sh wait RUN               # DONE, TIMEOUT, EXITED or DIALOG (sudo tmux attach -t RUN)
 etc/dsv/experiment.sh finish RUN             # tag final, verify: runs/RUN/verify-final.log
 ```
+
+What a challenge needs offline is `DIR.lab/OFFLINE.txt`'s list, and each line has its step: the Lean
+toolchain (`sandbox.sh tools`, checked against `lean-toolchain` by `new`), Perennial at its pin with
+its packages (the mirrors at the manifest's pins, then `lakepkgs`), the Go toolchains and the Go
+modules (`prefetch --challenge`, which also fetches what goose's build from Perennial's pin needs).
+Nothing else is mirrored or prefetched: `test1`'s generic check covers isolation, the proxy and the
+tools, and `check-env.sh --challenge` the rest, in the run's own view.
 
 `new --challenge` refuses unless `DIR.lab` is beside `DIR`, the toolchain is the runs' (`LEAN_TOOLCHAIN`,
 default this repository's `lean-toolchain`), the built packages exist and every Go need of
@@ -223,9 +235,10 @@ default this repository's `lean-toolchain`), the built packages exist and every 
 `CHALLENGE.txt`), copies the built packages into `.lake/packages`, and makes the work tree a fresh
 repository with one commit, the challenge as exported (tag `challenge`). A run half made is removed.
 
-The opening prompt says where the challenge is (`/home/agent/work`), to read its `CLAUDE.md` and the
-skill, what the goal is and which file is the agent's, that the machine is offline, that nobody answers
-questions (each gets the automatic reply), what the final check does, and to commit as it goes. Settings
+The opening prompt (`challenge-prompt.txt`, filled by the export) says where the challenge is
+(`/home/agent/work`), to read its `CLAUDE.md` and the skill, what the goal is and which file is the
+agent's, that the machine is offline, that nobody answers questions (each gets the automatic reply),
+what the final check does, and to commit as it goes. Settings
 of a run (`sandbox.sh set RUN KEY VALUE`, applied at every start): `cpus`, `memory` (a hard cap, no swap),
 `model` (default opus), `subagents`, `fable`, `context`. To run two arms side by side, give each its
 own CPUs and memory.

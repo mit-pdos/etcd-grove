@@ -970,6 +970,9 @@ IMP = re.compile(r'^\s*(?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?(\S+)', re.
 COMMENT = re.compile(r'/-.*?-/|--[^\n]*', re.S)
 SKILL = '.claude/skills/dsverify'
 TEMPLATE = 'etc/dsv/challenge-CLAUDE.md'
+PROMPT_TEMPLATE = 'etc/dsv/challenge-prompt.txt'
+# the section of etc/dsv/README.md about the experiment scripts: stripped from the exported README
+EXPERIMENT_SECTION = '## Running an experiment on a challenge'
 
 
 def _tiers():
@@ -1114,7 +1117,7 @@ def excluded(f, kit, allow, others, roots, other_roots):
         return 'the findings tracker (it names people, sessions and forks\' branches)'
     if f in COORDINATION or f.startswith('etc/gh-inbox-test/'):
         return 'coordination (sessions, people)'
-    if f in EXPERIMENT or f.startswith('etc/dsv/statement/'):
+    if f in EXPERIMENT or f == PROMPT_TEMPLATE or f.startswith('etc/dsv/statement/'):
         return 'the experiment scripts (the lab\'s side of a run)'
     mt = re.match(r'etc/tcb-collections/dsv-(\w+)\.txt$', f)
     if mt and mt.group(1) != kit:
@@ -1173,6 +1176,39 @@ def fill_template(kit, kg, head, fixed, nv, checks, code_changes):
     return t
 
 
+def lean_root(kg):
+    """The kit's Go module path as its Lean trees name it (`github.com/xiang90/paxos` ->
+    `github_com/xiang90/paxos`), as etc/dsv/statement/comparator-check.sh computes it."""
+    gomod = re.search(r'(?m)^module (\S+)', open(os.path.join(ROOT, kg['go_module_dir'], 'go.mod')).read()).group(1)
+    return '/'.join(re.sub(r'[.-]', '_', x) for x in gomod.split('/'))
+
+
+def challenge_prompt(kit, kg):
+    """The opening prompt of a run on the kit's challenge: etc/dsv/challenge-prompt.txt filled from
+    KITGEN (its `prompt` dict: `system`, `check`). Needs no build."""
+    pr = kg.get('prompt') or {}
+    for k in ('system', 'check'):
+        if not pr.get(k):
+            sys.exit(f"kitgen: etc/dsv/{kit}.py: KITGEN's prompt has no {k!r} (etc/dsv/challenge-prompt.txt)")
+    t = open(os.path.join(ROOT, PROMPT_TEMPLATE)).read()
+    t = re.sub(r'<!-- Template:.*?-->\n', '', t, count=1, flags=re.S)
+    pp = pkg_path(kg)
+    vals = {
+        'KIT': kit, 'SYSTEM': pr['system'].strip(), 'CHECK': pr['check'].strip(),
+        'GO_DIR': kg['go_module_dir'], 'KIT_FILE': f'etc/dsv/{kit}.py',
+        'THEOREM': kg['statement']['theorem'],
+        'SPEC_FILE': f'Dsverify/Spec/{pp}/TopLevelRobustness.lean',
+        'PROOF_FILE': f'Dsverify/Proof/{pp}/TopLevelRobustness.lean',
+        'LEAN_ROOT': lean_root(kg),
+    }
+    return re.sub(r'\{\{(\w+)\}\}', lambda mt: vals[mt.group(1)], t)
+
+
+def strip_experiment_section(t):
+    """etc/dsv/README.md without its section on the experiment scripts (to the next `## `)."""
+    return re.sub(r'(?ms)^' + re.escape(EXPERIMENT_SECTION) + r'\n.*?(?=^## |\Z)', '', t).rstrip('\n') + '\n'
+
+
 def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='allowed', allow_dirty=False):
     import hashlib
     import shutil
@@ -1188,6 +1224,8 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
     os.makedirs(dest, exist_ok=True)
     lab = dest.rstrip('/') + '.lab'
     os.makedirs(lab, exist_ok=True)
+    # the run's opening prompt (the lab's: never in the agent's tree)
+    open(os.path.join(lab, 'prompt.txt'), 'w').write(challenge_prompt(kit, kg))
     left = {}
     files = tracked()
     for f in files:
@@ -1226,6 +1264,8 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
             continue
         os.makedirs(os.path.dirname(d), exist_ok=True)
         shutil.copy2(s, d)
+        if f == 'etc/dsv/README.md':
+            open(d, 'w').write(strip_experiment_section(open(s).read()))
     # the skill from another revision
     skill_tree = 'none'
     if skill:
@@ -1329,6 +1369,8 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
             fh.write(f'other {m} {why} {tiers[m]}\n')
         for f, why in sorted(left.items()):
             fh.write(f'left {f} ({why})\n')
+        fh.write(f'left etc/dsv/README.md#{EXPERIMENT_SECTION[3:]} (the section on the experiment scripts: '
+                 f'stripped from the exported README)\n')
     return allow, others, left, omitted
 
 
@@ -1428,6 +1470,13 @@ def leak_check(kit, kg, dest):
     for p in ('notes', 'old/dsverify', 'etc/kitlibs-check-test'):
         if os.path.exists(os.path.join(dest, p)):
             bad.append(f'leak: {p}/')
+    # the experiment scripts, the prompt's template, the README's section on them
+    for f in EXPERIMENT + (PROMPT_TEMPLATE, 'etc/dsv/statement'):
+        if os.path.exists(os.path.join(dest, f)):
+            bad.append(f'leak: {f} (the experiment scripts)')
+    rd = os.path.join(dest, 'etc', 'dsv', 'README.md')
+    if os.path.exists(rd) and re.search(r'(?m)^' + re.escape(EXPERIMENT_SECTION) + r'$', open(rd).read()):
+        bad.append('leak: etc/dsv/README.md has the section on the experiment scripts')
     cl = os.path.join(dest, '.claude')
     if os.path.isdir(cl):
         for dp, _, fs in os.walk(cl):

@@ -6,9 +6,10 @@
 #
 # The experiment directory DSV_LAB (required; outside the repository) holds the state:
 #   mirrors/    read-only bare git mirrors (https://github.com/X/Y -> mirrors/github.com/X/Y.git)
-#   cache/      Go module caches (gomod, gomod-challenge), tools (claude, elan, the Lean toolchain,
-#               the comparator's), the built Lake packages (lean/lakepkgs-<key>)
-#   runs/RUN/   one run: its container root, home (the agent's only writable tree), logs, meta.txt
+#   cache/      the Go module cache (gomod-challenge), tools (claude, elan, the Lean toolchain, the
+#               comparator's), the built Lake packages (lean/lakepkgs-<key>)
+#   runs/RUN/   one run: its container root, home (the agent's only writable tree), its copy of the
+#               experiment scripts it mounts (etc/dsv/), logs, meta.txt
 #   token       the `claude setup-token` token (DSV_TOKEN names another file)
 # IMAGE (required for new, start, start-shell): the root of the image whose /usr the containers
 # mount read-only and whose /etc (without ssh, sudo or shadow files) each run copies.
@@ -16,8 +17,6 @@
 # With network (preparing a challenge):
 #   sandbox.sh mirror URL [BRANCH]   bare clone of a git repo (one branch if given) into mirrors/,
 #                                    or fetch into it if it exists
-#   sandbox.sh prefetch DIR|MOD@VER... download into cache/gomod the Go modules of DIR's go.mod, or
-#                                    module MOD at VER (with its dependencies): for the generic check
 #   sandbox.sh prefetch --challenge DIR  OFFLINE.txt's Go needs of the exported challenge DIR (every
 #                                    module, Perennial's, every Go toolchain) into cache/gomod-challenge
 #   sandbox.sh tools                 copy the claude binary, elan and the Lean toolchain into cache/tools
@@ -66,13 +65,13 @@ set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)            # etc/dsv: the experiment scripts
 GROVE=$(cd "$HERE/../.." && pwd)               # the etcd-grove checkout
-usage() { sed -n '2,64p' "$0" | sed -E 's/^# ?//'; exit 1; }
+usage() { sed -n '2,63p' "$0" | sed -E 's/^# ?//'; exit 1; }
 [ -n "${DSV_LAB:-}" ] || { [ -z "${1:-}" ] || [ "${1:-}" = --help ] || [ "${1:-}" = -h ] && usage
     echo "sandbox.sh: set DSV_LAB to the experiment directory (mirrors, caches, runs; outside the repository)" >&2; exit 1; }
 LAB=$(cd "$DSV_LAB" && pwd)
 # the commands that need root re-run themselves under sudo, keeping the settings
 case "${1:-}" in new|start|start-shell|verify)
-    [ "$(id -u)" = 0 ] || exec sudo --preserve-env=DSV_LAB,DSV_TOKEN,IMAGE,LEAN_TOOLCHAIN,VERIFY_RUN "$0" "$@" ;;
+    [ "$(id -u)" = 0 ] || exec sudo --preserve-env=DSV_LAB,DSV_TOKEN,IMAGE,LEAN_TOOLCHAIN,VERIFY_RUN,SCRIPTS_OF "$0" "$@" ;;
 esac
 TOKEN=${DSV_TOKEN:-$LAB/token}
 # the Lean toolchain of the runs, as cache/tools names it (default: etcd-grove's lean-toolchain)
@@ -86,17 +85,24 @@ need_image() {
     [ -d "$IMAGE/usr/bin" ] || die "no $IMAGE/usr (IMAGE)"
 }
 
-# the container's view: "SRC DST ro|rw" per line, SRC on the host's paths ($USR for /usr)
+# the experiment scripts a container mounts, copied into each run by `new` (runs/RUN/etc/dsv/): a
+# live run is not changed by a change to the checkout (another branch checked out)
+SNAPSHOT="proxy.py inside.sh ask-hook.sh model-hook.sh managed-settings.json check-env.sh verify.sh
+          leak-names.txt statement/goal-check.sh statement/comparator-check.sh"
+# the container's view: "SRC DST ro|rw" per line, SRC on the host's paths ($USR for /usr). The scripts
+# are RUN's copy, or SCRIPTS_OF's (another run's: sandbox.sh verify and run.sh's generic check, in the
+# throwaway run, use the checked run's)
 mounts() {
-    local R=$1
+    local R=$1 E=${SCRIPTS_OF:-$1}/etc/dsv
+    [ -f "$E/inside.sh" ] || die "no $E (a run made before its scripts were copied in: make it again)"
     # the check scripts name what they look for: never in the agent's view
     if [ "${2:-}" = check ]; then
-        echo "$HERE/check-env.sh /opt/lab/check-env.sh ro"
-        echo "$HERE/verify.sh /opt/lab/verify.sh ro"
-        echo "$HERE/statement/goal-check.sh /opt/lab/goal-check.sh ro"
-        echo "$HERE/statement/comparator-check.sh /opt/lab/comparator-check.sh ro"
+        echo "$E/check-env.sh /opt/lab/check-env.sh ro"
+        echo "$E/verify.sh /opt/lab/verify.sh ro"
+        echo "$E/statement/goal-check.sh /opt/lab/goal-check.sh ro"
+        echo "$E/statement/comparator-check.sh /opt/lab/comparator-check.sh ro"
         # the names check-env.sh's leak check looks for (the `person` lines)
-        echo "$HERE/leak-names.txt /opt/lab/leak-names.txt ro"
+        echo "$E/leak-names.txt /opt/lab/leak-names.txt ro"
     fi
     # a challenge run's lab files (runs/RUN/goal: the export's DIR.lab, CHALLENGE.txt, the challenge
     # commit), for check-env.sh --challenge: check views only, never the agent's
@@ -105,23 +111,18 @@ mounts() {
     if [ "${2:-}" = check ] && [ -d "$LAB/cache/tools/comparator/bin" ]; then
         echo "$LAB/cache/tools/comparator/bin /opt/lab/comparator/bin ro"
     fi
-    # the Go module proxy: cache/gomod, or the cache runs/RUN/gomod names (a challenge run's)
-    local GOPROXY_DIR=$LAB/cache/gomod/cache/download g
-    # (GOMOD_OF: another run's choice, for sandbox.sh verify of a challenge run in the throwaway run)
-    local gm=${GOMOD_OF:-$R}/gomod
-    if [ -f "$gm" ]; then
-        g=$(cat "$gm"); [[ $g =~ ^gomod-[a-z0-9-]+$ ]] || die "$gm: not a cache name: $g"
-        GOPROXY_DIR=$LAB/cache/$g/cache/download; [ -d "$GOPROXY_DIR" ] || die "no $GOPROXY_DIR"
-    fi
+    # the Go module proxy: cache/gomod-challenge (sandbox.sh prefetch --challenge)
+    local GOPROXY_DIR=$CHGOMOD/cache/download
+    [ -d "$GOPROXY_DIR" ] || die "no $GOPROXY_DIR (sandbox.sh prefetch --challenge DIR)"
     cat <<EOF
 $USR /usr ro
 $R/home /home/agent rw
 $R/sock /run/lab ro
-$HERE/proxy.py /opt/lab/proxy.py ro
-$HERE/inside.sh /opt/lab/inside.sh ro
-$HERE/ask-hook.sh /opt/lab/ask-hook.sh ro
-$HERE/model-hook.sh /opt/lab/model-hook.sh ro
-$HERE/managed-settings.json /etc/claude-code/managed-settings.json ro
+$E/proxy.py /opt/lab/proxy.py ro
+$E/inside.sh /opt/lab/inside.sh ro
+$E/ask-hook.sh /opt/lab/ask-hook.sh ro
+$E/model-hook.sh /opt/lab/model-hook.sh ro
+$E/managed-settings.json /etc/claude-code/managed-settings.json ro
 $LAB/mirrors /opt/mirrors ro
 $GOPROXY_DIR /opt/goproxy ro
 $LAB/cache/tools/claude /opt/claude/claude ro
@@ -339,18 +340,7 @@ prefetch)
         challenge_go "$T" "$L" fetch || die "prefetch incomplete"
         echo "prefetched $D's Go needs into $CHGOMOD"; exit 0
     fi
-    [ $# -gt 0 ] || die "usage: sandbox.sh prefetch DIR|MOD@VER... | --challenge DIR"
-    mkdir -p "$LAB/cache/gomod"
-    for d in "$@"; do
-        if [[ "$d" == *@* ]]; then
-            t=$(mktemp -d); (cd "$t" && printf 'module prefetch\n' >go.mod &&
-                GOMODCACHE="$LAB/cache/gomod" GOTOOLCHAIN=local go get "$d" &&
-                GOMODCACHE="$LAB/cache/gomod" GOTOOLCHAIN=local go mod download all); rm -rf "$t"
-            echo "prefetched $d"; continue
-        fi
-        (cd "$d" && GOMODCACHE="$LAB/cache/gomod" GOFLAGS=-mod=mod GOTOOLCHAIN=local go mod download all)
-        echo "prefetched $d"
-    done
+    die "usage: sandbox.sh prefetch --challenge DIR"
     ;;
 tools)
     # the claude binary and the Lean toolchain the runs use, frozen: refresh them only between
@@ -451,6 +441,7 @@ new)
     R="$LAB/runs/$run"; [ -e "$R" ] && die "$R exists"
     [ -x "$LAB/cache/tools/claude" ] || die "no cache/tools (sandbox.sh tools)"
     [ -d "$LAB/cache/tools/$LEAN_TOOLCHAIN" ] || die "no cache/tools/$LEAN_TOOLCHAIN (sandbox.sh tools)"
+    [ -d "$CHGOMOD/cache/download" ] || die "no cache/gomod-challenge (sandbox.sh prefetch --challenge DIR)"
     # a challenge exported from etcd-grove
     CH=; CHL=
     if [ -n "${2:-}" ]; then
@@ -459,11 +450,12 @@ new)
         [ "$(challenge_tc "$CH")" = "$LEAN_TOOLCHAIN" ] || die "the challenge wants $(cat "$CH/lean-toolchain"), the runs' toolchain is $LEAN_TOOLCHAIN"
         LP="$LAB/cache/lean/lakepkgs-$(lakepkgs_key "$CH")"
         [ -f "$LP/KEY" ] || die "no built Lake packages for this challenge ($LP): sandbox.sh lakepkgs $CH"
-        [ -d "$CHGOMOD/cache/download" ] || die "no cache/gomod-challenge: sandbox.sh prefetch --challenge $CH"
     fi
     # as root, git refuses repos owned by someone else; the files are handed to $LAB's owner at the end
     git() { command git -c safe.directory='*' "$@"; }
     mkdir -p "$R"/home/{work,tmp,.claude,.elan/bin,.elan/toolchains/$LEAN_TOOLCHAIN,go} "$R/sock"
+    # the experiment scripts the container mounts, as of now (meta.txt: the commit they come from)
+    for f in $SNAPSHOT; do install -D -m "$([ -x "$HERE/$f" ] && echo 555 || echo 444)" "$HERE/$f" "$R/etc/dsv/$f"; done
     # the container's root: an empty /usr to mount on, and a copy of /etc without secrets
     mkdir -p "$R/root"/{usr,home/agent,opt,run,tmp,proc,sys,dev,var/tmp}
     for l in bin lib lib64 sbin; do ln -s "usr/$l" "$R/root/$l"; done
@@ -523,7 +515,6 @@ EOF
         challenge_go "$W" "$CHL" check || die "the challenge's Go needs are not all in cache/gomod-challenge (sandbox.sh prefetch --challenge $CH)"
         (cd "$CH" && find . -path ./.lake -prune -o \( -name go.mod -o -name go.sum \) -print0) |
             (cd "$CH" && xargs -0 -r cp --parents -t "$W")
-        echo "gomod-challenge" >"$R/gomod"
         # the skill: the challenge's .claude/skills/dsverify becomes the run's skill (in the config dir);
         # nothing else of .claude may be in an export
         chskill=$(sed -n 's/^skill: \([0-9a-f]*\).*/\1/p' "$W/CHALLENGE.txt")
@@ -561,7 +552,7 @@ EOF
     {
         echo "run: $run"
         echo "created: $(date -Is)"
-        echo "scripts: etcd-grove $(git -C "$GROVE" rev-parse HEAD 2>/dev/null || echo '?') ($HERE)"
+        echo "scripts: etcd-grove $(git -C "$GROVE" rev-parse HEAD 2>/dev/null || echo '?')$([ -n "$(git -C "$GROVE" status --porcelain -- etc/dsv 2>/dev/null)" ] && echo ' with uncommitted changes in etc/dsv') ($HERE, copied into runs/$run/etc/dsv)"
         if [ -n "$CH" ]; then
             echo "challenge: $CH (commit $chcommit in the work tree, tag challenge)"
             sed 's/^/  /' "$R/goal/CHALLENGE.txt"
@@ -598,7 +589,8 @@ start|start-shell)
         rmdir "$X" && echo "removed stale $X"
     fi
     rm -f "$R/sock/proxy.sock"
-    python3 "$HERE/proxy.py" serve "$R/sock/proxy.sock" "$R/proxy.log" &
+    [ -f "$R/etc/dsv/proxy.py" ] || die "no $R/etc/dsv (a run made before its scripts were copied in: make it again)"
+    python3 "$R/etc/dsv/proxy.py" serve "$R/sock/proxy.sock" "$R/proxy.log" &
     PROXY=$!
     trap 'kill $PROXY 2>/dev/null' EXIT
     for _ in $(seq 50); do [ -S "$R/sock/proxy.sock" ] && break; sleep 0.1; done
@@ -676,7 +668,7 @@ verify)
     mkdir -p "$D/.lake"; cp -a "$LP/packages" "$D/.lake/packages"; chmod -R u+w "$D/.lake/packages"
     cp -r "$R/goal" "$D/.goal"
     log="$R/verify-${tag//\//_}.log"; rc=0
-    GOMOD_OF="$R" WORK_BIND="$D" "$0" start-shell "$V" bash /opt/lab/verify.sh /home/agent/work 2>&1 |
+    SCRIPTS_OF="$R" WORK_BIND="$D" "$0" start-shell "$V" bash /opt/lab/verify.sh /home/agent/work 2>&1 |
         grep --line-buffered -v '^go: downloading' | tee "$log" || rc=$?
     echo "log: $log (checkout removed)"
     exit $rc

@@ -1,7 +1,8 @@
 #!/bin/bash
 # Running experiments unattended (as root; needs DSV_LAB and IMAGE, as sandbox.sh does).
 #
-#   experiment.sh launch RUN PROMPT   run.sh RUN PROMPT in a detached tmux session named RUN; returns once
+#   experiment.sh launch RUN [PROMPT] run.sh RUN [PROMPT] in a detached tmux session named RUN (PROMPT:
+#                                     run.sh's; default the challenge's prompt.txt); returns once
 #                                     the agent has started (or the check failed); starts loadlog.sh
 #                                     and snapshot.sh
 #   experiment.sh wait RUN [HOURS]    returns when RUN's agent is done: Claude Code is not working (no
@@ -106,12 +107,12 @@ token_newer() { [ -f "$TOKEN.swapped-at" ] && [ "$TOKEN" -nt "$S" ]; }
 
 case $cmd in
 launch)
-    prompt=${3:?usage: experiment.sh launch RUN PROMPT}
+    prompt=${3:-}
     tmux has-session -t "$run" 2>/dev/null && { log "a session $run exists already"; exit 1; }
     [ -d "$S" ] && { log "its container is running already"; exit 1; }
     rm -f "$R/stage3"
-    tmux new-session -d -s "$run" -x 220 -y 50 "$TENV $(printf %q "$HERE/run.sh") $run $(printf %q "$prompt"); echo; echo \"run.sh exited \$?\"; exec bash"
-    log "launched (prompt $prompt)"
+    tmux new-session -d -s "$run" -x 220 -y 50 "$TENV $(printf %q "$HERE/run.sh") $run ${prompt:+$(printf %q "$prompt")}; echo; echo \"run.sh exited \$?\"; exec bash"
+    log "launched (prompt ${prompt:-runs/$run/goal/lab/prompt.txt})"
     # (a challenge run's checks, in its own view too, take longer: up to an hour)
     for _ in $(seq 720); do
         out=$(screen)
@@ -201,5 +202,5 @@ finish)
     [ -z "$(g status --porcelain --untracked-files=no)" ] || log "note: uncommitted changes in $P (not verified)"
     "$HERE/sandbox.sh" verify "$run" final </dev/null >/dev/null 2>&1   # stdin not a terminal: nspawn kills the container otherwise (ssh without -t)
     log "verify: $(grep -E '^== (NOT )?verified' "$R/verify-final.log" | tail -1)" ;;
-*) sed -n '2,28p' "$0"; exit 1 ;;
+*) sed -n '2,30p' "$0"; exit 1 ;;
 esac

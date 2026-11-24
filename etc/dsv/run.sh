@@ -2,13 +2,15 @@
 # Start a dsverify run, as root (in tmux): the token (asked for once), the container checks, then the
 # agent with the run's opening prompt. Needs DSV_LAB and IMAGE (sandbox.sh).
 #
-#   run.sh RUN PROMPT     PROMPT: a file holding the opening prompt, or NAME for $DSV_LAB/prompts/NAME.txt
+#   run.sh RUN [PROMPT]   PROMPT: a file holding the opening prompt, or NAME for $DSV_LAB/prompts/NAME.txt;
+#                         without it, the challenge's prompt.txt (kitgen --export-challenge writes it
+#                         into DIR.lab; sandbox.sh new --challenge copies it to runs/RUN/goal/lab/)
 #   run.sh RUN --continue resume RUN's last session (no check, no prompt)
 set -euo pipefail
 t0=$SECONDS
 stage() { echo; echo "== [$1/3] $2  ($((SECONDS - t0))s elapsed)"; }
 HERE=$(cd "$(dirname "$0")" && pwd)
-run=${1:?usage: run.sh RUN PROMPT|--continue}; what=${2:?usage: run.sh RUN PROMPT|--continue}
+run=${1:?usage: run.sh RUN [PROMPT|--continue]}; what=${2:-}
 [ "$(id -u)" = 0 ] || exec sudo --preserve-env=DSV_LAB,DSV_TOKEN,IMAGE,LEAN_TOOLCHAIN "$0" "$@"
 LAB=$(cd "${DSV_LAB:?set DSV_LAB to the experiment directory}" && pwd)
 TOKEN=${DSV_TOKEN:-$LAB/token}
@@ -37,12 +39,15 @@ fi
 if [ "$what" = --continue ]; then
     exec "$HERE/sandbox.sh" start "$run" --continue
 fi
-if [ -f "$what" ]; then prompt=$what; else prompt="$LAB/prompts/$what.txt"; fi
+if [ -z "$what" ]; then prompt="$LAB/runs/$run/goal/lab/prompt.txt"
+elif [ -f "$what" ]; then prompt=$what; else prompt="$LAB/prompts/$what.txt"; fi
 [ -r "$prompt" ] || { echo "no prompt $prompt"; exit 1; }
+echo "opening prompt: $prompt" 
 
 # 2. the container check, proxy and all (in a throwaway run, so the real one stays untouched)
 stage 2 "container check: isolation, proxy, offline Go and Lean builds (a few minutes)"
-"$HERE/sandbox.sh" start-shell test1 bash /opt/lab/check-env.sh 2>&1 | grep --line-buffered -v '^go: downloading' | tee "$LAB/runs/$run/check.log"
+# (with this run's copy of the scripts)
+SCRIPTS_OF="$LAB/runs/$run" "$HERE/sandbox.sh" start-shell test1 bash /opt/lab/check-env.sh 2>&1 | grep --line-buffered -v '^go: downloading' | tee "$LAB/runs/$run/check.log"
 grep -q '^FAIL' "$LAB/runs/$run/check.log" && { echo "container check failed: not starting $run"; exit 1; }
 grep -q 'proxy reaches api.anthropic.com' "$LAB/runs/$run/check.log" || { echo "proxy not checked: not starting $run"; exit 1; }
 grep -q 'proxy reaches platform.claude.com' "$LAB/runs/$run/check.log" || { echo "proxy not checked: not starting $run"; exit 1; }
