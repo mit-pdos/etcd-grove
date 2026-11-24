@@ -19,7 +19,8 @@ kvnet's node (`node.go`), its vocabulary for the server's specs (`Node.serve`, `
   only these, so it is generic; `startNode` takes them, `StartNode`'s proof gives them from
   `start.spec`/`stopIncarnation.spec` at the cluster `isNodeS` names.
 * `isNodeS F rep stp nd γ N id` (persistent): the node `nd`: its configuration (with the address
-  map), stats, transport constructor (`ptCtor`), the step law, the restart's laws, and its mutex.
+  map), stats, transport constructor (`ptCtor`, at its per-address premise `AP`), the step law, the
+  restart's laws, and its mutex.
 -/
 module
 
@@ -75,19 +76,20 @@ instance stopLaw_persistent stp cfg M R : Persistent (stopLaw (GF := GF) stp cfg
   unfold stopLaw; infer_instance
 
 /-- `start` turns `R` into a new incarnation and its stopper (see the file header). -/
-def startLaw (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF)
+def startLaw (F : KvFacts GF) (AP : w64 → GoString → IProp GF) (rep : Loc → w64 → IProp GF)
+    (stp : NodeStopper GF)
     (cfg : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeConfig) (M : GMap w64 GoString) (R : IProp GF) (γ : Cluster) (N : Namespace) :
     IProp GF :=
   iprop(□ ∀ (sts : Loc) (f : GoFunc),
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗ cfg.Addrs' ↦$□ M ∗ R ∗ isStats sts ∗
-        ptCtor F γ N cfg.ID' f }}
+        ptCtor F γ N cfg.ID' AP f }}
       (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.start)) (Val #cfg)) (Val #sts)) (Val #f))
     {{ (r : Loc) (tv : GoInterface), RET (PairV #r #tv); ∃ n : NodeH,
         r.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n.loc ∗
         □ rep r cfg.ID' ∗ isNode n γ N cfg.ID' ∗ stp cfg M r tv }})
 
-instance startLaw_persistent F rep stp cfg M R γ N :
-    Persistent (startLaw (GF := GF) F rep stp cfg M R γ N) := by
+instance startLaw_persistent F AP rep stp cfg M R γ N :
+    Persistent (startLaw (GF := GF) F AP rep stp cfg M R γ N) := by
   unfold startLaw; infer_instance
 
 /-- The node `nd` (see the file header). -/
@@ -98,9 +100,10 @@ def isNodeS (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper
     nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"cfg"] ↦□ cfg ∗ ⌜cfg.ID' = id⌝ ∗
     cfg.Addrs' ↦$□ M ∗
     nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"stats"] ↦□ sp ∗ isStats sp ∗
-    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"newT"] ↦□ f ∗ ptCtor F γ N id f ∗
+    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"newT"] ↦□ f ∗
     stepLaw F γ N id ∗ ⌜Cluster.trace γ = none⌝ ∗
-    (∃ R : IProp GF, stopLaw stp cfg M R ∗ startLaw F rep stp cfg M R γ N) ∗
+    (∃ (AP : w64 → GoString → IProp GF) (R : IProp GF), ptCtor F γ N id AP f ∗
+      stopLaw stp cfg M R ∗ startLaw F AP rep stp cfg M R γ N) ∗
     sync.isMutex (nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"mu"])
       (nodeLockInv rep stp nd cfg M γ N id))
 

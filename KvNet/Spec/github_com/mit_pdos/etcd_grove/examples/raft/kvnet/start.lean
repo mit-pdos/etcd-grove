@@ -27,10 +27,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assum
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
-abbrev start.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF)
+abbrev start.spec (F : KvFacts GF) (AP : w64 → GoString → IProp GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF)
     (S : w64 → GoString → github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Options → GMap w64 GoString → IProp GF) (γ : Cluster) (N : Namespace) : Prop :=
   ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeConfig) (M : GMap w64 GoString),
-  ⊢ startLaw F rep stp cfg M (S cfg.ID' cfg.Dir' cfg.Opts' M) γ N
+  ⊢ startLaw F AP rep stp cfg M (S cfg.ID' cfg.Dir' cfg.Opts' M) γ N
 
 end spec
 

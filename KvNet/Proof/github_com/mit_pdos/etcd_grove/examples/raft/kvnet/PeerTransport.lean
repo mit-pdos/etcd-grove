@@ -14,8 +14,9 @@ in raft's storage contract (`isStorageP`).
 * `ptRunning F tv := ptSend F tv ∗ ptStop tv`: a started transport.
 * `ptFresh F γ N id tv` (exclusive): a transport not started yet. `start(n)` on replica `id`'s node
   `n` (`isNode n γ N id`) makes it running.
-* `ptCtor F γ N id f` (persistent): `f` makes fresh transports of replica `id`, from an address map
-  whose other replicas' addresses carry their protocols, and the stats.
+* `ptCtor F γ N id AP f` (persistent): `f` makes fresh transports of replica `id`, from an address map
+  whose other replicas' addresses `a` (of replica `pid`) carry `AP pid a`, and the stats. `AP` is the
+  transport's: TCP's is `tcpAP F` (the address's protocols, and it is valid); UDP's its own.
 -/
 module
 
@@ -70,17 +71,24 @@ def ptFresh (F : KvFacts GF) (γ : Cluster) (N : Namespace) (id : w64) (tv : GoI
       WP (App (Val #(methods i.ty go!"start" i.v))
         (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n.loc))) {{ Φ }})
 
+/-- TCP's per-address premise: the address's protocols, and it is valid (see the file header). -/
+def tcpAP (F : KvFacts GF) (pid : w64) (a : GoString) : IProp GF :=
+  iprop(addrProto a (kvP F pid) (kvQ F pid) ∗ ⌜addrOk a = true⌝)
+
+instance tcpAP_persistent F pid a : Persistent (tcpAP (GF := GF) F pid a) := by
+  unfold tcpAP; infer_instance
+
 /-- `f` makes fresh transports of replica `id` (see the file header). -/
-def ptCtor (F : KvFacts GF) (γ : Cluster) (N : Namespace) (id : w64) (f : GoFunc) : IProp GF :=
+def ptCtor (F : KvFacts GF) (γ : Cluster) (N : Namespace) (id : w64) (AP : w64 → GoString → IProp GF)
+    (f : GoFunc) : IProp GF :=
   iprop(□ ∀ (am : Loc) (M : GMap w64 GoString) (sts : Loc),
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
         am ↦$□ M ∗ isStats sts ∗
-        □ (∀ (pid : w64) (a : GoString), ⌜M !! pid = some a ∧ pid ≠ id⌝ -∗
-            addrProto a (kvP F pid) (kvQ F pid) ∗ ⌜addrOk a = true⌝) }}
+        □ (∀ (pid : w64) (a : GoString), ⌜M !! pid = some a ∧ pid ≠ id⌝ -∗ AP pid a) }}
       (App (App (App (Val #f) (Val #id)) (Val #am)) (Val #sts))
     {{ (tv : GoInterface), RET #tv; ptFresh F γ N id tv }})
 
-instance ptCtor_persistent F γ N id f : Persistent (ptCtor (GF := GF) F γ N id f) := by
+instance ptCtor_persistent F γ N id AP f : Persistent (ptCtor (GF := GF) F γ N id AP f) := by
   unfold ptCtor; infer_instance
 
 end defs

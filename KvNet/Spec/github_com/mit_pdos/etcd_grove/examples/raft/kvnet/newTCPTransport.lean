@@ -1,7 +1,7 @@
 /-
 `newTCPTransport(id, addrs, stats)` (`transport.go`, 2026-11-24 G5): TCP's transport (`newTransport`)
 as a `peerTransport`: a fresh one of the peer-transport contract (`ptFresh`, `PeerTransport.lean`).
-With it, the function value meets `ptCtor`.
+With it, the function value meets `ptCtor` at `tcpAP F` (its premise is `tcpAP`, unfolded).
 -/
 module
 
