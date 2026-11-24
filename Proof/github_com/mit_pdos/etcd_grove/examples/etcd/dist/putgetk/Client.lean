@@ -47,8 +47,7 @@ theorem Client.wp_proof
   ihave ⟨%Hpe, Hcs⟩ := Hsh $$ %Hne
   wp_auto
   wp_apply (wp_Client ep γE mid Hpe Hat) $$ [Hcs] as %r -
-  · iframe; iframe #
-  wp_auto
+  · iframe
   iapply HΦ; itrivial
 
 end proof
