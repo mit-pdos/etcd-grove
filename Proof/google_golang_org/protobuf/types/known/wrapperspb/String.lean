@@ -30,7 +30,7 @@ theorem google_golang_org.protobuf.types.known.wrapperspb.String.wp_proof :
   wp_start
   wp_auto
   iapply HΦ
-  unfold EtcdGrove.stringValueSend
+  simp only [EtcdGrove.stringValueSend, EtcdGrove.stringValueSendB]
   iexists _
   iframe
   ipureintro

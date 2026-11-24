@@ -6,7 +6,7 @@ Under the server's mutex: the request's value `v` is `mkVal id w` with `id`'s to
 at `v` would be of a value whose id's token the lock holds (`runsOk`), the same id (`mkVal_inj`),
 two tokens of one id: so the count is `0`, the new count `1`, and the token goes into the lock
 (`runsOk_insert`). The reply `v + "#" + FormatUint(1, 10)` is `v#1` (`fmtUint10_lt10`), below
-`stringValueMax` (`v` is below `2 ^ 32`).
+`stringValueMax` (`v` is below `stringValueReqMax`).
 -/
 module
 
@@ -75,9 +75,12 @@ theorem server.Echo.wp_proof (wp_FormatUint : strconv.FormatUint.spec (GF := GF)
     ihave %Hne := ghostMapElem_ne γid id id (DFrac.own 1) () () $$ Htok Htok'
     exact absurd rfl Hne
   try wp_auto
+  have Hz' : (m !! v).getD (zero_val w64) = W64 0 := by
+    have h0 : (zero_val w64) = W64 0 := by decide
+    rw [h0]; exact Hz
   wp_apply wp_map_lookup1 $$ [Hmap] as Hmap
   · iexact Hmap
-  rw [Hz]
+  first | rw [Hz'] | rw [Hz]
   try wp_auto
   wp_apply wp_mapInsert $$ [Hmap] as Hmap
   · iexact Hmap
@@ -106,10 +109,10 @@ theorem server.Echo.wp_proof (wp_FormatUint : strconv.FormatUint.spec (GF := GF)
   wp_apply wp_String (v ++ go!"#1") (by
       simp only [List.length_append, stringValueMax]
       have h2 : (go!"#1" : GoString).length = 2 := rfl
-      have h32 : (2 : Nat) ^ 32 = 4294967296 := by decide
-      have h41 : (2 : Nat) ^ 41 = 2199023255552 := by decide
-      rw [h2, h41]
-      rw [h32] at Hlen
+      have h29 : stringValueReqMax = 536870912 := by decide
+      have h30 : (2 : Nat) ^ 30 = 1073741824 := by decide
+      rw [h2, h30]
+      rw [h29] at Hlen
       omega) as %l Hl
   try wp_auto
   iapply HΦ
