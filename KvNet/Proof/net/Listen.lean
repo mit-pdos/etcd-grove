@@ -48,6 +48,7 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
       iapply wp_net_AnyString
       iintro %nm
       wp_apply wp_kindErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
+      simp only [kindErr]
       (try wp_auto)
       wp_apply wp_anyTCPAddr as %x #Hx
       (try wp_auto)
