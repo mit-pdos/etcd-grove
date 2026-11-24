@@ -365,6 +365,13 @@ func (c *Cluster) start(r *replica) error {
 		return err
 	}
 	fmt.Fprintf(lf, "=== incarnation %d\n", count)
+	// the configuration is one RunNode runs (it returns at once otherwise, which the harness would
+	// see as a replica exiting on its own): the tests' non-vacuity check of RunNode's validation
+	o := c.cfg.Options
+	if !kvnet.ValidCluster(kvnet.SplitAddrs(c.addrs), o.Voters, o.MaxSizePerMsg, o.MaxCommittedSizePerReady,
+		uint64(o.MaxInflightMsgs)) || uint64(len(r.dir)) >= kvnet.MaxDirLen {
+		return fmt.Errorf("replica %d's configuration is not one RunNode runs (kvnet.ValidCluster, MaxDirLen)", r.id)
+	}
 	args := append(append([]string(nil), c.cmd.Args...), NodeArgs(r.id, c.addrs, r.dir, c.cfg.Options)...)
 	p, err := r.m.Start(c.cmd.Path, args, c.cmd.Env, lf, func(err error) {
 		c.fail(fmt.Errorf("replica %d (incarnation %d) exited on its own (%v); its log %s:\n%s",

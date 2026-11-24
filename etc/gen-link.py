@@ -74,6 +74,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --antcheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
+       etc/gen-link.py --wal-tester > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Link.lean
        etc/gen-link.py --kvnet > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean

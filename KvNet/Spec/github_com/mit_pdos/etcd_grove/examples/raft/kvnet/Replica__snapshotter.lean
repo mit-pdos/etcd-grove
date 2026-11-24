@@ -33,7 +33,7 @@ attribute [local instance] kdStorageModel
 abbrev Replica.snapshotter.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq : Loc)
     (ρ : KdRepNames) (known : w64),
-  {{ isReplicaR γ vs dir id r n st sts sq ρ ∗
+  {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ handoffProducer ρ.sd false ∗
       memSnapLb ρ.γs (uint.nat known) ∗ monoNatLbOwn ρ.ph.is (uint.nat known) ∗ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"snapshotter")) (Val #known))
   {{ RET #(); True }}
