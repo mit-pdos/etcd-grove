@@ -54,10 +54,10 @@ axiom dataDirsApart
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
-axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
+axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -90,6 +90,7 @@ axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
+axiom hsEncC_ok
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
@@ -129,7 +130,6 @@ axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
 axiom metadata.FromIncomingContext.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
@@ -140,6 +140,7 @@ axiom pbCompactionResponseT_reg
 axiom pbDeleteRangeRequestT_reg
 axiom pbDeleteRangeResponseT_reg
 axiom pbEntryC_reg
+axiom pbHsC_reg
 axiom pbLeaseGrantRequestT_reg
 axiom pbLeaseGrantResponseT_reg
 axiom pbLeaseLeasesRequestT_reg
@@ -151,6 +152,8 @@ axiom pbPutRequestT_reg
 axiom pbPutResponseT_reg
 axiom pbRangeRequestT_reg
 axiom pbRangeResponseT_reg
+axiom pbRecordC_reg
+axiom pbSnapC_reg
 axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
@@ -174,6 +177,7 @@ axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
+axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
@@ -201,7 +205,9 @@ axiom semver.NewVersion.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
+axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
@@ -223,7 +229,4 @@ axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verifyEnvOff
 axiom withVersion.wp_proof
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

@@ -8,7 +8,9 @@ the caller's fraction and a retry fails (`wp_osMkdirS_some`).
 module
 
 public import Spec.os.Mkdir
+public import Proof.os.PkgInit
 public import Proof.os.ErrorOk
+public import Proof.os.ErrnoPathErr
 public import Proof.os.SharedExt
 
 @[expose] public section
@@ -32,6 +34,9 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
   intro d b perm R j dq h q r Q hb hn hq
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osLogLb_0 with #Hlb
   ihave HSt : iprop((osAUnc (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q ∗
       osNames j (.only [b]) (DFrac.own q) h) ∨
@@ -71,13 +76,15 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
         wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he)]
         wp_auto
-        unfold os.model.pathError
-        wp_apply wp_errno
+        wp_apply os.wp_pathError_errno as %err #Herr
+        ihave %hne := os.errnoPathErr_ne err _ $$ Herr
         iapply HΦ
+        isplitr
+        · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Hsys Herr
         iframe
         dsimp only [mkOut, mkNew]
         iframe
-        ipureintro; intro hc; cases hc
+        ipureintro; intro hc; exact absurd hc hne
     · icases (osNames_join j _ q r _ hq).2 $$ Hw with ⟨Hn, Hr⟩
       unfold osLogged
       icases Hlog with ⟨%hst, #He, #Hl⟩
@@ -102,13 +109,17 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
       · rw [decide_eq_true he0]
         wp_auto
         iapply HΦ
+        isplitr
+        · iapply fmtErrorOkOrNil_nil
         iframe
         ipureintro; intro _; rfl
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
-      unfold os.model.pathError
-      wp_apply wp_errno
+      wp_apply os.wp_pathError_errno as %err #Herr
+      ihave %hne := os.errnoPathErr_ne err _ $$ Herr
       iapply HΦ
+      isplitr
+      · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Hsys Herr
       iframe
       ipureintro; intro _; rfl
   · obtain ⟨x, sx, J⟩ := xs
@@ -130,18 +141,20 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
     wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
     wp_auto
-    unfold os.model.pathError
-    wp_apply wp_errno
+    wp_apply os.wp_pathError_errno as %err #Herr
+    ihave %hne := os.errnoPathErr_ne err _ $$ Herr
     iapply HΦ
+    isplitr
+    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Hsys Herr
     iframe
     ipureintro; intro _; rfl
 
 /-- `specS` from `specSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Mkdir.wp_proofS : os.Mkdir.specS (GF := GF) (hG := hG) := by
   intro d b perm R j dq h q r Q hb hn hq
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iintro %Φ ⟨#Hpk, #Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
   iapply os.Mkdir.wp_proofSnc d b perm R j dq h q r Q hb hn hq $$ [Hp Hperm Hn Hau] HΦ
-  iframe Hos Hsi Hp Hperm Hn
+  iframe Hpk Hos Hsi Hp Hperm Hn
   iapply osAU_osAUnc $$ Hau
 
 end proof

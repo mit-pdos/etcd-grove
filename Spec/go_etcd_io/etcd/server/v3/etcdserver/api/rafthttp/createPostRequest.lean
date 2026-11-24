@@ -31,6 +31,8 @@ abbrev rafthttp.createPostRequest.spec : Prop :=
     (ct : GoString) (urls : GoSlice) (uvs : List net.url.URL)
     (fr cid : go_etcd_io.etcd.client.pkg.v3.types.ID),
   lg ≠ null → urlPlain u → path.head? = some (W8 47) →
+  -- (fmt stage 1, 2026-11-24) the peer URLs within etcd's URL length bound (`setPeerURLsHeader`'s)
+  plainURLsFit uvs →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       http.bodyHas body K ∗ urls ↦*□ uvs }}
     (App (App (App (App (App (App (App (App (Val (@! rafthttp.createPostRequest)) (Val #lg))

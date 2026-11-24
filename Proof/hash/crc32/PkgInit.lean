@@ -21,7 +21,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.sync.atomic.Base
 public import Proof.hash.PkgInit
-public import Proof.internal.byteorder.Base
+public import Perennial.Proof.internal.byteorder.Base
 
 @[expose] public section
 

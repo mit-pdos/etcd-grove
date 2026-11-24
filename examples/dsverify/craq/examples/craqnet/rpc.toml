@@ -1,0 +1,6 @@
+# The receivers the craq kit registers with net/rpc (kit.go: Server, runNode). The codec
+# (rpc_*gen.go) is generated from this by models/net/rpc/rpcgen.py:
+#   models/net/rpc/rpcgen.py examples/dsverify/craq/examples/craqnet/rpc.toml examples/dsverify/craq/examples/craqnet --pkg craqnet
+[rpc]
+imports = { netrpc = "github.com/despreston/go-craq/transport/netrpc" }
+receivers = ["*netrpc.NodeBinding", "*netrpc.CoordinatorBinding"]

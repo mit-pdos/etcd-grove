@@ -220,13 +220,16 @@ PROJECTS = [
         # user 2026-11-19, auth-schema-srv port, route (d')). Branch goose-lean-init-image (42c80a7) restricts init recovery to the
         # first write's four-page image. With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
         # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
-        # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
-        # translations. Modules
+        # file extension osFsExt), `hash/fnv` and `encoding/hex` (project etcd) are this repository's
+        # translations (`hash` is Perennial's). Modules
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
         # Split oversized leaves and admit all individually readable key/value pairs.
-        rev="ca88bb6a8339da5d5c29eccf120e1b621021b4f9",
-        lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
+        # Then (real fmt stage 1, 2026-11-24, #9) 7d335aa3e (branch `goose-lean-fmt1`, on ca88bb6a8):
+        # `Options.String` formats its bools with `%v` (as `%t`), the free-list type as a string, and
+        # whether `OpenFile`/`Logger` are set in place of their addresses (`%p`).
+        rev="7d335aa3eb233822487e9dd7eb2c8f95d99ea2ad",
+        lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash/fnv=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
             "go.etcd.io/bbolt",
@@ -382,7 +385,20 @@ PROJECTS = [
         # three log lines format the member's attributes field by field,
         # `fmt.Sprintf("{Name:%s ClientURLs:[%s]}", Name, strings.Join(ClientURLs, " "))`, the same bytes
         # as `fmt.Sprintf("%+v", s.attributes)`, which reaches fmt's reflection-based `printValue`.
-        rev="bc2b5f4d04cd525a94e86649b1ebb6e24faad6b7",
+        # Then (sortslice, 2026-11-24, mit-pdos/etcd-grove#18, approved via
+        # coordinator-E) 6b942d23f (branch `goose-lean-slicessort-on-fmtattrs`, on bc2b5f4d0; first
+        # a336e97f9 on edc800c6f, branch `goose-lean-slicessort`): mvcc's `hashStorage.Store` sorts with
+        # `slices.SortFunc(s.hashes, cmp.Compare on Revision)` instead of `sort.Slice` (whose reflection
+        # Perennial does not model), an upstream-ready change.
+        # Then (real fmt stage 1, 2026-11-24, mit-pdos/etcd-grove#9) 3d8797e8 (branch
+        # `goose-lean-fmt1c`, the commits of `goose-lean-fmt1` rebased onto 6b942d23f): `Election.Campaign`, `Mutex.tryAcquire` and
+        # `store.restore` convert a method-less named lease ID to `int64` before `fmt.Sprintf`
+        # formats it (`%x`, `%016x`): byte-identical output, through `fmtInteger` (Perennial's verified
+        # subset) instead of `printValue`. Then df6af0c36 (same branch): `Client.dial` numbers its
+        # dial targets with a package counter (`clientTargetSeq`, an `atomic.Uint64`) in place of
+        # `%p` of the client, which real `fmt` does not cover (the decision on #9,
+        # issuecomment-7122889900: fork rewrites, no `%p` axiom).
+        rev="df6af0c36a6bf5394765d3740aaf26ca27eb8ca9",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
@@ -400,7 +416,7 @@ PROJECTS = [
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
                     "github.com/prometheus/client_model=",
                     "github.com/jonboulle/clockwork=",
-                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "hash=", "path=", "internal/nettrace=",
+                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "hash/crc32=", "hash/fnv=", "path=", "internal/nettrace=",
                     "encoding/hex=", "container/heap=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
@@ -417,10 +433,9 @@ PROJECTS = [
                     # `bufio`'s Reader and `path/filepath`'s lexical functions (over
                     # `internal/filepathlite`) with bodies, `hash/crc32` (`hash=` above) names only
                     "bufio=", "path/filepath=", "internal/filepathlite=",
-                    # (crc32-hooks2, 2026-11-22) `hash/crc32`'s `slicingUpdate` calls
-                    # `byteorder.LEUint32` (project k8s-apiserver's translation,
-                    # Code/internal/byteorder.toml)
-                    "internal/byteorder=",
+                    # (`hash/crc32`'s `slicingUpdate` calls `byteorder.LEUint32`: Perennial's
+                    # `internal/byteorder` since its pin b3f2fc485, which translates it for
+                    # `crypto/sha1`; project k8s-apiserver's translation until 2026-11-24)
                     # (the same) `fileutil`'s lock and preallocation calls: the per-byte file
                     # extension's `syscall` and `golang.org/x/sys/unix` (project bboltfs's), as `os=`
                     "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall=",
@@ -569,6 +584,9 @@ PROJECTS = [
             # and the `buffer.NewPool` they call
             "go.uber.org/zap/internal/stacktrace", "go.uber.org/zap/internal/bufferpool",
             "go.uber.org/zap/buffer",
+            # (zap-z2, 2026-11-23) what `zapcore.CheckedEntry.Write` and its terminal hooks call: zap's
+            # `internal/exit` (`With`, over `os.Exit`) with its body, `multierr` names only (no core)
+            "go.uber.org/zap/internal/exit", "go.uber.org/multierr",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
@@ -640,12 +658,12 @@ PROJECTS = [
             "google.golang.org/grpc/serviceconfig",
             "google.golang.org/grpc/attributes",
             "crypto/tls",
-            # types only (the interfaces `Hash`, `Hash32`, ...): the type of mvcc's
-            # `kvHasher.hash` field, so that Goose translates `kvHasher`
-            "hash",
+            # (`hash` itself, the interfaces `Hash`, `Hash32`, ... that mvcc's `kvHasher.hash` field
+            # and the subpackages below name, is Perennial's since its pin b3f2fc485, which
+            # translates it for `crypto/sha1`; this project translated it types only until 2026-11-24)
             # types and names only: the FNV hash the DaemonSet controller's `controller.ComputeHash`
-            # writes into (project k8s-daemonset; notes/k8s-daemonset-goose.md); here since this
-            # project owns `hash`
+            # writes into (project k8s-daemonset; notes/k8s-daemonset-goose.md) and bbolt's
+            # `Meta.Sum64` (projects bbolt, bbolt-bank)
             "hash/fnv",
             # names only (D38, rafthttp's stage 1): what rafthttp's message path calls of the
             # standard library's `path` (the stream handler's URL parsing) and of etcd's
@@ -685,7 +703,8 @@ PROJECTS = [
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
                "go_opentelemetry_io",
                os.path.join("net", "http"), os.path.join("net", "textproto"), os.path.join("net", "url"),
-               "hash", "path", os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
+               os.path.join("hash", "crc32"), os.path.join("hash", "fnv"), "path",
+               os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"),
                os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
@@ -1615,9 +1634,8 @@ PROJECTS = [
         local=os.path.join("examples", "k8s", "etcd3"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=", "os=", "io/fs=",
                     "go.opentelemetry.io=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "encoding/json=", "encoding/base64=",
-                    # (prove-authcrypto, 2026-11-21) base64's decoder's big-endian stores
-                    # (Code/internal/byteorder.toml), with their bodies
-                    "internal/byteorder=",
+                    # (base64's decoder's big-endian stores are Perennial's `internal/byteorder`,
+                    # with bodies, since its pin b3f2fc485; this project's until 2026-11-24)
                     "path=", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine=",
                     # the etcd project's names-only translations, which client-go's workqueue
@@ -1779,7 +1797,6 @@ PROJECTS = [
             "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
-            "internal/byteorder",
             # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context key
             "runtime/trace",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
@@ -1834,7 +1851,7 @@ PROJECTS = [
                os.path.join("encoding", "json"),
                os.path.join("github_com", "go_logr"),
                os.path.join("github_com", "spf13"),
-               os.path.join("encoding", "base64"), os.path.join("internal", "byteorder"),
+               os.path.join("encoding", "base64"),
                os.path.join("runtime", "trace"),
                os.path.join("github_com", "google"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
@@ -1860,7 +1877,7 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "k8s", "daemonset"),
-        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash=", "encoding/json=", "os=", "io/fs=",
+        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash/fnv=", "encoding/json=", "os=", "io/fs=",
                     "github.com/go-logr="],
         packages=[
             "./apimodel",
@@ -1916,15 +1933,20 @@ PROJECTS = [
         # Kubernetes' conditional authorization (KEP-5681): k8s.io/apiserver's authorizer package
         # (conditions, conditions maps, the union decision builder, partial evaluation) and union
         # authorizer, with bodies, from the fork github.com/luxas/kubernetes, branch
-        # impl-conditional-authz-review (not merged upstream), resolved in the repository's go.work
+        # impl-conditional-authz-review (not merged upstream; c67a81026c8b), plus one commit of ours
+        # (upamanyus/kubernetes branch goose-lean-authz-fmt2, 2026-11-24, mit-pdos/etcd-grove#9):
+        # the three `%v` of a slice (UnconditionalPartsOrFailClosed, ConditionsAwareDecisionUnion.Add,
+        # unionAuthzHandler.EvaluateConditions) spelled out, byte-identical output (its Go tests
+        # compare with the original calls'), since Perennial's fmt does not follow reflection into a
+        # slice; resolved in the repository's go.work
         # (its staging modules: apimachinery at the fork's commit too, ~2026-11-03, while project
         # k8s-apiserver's apimachinery names are of examples/k8s/etcd3's pin, 2026-10-21). Names only:
         # k8s.io/apiserver/pkg/authentication/user (Code/k8s_io/apiserver/pkg/authentication/user.toml).
         # The rest it names (apimachinery's sets, errors, validation, field, fields, labels, runtime,
         # schema; net/http) is project k8s-apiserver's translation (the empty root). Its driver is
         # project k8s-authz-driver.
-        repo="https://github.com/luxas/kubernetes",
-        rev="c67a81026c8b193849a47fdc05398baeafdf55e4",
+        repo="https://github.com/upamanyus/kubernetes",
+        rev="5b30dab1b14146d5b5469a8def6aca963736a8bf",
         lean_roots=["k8s.io=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=[
             # with bodies
@@ -2146,7 +2168,7 @@ PROJECTS = [
         rev="2e1663644f604d5a2c4f040bc744e047cde8fd8e",
         root="Bbolt",
         lean_roots=["go.etcd.io/bbolt=Bbolt", "os=", "syscall=", "golang.org/x/sys=", "io/fs=",
-                    "hash=", "encoding/hex="],
+                    "hash/fnv=", "encoding/hex="],
         # the database; not its tests, tools (cmd/) or test helpers (internal/btesting, ...)
         packages=[".", "./errors", "./internal/common", "./internal/freelist"],
         owned=[os.path.join("go_etcd_io", "bbolt")],
@@ -2168,7 +2190,7 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove/examples/bbolt/bank=Bbolt",
                     "go.etcd.io/bbolt=Bbolt", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine=", "os=", "syscall=", "golang.org/x/sys=",
-                    "io/fs=", "hash=", "encoding/hex="],
+                    "io/fs=", "hash/fnv=", "encoding/hex="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "bbolt", "bank")],
     ),
@@ -2184,7 +2206,8 @@ def dsv_kits():
     d = os.path.join(ROOT, "etc", "dsv")
     out = []
     for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
-        if not f.endswith(".py") or f.startswith("_") or f == "kitgen.py":  # (the generator)
+        # (the generator, and the experiment scripts' proxy: etc/dsv/README.md)
+        if not f.endswith(".py") or f.startswith("_") or f in ("kitgen.py", "proxy.py"):
             continue
         spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
         m = importlib.util.module_from_spec(spec)
@@ -2255,12 +2278,13 @@ CLIENT_GO_PINS = {
 def go_mod_requires(f):
     """The versions a go.mod file selects, by module path: its requirements, except that a module
     replaced by the same path at a version (`M => M vX`, as examples/k8s/daemonset/go.mod replaces
-    the staging modules k8s.io/kubernetes requires at v0.0.0) is at the replacement's version."""
+    the staging modules k8s.io/kubernetes requires at v0.0.0) is at the replacement's version, and
+    one replaced by another path (a fork: `k8s.io/apimachinery => github.com/upamanyus/kubernetes/
+    staging/src/k8s.io/apimachinery vX`, real fmt stage 1, 2026-11-24) is `NEW@vX`."""
     text = open(os.path.join(ROOT, f), encoding="utf-8").read()
     reqs = dict(re.findall(r"^\s*(?:require\s+)?(\S+)\s+(v\S+)(?:\s*//.*)?$", text, re.M))
     for old, new, ver in re.findall(r"^\s*(?:replace\s+)?(\S+)\s+=>\s+(\S+)\s+(v\S+)\s*$", text, re.M):
-        if old == new:
-            reqs[old] = ver
+        reqs[old] = ver if old == new else f"{new}@{ver}"
     return reqs
 
 

@@ -5,6 +5,7 @@
 module
 
 public import Spec.fmt.ErrorOk
+public import Proof.go_etcd_io.etcd.pkg.v3.runtime.PkgInit
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.runtime
 
 @[expose] public section
@@ -24,7 +25,7 @@ variable [sem : go.Semantics]
 
 /-- `runtime.FDUsage()` (etcd's `pkg/runtime`, `fds_linux.go`) returns a count, or `0` and an error `fmt` formats (the `*PathError` of the open or of the listing of `/proc/self/fd`). Over its trusted model (`TrustedCode/go_etcd_io/etcd/pkg/v3/runtime.lean`; prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42). -/
 abbrev runtime.FDUsage.spec : Prop :=
-  {{ (iprop(True) : IProp GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.runtime }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.runtime.FDUsage)) (Val #()))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       ⌜err = GoInterface.nil ∨ n = W64 0⌝ ∗ fmtErrorOkOrNil err }}

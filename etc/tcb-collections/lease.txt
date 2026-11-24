@@ -30,4 +30,3 @@ axiom pbLeaseKeepAliveResponseT_reg
 axiom pbLeaseRevokeRequestT_reg
 axiom pbLeaseRevokeResponseT_reg
 axiom status.FromError.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

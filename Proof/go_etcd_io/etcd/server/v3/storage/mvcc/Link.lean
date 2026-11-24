@@ -28,6 +28,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedComp
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.encoding.binary.bigEndian__Uint64
+public import Proof.cmp.Compare
 public import Proof.hash.crc32.MakeTable
 public import Proof.hash.crc32.New
 public import Proof.hash.crc32.digest__Sum32
@@ -73,6 +74,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup
 public import Proof.os.Getenv
+public import Proof.go_uber_org.zap.internal.pool.Pool__Get
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Add
 public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Sub
 public import Proof.google_golang_org.protobuf.proto.Marshal
@@ -314,9 +317,13 @@ theorem zap.wp_Int64 :
     zap.Int64.spec (GF := GF) (hG := hG) :=
   zap.Int64.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Get :
+    zap.internal.pool.Pool.Get.spec (GF := GF) (hG := hG) :=
+  zap.internal.pool.Pool.Get.wp_proof
+
 theorem zap.Logger.wp_Panic :
     zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Panic.wp_proof
+  zap.Logger.Panic.wp_proof zap.internal.pool.Pool.wp_Get
 
 theorem mvcc.keyIndex.wp_put :
     mvcc.keyIndex.put.spec (GF := GF) (hG := hG) :=
@@ -378,9 +385,13 @@ theorem zap.Logger.wp_check :
     zap.Logger.check.spec (GF := GF) (hG := hG) :=
   zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  zapcore.CheckedEntry.Write.wp_proof
+  zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Warn :
     zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
@@ -482,9 +493,13 @@ theorem go_humanize.wp_Bytes :
     go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
   go_humanize.Bytes.wp_proof
 
+theorem cmp.wp_Compare :
+    cmp.Compare.spec (GF := GF) (hG := hG) :=
+  cmp.Compare.wp_proof
+
 theorem mvcc.hashStorage.wp_Store :
     mvcc.hashStorage.Store.spec (GF := GF) (hG := hG) :=
-  mvcc.hashStorage.Store.wp_proof
+  mvcc.hashStorage.Store.wp_proof zap.wp_Uint32 zap.wp_Int64 zap.Logger.wp_Info cmp.wp_Compare
 
 theorem traceutil.Trace.wp_Step :
     traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=

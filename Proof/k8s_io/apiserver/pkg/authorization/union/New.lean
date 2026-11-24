@@ -31,7 +31,7 @@ theorem New.wp_proof
     (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
   intro s nas
-  wp_start as ⟨#Hs, #Has⟩
+  wp_start as ⟨#Hs, #Has, %Hnas⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hs
   wp_auto
   wp_apply (wp_map_make2 (K := GoString) (V := GoInterface) s.len go.string Authorizer.ty) as %mref Hmref
@@ -123,7 +123,9 @@ theorem New.wp_proof
     · iexact Has
     isplitr
     · iexact Hmref
-    iexact Hmm
+    isplitl [Hmm]
+    · iexact Hmm
+    ipureintro; exact Hnas
 
 end proof
 

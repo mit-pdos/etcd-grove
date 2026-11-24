@@ -40,17 +40,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **Every address of a list reserved for the raft protocol** (`netHttp_reserve3` for any number
-of addresses; probe A): the network's HTTP side for every member, and each address's protocol. -/
+of addresses; probe A): the network's HTTP side for every member, and for each address the right to listen at it
+reserved for HTTP (its net protocols net/http's, 2026-11-24: `http.reserveAddr`) and its protocol. -/
 theorem netHttp_reserveL (γn : NetNames GF) (As : List GoString) (hd0 : γn.dir 0 = [])
     (hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ γn.dir i → h ∈ As) :
     ⊢ inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth γn.reg 1 m) -∗
-      ([∗list] a ∈ As, httpProtoFree a) ==∗
+      ([∗list] a ∈ As, netAddrFree a ∗ httpProtoFree a) ={⊤}=∗
       (□ ∀ lid : w64, netHttpOk γn lid) ∗
-        [∗list] a ∈ As, http.httpProtoOwn a (raftProto (netRh γn)) := by
+        [∗list] a ∈ As, http.httpAddrFree a ∗ http.httpProtoOwn a (raftProto (netRh γn)) := by
   have hres : ∀ (L : List GoString),
-      ⊢ ([∗list] a ∈ L, httpProtoFree (GF := GF) a) ==∗
+      ⊢ ([∗list] a ∈ L, netAddrFree (GF := GF) a ∗ httpProtoFree (GF := GF) a) ={⊤}=∗
         (□ ∀ h, ⌜h ∈ L⌝ -∗ http.httpProtoAt h (raftProto (netRh γn))) ∗
-        [∗list] a ∈ L, http.httpProtoOwn a (raftProto (netRh γn)) := by
+        [∗list] a ∈ L, http.httpAddrFree a ∗ http.httpProtoOwn a (raftProto (netRh γn)) := by
     intro L
     induction L with
     | nil =>
@@ -63,11 +64,11 @@ theorem netHttp_reserveL (γn : NetNames GF) (As : List GoString) (hd0 : γn.dir
     | cons a L ih =>
       iintro Hfs
       ihave Hfs := BigSepL.bigSepL_cons.1 $$ Hfs
-      icases Hfs with ⟨Hf, Hfs⟩
-      imod (http.reserve a (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Hf with ⟨#Hat, Ho⟩
+      icases Hfs with ⟨⟨Ha, Hf⟩, Hfs⟩
+      imod (http.reserveAddr ⊤ a (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Ha Hf with ⟨#Hat, Ha, Ho⟩
       imod ih $$ Hfs with ⟨#Hats, Hos⟩
       imodintro
-      isplitr [Ho Hos]
+      isplitr [Ha Ho Hos]
       · iintro !> %h %hm
         rcases List.mem_cons.1 hm with rfl | hm'
         · iexact Hat
@@ -387,14 +388,16 @@ theorem memberBoots_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (b
     iapply BigSepL.bigSepL_cons.2
     iframe
 
-/-- **A start bundle with a peer address, split at its HTTP protocol**: the unregistered protocol,
-and the fresh bundle at any network once the protocol is the network's raft protocol. -/
+/-- **A start bundle with a peer address, split at its HTTP protocol**: the peer address's listen right and
+unregistered protocol, and the fresh bundle at any network once the address is reserved for HTTP
+(`http.httpAddrFree`, 2026-11-24) with the network's raft protocol. -/
 theorem memberStartRes_split (n p : GoString) (c : Option GoString) :
     memberStartRes (GF := GF) n ⟨some p, c⟩ ⊢
-      httpProtoFree p ∗ (∀ γn : NetNames GF,
-        http.httpProtoOwn p (raftProto (netRh γn)) -∗ memberFreshRes n ⟨some p, c⟩ γn) := by
+      (netAddrFree p ∗ httpProtoFree p) ∗ (∀ γn : NetNames GF,
+        (http.httpAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))) -∗
+          memberFreshRes n ⟨some p, c⟩ γn) := by
   simp only [memberStartRes, memberFreshRes]
-  iintro ⟨#Hv, WaHw, ⟨Ha, Hf⟩, Hc⟩
+  iintro ⟨#Hv, WaHw, Hf, Hc⟩
   iframe Hf
   iintro %γn Ho
   iframe; iframe #
@@ -445,7 +448,7 @@ theorem allocN (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : 
   -- the raft network, each peer address reserved for the raft protocol
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #Hreg⟩
   have Hd0' : γn.dir 0 = [] := by rw [Hγn.2]; exact Hd0
-  ihave Hfs : [∗list] a ∈ ms.map (·.2.1), httpProtoFree (GF := GF) a $$ [Hfs]
+  ihave Hfs : [∗list] a ∈ ms.map (·.2.1), netAddrFree (GF := GF) a ∗ httpProtoFree (GF := GF) a $$ [Hfs]
   · rw [BigSepL.bigSepL_map]; iexact Hfs
   imod (netHttp_reserveL γn (ms.map (·.2.1)) Hd0' (fun i h hm => Hhost i h (by rw [← Hγn.2]; exact hm)))
     $$ Hreg Hfs with ⟨#Hnet, Hos⟩

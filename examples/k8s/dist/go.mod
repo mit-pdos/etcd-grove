@@ -4,18 +4,18 @@ go 1.27.1
 
 // bbolt: the fork examples/go.mod uses (project bbolt's pin), so that the members run what
 // etcd-dist's members run.
-replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261120232526-ca88bb6a8339
+replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23
 
 // etcd and raft: the forks at the pins of etc/goose.py's projects etcd and raft (as examples/go.mod
 // and the other k8s modules).
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124013037-bc2b5f4d04cd
-	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261124013037-bc2b5f4d04cd
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124013037-bc2b5f4d04cd
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124013037-bc2b5f4d04cd
-	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124013037-bc2b5f4d04cd
-	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124013037-bc2b5f4d04cd
-	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261124013037-bc2b5f4d04cd
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261124070122-df6af0c36a6b
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 )
 
@@ -130,3 +130,10 @@ require (
 	sigs.k8s.io/structured-merge-diff/v7 v7.0.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+// k8s.io/apimachinery and k8s.io/apiserver at the pins above, from the fork upamanyus/kubernetes,
+// branch goose-lean-fmt1 (on Kubernetes 878cfa6c4c): their go.mod/go.sum as published, and
+// Preconditions.Check formatting its UIDs as strings (real fmt stage 1, mit-pdos/etcd-grove#9)
+replace k8s.io/apimachinery => github.com/upamanyus/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20261124053658-ef23adaea1b3
+
+replace k8s.io/apiserver => github.com/upamanyus/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20261124053658-ef23adaea1b3

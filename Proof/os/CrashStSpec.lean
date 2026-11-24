@@ -120,7 +120,7 @@ variable [os.Assumptions]
 theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG := hG) := by
   intro f fd name dqf dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hown⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hown⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -143,7 +143,7 @@ theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG :=
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ileft
     isplitr; · ipureintro; rfl
     iframe
@@ -154,7 +154,7 @@ theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG :=
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     iright
     iframe
     ipureintro; intro h; cases h
@@ -163,6 +163,9 @@ theorem os.OpenFile.wp_proof_crashS [os.file.FieldAssumptions] :
     os.OpenFile.specCrashS (GF := GF) (hG := hG) := by
   intro d b perm N R q γ Good Ok s hb hs hN hN' hok
   wp_start as ⟨#Hos, #Hsi, Hperm, #Hinv, Hown⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   obtain ⟨s', hs'⟩ : ∃ s', s' = s := ⟨_, rfl⟩
   ihave Hown := (show csOwn (GF := GF) (child d b) R γ s ⊢ csOwn (child d b) R γ s' by
     rw [hs']) $$ Hown
@@ -210,7 +213,7 @@ theorem os.OpenFile.wp_proof_crashS [os.file.FieldAssumptions] :
       unfold os.ownFile
       iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      (repeat' isplitl []) <;> iassumption
     · obtain ⟨he0, rfl⟩ := he
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
@@ -278,7 +281,7 @@ theorem os.OpenFile.wp_proof_crashS [os.file.FieldAssumptions] :
       unfold os.ownFile
       iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      (repeat' isplitl []) <;> iassumption
     · rw [decide_eq_false he0]
       iclear Hfd
       wp_auto
@@ -306,7 +309,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   intro f fd name dqf sl data dqs off dq d N P R γ Good Ok m bs fa fb hwr hoff hgap hbig hn hn2
     hN hfz hW
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hown, Hc⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hsl, Hosfd, Hown, Hc⟩
   icases csOwnF_wf _ _ $$ Hown with %Hwf
   have hlen : bs.length = m.size := Hwf.1
   unfold os.model.inner
@@ -445,7 +448,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         · ipureintro
           exact ⟨_, hRs _ (.inl rfl), .inl ⟨hsln, rfl, hfk, by show _ ≤ pwSize _ _ _; omega,
             fun i hi => hpre' i (by omega)⟩⟩
@@ -457,7 +460,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         · ipureintro
           exact ⟨_, hRs _ (.inl rfl), .inr ⟨rfl, by intro h; cases h⟩⟩
     · rw [decide_eq_false hfull]
@@ -480,14 +483,14 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         · ipureintro
           exact ⟨_, hRs _ (.inl rfl), .inr ⟨rfl, by intro h; cases h⟩⟩
 
 theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF) (hG := hG) := by
   intro f fd name dqf sz dq d N P R γ Good Ok m bs fa fb hfd0 hwr hsz hgrow hN hT
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hown, Hc⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hown, Hc⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -558,7 +561,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         ileft
         isplitr; · ipureintro; rfl
         iexists n, m0; iframe; ipureintro; exact hm0
@@ -569,7 +572,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         iright
         isplitr; · ipureintro; intro h; cases h
         icases HS with (Hg | ⟨Hown, Hc⟩)
@@ -665,7 +668,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         ileft
         isplitr; · ipureintro; rfl
         iexists n0, m0; iframe; ipureintro; exact hm0
@@ -675,7 +678,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         iright
         isplitr; · ipureintro; intro h; cases h
         ileft; iexists n0, m0; iframe; ipureintro; exact hm0

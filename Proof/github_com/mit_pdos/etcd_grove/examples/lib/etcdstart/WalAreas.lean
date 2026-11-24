@@ -55,6 +55,17 @@ theorem walAreaOf_ne {d d' : GoString} (hd : ∃ n, d = memberDataDir n) (hd' : 
   obtain ⟨n, rfl⟩ := hd; obtain ⟨n', rfl⟩ := hd'
   exact walAreaOf_ne_memberDataDir n n'
 
+/-- A member's data directory whose WAL directory fits is shorter than `PATH_MAX`. -/
+theorem memberDataDir_length_lt {d : GoString} (hd : ∃ n, d = memberDataDir n)
+    (hF : Fs.DirFits (srvWalDirOf d)) : d.length < 4096 := by
+  obtain ⟨n, rfl⟩ := hd
+  have h := hF.1
+  rw [srvWalDirOf, walAreaOf_memberDataDir] at h
+  simp only [memberDataDir, List.length_append] at h ⊢
+  have h1 : (go!"/tmp/etcd-grove-data/" : GoString).length = 21 := by decide
+  have h2 : (go!"/tmp/etcd-grove-wal/" : GoString).length = 20 := by decide
+  omega
+
 /-- A claim on all the names of `j`, at the history's start, names what the tree has. -/
 theorem namesOf_except_cur (V : Fs.Hist) (j : Fs.Ino) (b : GoString) :
     (Fs.namesOf V j (.except [])).cur !! b = V.now.entry j b := by
@@ -222,7 +233,7 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
       iexists etcdWalArea W hsat hsatL R j (walAreaOf d) (srvWalDirOf d) (hF d List.mem_cons_self)
       isplitr
       · ipureintro
-        exact ⟨rfl, srvWalDirOf_inArea d, cleanAbsPath_of_rootForm ((hR.2.2 _ hrj).1)⟩
+        exact ⟨rfl, srvWalDirOf_inArea d, cleanAbsPath_of_rootForm ((hR.2.2 _ hrj).1), trivial⟩
       dsimp only [etcdWalArea]
       rw [Fs.callKey_eq hR hrj (.inl rfl)]
       iframe Hok Hdd Hsp Hres Hpd Hu
@@ -236,10 +247,10 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
       iexists inferInstance, inferInstance, inferInstance, R, jd, Fs.namesOf V jd (.except [])
       isplitr
       · ipureintro
-        exact ⟨cleanAbsPath_of_rootForm ((hR.2.2 _ hrjd).1),
-          fun b => by rw [namesOf_except_cur]; exact hemp b⟩
+        exact ⟨cleanAbsPath_of_rootForm ((hR.2.2 _ hrjd).1), memberDataDir_length_lt hNd
+            (hF d List.mem_cons_self), fun b => by rw [namesOf_except_cur]; exact hemp b⟩
       rw [Fs.callKey_eq hR hrjd (.inl rfl)]
-      iframe Hos Hsh Hspd Hpdd Hjd
+      iframe Hos Hsh Hab Hspd Hpdd Hjd
 
 /-- **The members' WAL areas, before the program's first step** (see the file header): over the file
 extension's initial state `st` (`FsInit`, no I/O error assumed: `hsat`) with the members' areas as

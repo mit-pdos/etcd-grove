@@ -55,7 +55,9 @@ theorem arbDecision.wp_proof
   intro depth
   induction hk : uint.nat depth using Nat.strongRecOn generalizing depth with
   | _ k IH =>
-  intro hdepth
+  intro hdepth hsize
+  subst hk
+  have h4 : 1 ≤ 4 ^ uint.nat depth := Nat.one_le_pow _ _ (by decide)
   wp_start
   wp_auto
   wp_apply wp_Int63n as %x %Hx
@@ -70,10 +72,10 @@ theorem arbDecision.wp_proof
     · iexact He
     (try wp_auto)
     iapply HΦ
-    iunfold isWFDecisionLe
-    iexists .deny
-    iframe #
-    ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
+    iapply isWFDecisionBnd_leaf'
+    isplitl []
+    · iexact Hd
+    ipureintro; exact ⟨trivial, rfl, h4⟩
   · wp_auto
     wp_apply wp_arbReason as %r _
     (try wp_auto)
@@ -83,10 +85,10 @@ theorem arbDecision.wp_proof
     · iexact He
     (try wp_auto)
     iapply HΦ
-    iunfold isWFDecisionLe
-    iexists .allow
-    iframe #
-    ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
+    iapply isWFDecisionBnd_leaf'
+    isplitl []
+    · iexact Hd
+    ipureintro; exact ⟨trivial, rfl, h4⟩
   · wp_auto
     wp_apply wp_arbReason as %r _
     (try wp_auto)
@@ -96,10 +98,10 @@ theorem arbDecision.wp_proof
     · iexact He
     (try wp_auto)
     iapply HΦ
-    iunfold isWFDecisionLe
-    iexists .noOpinion
-    iframe #
-    ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
+    iapply isWFDecisionBnd_leaf'
+    isplitl []
+    · iexact Hd
+    ipureintro; exact ⟨trivial, rfl, h4⟩
   · wp_auto
     wp_apply wp_arbConds as %s1 ⟨%c1, Hs1, #Hc1⟩
     (try wp_auto)
@@ -118,10 +120,11 @@ theorem arbDecision.wp_proof
       iexact Hc3
     (try wp_auto)
     iapply HΦ
-    iapply isWFDecisionLe_weaken
+    iapply isWFDecisionBnd_weaken
     isplitl []
-    · iexact Hd
-    ipureintro; omega
+    · iapply isWFDecisionLe_zero_bnd
+      iexact Hd
+    ipureintro; exact ⟨Nat.zero_le _, h4⟩
   · wp_auto
     by_cases hd0 : depth = W64 0
     · rw [decide_eq_true hd0]
@@ -143,54 +146,76 @@ theorem arbDecision.wp_proof
         iexact Hc3
       (try wp_auto)
       iapply HΦ
-      iapply isWFDecisionLe_weaken
+      iapply isWFDecisionBnd_weaken
       isplitl []
-      · iexact Hd
-      ipureintro; omega
+      · iapply isWFDecisionLe_zero_bnd
+        iexact Hd
+      ipureintro; exact ⟨Nat.zero_le _, h4⟩
     · rw [decide_eq_false hd0]
       wp_auto
-      ihave Hu := ownBuilder_zero u_ptr $$ u
+      ihave Hu := ownBuilder_zero u_ptr authzNameMax $$ u
       wp_apply wp_Int63n as %n %Hn
       · ipureintro; decide
       (try wp_auto)
       have hdm : uint.nat (depth - W64 1) + 1 = uint.nat depth := by word
-      ihave HI : (∃ (j : w64) (ks : List Dec),
-          "i" ∷ i_ptr ↦ j ∗ "Hu" ∷ ownBuilder u_ptr ks ∗
-          "%Hks" ∷ ⌜Dec.depthL ks < uint.nat depth⌝ : IProp GF) $$ [i Hu]
-      · iexists W64 0, []
+      have h4d : 4 ^ uint.nat depth = 4 ^ uint.nat (depth - W64 1) * 4 := by
+        rw [← hdm, Nat.pow_succ]
+      have h4' : 1 ≤ 4 ^ uint.nat (depth - W64 1) := Nat.one_le_pow _ _ (by decide)
+      have hfitc : Dec.foldBound authzSizeMax authzDepthMax authzNameMax <
+          _root_.Perennial.strings.joinMax :=
+        Nat.lt_of_le_of_lt (Dec.foldBound_mono (by unfold authzSizeMax authzChainMax; omega)
+          (by omega)) authz_foldBound_lt
+      ihave HI : (∃ (j : w64) (ks : List Dec) (c : Nat),
+          "i" ∷ i_ptr ↦ j ∗ "Hu" ∷ ownBuilder u_ptr ks authzNameMax ∗
+          "%Hks" ∷ ⌜Dec.depthL ks < uint.nat depth ∧ sint.Z j = c ∧ c ≤ 3 ∧
+            Dec.sizeL ks ≤ c * 4 ^ uint.nat (depth - W64 1)⌝ : IProp GF) $$ [i Hu]
+      · iexists W64 0, [], 0
         iframe
-        ipureintro; simp only [Dec.depthL]; omega
+        ipureintro; refine ⟨by simp only [Dec.depthL]; omega, rfl, by omega, by simp [Dec.sizeL]⟩
       wp_for HI
       by_cases Hlt : sint.Z j < sint.Z n
       · rw [decide_eq_true Hlt]; simp only [↓reduceIte]
         (try wp_auto)
-        wp_apply wp_arbName as %nm _
+        wp_apply wp_arbName as %nm %hnm
         (try wp_auto)
-        wp_apply (IH (uint.nat (depth - W64 1)) (by subst hk; word) (depth - W64 1) rfl (by omega))
+        wp_apply (IH (uint.nat (depth - W64 1)) (by word) (depth - W64 1) rfl (by omega)
+          (Nat.le_trans (Nat.pow_le_pow_right (by decide) (by omega)) hsize))
           as %d' #Hwf'
-        iunfold isWFDecisionLe at Hwf'
-        icases Hwf' with ⟨%m', #Hd', %Hm'⟩
-        have hks' := Dec.depthL_add_le (Dec.cuadL ks) ks m' (uint.nat (depth - W64 1)) (by omega) Hm'.2
+        iunfold isWFDecisionBnd at Hwf'
+        icases Hwf' with ⟨%m', #Hd', %Hm', #Hdn'⟩
+        have hks' := Dec.depthL_add_le (Dec.cuadL ks) ks m' (uint.nat (depth - W64 1)) (by omega) Hm'.2.1
+        have hcn : c + 1 ≤ 3 := by have := Hks.2.1; word
+        have hsz' := Dec.sizeL_add_le (Dec.cuadL ks) ks m' ((c + 1) * 4 ^ uint.nat (depth - W64 1))
+          (by rw [Nat.add_mul, Nat.one_mul]; have := Hks.2.2.2; have := Hm'.2.2; omega)
         (try wp_auto)
-        wp_apply (wp_ConditionsAwareDecisionUnion_Add u_ptr ks nm d' m') $$ [$Hu] as Hu
+        wp_apply (wp_ConditionsAwareDecisionUnion_Add u_ptr ks nm d' m' authzNameMax) $$ [$Hu] as Hu
         · iframe #
-          ipureintro; exact ⟨Hm'.1, by omega⟩
+          ipureintro
+          have hd16 : uint.nat depth ≤ 16 := hdepth
+          exact ⟨Hm'.1, by have := Hm'.2.1; omega, hnm⟩
         (try wp_auto)
         wp_for_post
         iframe
-        iexists _, _
+        iexists _, _, c + 1
         iframe
-        ipureintro; omega
+        ipureintro
+        refine ⟨by omega, by have := Hks.2.1; word, hcn, hsz'⟩
       · rw [decide_eq_false Hlt]
         simp only [Bool.false_eq_true, ↓reduceIte]
         (try wp_auto)
-        wp_apply (wp_ConditionsAwareDecisionUnion_ToDecision u_ptr ks) $$ [$Hu] as %d ⟨#Hd, -⟩
+        have hsz : Dec.sizeL ks + 1 ≤ 4 ^ uint.nat depth := by
+          have := Hks.2.2.2
+          have := Nat.mul_le_mul_right (4 ^ uint.nat (depth - W64 1)) Hks.2.2.1
+          omega
+        wp_apply (wp_ConditionsAwareDecisionUnion_ToDecision u_ptr ks authzNameMax
+          (Dec.foldFits_of_le _ _ _ _ (by simp only [Dec.size]; omega)
+            (by simp only [Dec.depth]; omega) hfitc)) $$ [$Hu] as %d ⟨#Hd, -⟩
         (try wp_auto)
         iapply HΦ
-        iapply isWFDecisionLe_weaken
+        iapply isWFDecisionBnd_weaken
         isplitl []
         · iexact Hd
-        ipureintro; omega
+        ipureintro; exact ⟨by omega, hsz⟩
 
 end proof
 

@@ -59,6 +59,7 @@ def PutgetBoot : Prop :=
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (_Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (_Hcec : ∀ hG : HeapGS .hasLC putgetGF,
@@ -85,7 +86,7 @@ def PutgetBoot : Prop :=
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` (`Net.robust_of_distBootI`), with each machine's `FsInit` from the statement. -/
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
-  intro _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
+  intro _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
     Hm Hc Hd HEnv HEnvTok
   refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peer client) (system peer client σm σc) g
     (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
@@ -131,7 +132,7 @@ proved (`putget_safe_of_boot`); the cross-machine steps are the interim axioms o
 switch). -/
 theorem putget_safe : putget_safe.spec := by
   refine putget_safe_of_boot ?_
-  intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
+  intro _ _ _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
     Hm Hc Hok HEnv HEnvTok G hlo hb
   have hpeer : Net.addrOk peer = true := Hok peer (by simp [addrs])
   have hcl : Net.addrOk client = true := Hok client (by simp [addrs])
@@ -149,7 +150,7 @@ theorem putget_safe : putget_safe.spec := by
     match i, hm with
     | 0, hm =>
       simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
-      exact member_boot Hctx HEnvTok peer client hpeer id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm γE
+      exact member_boot Hctx HEnvTok peer client hpeer hcl id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm γE
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
         Option.some.injEq] at hm; subst hm; exact client_boot Hctx Hcec client hcl σc γE id
     | k + 2, hm => simp [system] at hm

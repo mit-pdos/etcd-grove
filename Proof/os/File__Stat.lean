@@ -56,7 +56,7 @@ private abbrev os.File.Stat.tripleNE : Prop :=
 private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := hG) := by
   intro f fd name dqf dq dqm d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hm⟩
   unfold os.model.inner os.model.arbitraryMode
   rw [os.file_ty_eq, os.File_ty_eq, os.fileStat_ty_eq]
   ihave #Hf2 := Hf
@@ -90,7 +90,7 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       iframe Hokn
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · (repeat' isplitl []) <;> iassumption
       isplitr
       rotate_left
       · ileft; ipureintro; rfl
@@ -109,14 +109,14 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       rw [decide_eq_false he0']
       wp_auto
       wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %perr #Hep
-      ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0' $$ Hep
+      ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0' $$ Hsys Hep
       ihave %Hne := os.errnoPathErr_ne perr e $$ Hep
       ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
       iapply HΦ
       iframe Hokn
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · (repeat' isplitl []) <;> iassumption
       isplitr
       rotate_left
       · iright; iexists e; iframe Hep; ipureintro; exact he0'
@@ -126,7 +126,7 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
 private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name dqf dq dqm d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hm⟩
   unfold os.model.inner os.model.arbitraryMode
   rw [os.file_ty_eq, os.File_ty_eq, os.fileStat_ty_eq]
   ihave #Hf2 := Hf
@@ -146,7 +146,7 @@ private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG)
   iapply HΦ
   iframe
   isplitl []
-  · isplitl [] <;> iassumption
+  · (repeat' isplitl []) <;> iassumption
   iexists fs_ptr
   unfold os.ownFileStat
   isplitr

@@ -260,6 +260,104 @@ theorem addrOk_plainEndpoint {a : GoString} (h : Net.addrOk a = true) : plainEnd
   · have hm : (117 : w8) ∈ a := hi.subset (by decide)
     rcases hb _ hm with h1 | h1 | h1 <;> revert h1 <;> decide
 
+/-! ## A valid address is short (fmt stage 1, 2026-11-24)
+
+Its octets are at most `255` and its port at most `65535`, each a canonical numeral (no leading
+zero), so the address has at most `3 * 4 + 3 + 1 + 5 = 21` bytes; `etcdstart.addrFits` (etcd's URL
+length bound, `NewServer`'s `etcdURLsFit`) follows. -/
+
+/-- The pieces of `splitBy` and its separators make up the string (and the current piece). -/
+theorem splitBy_length (sep : w8) : ∀ (s cur : GoString),
+    ((Net.splitBy sep s cur).map List.length).sum + (Net.splitBy sep s cur).length =
+      s.length + cur.length + 1
+  | [], cur => by simp [Net.splitBy]
+  | d :: s, cur => by
+    simp only [Net.splitBy]
+    by_cases hd : d.toNat = sep.toNat
+    · rw [if_pos hd]
+      have := splitBy_length sep s []
+      simp only [List.map_cons, List.sum_cons, List.length_cons, List.length_reverse,
+        List.length_nil] at this ⊢
+      omega
+    · rw [if_neg hd]
+      have := splitBy_length sep s (d :: cur)
+      simp only [List.length_cons] at this ⊢
+      omega
+
+/-- A value of digits after `acc` is at least `acc` shifted by the digits. -/
+theorem digitsVal_ge : ∀ (s : GoString) (acc n : Nat), Net.digitsVal s acc = some n →
+    acc * 10 ^ s.length ≤ n
+  | [], acc, n, h => by simp [Net.digitsVal] at h; simp [h]
+  | c :: s, acc, n, h => by
+    simp only [Net.digitsVal] at h
+    by_cases hc : Net.isDigit c = true
+    · rw [if_pos hc] at h
+      have := digitsVal_ge s _ n h
+      simp only [List.length_cons, Nat.pow_succ]
+      have h2 : acc * (10 ^ s.length * 10) ≤ (acc * 10 + (c.toNat - 48)) * 10 ^ s.length := by
+        rw [Nat.add_mul, Nat.mul_comm (10 ^ s.length) 10, ← Nat.mul_assoc]
+        exact Nat.le_add_right _ _
+      omega
+    · rw [if_neg hc] at h; simp at h
+
+/-- A canonical numeral of a value below `10 ^ k` has at most `k` digits. -/
+theorem decNat_length_le : ∀ (s : GoString) (n k : Nat), Net.decNat s = some n → n < 10 ^ k →
+    1 ≤ k → s.length ≤ k
+  | [], _, _, h, _, _ => by simp [Net.decNat] at h
+  | [_], _, _, _, _, hk => by simpa using hk
+  | c :: d :: s, n, k, h, hn, _ => by
+    simp only [Net.decNat] at h
+    by_cases h0 : c.toNat = 48
+    · rw [if_pos h0] at h; simp at h
+    · rw [if_neg h0] at h
+      have hdig := digitsVal_digits _ 0 n h c (by simp)
+      have h' : Net.digitsVal (d :: s) (0 * 10 + (c.toNat - 48)) = some n := by
+        rw [Net.digitsVal, if_pos hdig] at h; exact h
+      have hge := digitsVal_ge _ _ n h'
+      unfold Net.isDigit at hdig
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at hdig
+      have h1 : 1 ≤ 0 * 10 + (c.toNat - 48) := by omega
+      have hlt : 10 ^ (d :: s).length < 10 ^ k :=
+        Nat.lt_of_le_of_lt (Nat.le_trans (Nat.le_mul_of_pos_left _ h1) hge) hn
+      have := (Nat.pow_lt_pow_iff_right (by omega)).1 hlt
+      simp only [List.length_cons] at this ⊢
+      omega
+
+/-- **A valid address has at most 21 bytes**: four octets of at most three digits, a port of at
+most five, three dots and a colon. -/
+theorem addrOk_length_le {a : GoString} (h : Net.addrOk a = true) : a.length ≤ 21 := by
+  unfold Net.addrOk at h
+  split at h
+  · rename_i n1 n2 n3 n4 np hr
+    have hb : n1 < 224 ∧ n2 ≤ 255 ∧ n3 ≤ 255 ∧ n4 ≤ 255 ∧ np ≤ 65535 := by
+      simp only [Net.portOk, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq] at h
+      omega
+    unfold Net.parseAddr at hr
+    split at hr
+    · rename_i ip p hsp
+      split at hr
+      · rename_i x1 x2 x3 x4 hsp2
+        split at hr
+        · rename_i m1 m2 m3 m4 mp e1 e2 e3 e4 e5
+          simp only [Option.some.injEq, Prod.mk.injEq] at hr
+          obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hr
+          have l1 := splitBy_length 58 a []
+          have l2 := splitBy_length 46 ip []
+          rw [hsp] at l1
+          rw [hsp2] at l2
+          simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, List.length_cons,
+            List.length_nil] at l1 l2
+          have k1 := decNat_length_le x1 _ 3 e1 (by omega) (by omega)
+          have k2 := decNat_length_le x2 _ 3 e2 (by omega) (by omega)
+          have k3 := decNat_length_le x3 _ 3 e3 (by omega) (by omega)
+          have k4 := decNat_length_le x4 _ 3 e4 (by omega) (by omega)
+          have k5 := decNat_length_le p _ 5 e5 (by omega) (by omega)
+          omega
+        · simp at hr
+      · simp at hr
+    · simp at hr
+  · simp at h
+
 end etcd_dist
 end EtcdGrove
 end Perennial

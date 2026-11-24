@@ -59,7 +59,7 @@ theorem restartRead.wp_proof
     (wp_store : storeOracle.spec (GF := GF) (hG := hG))
     (wp_fromRaft : fromRaft.spec (GF := GF) (hG := hG)) :
     restartRead.spec (GF := GF) (hG := hG) := by
-  intro W e γ lg m v o cd od qp hmn hf hpath hcd hok hlen hrb hroom
+  intro W e γ lg m v o cd od qp hmn hf hpath hpf hcd hok hlen hrb hroom
   obtain ⟨hia, hnm, hca, hdl⟩ := hpath
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, #Hzap, #Harea, Hpath, Hres, Htok, Hop, Hov, Hrep, Ho,
     Hwo, #HrW⟩
@@ -73,7 +73,7 @@ theorem restartRead.wp_proof
   wp_auto
   icases Hdeps with ⟨-, -, -, #Hwpkg, #Hwpbpkg, -, -⟩
   wp_apply (wp_vse W lg e.R e.jr e.area (tWalDir e.area) go!"wal" qp
-      (fun od1 => iprop(⌜od1 = od⌝ ∗ tWalOwn γ od)) hia hnm hca hdl)
+      (fun od1 => iprop(⌜od1 = od⌝ ∗ tWalOwn γ od)) hia hnm hca hpf)
       $$ [Hzap Harea Hpath Hres Hperm Htok Hwo]
     as %sl %err ⟨Hpath, Hres, Hperm, Htok, %od1, ⟨%hod, Hwo⟩, Hvs⟩
   · iframe; iframe #
@@ -257,7 +257,7 @@ theorem restartRead.wp_proof
     rw [← tWithOpens_add]; exact tCandOk_open pr.1 hokl hlen1
   wp_apply (wp_open W lg e.R e.jr e.area (tWalDir e.area) go!"wal" «$a2_ptr» pr qp
       (fun od => iprop(⌜od = some dc⌝ ∗ tOrOwn γ (tWithOpens o (l ++ [pr.1])) none ∗
-        tWalOwn γ (some (walOpenRaise pr dc)))) hia hnm hca hdl)
+        tWalOwn γ (some (walOpenRaise pr dc)))) hia hnm hca hpf)
       $$ [Hpath Hres Hperm Htok Ho Hwo]
     as %w %err2 ⟨Hpath, Hres, %od, ⟨%hod, Ho, Hwo⟩, Hr⟩
   · iframe; iframe #
@@ -346,7 +346,7 @@ theorem restartRead.wp_proof
     ihave Hperm := osCallPerm_halfJoin _ 1 $$ Hph Hph2
     wp_apply (wp_repair W lg e.R e.jr e.area (tWalDir e.area) go!"wal" qp
         (fun od => iprop(⌜od = some (walOpenRaise pr dc)⌝ ∗ tWalOwn γ (some (walOpenRaise pr dc))))
-        hia hnm hca hdl) $$ [Hpath Hres Hperm Htok Hwo]
+        hia hnm hca hpf) $$ [Hpath Hres Hperm Htok Hwo]
       as %b ⟨Hpath, Hres, Hperm, Htok, %od, ⟨%hod, Hwo⟩⟩
     · iframe; iframe #
       iapply tInv_dirAu W e γ (some (walOpenRaise pr dc))

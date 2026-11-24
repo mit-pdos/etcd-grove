@@ -80,6 +80,9 @@ def putget_safe.spec : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    -- `os`'s struct field steps (the single-process theorems' premise; `etcdstart`'s linked results take
+    -- them since `NewStorage`'s contract is proved over the real WAL, wal-nostorageok)
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF,

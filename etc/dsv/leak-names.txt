@@ -17,7 +17,7 @@ person	(?<![\w-])frans(?![\w-])
 handle	etcd-grove-f?\d+
 handle	coordinator-[A-Z]
 allow		github[._]com[/.]upamanyus[/.]	the public forks' Go module paths (go.mod, go.sum, imports, Goose's package names, URLs)
-allow		(?<![\w-])upamanyus/(etcd-raft|etcd|bbolt|marshal)(?![\w-])	a public fork named as the source of code
+allow		(?<![\w-])upamanyus/(etcd-raft|etcd|bbolt|marshal|kubernetes)(?![\w-])	a public fork named as the source of code
 allow		people\.csail\.mit\.edu/upamanyu/	a paper's URL (README.md)
 allow	\.patch$	^From: .*	a patch's author line (etc/tla-fixes/patches)
 allow	^examples/dsverify/rabia/README\.md$	Joseph Tassarotti	the Rabia paper's author list
