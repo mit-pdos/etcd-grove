@@ -45,7 +45,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions]
 
 /-- **`Main(k)` does not panic** (`MainLinked.lean`'s `etcd_authlease.wp_Main`). -/
-theorem authlease_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem authlease_Main [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_authlease.Main.spec (GF := GF) (hG := hG) :=
   etcd_authlease.wp_Main
 

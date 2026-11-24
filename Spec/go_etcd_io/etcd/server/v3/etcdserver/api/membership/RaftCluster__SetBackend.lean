@@ -7,6 +7,7 @@ boundary; since then translated with its body and proved (prove-ps2-members), ov
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MemberBktsFresh
 
 @[expose] public section
 
@@ -71,6 +72,30 @@ abbrev membership.RaftCluster.SetBackend.spec : Prop :=
       (Val #(clusterBkIface mbl)))
   {{ RET #(); clusterBeOn c d.be ∗ backend.bOpen d.γB qo ∗ backend.rbOwnIn d.γB S r }}
 
+/-- **`c.SetBackend(mb)` on a backend whose membership buckets may be absent** (claim #34, stage 2,
+2026-11-25: `bootstrap`'s `Finalize` on a new backend): as `spec`, the part's absent membership
+buckets created empty (`schema.withMemBkts`; `MustCreateBackendBuckets.specFresh`); the cluster's `be`
+field holding any value before (a new cluster's is nil, no `clusterBeOn`). -/
+abbrev membership.RaftCluster.SetBackend.specFresh : Prop :=
+  ∀ (c : Loc) (oldv : GoInterface) (mbl lg : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
+    (S : GoString → Prop) (r : GMap GoString backend.BktData),
+  (∀ n, membership.clusterBkts n → S n) →
+  d.P.has mvcc.membersBI → d.P.has mvcc.membersRemovedBI → d.P.has mvcc.clusterBI →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" c ↦ oldv ∗
+      ⌜lg ≠ null⌝ ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" mbl ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+          #d.be : GoInterface) ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" mbl ↦□ lg ∗
+      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
+      backend.rbPart d.γB S r }}
+    (App (Val (c @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"SetBackend"))
+      (Val #(clusterBkIface mbl)))
+  {{ RET #(); clusterBeOn c d.be ∗ backend.bOpen d.γB qo ∗
+      backend.rbOwnIn d.γB S (schema.withMemBkts r) }}
 
 end spec
 

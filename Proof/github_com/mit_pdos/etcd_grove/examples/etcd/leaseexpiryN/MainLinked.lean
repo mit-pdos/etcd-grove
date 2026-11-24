@@ -67,7 +67,8 @@ theorem etcd_leaseexpiryN.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etc
 
 /-- **leaseexpiryN's `Main(k)` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Main.lean`),
 under the semantic premises of its callees' linked results (putgetN's). -/
-theorem etcd_leaseexpiryN.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_leaseexpiryN.wp_Main [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leaseexpiryN.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseexpiryN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcd_leaseexpiryN.wp_run (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)

@@ -56,7 +56,11 @@ abbrev bootstrappedCluster.Finalize.spec : Prop :=
     (bc : bootstrappedCluster) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
     (bw : bootstrappedWAL) (d : mvcc.KBReal) (W Pk : backend.BNames → IProp GF) (N : Nat)
     (D : backend.Data) (dq dqs dqb dqw : DFrac),
-  bootGo.membersOk cfg U → bc.nodeID' = bootGo.id cfg U → bw.haveWAL' = false →
+  bootGo.membersOk cfg U →
+  -- (claim #34 stage 2, 2026-11-25, the ledger's entry of that date) the lock invariant's bound on the
+  -- members (`rcLockInv`: at most `2^62`), from the initial cluster's size
+  bootGo.initMapOk U cfg.InitialClusterToken' →
+  bc.nodeID' = bootGo.id cfg U → bw.haveWAL' = false →
   bk.be' = interface.mkOk
     (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be →
   d.P.has mvcc.membersBI → d.P.has mvcc.membersRemovedBI → d.P.has mvcc.clusterBI →
