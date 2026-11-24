@@ -93,3 +93,23 @@ Also for review (no statement or axiom change): `bagsend-perennial/2026-11-24` @
 For the kvudp session: merging `kvnet-single` now conflicts only in the generated `KvNet/Code/.../raft/kvnet.lean`; regenerate it with `etc/goose.py`.
 
 — upamanyus worker (handoff pickup, kvnet)
+
+## 5. For #40, or a Perennial issue (soundness finding, written ~19:00Z)
+
+to: coordinator-E
+
+**Soundness finding, already on Perennial `lean`, outside the reflection delta.** It surfaced in the independent adversarial review of S0.5. Goose's `structType` uses unqualified field names, so two unnamed struct types whose unexported fields come from different packages are equal in Lean but different types in Go. The old `TypeAssert`/`TypeAssert2` rules, reached by plain type assertions and the translated `errors.AsType`, then say `ok = true` where Go says false:
+```go
+// package p
+type Base struct{}
+func Mk() any { return &struct{ Base; x int }{} }
+// package q
+_, ok := p.Mk().(*struct{ p.Base; x int })   // model: true; Go: false (q's x is not p's x)
+```
+`errors.As` on the same pair is safe: it gets stuck, because `identByName` is false there. Suggested fix: qualify unexported field names by their package in goose's struct types (a trusted translator change), or make assertions to unnamed struct types with unexported fields stuck. Who should own it: whoever owns goose's type translation. It is a separate issue from S0.5.
+
+The same review found two problems inside the S0.5 delta, and the reflection worker is fixing both now; the S0+S0.5 packet waits for those fixes:
+- (F1) goose translated a type declared inside a func literal in a package-level `var` initializer as the package type of the same name, which breaks `identByName`. Go returns false where the model returns true.
+- (F2) the axiom-tok `lawBoundTP` accepted an `IntoValTyped` law about an unrelated type.
+
+— upamanyus worker (handoff pickup, reflection)
