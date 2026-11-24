@@ -55,7 +55,7 @@ instance isGrpcRpcMd_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
 /-- An entry of the table `a` serves registers its method. -/
 theorem isGrpcRpcMd_of_addr {Req Rep : ProtoMsg GF} (a name : GoString) (Svc : GrpcSvc GF)
     [hX : HasExt netExt] [π : NetProtoGS] [σ : NetSlotGS] (Spec : GrpcSpecMd Req Rep)
-    (h : Svc name = some ⟨Req.wire, Rep.wire, Spec⟩) :
+    (h : Svc name = some (.unary ⟨Req.wire, Rep.wire, Spec⟩)) :
     grpcAddrAt (Gg := hG.goose_globalGS) a Svc ⊢ isGrpcRpcMd a name Spec := by
   iintro #Ha
   unfold isGrpcRpcMd
@@ -237,14 +237,14 @@ registered unary method `tys` gives message models for (`tys`: the program's una
 name, with their registered models), none for a stream or an unregistered name. -/
 def grpcGoSvc (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface))
     (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) : GrpcSvc GF := fun name =>
-  if name ∈ regs.map Prod.fst then (tys name).map (fun p => grpcGoEntry ics regs name p.1 p.2)
+  if name ∈ regs.map Prod.fst then (tys name).map (fun p => .unary (grpcGoEntry ics regs name p.1 p.2))
   else none
 
 theorem grpcGoSvc_some (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface))
     (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (name : GoString) (mh : GoFunc)
     (srv : GoInterface) (Req Rep : ProtoMsgT GF) (hin : (name, mh, srv) ∈ regs)
     (hty : tys name = some (Req, Rep)) :
-    grpcGoSvc ics regs tys name = some (grpcGoEntry ics regs name Req Rep) := by
+    grpcGoSvc ics regs tys name = some (.unary (grpcGoEntry ics regs name Req Rep)) := by
   have hm : name ∈ regs.map Prod.fst := List.mem_map.2 ⟨_, hin, rfl⟩
   simp [grpcGoSvc, hm, hty]
 

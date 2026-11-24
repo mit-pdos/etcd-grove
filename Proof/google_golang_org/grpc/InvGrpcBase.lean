@@ -109,6 +109,10 @@ structure ProtoMsg (GF : BundledGFunctors) where
   `ProtoMsgT`, unchanged): the tree of values (`Store.lean`) that `storeInto ty l` writes for a `*T`
   holding `m`. With `ty` and `M` it is the message's wire part (`ProtoMsg.wire`, no heap). -/
   tree : M → VTree
+  /-- **The model is countable** (phase 7, SW1, 2026-11-24, `notes/phase7-endstate.md` §1.2): a
+  call's queues are ghost lists of models (`ProtoWire.cnt`). Filled by instance resolution at the
+  instance's `M`; not itself a global instance (a projection instance could disagree with `M`'s own). -/
+  cnt : Pos.Countable M := by infer_instance
   /-- The sender's `*T` holding `m` (what marshaling needs; it comes back). -/
   send : Loc → M → IProp GF
   /-- **An upper bound on the length of the encoding** (`proto.Size`) of every message `send`

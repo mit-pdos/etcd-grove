@@ -110,6 +110,11 @@ structure StreamMsg (GF : BundledGFunctors) where
   ty : go.GoType
   M : Type
   cnt : Pos.Countable M
+  /-- **The message's stored form** (phase 7, SW1, 2026-11-24, `notes/phase7-endstate.md` §1.5 item
+  8: moved here from `StreamMsgT`, unchanged, as `ProtoMsg.tree`): the tree of values `storeInto ty
+  l` writes for a `*T` holding `m`. With `ty`, `M` and `cnt` it is the message's wire part
+  (`StreamMsg.wire`, no heap). -/
+  tree : M → VTree
   send : Loc → M → IProp GF
   /-- **An upper bound on the length of the encoding** of every message `send` holds at `m`
   (as `ProtoMsg.wireLen`; the same scope: the unknown fields of a message `send` holds field by
@@ -121,6 +126,10 @@ structure StreamMsg (GF : BundledGFunctors) where
 
 attribute [instance] StreamMsg.cnt
 
+/-- **A stream message type's wire part** (no heap: its Go type, its model, its stored form; phase 7,
+SW1). -/
+abbrev StreamMsg.wire {GF : BundledGFunctors} (T : StreamMsg GF) : ProtoWire := ⟨T.ty, T.M, T.tree, T.cnt⟩
+
 end defs
 
 /-! ## Per-type message models: the stores and the role-split registries (stage A, CP2) -/
@@ -131,9 +140,9 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- A stream's message model with its normalizing store. -/
-structure StreamMsgT (GF : BundledGFunctors) extends StreamMsg GF where
-  tree : M → VTree
+/-- A stream's message model with its normalizing store (its `tree` is `StreamMsg`'s since phase 7,
+SW1). -/
+structure StreamMsgT (GF : BundledGFunctors) extends StreamMsg GF
 
 /-- **A stream request's store gives its decoded model** (the `own` form; with the request's
 `wireLen` below `grpcMsgMax`, as `ReqSat`: `createReqOwn` needs the key's length bound). -/

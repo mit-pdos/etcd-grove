@@ -151,7 +151,8 @@ models, met by its handler as a run (`grpcRunOkMd`). An entry `gs` does not regi
 `Unimplemented` (no handler's description). -/
 def grpcServes (Svc : GrpcSvc GF) (ics : List GoFunc)
     (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF :=
-  iprop(□ ∀ (name : GoString) (e : GrpcEntry GF), ⌜Svc name = some e⌝ -∗
+  iprop((□ ∀ (name : GoString) (e : GrpcStreamEntry GF), ⌜Svc name = some (.stream e)⌝ -∗ False) ∗
+    □ ∀ (name : GoString) (e : GrpcEntry GF), ⌜Svc name = some (.unary e)⌝ -∗
     ⌜name ∉ sregs.map Prod.fst⌝ ∗
     ∀ (mh : GoFunc) (srv : GoInterface), ⌜(name, mh, srv) ∈ regs⌝ -∗
       ∃ (Req Rep : ProtoMsgT GF) (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg),
@@ -213,6 +214,11 @@ theorem grpcServes_go (ics : List GoFunc) (regs sregs : List (GoString × GoFunc
     (hnd : ((regs ++ sregs).map Prod.fst).Nodup) :
     ⊢ grpcServes (grpcGoSvc ics regs tys) ics regs sregs := by
   unfold grpcServes
+  isplitl []
+  · iintro !> %name %e %he
+    exfalso
+    unfold grpcGoSvc at he
+    split at he <;> simp at he
   iintro !> %name %e %he
   have hm : name ∈ regs.map Prod.fst := by
     unfold grpcGoSvc at he
@@ -221,7 +227,7 @@ theorem grpcServes_go (ics : List GoFunc) (regs sregs : List (GoString × GoFunc
     · simp [h] at he
   obtain ⟨⟨Req, Rep⟩, hty, rfl⟩ : ∃ p, tys name = some p ∧ grpcGoEntry ics regs name p.1 p.2 = e := by
     unfold grpcGoSvc at he
-    simp only [hm, if_true, Option.map_eq_some_iff] at he
+    simp only [hm, if_true, Option.map_eq_some_iff, GrpcSvcEntry.unary.injEq] at he
     exact he
   isplitr
   · ipureintro
