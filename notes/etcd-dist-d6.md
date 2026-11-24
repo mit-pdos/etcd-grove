@@ -229,3 +229,64 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
   dead locations is harmless). `memberRestart` leaves the registry name free (`γ' = {C.γ with reg := r}`);
   T4 decides.
 * **Q5**: D4b's crash interpretation (§5).
+
+## 9. T1's result (2026-11-24, branch `etcd-safe-d6t1/2026-11-24`)
+
+**Go.** `issues/raft-bootstrap-entries-kept-small-appends/bootstrap_torn_test.go` (copied into the raft
+module root): 1, 3 and 5 members bootstrapped as etcd does (`NewRawNode` + `Bootstrap(peers)` on an
+empty `MemoryStorage`), etcd's `raftConfig` (PreVote, CheckQuorum, `MaxSizePerMsg` 1 MiB,
+`MaxInflightMsgs` 512), each `Ready` handled as doc.go says; member 1's first `Ready` torn at a random
+prefix (entries kept, `HardState` and the rest dropped), restart with `NewRawNode` from its storage;
+300 random schedules each (ticks, deliveries, drops, partitions, campaigns, proposals).
+`TestBootstrapTornFirstReady` and `TestBootstrapTornAnyReady` (the latter: every member may also crash
+before, after or in the middle of any later `Ready`) **pass** at the verified fork d2c16c5, upstream
+`main` ae830f4 and v3.7.0: no index committed twice; member 1 rejoins as a voter of the whole
+configuration once healed, unless every member lost its bootstrap `Ready` (always, for one member: a
+single-member cluster whose bootstrap `Save` is torn never elects again; liveness). Measured in
+`TestBootstrapTornAnyReady`: 47 torn **later** batches held bootstrap conf entries (a member whose first
+`Save` was torn gets the rest of the bootstrap log in a later batch), and 13 torn batches kept entries
+above a nonzero stored term; both are outside the premise the lead chose, and both were safe.
+
+With `MaxSizePerMsg` 1 the same setting is **unsafe**: `TestRestartWithPartOfBootstrapEntries` (3
+members, two keep only index 1 of their bootstrap batch) commits two entries at index 3: a member that
+lost its bootstrap `HardState` commits the bootstrap log one entry per append, applies a prefix of the
+bootstrap conf changes, and elects itself in that prefix's configuration. Recorded as
+`issues/raft-bootstrap-entries-kept-small-appends.md` (`blocks-proof: no`: etcd's 1 MiB covers its
+bootstrap log). So "a torn bootstrap batch is harmless" holds for etcd only because an append carries the
+whole bootstrap log, a fact about `MaxSizePerMsg` and the peers' contexts that raft's proof never uses.
+
+**Lean: `readyCrashTorn.law` is not provable as stated** (by reading the definitions; no proof attempted):
+
+1. *The bootstrap disjunct.* `raftState`'s body (`ownDurGhost`, `Protocol/GhostState.lean:3119`) carries
+   `durI1 γ S S.wcommit` (`:3048`): in a dynamic cluster (every node-API cluster with a `confAt`, so
+   etcd's: `RestartNode.lean:406`) no two conf entries of the log lie at or above `wcommit`.
+   `raftTorn RaftState.init es k` has `wcommit = 0` and the first `k` bootstrap conf entries: false for
+   `k ≥ 2`. And `RestartNode.spec` restarts only at `γ.bootLen ≤ σ.commit`
+   (`Spec/go_etcd_io/raft/v3/RestartNode.lean:93`), so such a state could not be restarted anyway; making
+   it restartable is a new protocol argument that must use `MaxSizePerMsg` ≥ the bootstrap log's size
+   (the Go test above shows it false otherwise).
+2. *Entries above the durable term.* `durPers` (`:2963`) bounds every log entry's term by `S.term`
+   (`:2970`). A batch that raised the term (a follower's first append from a new leader: one `Ready`
+   with the new `HardState` and entries of the new term) torn keeps entries of a term above
+   `st.durable.term`, and `raftTorn` keeps the stored term (it must: `StorageHolds` reads the state
+   record). The no-conf-entry premise does not exclude it; Go reaches it (13 runs above).
+3. *No torn content in `readyEnter`.* The law's only source for the batch is `readyEnter … st st' ms`,
+   whose crash half (`readyEnterCrash`, `InvApi.lean:2721`) is a wand entering the whole of
+   `st'.durable`; the facts a torn state needs (the entries' records, `batchOk`'s `durPers` of the batch)
+   are inside it. A torn law needs a third conjunct of `readyEnter`, built by `RawNode.Ready`'s proof from
+   a new protocol lemma (`raft_crash_torn` beside `raft_crash_enter`, `Protocol/Enter.lean:2302`), i.e.
+   raft's API and its `Ready` proof change, not only a defs-tier law.
+
+**Minimal restatements, and the recommendation.**
+* (R-a, recommended; Q1 (a)) Delete `readyCrashTorn.law`: fix the WAL fork so that a torn `Save` reads as
+  no `Save` (every `Save` with entries ends with a state record; `ReadAll` drops entry records after the
+  last state record), and have etcd bootstrap again (`StartNode`) when the WAL holds no state record (a
+  crash between `wal.Create` and the first `Save`, or a torn first `Save`): raft's state is then
+  `RaftState.init`, `nodeBoot` is persistent, and the existing `nodeCrash` covers it. Without the second
+  half, etcd's restart after a crash before its first `Save` (`haveWAL` true, empty storage) calls
+  `RestartNode` at `σ.commit = 0 < bootLen`, which `RestartNode.spec` excludes, torn or not.
+* (R-b) Keep a torn law for later batches only: premise `(∀ e ∈ es.take k, ¬ IsConfEnt e ∧ uint.Z e.Term' ≤
+  uint.Z st.durable.term)`, plus obstacle 3's API change (sizing: the note's 600-1200 lines, unchanged).
+  Not usable for etcd as is: etcd's WAL can tear a term-raising batch (obstacle 2), so T2 could not
+  discharge the premise; removing it needs `durPers`'s term bound weakened (new Leader-Completeness
+  reasoning: a restarted node's log may run past its term).

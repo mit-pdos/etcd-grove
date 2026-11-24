@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (79)
+## Not reported (80)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -81,6 +81,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [klog: Infof, Warningf and Errorf panic on an empty message when a logger is set](klog-printf-empty-with-logger.md) | no | kubernetes/klog#272 pr merged |
 | [clientv3/leasing: a `WithFromKey` delete does not make other leasing clients drop the keys they cache](leasing-delete-fromkey-skips-revoke.md) | no | etcd-io/etcd#22083 issue open; etcd-io/etcd#22118 pr open; etcd-io/etcd#20704 issue closed |
 | [raft: with `AsyncStorageWrites`, entries applied after a snapshot that includes them diverge the state machine](raft-async-snapshot-during-apply-divergence.md) | no | etcd-io/raft#8 pr merged |
+| [raft: with a small `MaxSizePerMsg`, a node that crashes while persisting its bootstrap `Ready` can elect itself in part of the initial configuration](raft-bootstrap-entries-kept-small-appends.md) | no | etcd-io/raft#558 issue open; etcd-io/raft#561 pr open; etcd-io/raft#553 pr open |
 | [raft: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index](raft-commit-lost-with-entries-kept.md) | no | etcd-io/raft#300 pr closed; etcd-io/raft#234 issue closed |
 | [raft: `Status()` reports `AutoLeave: false` in a joint configuration entered with auto-leave](raft-config-clone-autoleave.md) | no |  |
 | [The noax Raft fork rejects a configuration change carrying an optional protobuf field](raft-noax-confchange-wire-compat.md) | no |  |
