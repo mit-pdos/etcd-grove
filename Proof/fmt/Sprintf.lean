@@ -25,7 +25,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- From Perennial's spec of the real `Sprintf` (`fmt.wp_Sprintf`, translated and proved, real
 `fmt` stage 1), through `fmt.wp_Sprintf_pure`. -/
 theorem fmt.Sprintf.wp_proof : fmt.Sprintf.spec (GF := GF) (hG := hG) :=
-  fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf
+  fun format ps args xs pargs dq he hf hp hq =>
+    fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf format ps args xs pargs dq he hf hp hq
 
 end proof
 

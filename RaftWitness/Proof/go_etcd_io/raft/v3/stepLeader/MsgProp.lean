@@ -191,7 +191,7 @@ local macro "cc_pending" ccm:term:max : tactic => `(tactic| (
         [.lit go!"possible unapplied conf change at index ",
         .dir none _root_.Perennial.fmt.verb_d, .lit go!" (applied to ",
         .dir none _root_.Perennial.fmt.verb_d, .lit go!")"] _ _ _ _ (by fmt_encode) (by fmt_fits)
-        (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil))
+        (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil)) (by fmt_noquote)
         $$ [$(frameH `Hargs)] as %str ⟨Hargs, %Hout⟩
     have Hstr : str ≠ [] := by
       simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, Hout, _root_.Perennial.fmt.render]

@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`fmt.Sprintf(format, args...)` of arguments that call no method** (`fmt.PureArgs`: `nil`, a
 `bool`, a value of a predeclared integer type, a `string`), the format `fmt.encode ps` in the
-verified subset of the real `fmt` (`fmt.Fits`): returns `fmt.render ps args`, the pieces' outputs
+verified subset of the real `fmt` (`fmt.Fits`) and without `%q` (`fmt.NoQuote`): returns `fmt.render ps args`, the pieces' outputs
 in order, and gives the arguments' slice back. `newRaft` formats `uint64`s with `%x` for a log
 line; `stepLeader` refuses a conf change only when its `failedCheck` message, a `Sprintf` of a
 format beginning with a letter, is non-empty.
@@ -36,7 +36,7 @@ abbrev fmt.Sprintf.spec : Prop :=
   ∀ (format : GoString) (ps : List _root_.Perennial.fmt.Piece) (args : GoSlice)
     (xs : List GoInterface) (pargs : List _root_.Perennial.fmt.Arg) (dq : DFrac),
   format = _root_.Perennial.fmt.encode ps → _root_.Perennial.fmt.Fits ps pargs →
-  fmt.PureArgs xs pargs →
+  _root_.Perennial.fmt.PureArgs xs pargs → _root_.Perennial.fmt.NoQuote ps →
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args ↦*{dq} xs }}
     (App (App (Val #(functions _root_.Perennial.fmt.Sprintf [])) (Val #format)) (Val #args))
   {{ (s : GoString), RET #s; args ↦*{dq} xs ∗

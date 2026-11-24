@@ -3772,7 +3772,7 @@ SPECIAL[_OP] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-misc, 2026-11-20): the interface assertions (`var _
 TextMapCarrier = MapCarrier{}`, ...) and `versionPart = fmt.Sprintf("%.2X", supportedVersion)`
-(Perennial's `fmt.wp_Sprintf`: some string, no panic).''',
+(Perennial's `fmt.wp_Sprintf` of the real `Sprintf`, `fmt-stage15`'s `%.P`: some string, no panic).''',
     alloc_types={'versionPart': 'GoString', 'handleExtractErrOnce': '_root_.Perennial.sync.Once'},
     before={'versionPart': [
         'try wp_auto',
@@ -3784,9 +3784,11 @@ TextMapCarrier = MapCarrier{}`, ...) and `versionPart = fmt.Sprintf("%.2X", supp
         'try wp_auto',
         'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %svp ⟨Svp, -⟩',
         'try wp_auto',
-        'wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
-        '(_root_.Perennial.fmt.IntArgValue.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Svp] as %rvp -',
+        'wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%.2X" '
+        '[.prec 2 _root_.Perennial.fmt.verb_X] _ _ _ _ (by fmt_encode) (by fmt_fits) '
+        '(.int _ _ _ _ (.int _) .nil) $$ [$Svp] as %rvp -',
         'try wp_auto']},
+    imports=['Proof.fmt.SprintfPure'],
 )
 _ZC = 'go_uber_org.zap.zapcore'
 _ZCL = f'{_ZC}.Level.ty'

@@ -94,7 +94,7 @@ theorem Options.String.wp_proof (hSprintf : _root_.Perennial.fmt.Sprintf.spec (G
       iapply BigSepL2.bigSepL2_cons.2
       isplitr
       · iapply isArg_duration hDur
-      iapply (EtcdGrove.fmt.PureArgs.isArgs ?pa)
+      iapply (_root_.Perennial.fmt.PureArgs.isArgs ?pa)
       case pa => fmt_pure
     try wp_auto
     iapply HΦ

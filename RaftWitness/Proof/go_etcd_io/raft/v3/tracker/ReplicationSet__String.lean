@@ -177,7 +177,7 @@ theorem tracker.ReplicationSet.String.wp_proof
       iintro %sla ⟨Hargs, -⟩
       wp_auto
       wp_apply wp_fmt_Sprintf go!"{%s}" [.lit go!"{", .dir none _root_.Perennial.fmt.verb_s,
-        .lit go!"}"] _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ .nil) $$ [$Hargs] as %res -
+        .lit go!"}"] _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ .nil) (by fmt_noquote) $$ [$Hargs] as %res -
       iapply HΦ
       itrivial
 

@@ -47,7 +47,7 @@ theorem traceutil.Field.format.wp_proof : traceutil.Field.format.spec (GF := GF)
     have hl := Hargs.length_eq
     match args, hl with
     | [a], _ => exact ⟨a, rfl⟩
-  have Ha := Hargs.dirOk_v a (List.mem_singleton_self _)
+  have Ha := fmt.PureArgs.dirOk_v Hargs a (List.mem_singleton_self _)
   wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%v; "
     [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_v, .lit go!"; "] _ _ _ (DFrac.own 1)
     (by fmt_encode)

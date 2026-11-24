@@ -1092,7 +1092,7 @@ theorem newRaft.wp_proof
       iintro %sla ⟨Hargs, -⟩
       wp_auto
       wp_apply wp_fmt_Sprintf go!"%x" [.dir none _root_.Perennial.fmt.verb_x] _ _ _ _ (by fmt_encode)
-        (by fmt_fits) (.int _ _ _ _ (.uint64 _) .nil) $$ [$Hargs] as %str ⟨Hargs, -⟩
+        (by fmt_fits) (.int _ _ _ _ (.uint64 _) .nil) (by fmt_noquote) $$ [$Hargs] as %str ⟨Hargs, -⟩
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
       iintro %sl2 ⟨Hsl2, -⟩
@@ -1602,7 +1602,7 @@ theorem newRaft.wp_proof
       iintro %sla ⟨Hargs, -⟩
       wp_auto
       wp_apply wp_fmt_Sprintf go!"%x" [.dir none _root_.Perennial.fmt.verb_x] _ _ _ _ (by fmt_encode)
-        (by fmt_fits) (.int _ _ _ _ (.uint64 _) .nil) $$ [$Hargs] as %str ⟨Hargs, -⟩
+        (by fmt_fits) (.int _ _ _ _ (.uint64 _) .nil) (by fmt_noquote) $$ [$Hargs] as %str ⟨Hargs, -⟩
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
       iintro %sl2 ⟨Hsl2, -⟩

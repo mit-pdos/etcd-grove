@@ -3,13 +3,14 @@
 type, a `string`): Perennial's spec of the real `Sprintf` (`fmt.Sprintf.spec`, real `fmt` stage 1,
 perennial#671) with the arguments given as a pure list (`fmt.PureArgs`) and the output computed
 (`fmt.render`), and the tactics that discharge its side conditions on a literal format
-(`fmt_encode`, `fmt_fits`). For the callers that format only such values (2026-11-24; until then
+(Perennial's `fmt_encode`, `fmt_fits`, `fmt_pure`, `fmt_noquote`; this file's own copies of `PureArgs` and the tactics went to Perennial with `fmt-stage15`). For the callers that format only such values (2026-11-24; until then
 they used `fmt.wp_Sprintf_argsWf`, over the trusted model of `Sprintf`).
 -/
 module
 
 public import Perennial.Spec.fmt.Sprintf
 public import Perennial.Proof.fmt.OutLemmas
+public import Perennial.Proof.fmt.PureArgs
 public import Perennial.Proof.fmt.Args
 public import Perennial.Golang.Theory.TypeSet
 
@@ -25,34 +26,10 @@ open Iris Iris.BI Iris.ProofMode
 section defs
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- The Go values `xs` are the arguments `args`, none of which calls a method: `nil`, a `bool`, a
-value of a predeclared integer type (`fmt.IntArg`) or a `string`. -/
-inductive fmt.PureArgs : List GoInterface → List _root_.Perennial.fmt.Arg → Prop
-  | nil : fmt.PureArgs [] []
-  | nil_ (xs : List GoInterface) (args : List _root_.Perennial.fmt.Arg) :
-      fmt.PureArgs xs args → fmt.PureArgs (interface.nil :: xs) (.nil :: args)
-  | bool (b : Bool) (xs : List GoInterface) (args : List _root_.Perennial.fmt.Arg) :
-      fmt.PureArgs xs args → fmt.PureArgs (interface.mkOk go.bool #b :: xs) (.bool b :: args)
-  | int (x : GoInterface) (z : Int) (xs : List GoInterface) (args : List _root_.Perennial.fmt.Arg) :
-      _root_.Perennial.fmt.IntArg x z → fmt.PureArgs xs args → fmt.PureArgs (x :: xs) (.int z :: args)
-  | str (s : GoString) (xs : List GoInterface) (args : List _root_.Perennial.fmt.Arg) :
-      fmt.PureArgs xs args → fmt.PureArgs (interface.mkOk go.string #s :: xs) (.str s :: args)
-
-theorem fmt.PureArgs.noMethod {xs : List GoInterface} {args : List _root_.Perennial.fmt.Arg}
-    (h : fmt.PureArgs xs args) : ∀ a ∈ args, a.NoMethod := by
-  induction h with
-  | nil => simp
-  | nil_ _ _ _ ih | bool _ _ _ _ ih | int _ _ _ _ _ _ ih | str _ _ _ _ ih =>
-    simp only [List.mem_cons, forall_eq_or_imp]
-    exact ⟨trivial, ih⟩
-
-theorem fmt.PureArgs.length_eq {xs : List GoInterface} {args : List _root_.Perennial.fmt.Arg}
-    (h : fmt.PureArgs xs args) : xs.length = args.length := by
-  induction h <;> simp_all
-
 theorem fmt.PureArgs.cons_of {x : GoInterface} {a : _root_.Perennial.fmt.Arg}
     {xs : List GoInterface} {args : List _root_.Perennial.fmt.Arg}
-    (h1 : fmt.PureArgs [x] [a]) (h2 : fmt.PureArgs xs args) : fmt.PureArgs (x :: xs) (a :: args) := by
+    (h1 : _root_.Perennial.fmt.PureArgs [x] [a]) (h2 : _root_.Perennial.fmt.PureArgs xs args) :
+    _root_.Perennial.fmt.PureArgs (x :: xs) (a :: args) := by
   cases h1 with
   | nil_ _ _ _ => exact .nil_ _ _ h2
   | bool b _ _ _ => exact .bool b _ _ h2
@@ -62,10 +39,10 @@ theorem fmt.PureArgs.cons_of {x : GoInterface} {a : _root_.Perennial.fmt.Arg}
 /-- Every argument is `nil` or one that calls no method (`fmt.PureArgs`), as `fmt.ArgsWf` has it
 for the trusted model's premise. -/
 def fmt.PureArgsWf (xs : List GoInterface) : Prop :=
-  ∀ ii, interface.ok ii ∈ xs → ∃ a, fmt.PureArgs [interface.ok ii] [a]
+  ∀ ii, interface.ok ii ∈ xs → ∃ a, _root_.Perennial.fmt.PureArgs [interface.ok ii] [a]
 
 theorem fmt.PureArgsWf.toPureArgs {xs : List GoInterface} (h : fmt.PureArgsWf xs) :
-    ∃ args, fmt.PureArgs xs args := by
+    ∃ args, _root_.Perennial.fmt.PureArgs xs args := by
   induction xs with
   | nil => exact ⟨[], .nil⟩
   | cons x xs ih =>
@@ -74,11 +51,11 @@ theorem fmt.PureArgsWf.toPureArgs {xs : List GoInterface} (h : fmt.PureArgsWf xs
     | nil => exact ⟨_, .nil_ _ _ hargs⟩
     | ok ii =>
       obtain ⟨a, ha⟩ := h ii (List.mem_cons_self ..)
-      exact ⟨_, ha.cons_of hargs⟩
+      exact ⟨_, fmt.PureArgs.cons_of ha hargs⟩
 
 /-- `%v` formats every argument that calls no method. -/
 theorem fmt.PureArgs.dirOk_v {xs : List GoInterface} {args : List _root_.Perennial.fmt.Arg}
-    (h : fmt.PureArgs xs args) :
+    (h : _root_.Perennial.fmt.PureArgs xs args) :
     ∀ a ∈ args, _root_.Perennial.fmt.DirOk none _root_.Perennial.fmt.verb_v a := by
   induction h with
   | nil => simp
@@ -127,86 +104,32 @@ theorem fmt.length_hexPad_zero_le (z : Int) (h : z.natAbs < 2 ^ 64) :
 
 end defs
 
-/-- `ps` encodes a literal format: `format = fmt.encode ps`. -/
-macro "fmt_encode" : tactic => `(tactic| (simp [_root_.Perennial.fmt.encode,
-  _root_.Perennial.fmt.Piece.encode, _root_.Perennial.fmt.decimalNat_eq,
-  _root_.Perennial.fmt.digitByte, _root_.Perennial.fmt.verb_d, _root_.Perennial.fmt.verb_s,
-  _root_.Perennial.fmt.verb_v, _root_.Perennial.fmt.verb_x]))
-
-/-- `fmt.Fits ps args` for literal pieces and arguments. -/
-macro "fmt_fits" : tactic => `(tactic| (repeat' (first
-  | exact _root_.Perennial.fmt.Fits.nil
-  | refine _root_.Perennial.fmt.Fits.lit _ _ _ (by decide) ?_
-  | refine _root_.Perennial.fmt.Fits.percent _ _ ?_
-  | refine _root_.Perennial.fmt.Fits.dir _ _ _ _ _ (by simp [_root_.Perennial.fmt.DirOk,
-      _root_.Perennial.fmt.ZeroWidthOk, _root_.Perennial.fmt.verb_d, _root_.Perennial.fmt.verb_s,
-      _root_.Perennial.fmt.verb_v, _root_.Perennial.fmt.verb_x]) ?_)))
-
-/-- `fmt.PureArgs xs ?args` for a literal list `xs` of `nil`s, `bool`s, `string`s and values of
-predeclared integer types: the arguments read off the values. -/
-macro "fmt_pure" : tactic => `(tactic| (repeat' (first
-  | exact _root_.Perennial.EtcdGrove.fmt.PureArgs.nil
-  | refine _root_.Perennial.EtcdGrove.fmt.PureArgs.str _ _ _ ?_
-  | refine _root_.Perennial.EtcdGrove.fmt.PureArgs.bool _ _ _ ?_
-  | refine _root_.Perennial.EtcdGrove.fmt.PureArgs.nil_ _ _ ?_
-  | refine _root_.Perennial.EtcdGrove.fmt.PureArgs.int _ _ _ _ (by constructor) ?_)))
-
 section wps
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-theorem fmt.PureArgs.isArgs {xs : List GoInterface} {args : List _root_.Perennial.fmt.Arg}
-    (h : fmt.PureArgs xs args) :
-    ⊢ ([∗list] x;a ∈ xs;args, _root_.Perennial.fmt.isArg (GF := GF) x a) := by
-  induction h with
-  | nil => exact BigSepL2.bigSepL2_nil.2
-  | nil_ _ _ _ ih =>
-    iapply BigSepL2.bigSepL2_cons.2
-    isplitr
-    · simp only [_root_.Perennial.fmt.isArg]; ipureintro; trivial
-    · iapply ih
-  | bool _ _ _ _ ih =>
-    iapply BigSepL2.bigSepL2_cons.2
-    isplitr
-    · simp only [_root_.Perennial.fmt.isArg]; ipureintro; trivial
-    · iapply ih
-  | int _ _ _ _ hx _ ih =>
-    iapply BigSepL2.bigSepL2_cons.2
-    isplitr
-    · simp only [_root_.Perennial.fmt.isArg]; ipureintro; exact hx
-    · iapply ih
-  | str _ _ _ _ ih =>
-    iapply BigSepL2.bigSepL2_cons.2
-    isplitr
-    · simp only [_root_.Perennial.fmt.isArg]; ipureintro; trivial
-    · iapply ih
-
 /-- **`fmt.Sprintf(format, args...)` of arguments that call no method** (`fmt.PureArgs`), the format
 `fmt.encode ps` in the verified subset (`fmt.Fits`): returns `fmt.render ps args`, and gives the
 arguments' slice back. From Perennial's spec of the real `Sprintf`. -/
-theorem fmt.wp_Sprintf_pure (wp_Sprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG)) :
-    ∀ (format : GoString) (ps : List _root_.Perennial.fmt.Piece) (args_sl : GoSlice)
-      (xs : List GoInterface) (args : List _root_.Perennial.fmt.Arg) (dq : DFrac),
-    format = _root_.Perennial.fmt.encode ps → _root_.Perennial.fmt.Fits ps args →
-    fmt.PureArgs xs args →
+theorem fmt.wp_Sprintf_pure (wp_Sprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG))
+    (format : GoString) (ps : List _root_.Perennial.fmt.Piece) (args_sl : GoSlice)
+    (xs : List GoInterface) (args : List _root_.Perennial.fmt.Arg) (dq : DFrac)
+    (he : format = _root_.Perennial.fmt.encode ps) (hf : _root_.Perennial.fmt.Fits ps args)
+    (hp : _root_.Perennial.fmt.PureArgs xs args)
+    (hq : _root_.Perennial.fmt.NoQuote ps := by fmt_noquote) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs }}
       (App (App (Val (@! _root_.Perennial.fmt.Sprintf)) (Val #format)) (Val #args_sl))
     {{ (s : GoString), RET #s; args_sl ↦*{dq} xs ∗ ⌜s = _root_.Perennial.fmt.render ps args⌝ }} := by
-  intro format ps args_sl xs args dq he hf hp
-  iintro %Φ ⟨#Hpkg, Hsl⟩ HΦ
-  iapply (wp_Sprintf format ps args_sl xs args dq he hf) $$ [Hsl]
-  · iframe
-    isplitr
-    · iexact Hpkg
-    iapply hp.isArgs
+  iintro %Φ Hpre HΦ
+  iapply (_root_.Perennial.fmt.Sprintf_pure_of wp_Sprintf format ps args_sl xs args dq he hf hp) $$ Hpre
   inext
-  iintro %s ⟨Hsl, -, %Hout⟩
+  iintro %s ⟨Hsl, %Hout⟩
   iapply HΦ
   iframe
   ipureintro
-  exact Hout.eq_render hp.noMethod
+  exact Hout.2 hq
 
 section methods
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
