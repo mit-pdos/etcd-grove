@@ -311,3 +311,29 @@ Done: §1 approved and stated (`TopLevelDefs`, `Spec/.../TopLevelRobustness`); S
 4. Parallel proofs (§5): P-sim (pure lemmas), P-raft-1b/3/4 (one big rebuild at a time), P-harness.
 Builds: worktree `tmp/eg-ant4` has a seeded `.lake` (oleans hard-linked from `tmp/ant`, rest copied); helpers
 use `flock /tmp/ant4-build.lock` and `etc/lean-check.py` (server class) rather than `lake build`.
+
+## 9. Session 2 (2026-11-24): decisions taken, part 2 stated
+
+- **Decision 1** (`CfgOk`, `Stream.ConfBounded`): as stated in part 1 (`RunCluster.spec`, `runOver`).
+- **Decision 2** (the cause before `Step`): `harness.go`'s `run` stores `cause := msgOf(inp.msg, n.id)`
+  (`n.cause` a `*check.Msg`), `reportCause` records `*n.cause`. Re-translated; `TestRuns` 100 of 100.
+- **Forwarding** (§7, revised): raft's default (on), `Cluster.send` drops every `MsgProp`.
+- **Decision 3** (`ip`): `ownRawNodeAt … qs ip sc`, `rawNode … qs ip`, the forms' `ip` facts
+  (`notes/antithesis-rawnode-design.md` §2.6).
+- **Part 2** (`Proof/.../antithesis/HarnessInv.lean`, `Spec/.../Cluster__{deliver,send,reportCause,drain,run}.lean`):
+  `AntNames` (raft's cluster, `strm`, `view j`, `live j`, `sent`, `net`, `inCh j`, `stopCh`); `antInv` =
+  `antOpen` (stream half, view halves, sent list, `AntRun evs S V net`, `RaftLaws G ∧ GlobalOk S net G`,
+  `raftFactsOwn`) or the three `nodeLive` tokens (the run over); `antCluster` (persistent; the nodes'
+  `nodeRO`: id, name, input bag of `inputOk`); `netMsg`/`sendMsg`/`inputOk`/`propOk`; `nodeOwn c γ j n v ph`
+  with `Phase.idle | loop net₀ ps₁ | drained` (`RsView`, `causeOwn`, `nodeRaft`); `nodeExit`. Specs:
+  `deliver` (`inputOk` in), `send` (`sendMsg`, `netAdder`, `threadTok`), `reportCause` (`causeOwn` →
+  `reportedView`), `drain` (`.loop` → `.drained`), `run` (`.idle`, `ownDone nodesWg (nodeExit …)`).
+  `entriesOf`/`msgOf` posts now give `⧗` per entry (the reports' weights). Raft's `rnBudget` is in
+  `nodeRaft`, not `antCluster` (sealed; persistence is a law). `NetJoin` moved to
+  `Proof/.../examples/lib/join/NetJoin.lean` (namespace `Perennial.EtcdGrove`; RaftTla's module re-exports
+  it). The bodies of `nodeRaft`, `NetFacts`, `AntRun`, `raftFactsOwn` may gain conjuncts in the proofs.
+- **Invariant phase** (in progress, a helper): `Sim/GC.lean`, `Sim/Init.lean` proved; `boot`, `recv`,
+  `Reach.stay` (the boot drain) and `Reach.mono`/`Quiet.mono` next; then `quiet`, `ready`, `send`, `apply`.
+- **Open for P-harness:** creating `propOk` (raft's deposit of a proposal's data and ticket) in the
+  proposer; the `StorageModel` instance reading `bootStorage`'s `storLog` as its `MemoryStorage`'s
+  `memLog`; `drivers` (`Add(2)`: generalize `join3` to `joinN` in `lib/join`).
