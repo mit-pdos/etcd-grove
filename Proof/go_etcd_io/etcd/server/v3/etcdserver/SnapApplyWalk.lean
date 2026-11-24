@@ -310,6 +310,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases HCI with ⟨#Hcif, #Hisci, #Hinv⟩
   ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
   · iPkgInit
+  (try wp_auto)
   wp_apply (wp_ci_get hCIg γ ci b st hpd) $$ [Hst Hab] as ⟨Hst, Hab⟩
   · iframe #; iframe Hst Hab
   (try wp_auto)
