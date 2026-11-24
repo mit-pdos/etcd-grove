@@ -30,6 +30,7 @@ public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.B
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Crash
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.InitLinked
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.PkgTable
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.TopLevelDefs
 public import GooseLang.Ext.Fs.AdequacyS
 public import GooseLang.Ext.Fs.NoIoErr
 public import GooseLang.Ext.Fs.NoMapLockErr
@@ -50,38 +51,6 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3 F
 
 attribute [local instance] fsExts fsExtsInterp
 
-/-! ## The semantics -/
-
-/-- **Every file and every path.** -/
-def tIo : IoSet := ⟨fun _ _ => True, fun _ => True⟩
-
-/-- **The file system does not fail** (the etcd examples' `etcdSQ`). -/
-abbrev tSQ : StepPrem := StepPrem.and (NoIoErr tIo) (NoMapLockErr tIo)
-
-/-- **A crash keeps no CRC collision in the WAL's images** (`W1`, `walInv_crash`'s premise). -/
-def tQ : OsState → OsState → Prop := fun st st' => W1 walCodec st st'
-
-/-- The file extension's semantics: steps restricted by `tSQ`, crashes by `tQ`. -/
-@[reducible] def tFsSem : ExtSemantics fsExt := fsSemWithS tSQ tQ
-
-/-- The program's semantics. -/
-@[reducible] def tExtsSem : GooseSemantics := fsExtsSemanticsWithS tSQ tQ
-
-theorem tFsSemOk : letI := tFsSem; FsSemOk :=
-  fsSemWithS_ok tSQ tQ (noIoErr_noMapLockErr_keeps tIo tIo)
-
-theorem tHasFs : letI := tExtsSem; letI := tFsSem; HasExt fsExt := fsExtsWithS_hasFs tSQ tQ
-
-theorem tSat : FsStepSat (NoIoErr tIo) (S := tFsSem) :=
-  letI := tFsSem
-  haveI : FsStepSat tSQ := fsSemWithS_sat tSQ tQ
-  fsStepSat_and_left (NoIoErr tIo) (NoMapLockErr tIo)
-
-theorem tSatL : FsStepSat (NoMapLockErr tIo) (S := tFsSem) :=
-  letI := tFsSem
-  haveI : FsStepSat tSQ := fsSemWithS_sat tSQ tQ
-  fsStepSat_and_right (NoIoErr tIo) (NoMapLockErr tIo)
-
 attribute [local instance] tExtsSem tFsSem tFsSemOk tHasFs tSat tSatL
 
 /-- **The WAL's no-failure premise** (`tWalFsOk`) from the semantics and the paths' fit. -/
@@ -90,20 +59,6 @@ theorem tWalFsOk_of (area : GoString)
   ⟨fsNoErrOn_of tIo (fun _ _ => trivial) (fun _ _ => trivial), hfit⟩
 
 /-! ## The program and a generation's precondition -/
-
-/-- **The tester's boot program**: initialize the package, then `Main(area, orDir)`. (Until 2026-11-24 the bare
-`initialize'` here resolved, through `open go_etcd_io.raft.v3`, to raft's initializer, not the tester's: the
-program initialized raft only, and the hypothesis `Hinit_wp` asked raft's initializer for the tester's
-`isPkgInit`. Fixed with `Hinit_wp`'s removal, branch `wal-open`.) -/
-def bootWal [GoGlobalContext] [GoSemanticsFunctions] (area orDir : GoString) : Expr :=
-  Seq (App (Val github_com.mit_pdos.etcd_grove.examples.etcd.wal.initialize') (Val #()))
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.wal.Main)) (Val #area)) (Val #orDir))
-
-/-- **The first boot's facts on the tree**: nothing logged, the area and the oracle directory in the
-tree, no WAL name of the area holding anything, neither the oracle file nor its temporary. -/
-def tFirst (e : TEnv) (V : Hist) : Prop :=
-  V.2 = [] ∧ e.jr ∈ V.now ∧ (∀ b, AreaSlot b → V.now.entry e.jr b = none) ∧ e.jo ∈ V.now ∧
-    V.now.entry e.jo e.orFile.b = none ∧ V.now.entry e.jo e.orFile.tb = none
 
 /-- The IDs the program's packages register (the WAL's three metric names' label-free descriptor IDs, in
 `regQs`' order; computed with xxhash64, the same as in the etcd examples' lists, and checked by the kernel in
@@ -215,25 +170,6 @@ theorem tGen_wp (hAbs : AbsDiskGpreS GF) (wp_Main : Main.spec (GF := GF) (hG := 
 end gen
 
 
-section open_
-variable [GoGlobalContext] [go.BasicIntoValInj]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
-  [_root_.Perennial.internal.filepathlite.Assumptions] [_root_.Perennial.io.Assumptions]
-  [_root_.Perennial.time.Assumptions] [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-  [go_etcd_io.raft.v3.Assumptions]
-
-/-- **The specs the tester's proof takes that no proof discharges yet** (the tester Link's hypotheses
-but the model's laws and `WalDecEnvSupply`, which are proved): the trust-boundary spec of `proto.Unmarshal`
-on a WAL record. (`errors.{IsErrno, IsPathErrnoEof, IsPathErrnoNotExist, IsPathErrnoTerm}` and
-`WalDecEnvSupply` proved 2026-11-22, `wal-safe-errors`; `stringslite.HasPrefix` Perennial's, proved there,
-since the pin 9c3b81f30.) -/
-structure TOpen : Prop where
-  unmarshalWalRecordE : proto.UnmarshalWalRecordE.spec (GF := GF) (hG := hG)
-
-end open_
-
 section linked
 variable [GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -268,10 +204,6 @@ end linked
 
 section bounded
 variable [GoGlobalContext] {GF : BundledGFunctors}
-
-/-- `hG` with the Go local context `lctx` (a closed theorem's hypotheses are stated at the program's). -/
-abbrev tHeapAt (hG : HeapGS .hasLC GF) (lctx : GoLocalContext) : HeapGS .hasLC GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-- **The tester's crash safety for executions of fewer than `N ≤ 2 ^ 62` steps along which fewer than
 `T` threads are live** (see the file header): from a state whose Go context satisfies the Go semantics

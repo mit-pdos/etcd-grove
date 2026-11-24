@@ -43,6 +43,7 @@ by more than a substitution (paxos's servers 1..3 are acceptors, 4..5 learners).
 | `mains` | `Mains.lean`: doc, imports, opens, the section's variables, per role its `wp_main` text |
 | `boot` | the first-run boot tables (`BootTable.lean`, `BootCmdsLinked.lean`), generalizing `_swiftpaxos_boot.py` and dsv-vr's `_vr_boot.py`: the table's source command, the owned packages, the resource `Q` the boot returns, the variables, opens and docs |
 | `proof_roots` | the kit's own Lean trees, `Dsverify/{Proof,Spec}/<root>/` (default: the kit package), which `--export-challenge` never exports but the statement's closure |
+| `prompt` | the opening prompt's sentences about the system (`system`: a phrase; `check`: what its driver checks, a relative clause), filled into `etc/dsv/challenge-prompt.txt` by `--export-challenge` as `DIR.lab/prompt.txt` |
 | (premise classes) | read from `statement.premises`: the scaffold's non-vacuity stubs and `--audit`'s list |
 
 K (the remote calls' budget units per client address, `mapCtx_alloc ... K`) and `readTries` are
