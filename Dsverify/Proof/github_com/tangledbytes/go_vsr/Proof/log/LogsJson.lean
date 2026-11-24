@@ -73,7 +73,6 @@ theorem log.Logs.MarshalJSON.wp_proof
   · cases Hbs
   subst Herr
   cases Hbs
-  wp_auto
   iapply HΦ
   iframe
 

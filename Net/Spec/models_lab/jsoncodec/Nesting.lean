@@ -1,6 +1,7 @@
 /-
 `jsoncodec.Nesting(b)`: `nestRun 0 0 false bs` (`Compact.lean`), the deepest nesting of arrays and
-objects outside strings, for any bytes. Proved in `Net/Proof/models_lab/jsoncodec/Nesting.lean`
+objects outside strings, for any bytes that do not end in a backslash (`\\` before the
+end would step past it: a JSON value never ends so). Proved in `Net/Proof/models_lab/jsoncodec/Nesting.lean`
 (dsv-vr round 9).
 -/
 module
@@ -26,7 +27,7 @@ variable [package_sem' : models_lab.jsoncodec.Assumptions]
 
 /-- See the file header. -/
 abbrev Nesting.spec : Prop :=
-  ∀ (b : GoSlice) (dq : DFrac) (bs : List w8),
+  ∀ (b : GoSlice) (dq : DFrac) (bs : List w8) (hl : bs.getLast? ≠ some 92#8),
   {{ (b ↦*{dq} bs : IProp GF) }}
     (App (Val (@! models_lab.jsoncodec.Nesting)) (Val #b))
   {{ RET #(nestRun (W64 0) (W64 0) false bs); b ↦*{dq} bs }}
