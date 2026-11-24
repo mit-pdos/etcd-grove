@@ -54,7 +54,6 @@ axiom dataDirsApart
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
-axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -129,7 +128,6 @@ axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
 axiom metadata.FromIncomingContext.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
@@ -223,7 +221,4 @@ axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verifyEnvOff
 axiom withVersion.wp_proof
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

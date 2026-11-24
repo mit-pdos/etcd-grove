@@ -94,7 +94,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
     have hbig' : 0x40000000 < data.length := by omega
     have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
     unfold os.ownFile
-    wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
+    wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
     ihave #Hf2 := Hf
     iStructNamed Hf2
     icases ownSlice_len sl dqs data $$ Hsl with %Hlen
@@ -319,7 +319,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
           iframe Hokn
           iframe
           isplitl []
-          · isplitl [] <;> (try isplitl []) <;> iassumption
+          · (repeat' isplitl []) <;> iassumption
           · ipureintro
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
               .inl ⟨by omega, hsln, rfl⟩⟩
@@ -327,14 +327,14 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
           try wp_auto
           simp only [decide_eq_false he0, Bool.not_false]
           try wp_auto
-          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hok
           ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
           wp_for_post
           iapply HΦ
           iframe Hokn
           iframe
           isplitl []
-          · isplitl [] <;> (try isplitl []) <;> iassumption
+          · (repeat' isplitl []) <;> iassumption
           · ipureintro
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
               .inr ⟨rfl, (by intro h; cases h), (hneW he0).imp_right (fun h => by rw [hoffv] at h; omega)⟩⟩
@@ -362,14 +362,14 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
         · rw [decide_eq_false he0]
           simp only [Bool.not_false]
           try wp_auto
-          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hok
           ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
           wp_for_post
           iapply HΦ
           iframe Hokn
           iframe
           isplitl []
-          · isplitl [] <;> (try isplitl []) <;> iassumption
+          · (repeat' isplitl []) <;> iassumption
           · ipureintro
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
               .inr ⟨rfl, (by intro h; cases h), (hneW he0).imp_right (fun h => by rw [hoffv] at h; omega)⟩⟩

@@ -84,6 +84,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.Open.spec (W := W) Mr := by
   intro lg R jr r dir nm sp s qp Q hin hnmO hr hdl
+  have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'

@@ -53,7 +53,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 abbrev restartRead.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (lg m : Loc) (v : oracle) (o : TOracle) (cd : TCand)
     (od : Option WalDur) (qp : Qp),
-  m ≠ null → e.orFile.Ok → tWalPathsOk e.area → cd ∈ o.cands → (∀ d, od = some d → tCandOk o cd d) →
+  m ≠ null → e.orFile.Ok → tWalPathsOk e.area → PathFits (tWalDir e.area) →
+  cd ∈ o.cands → (∀ d, od = some d → tCandOk o cd d) →
   (tCandHist o cd).length < 2 ^ 63 → (∀ d, od = some d → tReadsBackOk (d.H.map WalOpG.toM)) →
   (tEncodeOracle o).length + 16 ≤ 0x40000000 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗

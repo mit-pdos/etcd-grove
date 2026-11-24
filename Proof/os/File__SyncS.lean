@@ -29,7 +29,7 @@ variable [os.Assumptions]
 theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) := by
   intro f fd name dqf R j ph n
   unfold os.ownFile
-  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hd, #Hlb⟩
+  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hd, #Hlb⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
@@ -63,18 +63,18 @@ theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) 
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> (try isplitl []) <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     iright
     iframe
     ipureintro; rfl
   · simp only [decide_eq_false he0, Bool.not_false]
     try wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+    wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hok
     wp_for_post
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> (try isplitl []) <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ileft
     iframe Hok
     ipureintro; exact ⟨fun h => (by cases h), hne he0⟩

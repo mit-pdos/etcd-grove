@@ -42,7 +42,7 @@ theorem buf_rejoin (b : GoSlice) (k : w64) (xs ys : List w8) (hx : xs.length = s
 
 theorem readFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     readFull.spec (GF := GF) (hG := hG) := by
-  intro t cn s a la ra b bs0 first P eof ueof ed
+  intro t cn s a la ra b bs0 first P F eof ueof ed
   wp_start as ⟨#Hc, Hbuf, #Hio, #Heof, #Hueof, #Hed, HP, #Hacc⟩
   ihave #HEOF := io.eof_of_init $$ Hio
   unfold errors.newVar
@@ -75,10 +75,10 @@ theorem readFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     wp_auto
     wp_apply wp_Read t cn s a la ra (slice.slice b w8 k b.len) (bsn.drop (sint.nat k))
         (interface.mkOk errors.errorString.ty.PointerType #xe) ed
-        (fun r => iprop(P (got ++ r.got) ∗
+        (fun r => iprop(P (got ++ r.got) ∗ (⌜∀ bs, r ≠ .bytes bs⌝ -∗ F) ∗
           ⌜r.got.length ≤ (slice.slice b w8 k b.len).len.toNat ∧
             (r = .bytes [] → (slice.slice b w8 k b.len).len.toNat = 0)⌝)) $$ [Hb2 HP]
-      as %k' %err ⟨%r, %bs', ⟨HP, %Hrl0⟩, Hb2, %Hout, HE⟩
+      as %k' %err ⟨%r, %bs', ⟨HP, HF, %Hrl0⟩, Hb2, %Hout, HE⟩
     · iframe Hc Hb2 Heof Hed
       imod Hacc $$ %got %((slice.slice b w8 k b.len).len.toNat) HP
         with ⟨%st, %d, HE, HD, Hcl⟩
@@ -86,9 +86,9 @@ theorem readFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
       iexists st, d
       iframe HE HD
       iintro %r %d' %Hrd HE HD
-      imod Hcl $$ %r %d' %Hrd HE HD with HP
+      imod Hcl $$ %r %d' %Hrd HE HD with ⟨HP, HF⟩
       imodintro
-      iframe HP
+      iframe HP HF
       ipureintro
       exact readOutcome_got_le Hrd
     have hdl : (bsn.drop (sint.nat k)).length = sint.nat b.len - sint.nat k := by
@@ -181,8 +181,10 @@ theorem readFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
         iright
         isplitr
         · ipureintro; exact hgot
-        unfold readErr
-        iright; ileft; ipureintro; rfl
+        isplitr
+        · unfold readErr
+          iright; ileft; ipureintro; rfl
+        iapply HF; ipureintro; intro _ h; cases h
       rw [decide_eq_false hk]
       have hk00 : sint.nat k = 0 := by
         have : sint.Z (W64 0) = 0 := by decide
@@ -200,8 +202,10 @@ theorem readFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
         iright
         isplitr
         · ipureintro; exact hgot
-        unfold readErr
-        iright; ileft; ipureintro; rfl
+        isplitr
+        · unfold readErr
+          iright; ileft; ipureintro; rfl
+        iapply HF; ipureintro; intro _ h; cases h
       · wp_auto
         wp_for_post
         iapply HΦ
@@ -212,8 +216,10 @@ theorem readFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
         iright
         isplitr
         · ipureintro; exact hgot
-        unfold readErr
-        ileft; ipureintro; exact ⟨rfl, hg0, rfl⟩
+        isplitr
+        · unfold readErr
+          ileft; ipureintro; exact ⟨rfl, hg0, rfl⟩
+        iapply HF; ipureintro; intro _ h; cases h
     | err e =>
       obtain ⟨rfl, rfl⟩ := Hout
       simp only [net.ReadErr]
@@ -239,15 +245,17 @@ theorem readFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
       iright
       isplitr
       · ipureintro; exact hgot
-      unfold readErr
-      iright; iright
-      iexists e
-      unfold net.resErr net.opErr
-      iexists e'
-      iframe Hk
-      iexists pe, nw
-      iframe Hpe
-      ipureintro; exact ⟨rfl, Hnw⟩
+      isplitr
+      · unfold readErr
+        iright; iright
+        iexists e
+        unfold net.resErr net.opErr
+        iexists e'
+        iframe Hk
+        iexists pe, nw
+        iframe Hpe
+        ipureintro; exact ⟨rfl, Hnw⟩
+      iapply HF; ipureintro; intro _ h; cases h
   · -- the loop ends: `b` is full
     obtain ⟨Hk0, Hkl, Hbl, Hgl, Hgt⟩ := Hinv
     have hk : sint.Z k = sint.Z b.len := by omega

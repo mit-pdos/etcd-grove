@@ -3,11 +3,13 @@ Trusted code of `syscall` (namespace of the generated package; project bboltfs o
 `Code/syscall.toml`): the GooseLang models of the primitive stubs of `syscall`'s Go model
 (`models/syscall/stubs.go`; the model itself, `models/syscall/model.go`, is Go, translated), each
 one operation of the Linux file extension of `GooseLang.Ext.Fs.Impl` (`Fs.fsExt`), or one call's two
-steps; and `runtime_envs`, a linkname into the runtime with no Go body, a primitive. linux/amd64.
+steps; `runtime_envs`, a linkname into the runtime with no Go body, a primitive; and `Exit`, a
+body-less declaration the runtime provides (zap-z2, 2026-11-23). linux/amd64.
 
 Until 2026-11-24 (Go-model overlays S5, perennial#692) this file held hand-written GooseLang models
 of `Fdatasync`, `Flock`, `Fallocate`, `FcntlFlock`, `Errno.Error` and `init.0`;
-`models/syscall/model.go` is that model in Go, function by function. An errno is a `w64`, the value
+`models/syscall/model.go` is that model in Go, function by function (`Errno.Error` is translated
+with Go's body since origin/lean's fmt stage 1, 2026-11-24). An errno is a `w64`, the value
 of an `Errno` (`uintptr`).
 -/
 module
@@ -137,6 +139,18 @@ environment. (2026-11-24, Go-model overlays: a local equivalent, to become
 `internal.gomodel.ChooseStrings`, Perennial's translated Go, at the integration pin bump.) -/
 noncomputable def runtime_envs.impl : val :=
   arbitraryStrings
+
+/-- `Exit(code int)` (`syscall.go`: `func Exit(code int)`, no Go body; the runtime provides it,
+`runtime.syscall_Exit`, the `exit_group` system call; zap-z2, 2026-11-23, as Perennial's
+`TrustedCode/syscall.lean` since `ca6df841b`): the process ends with status `code`; no deferred
+function runs and no goroutine takes another step. The model: `AngelicExit`, which steps to itself
+for good, so the calling goroutine never returns (its deferred functions never run) and the code
+after the call is never reached. The other goroutines keep running in the model, where Go stops
+them: the model has more executions than Go, each of whose prefixes up to the exit is one of Go's
+(Perennial's `goose/model/runtime/exit_test.go`), as when `main` returns. -/
+def Exit.impl : val :=
+  λ: "code",
+    AngelicExit #()
 
 end code
 end syscall

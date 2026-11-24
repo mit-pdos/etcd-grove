@@ -119,7 +119,8 @@ def fileOwn (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
   iprop(∃ inner : Loc, f ↦□ (os.File.mk inner) ∗
     structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner) ↦{dq} fd ∗
     structFieldRef os.file go!"name" inner ↦□ name ∗
-    structFieldRef os.file go!"nonblock" inner ↦□ false)
+    structFieldRef os.file go!"nonblock" inner ↦□ false ∗
+    syscall.errnoOk (GF := GF))
 
 theorem fileOwn_eq [os.Assumptions] (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) :
     fileOwn (GF := GF) f fd name dq = os.ownFile f fd name dq := rfl
@@ -452,13 +453,13 @@ theorem fileOwn_fractional (f : Loc) (fd : w64) (nm : GoString) :
       fractional_of_dfractional (fun dq => (structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner) ↦{dq} fd : IProp GF))
     refine ⟨?_, ?_⟩
     · unfold fileOwn
-      iintro ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩
+      iintro ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩
       icases ((hfr inner).fractional q1 q2).1 $$ Hfd with ⟨H1, H2⟩
       isplitl [H1]
       · iexists inner; iframe; iframe #
       · iexists inner; iframe; iframe #
     · unfold fileOwn
-      iintro ⟨⟨%inner, #Hf, Hfd1, #Hn, #Hnb⟩, ⟨%inner2, #Hf2, Hfd2, #Hn2, #Hn2b⟩⟩
+      iintro ⟨⟨%inner, #Hf, Hfd1, #Hn, #Hnb, #Hsys⟩, ⟨%inner2, #Hf2, Hfd2, #Hn2, #Hn2b, #Hsys2⟩⟩
       icombine Hf Hf2 gives %Heq
       cases Heq
       iexists inner
@@ -470,7 +471,7 @@ theorem fileOwn_fractional (f : Loc) (fd : w64) (nm : GoString) :
 theorem fileOwn_agree (f : Loc) (fd fd' : w64) (nm nm' : GoString) (dq1 dq2 : DFrac) :
     fileOwn (GF := GF) f fd nm dq1 ∗ fileOwn f fd' nm' dq2 ⊢ ⌜fd = fd' ∧ nm = nm'⌝ := by
   unfold fileOwn
-  iintro ⟨⟨%i1, #Hf1, Hd1, #Hn1, #Hn1b⟩, ⟨%i2, #Hf2, Hd2, #Hn2, #Hn2b⟩⟩
+  iintro ⟨⟨%i1, #Hf1, Hd1, #Hn1, #Hn1b, -⟩, ⟨%i2, #Hf2, Hd2, #Hn2, #Hn2b, -⟩⟩
   icombine Hf1 Hf2 gives %Heq
   cases Heq
   icombine Hd1 Hd2 gives %h1

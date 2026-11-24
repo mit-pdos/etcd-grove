@@ -53,6 +53,9 @@ abbrev Member.spec : Prop :=
     (γE : GName) (Pub : S.EnvView → IProp GF),
   etcdstart.BootFacts id ctxs boot →
   types.plainPeerURL (go!"http://" ++ peer) →
+  -- (fmt stage 1, 2026-11-24) the member's addresses within etcd's URL bounds (`NewServer`'s
+  -- `etcdURLsFit`; from the deployment's valid addresses, `etcd_dist.addrOk_addrFits`)
+  etcdstart.addrFits peer → etcdstart.addrFits client →
   srvLevels (GF := GF) →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →

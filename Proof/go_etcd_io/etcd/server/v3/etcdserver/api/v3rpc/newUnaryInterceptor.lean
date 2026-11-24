@@ -109,6 +109,13 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   ipersist Hs
   wp_auto
   iapply HΦ
+  isplitr
+  rotate_left
+  · -- (2026-11-24) the closure is the function's code over `s_ptr`, which holds `s` for good
+    unfold v3rpc.isUnaryIc
+    iexists s_ptr
+    iframe Hs
+    ipureintro; rfl
   unfold srvInterceptorOk
   iintro !> %ci %cd %req %info %h %Ψ HR #Hctx #Hrc #Hinfo #HQ Hk
   iunfold srvInterceptorCall

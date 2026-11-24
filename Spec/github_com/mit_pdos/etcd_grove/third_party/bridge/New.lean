@@ -35,11 +35,18 @@ reaches the client unchanged, and a cut's (a blackhole's, a dropped connection's
 grpc's own. The bridge relays bytes, so a call or stream on `a` is one on the server at `addr` (D32,
 2026-10-21: grpc hands a stream's receiver only whole length-prefixed messages, in order, each
 once, so each side receives a prefix of what the other sent, and a cut ends the stream with an
-error); `a`'s own listener is consumed (`grpcAddrIs_agree` holds: no server listens at `a`). -/
+error); `a`'s own listener is consumed (`grpcAddrIs_agree` holds: no server listens at `a`).
+
+(2026-11-24) It also consumes `netAddrLeft a`, what sets `a`'s protocols (`net.Listen`'s, beside the
+listener): a bridged address's protocols are its target's, so no program may both bridge `a` and give
+`a` protocols of its own. Without it a program listened at `a`, set `a`'s grpc table from `netAddrLeft`
+(`addr_set_proto_tok`, as `grpc.start'` does) at specs of its choosing, and bridged `a` to a server that
+meets none of them: `etcd_dist.Client_Get_dist` then proved a `Get` returns a value the real store lacks
+(Go panics: `notes/audit.md`, "`bridge.New` and `netAddrLeft`"). -/
 abbrev New.spec : Prop :=
   ∀ (addr a : GoString) (l : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge ∗
-      netListenerAt l a }}
+      netListenerAt l a ∗ netAddrLeft a }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.third_party.bridge.New)) (Val #addr))
       (Val #l))
   {{ (br : GoInterface), RET #br; ownBridge br addr false ∗

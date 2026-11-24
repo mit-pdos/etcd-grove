@@ -55,18 +55,20 @@ variable [package_sem : os.Assumptions]
 
 /-- A `*PathError` of a nonzero errno is one `fmt` formats. -/
 theorem errnoPathErr_fmtErrorOk (err : GoInterface) (e : w64) (he : e ≠ 0) :
-    errnoPathErr (GF := GF) err e ⊢ EtcdGrove.fmtErrorOk (GF := GF) err := by
+    syscall.errnoOk (GF := GF) ⊢
+      errnoPathErr (GF := GF) err e -∗ EtcdGrove.fmtErrorOk (GF := GF) err := by
   unfold errnoPathErr
-  iintro ⟨%pe, %op, %path, %h, #Op, #Path, #Err⟩
+  iintro #Hsys ⟨%pe, %op, %path, %h, #Op, #Path, #Err⟩
   subst h
   iapply (pathError_fmtErrorOk pe op path (errnoErr e)) $$ Op Path Err
-  iapply (errnoErr_fmtErrorOk e he)
+  iapply (errnoErr_fmtErrorOk e he) $$ Hsys
 
 theorem errnoPathErr_fmtErrorOkOrNil (err : GoInterface) (e : w64) (he : e ≠ 0) :
-    errnoPathErr (GF := GF) err e ⊢ EtcdGrove.fmtErrorOkOrNil (GF := GF) err := by
-  iintro #H
+    syscall.errnoOk (GF := GF) ⊢
+      errnoPathErr (GF := GF) err e -∗ EtcdGrove.fmtErrorOkOrNil (GF := GF) err := by
+  iintro #Hsys #H
   iapply (EtcdGrove.fmtErrorOkOrNil_of _)
-  iapply (errnoPathErr_fmtErrorOk err e he) $$ H
+  iapply (errnoPathErr_fmtErrorOk err e he) $$ Hsys H
 
 /-- `modelPathError(op, path, err)`: a fresh `*PathError` with persistent fields `op`, `path`, `err`. -/
 theorem wp_modelPathError_fields (op path : GoString) (err : GoInterface) (Φ : val → IProp GF) :

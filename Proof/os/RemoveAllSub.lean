@@ -124,7 +124,7 @@ abbrev os.rmSubSpec (n : Nat) : Prop :=
     (t sg : Nat) (pg : GoString),
   cl.length ≤ n → NameOk b → SubCover cl (h.cur !! b) → ClRanked cl → q + g = 1 →
   callKey R pg = callKey R d →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
       osNames j (.only [b]) (DFrac.own 1) h ∗ osClaimsW cl ∗ osCallPerm (callKey R d) q ∗
       osGuardS t sg pg g ∗ osLogLb sg }}
     (App (App (Val (@! os.modelRemoveAllFrom)) (Val #d)) (Val #b))
@@ -135,13 +135,17 @@ abbrev os.rmSubSpec (n : Nat) : Prop :=
 theorem os.model.wp_removeAllFrom_subLeaf (d b : GoString) (j : Ino) (R : Roots) (qd : Qp)
     (h : NamesH) (cl : List Claim) (q g : Qp) (t sg : Nat) (pg : GoString) (hb : NameOk b)
     (hnd : ∀ J, h.cur !! b ≠ some (.dir J)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
         osNames j (.only [b]) (DFrac.own 1) h ∗ osClaimsW cl ∗ osCallPerm (callKey R d) q ∗
         osGuardS t sg pg g ∗ osLogLb sg }}
       (App (App (Val (@! os.modelRemoveAllFrom)) (Val #d)) (Val #b))
     {{ (pe : Loc), RET #pe; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) q ∗
         osGuardS t sg pg g ∗ os.peOk pe ∗ os.rmSubOut j b h cl (pe = null ∧ FsNoErrAt (child d b)) }} := by
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hn, Hcl, Hperm, Hg, #Hlsg⟩ HΦ
+
+  iintro %Φ ⟨#Hpkg, #Hos, #Hsi, Hp, Hn, Hcl, Hperm, Hg, #Hlsg⟩ HΦ
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   wp_apply os.model.wp_removeAllFrom_leaf d b R j (DFrac.own qd) (DFrac.own 1) h q hb hnd (.inl rfl)
     $$ [Hp Hn Hperm] as %pe ⟨Hp, Hperm, Hpe, %h', Hn, %hlo⟩
   · iframe; iframe #
@@ -182,7 +186,7 @@ local macro "rm_tailS" pe:term:max : tactic => `(tactic| (
   by_cases hpn : $pe = null
   · simp only [decide_eq_true hpn, Bool.not_true]
     try wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errnoN _ _ e4 he40 as %pe' %hpn' Hpe'
+    wp_apply os.model.wp_pathErrorPtr_errnoN _ _ e4 he40 $$ Hsys as %pe' %hpn' Hpe'
     iapply HΦ' $$ %pe' %True %(fun h0 => absurd h0 hpn')
     iframe
   · simp only [decide_eq_false hpn, Bool.not_false]
@@ -207,13 +211,17 @@ theorem os.model.wp_removeAllFrom_subDir (n : Nat) (ih : os.rmSubSpec (GF := GF)
     (hcov : SubCover (l1 ++ (J, NameSet.except [], hJ0) :: l2) (some (.dir J)))
     (hrk : ClRanked (l1 ++ (J, NameSet.except [], hJ0) :: l2)) (hqg : q + g = 1)
     (hkg : callKey R pg = callKey R d) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
         os.rmPool l1 l2 ∗ osCallPerm (callKey R d) q ∗ osGuardS t sg pg g ∗ osLogLb sg }}
       (App (App (Val (@! os.modelRemoveAllFrom)) (Val #d)) (Val #b))
     {{ (pe : Loc), RET #pe; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) q ∗
         osGuardS t sg pg g ∗ os.peOk pe ∗
         os.rmSubOut j b h (l1 ++ (J, NameSet.except [], hJ0) :: l2) (pe = null ∧ FsNoErrAt (child d b)) }} := by
+
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hpool, Hperm, Hg, #Hlsg⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   ihave HΦ' : (∀ (pe : Loc) (P : Prop), ⌜pe = null → FsNoErrAt (child d b) → ¬ P⌝ -∗
       osPathS R d (DFrac.own qd) j ∗ os.rmAllOutP j b J h hJ0 P ∗ os.rmPool l1 l2 ∗
       osCallPerm (callKey R d) q ∗ osGuardS t sg pg g ∗ os.peOk pe -∗ Φ #pe) $$ [HΦ]
@@ -247,7 +255,7 @@ theorem os.model.wp_removeAllFrom_subDir (n : Nat) (ih : os.rmSubSpec (GF := GF)
     try wp_auto
     simp only [decide_eq_false h13, Bool.not_false]
     try wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errnoN _ _ e he0 as %pe %hpn Hpe
+    wp_apply os.model.wp_pathErrorPtr_errnoN _ _ e he0 $$ Hsys as %pe %hpn Hpe
     ihave Hst := os.rmAllOutP_true _ _ _ _ _ _ $$ Hst
     iapply HΦ' $$ %pe %True %(fun h0 => absurd h0 hpn)
     iframe
@@ -280,14 +288,14 @@ theorem os.model.wp_removeAllFrom_subDir (n : Nat) (ih : os.rmSubSpec (GF := GF)
       by_cases heo20 : eo = W64 20
       · rw [decide_eq_true heo20]
         try wp_auto
-        wp_apply os.model.wp_pathErrorPtr_errnoN _ _ _ (by decide) as %pe %hpn Hpe
+        wp_apply os.model.wp_pathErrorPtr_errnoN _ _ _ (by decide) $$ Hsys as %pe %hpn Hpe
         try wp_auto
         ihave Hst := os.rmAllOutP_of _ _ _ _ _ True trivial $$ Hst
         iapply HΦ' $$ %pe %True %(fun h0 => absurd h0 hpn)
         iframe
       rw [decide_eq_false heo20]
       try wp_auto
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ heo as %pe Hpe
+      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ heo $$ Hsys as %pe Hpe
       try wp_auto
       rm_tailS pe
     · simp only [decide_eq_true (show eo = W64 0 from heo), Bool.not_true]
@@ -458,7 +466,7 @@ theorem os.model.wp_removeAllFrom_subDir (n : Nat) (ih : os.rmSubSpec (GF := GF)
           · exact (hgo (by rw [he2]; rfl)).elim
           rw [decide_eq_false he2]
           try wp_auto
-          wp_apply os.model.wp_pathErrorPtr_rdN _ e he as %pe %hpn Hpe
+          wp_apply os.model.wp_pathErrorPtr_rdN _ e he $$ Hsys as %pe %hpn Hpe
           try wp_auto
           ihave Hst := os.rmAllOutP_of _ _ _ _ _ True trivial $$ Hst
           iapply HΦ' $$ %pe %True %(fun h0 => absurd h0 hpn)
@@ -483,7 +491,7 @@ theorem os.model.wp_removeAllFrom_sub (n : Nat) : os.rmSubSpec (GF := GF) n := b
     · rw [hJ] at hcov
       obtain ⟨hJ0, hm⟩ := hcov J rfl J (.refl J)
       obtain ⟨l1, l2, rfl⟩ := List.append_of_mem hm
-      iintro %Φ ⟨#Hos, #Hsi, Hp, Hn, Hcl, Hperm, Hg, #Hlsg⟩ HΦ
+      iintro %Φ ⟨#Hpkg, #Hos, #Hsi, Hp, Hn, Hcl, Hperm, Hg, #Hlsg⟩ HΦ
       icases os.osClaimsW_take l1 l2 _ $$ Hcl with ⟨Hpw, HJ⟩
       ihave Hst : rmAllOut j b J h hJ0 $$ [Hn HJ]
       · iapply os.rmPresent_out; unfold os.rmPresent; iexists hJ0; iframe; ipureintro
@@ -545,6 +553,9 @@ theorem os.fmtErrorOk_ne_nil (err : GoInterface) :
 theorem os.RemoveAll.wp_proofSubS : os.RemoveAll.specSubS (GF := GF) (hG := hG) := by
   intro d b j R qd h cl hb hcov hrk
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hcl, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases os.osPathS_facts R d _ j b hb $$ Hp with %hpf
   obtain ⟨hd, hp⟩ := hpf
   icases osPathS_callKey R d _ j $$ Hp with ⟨Hp, %hkd⟩
@@ -604,7 +615,7 @@ theorem os.RemoveAll.wp_proofSubS : os.RemoveAll.specSubS (GF := GF) (hG := hG) 
         try wp_auto
         simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
         try wp_auto
-        wp_apply os.wp_pathError_ok _ _ eo heo as %pe #Hok
+        wp_apply os.wp_pathError_ok _ _ eo heo $$ Hsys as %pe #Hok
         mk_outL hlo.1 hlw
         rm_finS (fun hg _ hne _ => hg hne)
           iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
@@ -686,7 +697,7 @@ theorem os.RemoveAll.wp_proofSubS : os.RemoveAll.specSubS (GF := GF) (hG := hG) 
         try wp_auto
         simp only [decide_eq_false (show eo ≠ W64 0 from heo.1), Bool.not_false]
         try wp_auto
-        wp_apply os.wp_pathError_ok _ _ eo heo.1 as %pe #Hok
+        wp_apply os.wp_pathError_ok _ _ eo heo.1 $$ Hsys as %pe #Hok
         icases os.fmtErrorOk_ne_nil _ $$ Hok with %hne0
         ihave Hst := os.rmAllOutP_true _ _ _ _ _ _ $$ Hst
         mk_outD True False (fun h0 => h0.elim)

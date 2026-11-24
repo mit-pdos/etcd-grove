@@ -22,6 +22,7 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.time.Results
 public import Spec.fmt.Errorf
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -34,15 +35,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode _root_.Perennial.go_etcd_io.etcd.pkg.v3
 
-/-- `logInfo`'s step format. -/
-private abbrev stepFmt : GoString := go!"'%v' %s (duration: %v)"
-
-set_option maxRecDepth 20000 in
-private theorem fmtDirectives_stepFmt :
-    _root_.Perennial.fmt.fmtDirectives stepFmt =
-      some [⟨W8 118, false⟩, ⟨W8 115, false⟩, ⟨W8 118, false⟩] := by
-  decide
-
 section args
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -51,36 +43,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
 open _root_.Perennial.fmt in
-/-- A string, under any directive. -/
-private theorem argOkAt_string (mv : List w8) (dd : Directive) (x : GoString) :
-    ⊢ argOkAt (GF := GF) mv dd (interface.mkOk go.string #x) := by
-  unfold argOkAt; ileft; ipureintro
-  exact EtcdGrove.fmt.argWf_of_argsWf (ArgsWf.cons_string x [] ArgsWf.nil)
-
-open _root_.Perennial.fmt in
-/-- `%v` of a `time.Duration`: its `String()`. -/
-private theorem argOkAt_duration_v (x : time.Duration) :
-    ⊢ argOkAt (GF := GF) methodVerbs ⟨W8 118, false⟩ (interface.mkOk time.Duration.ty #x) := by
-  unfold argOkAt
-  iright; iright; ileft
-  isplitr
-  · ipureintro; refine ⟨by decide, rfl, fun h => absurd h (by decide)⟩
-  unfold argOk
-  iright; iright
-  isplitr
-  · unfold stringMethodSpec
-    imodintro
-    iintro %Φ HΦ
-    wp_apply _root_.Perennial.time.Duration.wp_String x as %s -
-    iapply HΦ
-  · ipureintro
-    have h1 := (go.MethodSetIs.method_set_is (t := time.Duration.ty) go!"Format")
-    have h2 := (go.MethodSetIs.method_set_is (t := time.Duration.ty) go!"Error")
-    have h3 := (go.MethodSetIs.method_set_is (t := time.Duration.ty) go!"String")
-    have h4 := (go.MethodSetIs.method_set_is (t := time.Duration.ty) go!"CanInterface")
-    simp (config := { decide := true }) only [go.methodSetLookup, reduceIte] at h1 h2 h3 h4
-    refine ⟨by simpa using h1, by simpa using h2, by simpa [noArgStringSig] using h3,
-      by simpa using h4⟩
+/-- A `time.Duration` is an argument `fmt` formats by its `String()`. -/
+private theorem isArg_duration (x : time.Duration) :
+    ⊢ isArg (GF := GF) (interface.mkOk time.Duration.ty #x) (.method fun _ => True) := by
+  have h1 := (go.MethodSetIs.method_set_is (t := time.Duration.ty) go!"Format")
+  have h2 := (go.MethodSetIs.method_set_is (t := time.Duration.ty) go!"Error")
+  have h3 := (go.MethodSetIs.method_set_is (t := time.Duration.ty) go!"String")
+  have h4 := (go.MethodSetIs.method_set_is (t := time.Duration.ty) go!"CanInterface")
+  simp (config := { decide := true }) only [go.methodSetLookup, reduceIte] at h1 h2 h3 h4
+  iapply (EtcdGrove.fmt.isArg_stringer ⟨time.Duration.ty, #x⟩ (by simpa using h1)
+    (by simpa using h2) (by simpa [noArgStringSig] using h3) (by simpa using h4))
+  unfold stringMethodSpec
+  imodintro
+  iintro %Φ HΦ
+  wp_apply _root_.Perennial.time.Duration.wp_String x as %s -
+  iapply HΦ
 
 end args
 
@@ -323,14 +300,19 @@ theorem traceutil.Trace.logInfo.wp_proof
             · ipureintro; rfl
             iintro %al ⟨Hal, -⟩
             (try wp_auto)
-            wp_apply _root_.Perennial.fmt.wp_Sprintf stepFmt _ _ (DFrac.own 1) $$ [$Pfmt $Hal]
-              as %str ⟨-, -⟩
-            · iapply (_root_.Perennial.fmt.argsOk_intro fmtDirectives_stepFmt)
-              simp only [_root_.Perennial.fmt.argsOkAt]
-              isplitr; · iapply argOkAt_string
-              isplitr; · iapply argOkAt_string
-              isplitr; · iapply argOkAt_duration_v
-              itrivial
+            wp_apply _root_.Perennial.fmt.wp_Sprintf go!"'%v' %s (duration: %v)"
+              [.lit go!"'", .dir none _root_.Perennial.fmt.verb_v, .lit go!"' ",
+                .dir none _root_.Perennial.fmt.verb_s, .lit go!" (duration: ",
+                .dir none _root_.Perennial.fmt.verb_v, .lit go!")"] _ _
+              [.str _, .str _, .method fun _ => True] (DFrac.own 1) (by fmt_encode) (by fmt_fits)
+              $$ [$Pfmt $Hal] as %str ⟨-, -⟩
+            · iapply BigSepL2.bigSepL2_cons.2
+              isplitr; · simp only [_root_.Perennial.fmt.isArg]; ipureintro; rfl
+              iapply BigSepL2.bigSepL2_cons.2
+              isplitr; · simp only [_root_.Perennial.fmt.isArg]; ipureintro; rfl
+              iapply BigSepL2.bigSepL2_cons.2
+              isplitr; · iapply isArg_duration
+              iapply BigSepL2.bigSepL2_nil.2; itrivial
             (try wp_auto)
             wp_apply wp_slice_literal (V := GoString) [str]
             isplitr

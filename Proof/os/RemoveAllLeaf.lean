@@ -238,13 +238,17 @@ theorem os.model.wp_rmdirLoop_none (p c : GoString) (R : Roots) (J : Ino) (dq dq
 theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn : DFrac)
     (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J'))
     (hw : dqn = DFrac.own 1 ∨ hc.cur !! c = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
         osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (App (Val (@! os.modelRemoveAllFrom)) (Val #p)) (Val #c))
     {{ (pe : Loc), RET #pe; osPathS R p dq J ∗ osCallPerm (callKey R p) qc ∗ os.peOk pe ∗
         ∃ hc', osNames J (.only [c]) dqn hc' ∗
           ⌜LeafOk c hc hc' ∧ (FsNoErrAt (child p c) → hc'.cur !! c = none)⌝ }} := by
+
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   rw [show p ++ [47#8] ++ c = child p c by simp [child, slashB]]
   wp_apply os.model.wp_unlinkLoop_leaf p c R J dq dqn hc qc hcN hcf hw $$ [Hp Hn Hperm]
     as %e ⟨Hp, Hperm, %hc', Hn, %hsubw⟩
@@ -280,7 +284,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
     try wp_auto
     simp only [decide_eq_false h13, Bool.not_false]
     try wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errno _ _ e he0 as %pe Hpe
+    wp_apply os.model.wp_pathErrorPtr_errno _ _ e he0 $$ Hsys as %pe Hpe
     iapply HΦ
     iframe
     ipureintro; exact hsubw
@@ -308,14 +312,14 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
       by_cases he'20 : e' = W64 20
       · rw [decide_eq_true he'20]
         try wp_auto
-        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' as %pe Hpe
+        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' $$ Hsys as %pe Hpe
         try wp_auto
         iapply HΦ
         iframe
         ipureintro; exact hsubw
       rw [decide_eq_false he'20]
       try wp_auto
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he' as %pe Hpe
+      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he' $$ Hsys as %pe Hpe
       try wp_auto
       wp_apply os.model.wp_rmdirLoop_none p c R J dq dqn hc' qc hcN hcf'
         $$ [Hp Hn Hperm] as %e4 ⟨%he4, Hp, Hn, Hperm⟩
@@ -336,7 +340,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
       by_cases hpn : pe = null
       · simp only [decide_eq_true hpn, Bool.not_true]
         try wp_auto
-        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he4 as %pe' Hpe'
+        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he4 $$ Hsys as %pe' Hpe'
         iapply HΦ
         iframe
         ipureintro; exact hsubw
@@ -354,7 +358,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
       wp_stub os.fsClose.impl
       wp_apply wp_osClose fd _ CoPset.subseteq_top $$ [Hfd] as %ec -
       · iframe; iframe #; iapply lockToks_unlocked <;> rfl
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' as %pe Hpe
+      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' $$ Hsys as %pe Hpe
       try wp_auto
       iapply HΦ
       iframe

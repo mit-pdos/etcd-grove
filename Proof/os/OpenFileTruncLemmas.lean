@@ -104,7 +104,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 1) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
         trFile i False }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
@@ -115,6 +115,9 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err ∗
            ⌜¬ (FsNoErrOn (· = child d b) ∧ PathFits (child d b))⌝) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm, Hf⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   wp_for_bind
@@ -169,7 +172,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     isplitr [off]
     · iexists _
       iframe
-      isplitl [] <;> (try isplitl []) <;> iassumption
+      (repeat' isplitl []) <;> iassumption
     · iexists _
       isplitl []
       · iexact f
@@ -200,7 +203,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     try wp_auto
     wp_apply os.wp_modelErrno
     try wp_auto
-    wp_apply os.wp_modelPathError_ok _ _ e he0 as %pe #Hok
+    wp_apply os.wp_modelPathError_ok _ _ e he0 $$ Hsys as %pe #Hok
     try wp_auto
     wp_for_post
     iapply HΦ

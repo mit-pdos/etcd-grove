@@ -15,8 +15,8 @@ module
 public import Proof.syscall.PkgInit
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.internal.oserror.Link
+public import Perennial.Proof.internal.strconv.Link
 public import Perennial.Proof.sync.Link
-public import Proof.internal.gomodel.Init
 public import Proof.syscall.Models
 public import Perennial.Proof.sync.Link
 public import RaftWitness.Proof.runtime.PkgInitExt
@@ -46,6 +46,7 @@ variable [package_sem : _root_.Perennial.syscall.Assumptions]
 
 namespace syscall
 
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.syscall get_is_pkg_init) (σ0 : GMap GoString Bool) :
     {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
@@ -57,6 +58,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _) signals _ as Hsignals
   wp_apply wp_GlobalAlloc (V := _) errors _ as Herrors
   wp_apply wp_GlobalAlloc (V := _) errENOENT _ as HerrENOENT
@@ -76,7 +78,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _) env _ as Henv
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
       EtcdGrove.ExternalInit.internal_oserror _root_.Perennial.internal.oserror.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (_root_.Perennial.internal.gomodel.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.strconv _root_.Perennial.internal.strconv.initialize'
+      EtcdGrove.ExternalInit.internal_strconv _root_.Perennial.internal.strconv.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
@@ -88,13 +91,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of forceClone3))
   -- translated initializer of fcntl64Syscall))
   -- translated initializer of pageBufPool))
-  -- translated initializer of mapper))
   -- translated initializer of Stdin))
   -- translated initializer of Stdout))
   -- translated initializer of Stderr))
   -- translated initializer of errEAGAIN))
   -- translated initializer of errEINVAL))
   -- translated initializer of errENOENT))
+  -- translated initializer of mapper))
   -- translated initializer of errors))
   -- translated initializer of signals))
   wp_func_call
@@ -117,8 +120,23 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of env))
   -- translated initializer of env))
   -- translated initializer of envs))
+  ipersist Herrors
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try imodintro
+  unfold syscall.errorsOk
+  iexists _
+  iframe Herrors
+  ipureintro
+  dsimp only
+  repeat (refine syscall.forall_mem_set_of _ _ (by simp [syscall.errnoMsgMax]) ?_)
+  intro s hs
+  rw [List.eq_of_mem_replicate hs]
+  decide
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

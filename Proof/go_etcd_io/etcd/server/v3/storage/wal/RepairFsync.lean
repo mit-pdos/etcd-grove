@@ -159,7 +159,7 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) (bs.map (fun x => durB x.1))) ∨
          ⌜err ≠ interface.nil⌝) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfo, #Hn, #Hnb⟩, Hosfd, Hk, Hv, Hcf, Hm, Hbs⟩
+  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfo, #Hn, #Hnb, #Hsys⟩, Hosfd, Hk, Hv, Hcf, Hm, Hbs⟩
   ihave #Hos := walAreaOk_osInv walCodec Mr R jr r $$ Harea
   ihave #Hf2 := Hf
   iStructNamed Hf2
@@ -183,18 +183,18 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ileft
     isplitr; · ipureintro; rfl
     iframe
   · have he0' : ¬ e = W64 0 := he.1
     simp only [decide_eq_false he0', Bool.not_false]
     try wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     iright
     ipureintro; intro h; cases h
 

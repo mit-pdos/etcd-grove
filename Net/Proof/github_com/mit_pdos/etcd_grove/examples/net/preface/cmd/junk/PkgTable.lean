@@ -36,26 +36,24 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire),
-   (pkg_id.internal.filepathlite, isPkgInit (PROP := IProp GF) pkg_id.internal.filepathlite),
-   (pkg_id.internal.gomodel, isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel),
    (pkg_id.internal.oserror, isPkgInit (PROP := IProp GF) pkg_id.internal.oserror),
    (pkg_id.internal.poll, isPkgInit (PROP := IProp GF) pkg_id.internal.poll),
    (pkg_id.internal.race, isPkgInit (PROP := IProp GF) pkg_id.internal.race),
-   (pkg_id.internal.runtime.atomic, isPkgInit (PROP := IProp GF) pkg_id.internal.runtime.atomic),
-   (pkg_id.internal.runtime.sys, isPkgInit (PROP := IProp GF) pkg_id.internal.runtime.sys),
-   (pkg_id.internal.stringslite, isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite),
+   (pkg_id.internal.strconv, isPkgInit (PROP := IProp GF) pkg_id.internal.strconv),
    (pkg_id.internal.sync, isPkgInit (PROP := IProp GF) pkg_id.internal.sync),
    (pkg_id.internal.synctest, isPkgInit (PROP := IProp GF) pkg_id.internal.synctest),
    (pkg_id.internal.syscall.unix, isPkgInit (PROP := IProp GF) pkg_id.internal.syscall.unix),
+   (pkg_id.internal.testlog, isPkgInit (PROP := IProp GF) pkg_id.internal.testlog),
    (pkg_id.io, isPkgInit (PROP := IProp GF) pkg_id.io),
    (pkg_id.io.fs, isPkgInit (PROP := IProp GF) pkg_id.io.fs),
+   (pkg_id.math.bits, isPkgInit (PROP := IProp GF) pkg_id.math.bits),
    (pkg_id.net, isPkgInit (PROP := IProp GF) pkg_id.net),
    (pkg_id.os, isPkgInit (PROP := IProp GF) pkg_id.os),
-   (pkg_id.runtime, isPkgInit (PROP := IProp GF) pkg_id.runtime),
    (pkg_id.sync, isPkgInit (PROP := IProp GF) pkg_id.sync),
    (pkg_id.sync.atomic, isPkgInit (PROP := IProp GF) pkg_id.sync.atomic),
    (pkg_id.syscall, isPkgInit (PROP := IProp GF) pkg_id.syscall),
-   (pkg_id.time, isPkgInit (PROP := IProp GF) pkg_id.time)]
+   (pkg_id.time, isPkgInit (PROP := IProp GF) pkg_id.time),
+   (pkg_id.«unsafe», isPkgInit (PROP := IProp GF) pkg_id.«unsafe»)]
 
 /-- `get_is_pkg_init` for the program: a package's entry in `pkgInitTable`. -/
 def getIsPkgInit (s : GoString) : IProp GF :=
@@ -94,75 +92,67 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h5, h1, h6, True.intro⟩
-  have h8 : GetIsPkgInitProp pkg_id.internal.gomodel (getIsPkgInit (GF := GF)) := by
+  have h8 : GetIsPkgInitProp pkg_id.«unsafe» (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h9 : GetIsPkgInitProp pkg_id.internal.stringslite (getIsPkgInit (GF := GF)) := by
+  have h9 : GetIsPkgInitProp pkg_id.math.bits (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
-  have h10 : GetIsPkgInitProp pkg_id.internal.filepathlite (getIsPkgInit (GF := GF)) := by
+    exact ⟨h8, True.intro⟩
+  have h10 : GetIsPkgInitProp pkg_id.internal.strconv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h9, True.intro⟩
-  have h11 : GetIsPkgInitProp pkg_id.io (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h0, h5, True.intro⟩
-  have h12 : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
+    exact ⟨h9, True.intro⟩
+  have h11 : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, True.intro⟩
-  have h13 : GetIsPkgInitProp pkg_id.io.fs (getIsPkgInit (GF := GF)) := by
+  have h12 : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h12, h0, h11, True.intro⟩
-  have h14 : GetIsPkgInitProp pkg_id.internal.runtime.sys (getIsPkgInit (GF := GF)) := by
+    exact ⟨h5, h0, h10, h11, True.intro⟩
+  have h13 : GetIsPkgInitProp pkg_id.io (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
-  have h15 : GetIsPkgInitProp pkg_id.internal.runtime.atomic (getIsPkgInit (GF := GF)) := by
+    exact ⟨h0, h5, True.intro⟩
+  have h14 : GetIsPkgInitProp pkg_id.io.fs (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
-  have h16 : GetIsPkgInitProp pkg_id.runtime (getIsPkgInit (GF := GF)) := by
+    exact ⟨h6, h11, h0, h13, True.intro⟩
+  have h15 : GetIsPkgInitProp pkg_id.internal.testlog (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h14, h15, True.intro⟩
-  have h17 : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
+    exact ⟨h5, True.intro⟩
+  have h16 : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h5, h0, h8, h12, True.intro⟩
-  have h18 : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
+    exact ⟨h12, True.intro⟩
+  have h17 : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, True.intro⟩
-  have h19 : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (GF := GF)) := by
+    exact ⟨h16, h5, h12, h0, True.intro⟩
+  have h18 : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h18, h5, h17, h0, True.intro⟩
-  have h20 : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
+    exact ⟨h13, h14, h5, h12, h15, h17, h0, True.intro⟩
+  have h19 : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h8, h10, h11, h13, h16, h5, h17, h19, h0, h1, h6, True.intro⟩
-  have h21 : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
+    exact ⟨h7, h0, h12, h18, h6, h13, h17, True.intro⟩
+  have h20 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h0, h20, h19, h17, h6, h11, True.intro⟩
-  have h22 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire (getIsPkgInit (GF := GF)) := by
+    exact ⟨h19, True.intro⟩
+  have h21 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h19, h6, h20, True.intro⟩
+  have h22 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h21, True.intro⟩
-  have h23 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h21, h6, h22, True.intro⟩
-  have h24 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h23, True.intro⟩
-  exact h24
+  exact h22
 
 end table
 

@@ -44,7 +44,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
     (wp_ErrorfT : fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG))
     (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.spec (GF := GF) (hG := hG) := by
-  intro lg d sl names dqs k write is R j dq qc N dqn h hk0 hkl hlen hd hnames
+  intro lg d sl names dqs k write is R j dq qc N dqn h hk0 hkl hlen hdf hnames
+  have hd : d.length < 4096 := hdf.1
   wp_start as ⟨#Hlg, #Hinv, #Hsi, Hp, Hperm, Hn, Hsl⟩
   ihave %hclean := osPathS_cleanAbs R d dq j $$ Hp
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
@@ -66,6 +67,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
     rw [subslice_def, ← Hsll.1, List.take_length]
   rw [hsub]
   generalize hns : names.drop (sint.nat k) = ns at hlen hnames
+  have hcb : ∀ m, os.closeErrMax (child d (ns.getD m [])) ≤ wal.closeMsgMax := by
+    refine walOpen_closeBound hd fun m b hb => ?_
+    obtain ⟨hm, -⟩ := List.getElem?_eq_some_iff.1 hb
+    exact (hnames m b is[m] hb (List.getElem?_eq_getElem (by omega))).2.2.1
   (try wp_auto)
   ihave %Hw2l := ownSlice_len _ _ _ $$ Hw2
   ihave IH : iprop(∃ (jj : w64) (nv : GoString) (rcsl rssl lssl : GoSlice) (frs : List GoInterfaceOk)
@@ -116,7 +121,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
     · ipureintro; rfl
     iintro %jsl ⟨Hjsl, -⟩
     (try wp_auto)
-    wp_apply wp_Join _ [d, b] _ (by simp; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
+    wp_apply wp_Join _ [d, b] _ (by simp [_root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
     rw [join_child hclean hbok] at hpth
     subst hpth
     (try wp_auto)
@@ -209,7 +214,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         · iframe
           isplitl []; · iexact Hlg
           isplitl []; · iexact Hinv
-          iapply (walOpenedRcs_close false d ns is (sint.nat jj) frs lfs rcs Hrl (by omega)) $$ Hop
+          iapply (walOpenedRcs_close false d ns is (sint.nat jj) frs lfs rcs Hrl (by omega) hcb) $$ Hop
         (try wp_auto)
         wp_apply wp_slice_literal (V := GoAny) [interface.mkOk go.string #(child d b), interface.ok e]
         isplitr
@@ -248,6 +253,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         $$ [Hp Hn Hperm] as %lf %err ⟨Hpost, Herr⟩
       · isplitl []; · iexact Hinv
         isplitl []; · iexact Hfu
+        isplitl []; · iPkgInit
         isplitl []; · iexact Hinv
         isplitl []; · iexact Hsi
         iframe
@@ -334,7 +340,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         · iframe
           isplitl []; · iexact Hlg
           isplitl []; · iexact Hinv
-          iapply (walOpenedRcs_close true d ns is (sint.nat jj) frs lfs rcs Hrl (by omega)) $$ Hop
+          iapply (walOpenedRcs_close true d ns is (sint.nat jj) frs lfs rcs Hrl (by omega) hcb) $$ Hop
         (try wp_auto)
         wp_apply wp_slice_literal (V := GoAny) [interface.ok e]
         isplitr

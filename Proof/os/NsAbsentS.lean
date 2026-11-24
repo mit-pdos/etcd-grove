@@ -35,11 +35,15 @@ theorem os.OpenFile.wp_absentS (d b : GoString) (flag : w64) (perm : w32) (R : R
     (hcr : (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 0)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
         osCallPerm (callKey R d) qc ∗ ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err }} := by
+
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl hcr htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   iloeb as IH generalizing Hperm Hp Hn HΦ
@@ -64,7 +68,7 @@ theorem os.OpenFile.wp_absentS (d b : GoString) (flag : w64) (perm : w32) (R : R
     iapply IH $$ Hperm Hp Hn HΦ
   rw [decide_eq_false (show e ≠ W64 4 from he4)]
   try wp_auto
-  wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+  wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
   iapply HΦ
   iframe
   isplitr
@@ -74,16 +78,20 @@ theorem os.OpenFile.wp_absentS (d b : GoString) (flag : w64) (perm : w32) (R : R
 /-- `os.Open(d/b)` of a name holding nothing: `OpenFile(d/b, O_RDONLY, 0)`, an error. -/
 theorem os.Open.wp_absentS (d b : GoString) (R : Roots) (j : Ino) (N : NameSet) (dq dqn : DFrac)
     (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b) (hi : h.cur !! b = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Open)) (Val #(child d b)))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
         osCallPerm (callKey R d) qc ∗ ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err }} := by
+
   wp_start as ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   try wp_auto
   have e : W64 0 ||| W64 0x80000 = flRO := by decide
   wp_apply os.OpenFile.wp_absentS d b (W64 0) (W32 0) R j N dq dqn h qc (by rw [e]; exact flRO_ok)
     (by rw [e]; decide) (by rw [e]; decide) hb hN hi $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 

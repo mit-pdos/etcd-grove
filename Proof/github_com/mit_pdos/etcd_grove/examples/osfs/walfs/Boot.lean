@@ -225,7 +225,7 @@ def crState (j : Ino) (γ : GName) (ko : Option Ino) (h : NamesH) : Option Ino �
 `seg.tmp` names; `seg` as it was in any case. -/
 theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ : GName)
     (ko : Option Ino) (h : NamesH) (hn : h.cur !! tmpB = none) (perm : w32) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ bootInv (GF := GF) j γ ∗ osCallPerm (callKey R d) 1 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ bootInv (GF := GF) j γ ∗ osCallPerm (callKey R d) 1 ∗
         bHalf (GF := GF) j γ ko h }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d tmpB))) (Val #(W64 66))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm (callKey R d) 1 ∗
@@ -235,7 +235,11 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
             osMeta i (DFrac.own 1) newMeta ∗ bHalf (GF := GF) j γ ko h') ∨
          (⌜err ≠ interface.nil⌝ ∗ ∃ h', bHalf (GF := GF) j γ ko h' ∗
             ⌜h'.cur !! segB = h.cur !! segB⌝)) }} := by
+
   wp_start as ⟨#Hos, #Hsi, #Hinv, Hperm, Hh⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod bHalf_next R j γ ko h $$ Hsi Hh with ⟨Hh, #Hlb⟩
   obtain ⟨hfl, hcr, htr⟩ := create_flag
   obtain ⟨o, ho⟩ : ∃ o : Option Ino, o = none := ⟨none, rfl⟩
@@ -277,7 +281,7 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
       unfold os.ownFile
       iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      (repeat' isplitl []) <;> iassumption
     all_goals
       obtain ⟨he0, rfl⟩ := he
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
@@ -356,7 +360,7 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
       unfold os.ownFile
       iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      (repeat' isplitl []) <;> iassumption
     · rw [decide_eq_false he0]
       iclear Hfd
       try wp_auto
@@ -507,7 +511,7 @@ theorem wp_commit (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
     (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
     (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ : GName) (ko : Option Ino)
     (h : NamesH) (hn : h.cur !! tmpB = none) (hs : h.cur !! segB = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ bootInv (GF := GF) j γ ∗ osCallPerm (callKey R d) 1 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ bootInv (GF := GF) j γ ∗ osCallPerm (callKey R d) 1 ∗
         bHalf (GF := GF) j γ ko h }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.commit)) (Val #d))
     {{ RET #(); True }} := by
@@ -632,7 +636,7 @@ theorem wp_Boot (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
     (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
     (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ : GName) (ko0 : Option Ino)
     (h0 : NamesH) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ bootInv (GF := GF) j γ ∗ osCallPerm (callKey R d) 1 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ bootInv (GF := GF) j γ ∗ osCallPerm (callKey R d) 1 ∗
         bHalf (GF := GF) j γ ko0 h0 ∗ DS.segRes (GF := GF) ko0 }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Boot)) (Val #d))
     {{ RET #(); True }} := by

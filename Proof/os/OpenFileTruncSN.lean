@@ -34,6 +34,9 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl hcr htr ⊢
   have hnd : ∀ J, h.cur !! b ≠ some (.dir J) := by intro J; rw [hn]; simp
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   ihave HSt : iprop((osAUnc (osNames j N (DFrac.own r) h) (crOutN j N b h (DFrac.own r)) Q ∗
       osNames j N (DFrac.own q) h) ∨
@@ -96,7 +99,7 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
         try wp_auto
         wp_apply os.wp_modelErrno
         try wp_auto
-        wp_apply os.wp_modelPathError_ok _ _ e he0 as %pe #Hok
+        wp_apply os.wp_modelPathError_ok _ _ e he0 $$ Hsys as %pe #Hok
         try wp_auto
         wp_for_post
         iapply HΦ
@@ -132,7 +135,7 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
         isplitr [off]
         · iexists _
           iframe
-          isplitl [] <;> (try isplitl []) <;> iassumption
+          (repeat' isplitl []) <;> iassumption
         · iexists _
           isplitl []
           · iexact f
@@ -166,7 +169,7 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
         try wp_auto
         wp_apply os.wp_modelErrno
         try wp_auto
-        wp_apply os.wp_modelPathError_ok _ _ e he0 as %pe #Hok
+        wp_apply os.wp_modelPathError_ok _ _ e he0 $$ Hsys as %pe #Hok
         try wp_auto
         wp_for_post
         iapply HΦ
@@ -226,7 +229,7 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
       isplitr [off]
       · iexists _
         iframe
-        isplitl [] <;> (try isplitl []) <;> iassumption
+        (repeat' isplitl []) <;> iassumption
       · iexists _
         isplitl []
         · iexact f
@@ -257,7 +260,7 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
       try wp_auto
       wp_apply os.wp_modelErrno
       try wp_auto
-      wp_apply os.wp_modelPathError_ok _ _ e he0 as %pe #Hok
+      wp_apply os.wp_modelPathError_ok _ _ e he0 $$ Hsys as %pe #Hok
       try wp_auto
       wp_for_post
       iapply HΦ

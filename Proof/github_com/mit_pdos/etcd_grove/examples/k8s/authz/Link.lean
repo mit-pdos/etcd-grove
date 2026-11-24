@@ -87,9 +87,7 @@ public import Proof.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToA
 public import Proof.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToAggregate_ptr
 public import Proof.k8s_io.apimachinery.pkg.util.validation.field.NewPath
 public import Proof.fmt.ErrorfLeaf
-public import Proof.fmt.ErrorfSlice
 public import Proof.fmt.SprintfArgs
-public import Proof.fmt.SprintfSlice
 public import Proof.math.rand.Int63n
 public import Proof.k8s_io.apimachinery.pkg.util.sets.ListW
 public import Proof.k8s_io.apimachinery.pkg.util.sets.New
@@ -138,14 +136,6 @@ theorem fmt.wp_ErrorfLeaf :
 theorem fmt.wp_SprintfArgs :
     EtcdGrove.fmt.SprintfArgs.spec (GF := GF) (hG := hG) :=
   EtcdGrove.fmt.SprintfArgs.wp_proof
-
-theorem fmt.wp_ErrorfSlice :
-    EtcdGrove.fmt.ErrorfSlice.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.fmt.ErrorfSlice.wp_proof
-
-theorem fmt.wp_SprintfSlice :
-    EtcdGrove.fmt.SprintfSlice.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.fmt.SprintfSlice.wp_proof
 
 theorem rand.wp_Int63n :
     EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG) :=
@@ -276,7 +266,7 @@ theorem authorizer.ConditionsAwareDecisionUnion.wp_ContainsUnconditionalAllowOrD
 
 theorem slices.wp_ContainsFunc :
     EtcdGrove.slices.ContainsFunc.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.slices.ContainsFunc.wp_proof
+  EtcdGrove.slices.ContainsFunc.wp_proof _root_.Perennial.slices.wp_ContainsFunc
 
 theorem authorizer.ConditionsAwareDecisionUnion.wp_hasConditionalAuthorizerName :
     EtcdGrove.authorizer.ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.spec (GF := GF) (hG := hG) :=
@@ -336,7 +326,7 @@ theorem authorizer.ConditionsAwareDecision.wp_PossibleDecisions :
 
 theorem authorizer.ConditionsAwareDecisionUnion.wp_Add :
     EtcdGrove.authorizer.ConditionsAwareDecisionUnion.Add.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authorizer.ConditionsAwareDecisionUnion.Add.wp_proof authorizer.ConditionsAwareDecisionUnion.wp_ContainsUnconditionalAllowOrDeny fmt.wp_ErrorfLeaf authorizer.ConditionsAwareDecisionUnion.wp_hasConditionalAuthorizerName validation.wp_IsDNS1123Subdomain authorizer.ConditionsAwareDecision.wp_ContainsUnconditionalAllowOrDeny sets.wp_New authorizer.ConditionsAwareDecision.wp_PossibleDecisions sets.Set.wp_UnsortedList sets.Set.wp_Insert fmt.wp_ErrorfSlice
+  EtcdGrove.authorizer.ConditionsAwareDecisionUnion.Add.wp_proof authorizer.ConditionsAwareDecisionUnion.wp_ContainsUnconditionalAllowOrDeny fmt.wp_ErrorfLeaf authorizer.ConditionsAwareDecisionUnion.wp_hasConditionalAuthorizerName validation.wp_IsDNS1123Subdomain authorizer.ConditionsAwareDecision.wp_ContainsUnconditionalAllowOrDeny sets.wp_New authorizer.ConditionsAwareDecision.wp_PossibleDecisions sets.Set.wp_UnsortedList sets.Set.wp_Insert
 
 theorem authorizer.ConditionsAwareDecisionUnion.wp_FailureDecision :
     EtcdGrove.authorizer.ConditionsAwareDecisionUnion.FailureDecision.spec (GF := GF) (hG := hG) :=
@@ -396,7 +386,7 @@ theorem authorizer.Decision.wp_String :
 
 theorem authorizer.ConditionsAwareDecision.wp_UnconditionalPartsOrFailClosed :
     EtcdGrove.authorizer.ConditionsAwareDecision.UnconditionalPartsOrFailClosed.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authorizer.ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof authorizer.ConditionsAwareDecision.wp_IsDeny authorizer.ConditionsAwareDecision.wp_IsNoOpinion authorizer.ConditionsAwareDecision.wp_IsAllow authorizer.ConditionsAwareDecision.wp_Reason authorizer.ConditionsAwareDecision.wp_Error authorizer.ConditionsAwareDecision.wp_FailureDecision authorizer.ConditionsAwareDecision.wp_PossibleDecisions sets.wp_List'W authorizer.Decision.wp_String fmt.wp_SprintfSlice
+  EtcdGrove.authorizer.ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof authorizer.ConditionsAwareDecision.wp_IsDeny authorizer.ConditionsAwareDecision.wp_IsNoOpinion authorizer.ConditionsAwareDecision.wp_IsAllow authorizer.ConditionsAwareDecision.wp_Reason authorizer.ConditionsAwareDecision.wp_Error authorizer.ConditionsAwareDecision.wp_FailureDecision authorizer.ConditionsAwareDecision.wp_PossibleDecisions sets.wp_List'W authorizer.Decision.wp_String _root_.Perennial.fmt.wp_Sprintf
 
 theorem authorizer.wp_ConditionsEvaluationResultUnevaluatable :
     EtcdGrove.authorizer.ConditionsEvaluationResultUnevaluatable.spec (GF := GF) (hG := hG) :=
@@ -528,7 +518,7 @@ theorem union.unionAuthzHandler.wp_evaluateConditions :
 
 theorem union.unionAuthzHandler.wp_EvaluateConditions :
     EtcdGrove.union.unionAuthzHandler.EvaluateConditions.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.union.unionAuthzHandler.EvaluateConditions.wp_proof authorizer.ConditionsAwareDecision.wp_IsUnion authorizer.ConditionsAwareDecision.wp_FailureDecision _root_.Perennial.errors.wp_New authorizer.ConditionsAwareDecision.wp_UnionedDecisions authorizer.ConditionsAwareDecision.wp_IsDeny authorizer.ConditionsAwareDecision.wp_Reason authorizer.ConditionsAwareDecision.wp_Error authorizer.ConditionsAwareDecision.wp_IsAllow authorizer.ConditionsAwareDecision.wp_IsNoOpinion authorizer.ConditionsAwareDecision.wp_IsConditionsMap union.unionAuthzHandler.wp_evaluateConditions authorizer.ConditionsAwareDecision.wp_PossibleDecisions sets.Set.wp_Has sets.wp_List'W fmt.wp_ErrorfSlice _root_.Perennial.fmt.wp_Sprintf _root_.Perennial.strings.wp_Join utilerrors.wp_NewAggregate authorizer.Decision.wp_String
+  EtcdGrove.union.unionAuthzHandler.EvaluateConditions.wp_proof authorizer.ConditionsAwareDecision.wp_IsUnion authorizer.ConditionsAwareDecision.wp_FailureDecision _root_.Perennial.errors.wp_New authorizer.ConditionsAwareDecision.wp_UnionedDecisions authorizer.ConditionsAwareDecision.wp_IsDeny authorizer.ConditionsAwareDecision.wp_Reason authorizer.ConditionsAwareDecision.wp_Error authorizer.ConditionsAwareDecision.wp_IsAllow authorizer.ConditionsAwareDecision.wp_IsNoOpinion authorizer.ConditionsAwareDecision.wp_IsConditionsMap union.unionAuthzHandler.wp_evaluateConditions authorizer.ConditionsAwareDecision.wp_PossibleDecisions sets.Set.wp_Has sets.wp_List'W fmt.wp_ErrorfLeaf _root_.Perennial.fmt.wp_Sprintf _root_.Perennial.strings.wp_Join utilerrors.wp_NewAggregate authorizer.Decision.wp_String
 
 theorem wp_twoPhase :
     EtcdGrove.k8s_authz.twoPhase.spec (GF := GF) (hG := hG) :=

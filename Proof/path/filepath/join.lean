@@ -86,6 +86,34 @@ theorem filepath.joinModel_empties (es : List (List w8)) (he : ∀ j < es.length
     simp [Option.some.inj this]
   simp [path.joinModel, hsum]
 
+/-- The length of `[slash].intercalate` of a non-empty sublist of `es`: below its elements' bytes and
+one separator each. -/
+theorem filepath.length_intercalate_sublist_lt {xs es : List (List w8)} (h : xs.Sublist es) :
+    ([path.slash].intercalate xs).length < (es.map List.length).sum + es.length ∨ xs = [] := by
+  have key : ∀ xs : List (List w8), xs ≠ [] →
+      ([path.slash].intercalate xs).length + 1 ≤ (xs.map List.length).sum + xs.length := by
+    intro xs
+    induction xs with
+    | nil => intro h; exact absurd rfl h
+    | cons x xs ih =>
+      intro _
+      cases xs with
+      | nil => simp
+      | cons y ys =>
+        have ih' := ih (by simp)
+        rw [List.intercalate_cons_cons]
+        simp only [List.length_append, List.length_cons, List.length_nil, List.map_cons,
+          List.sum_cons] at ih' ⊢
+        omega
+  have mono : (xs.map List.length).sum + xs.length ≤ (es.map List.length).sum + es.length := by
+    induction h with
+    | slnil => simp
+    | cons a _ ih => simp only [List.map_cons, List.sum_cons, List.length_cons]; omega
+    | cons_cons a _ ih => simp only [List.map_cons, List.sum_cons, List.length_cons]; omega
+  by_cases hx : xs = []
+  · exact Or.inr hx
+  · exact Or.inl (by have := key xs hx; omega)
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -95,7 +123,7 @@ variable [package_sem : _root_.Perennial.path.filepath.Assumptions]
 
 theorem filepath.join.wp_proof (hClean : filepath.Clean.spec (GF := GF) (hG := hG)) :
     filepath.join.spec (GF := GF) (hG := hG) := by
-  intro sl es dq
+  intro sl es dq hes
   wp_start as Hsl
   ihave %Hsll := ownSlice_len $$ Hsl
   try wp_auto
@@ -145,6 +173,13 @@ theorem filepath.join.wp_proof (hClean : filepath.Clean.spec (GF := GF) (hG := h
       rw [(by decide : go.runeString 47 = [W8 47])]
       wp_apply _root_.Perennial.strings.wp_Join _ _ dq _ $$ [H2] as H2
       · iframe
+        ipureintro
+        rcases filepath.length_intercalate_sublist_lt
+          ((List.drop_sublist _ _).trans (List.take_sublist _ _)) with h | h
+        · unfold _root_.Perennial.strings.joinMax at hes
+          exact Nat.lt_of_lt_of_le h hes
+        · show ([W8 47].intercalate ((es.take _).drop _)).length < _
+          rw [h]; simp
       try wp_auto
       wp_apply hClean _ as %r %Hr
       try wp_auto

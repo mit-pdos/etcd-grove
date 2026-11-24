@@ -39,6 +39,7 @@ Proved in `Proof/os/RemoveAll.lean` (`specSubS`: `Proof/os/RemoveAllSub.lean`). 
 -/
 module
 
+public import Proof.os.PkgInit
 public import Proof.os.SharedAu
 public import Spec.fmt.ErrorOk
 public import GooseLang.Ext.Fs.NoErrRemoveSteps
@@ -113,7 +114,7 @@ def rmAllOut (j : Ino) (b : GoString) (J : Ino) (h hJ : NamesH) : IProp GF :=
 abbrev os.RemoveAll.specAbsentS : Prop :=
   ∀ (d b : GoString) (j : Ino) (R : Roots) (qd : Qp) (dqn : DFrac) (h : NamesH) (qc : Qp),
   NameOk b → h.cur !! b = none →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
       osNames j (.only [b]) dqn h ∗ osCallPerm (callKey R d) qc }}
     (App (Val (@! os.RemoveAll)) (Val #(child d b)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osNames j (.only [b]) dqn h ∗
@@ -123,7 +124,7 @@ abbrev os.RemoveAll.specAbsentS : Prop :=
 abbrev os.RemoveAll.specDirS : Prop :=
   ∀ (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp) (h hJ : NamesH),
   NameOk b → h.cur !! b = some (.dir J) → FilesOnly hJ.cur →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
       osNames j (.only [b]) (DFrac.own 1) h ∗ osNames J (.except []) (DFrac.own 1) hJ ∗
       osCallPerm (callKey R d) 1 }}
     (App (Val (@! os.RemoveAll)) (Val #(child d b)))
@@ -138,7 +139,7 @@ def osClaimsW (cl : List Claim) : IProp GF :=
 abbrev os.RemoveAll.specSubS : Prop :=
   ∀ (d b : GoString) (j : Ino) (R : Roots) (qd : Qp) (h : NamesH) (cl : List Claim),
   NameOk b → SubCover cl (h.cur !! b) → ClRanked cl →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
       osNames j (.only [b]) (DFrac.own 1) h ∗ osClaimsW cl ∗ osCallPerm (callKey R d) 1 }}
     (App (Val (@! os.RemoveAll)) (Val #(child d b)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗

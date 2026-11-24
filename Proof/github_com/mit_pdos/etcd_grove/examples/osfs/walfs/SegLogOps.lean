@@ -119,7 +119,7 @@ variable [sem : go.Semantics] [os.Assumptions]
 absent: on success a new file of a fresh inode `i`, `seg.log` names it. -/
 theorem wp_openLog (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG)) (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (h : NamesH)
     (hn : h.cur !! logB = none) (perm : w32) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ logRes (GF := GF) R dir j h }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ logRes (GF := GF) R dir j h }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child dir logB))) (Val #(W64 66))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
         ((∃ (fd : w64) (i : Ino) (h' : NamesH), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧
@@ -128,7 +128,7 @@ theorem wp_openLog (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG)) 
             osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗ osMeta i (DFrac.own 1) newMeta ∗
             logRes (GF := GF) R dir j h') ∨
          (⌜err ≠ interface.nil⌝ ∗ ∃ h', logRes (GF := GF) R dir j h')) }} := by
-  iintro %Φ ⟨#Hos, #Hsi, Hh⟩ HΦ
+  iintro %Φ ⟨#Hospkg, #Hos, #Hsi, Hh⟩ HΦ
   unfold logRes
   icases Hh with ⟨Hperm, Hn⟩
   imod osPathS_root R dir j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp

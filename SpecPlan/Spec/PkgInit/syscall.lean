@@ -6,6 +6,7 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.errors.Base
 public import SpecPlan.Spec.PkgInit.internal.gomodel
+public import Perennial.Proof.internal.strconv.Base
 public import Perennial.Proof.internal.oserror.Base
 
 @[expose] public section
