@@ -6474,6 +6474,137 @@ noncomputable def jdecMember_ConfigChangeContext.impl [GooseExts] [GoGlobalConte
   (Val #()))))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))))))
 
+/-- NewMember creates a Member without an ID and generates one based on the
+    cluster name, peer URLs, and time. This is used for bootstrapping/adding new member.
+
+    go: member.go:51:6 -/
+noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Lam "peerURLs"
+  (Lam "clusterName"
+  (Lam "now"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "now" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.time.Time.ty)))) (Var "now"))
+  (Let "clusterName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "clusterName"))
+  (Let "peerURLs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peerURLs"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peerURLs"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "clusterName"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Time.ty)))) (Var "now"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve computeMemberID []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "memberID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peerURLs"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "memberID"))
+  (Let "$a3" (Val #false)
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve newMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "memberID") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "$res0"))))))))
+
+/-- go: member.go:63:6 -/
+noncomputable def computeMemberID.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "peerURLs"
+  (Lam "clusterName"
+  (Lam "now"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "now" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.time.Time.ty)))) (Var "now"))
+  (Let "clusterName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "clusterName"))
+  (Let "peerURLs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peerURLs"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty) go!"StringSlice"))) (Var "peerURLs")) (Val #()))
+  (Let "peerURLstrs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "peerURLstrs"))
+  (Let "$a1" (Val #(go!""))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Join []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "joinedPeerUrls" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "joinedPeerUrls")))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "clusterName")))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.crypto.sha1.Sum []))) (Val #())) (Var "$a0")))
+  (Let "hash" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 20 go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 20 go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$s" (Var "hash")
+  (App (Val (GoInstruction (Slice (go.GoType.ArrayType 20 go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 8)))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"Uint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 20 go.byte)))) (Pair (Var "hash") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.time.Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Time.ty)))) (Var "now")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.time.Time.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Let "$a0" (Val #(go!"%d"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Unix"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Time.ty)))) (Var "now"))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "joinedPeerUrls") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "peerURLstrs"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Strings []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "peerURLstrs") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "$res0")))))))
+
+/-- go: member.go:78:6 -/
+noncomputable def newMember.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Lam "peerURLs"
+  (Lam "memberID"
+  (Lam "isLearner"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "isLearner" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "isLearner"))
+  (Let "memberID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "memberID"))
+  (Let "peerURLs" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peerURLs"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Member.ty))) (Let "$v0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty) go!"StringSlice"))) (Var "peerURLs")) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "isLearner"))
+  (App (Val (GoInstruction (CompositeLiteral RaftAttributes.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"IsLearner")) (ElementExpression go.bool (Var "$v1")))]))))
+  (Let "$v1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (Val (GoInstruction (CompositeLiteral Attributes.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0")))])))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "memberID"))
+  (App (Val (GoInstruction (CompositeLiteral Member.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"RaftAttributes")) (ElementExpression RaftAttributes.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Attributes")) (ElementExpression Attributes.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"ID")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v2")))]))))))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "m") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "$res0"))))))))
+
 /-- go: member.go:90:18 -/
 noncomputable def Member.Clone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
@@ -7330,6 +7461,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   jenc_ConfigChangeContext_unfold : FuncUnfold jenc_ConfigChangeContext [] jenc_ConfigChangeContext.impl
   jdec_ConfigChangeContext_unfold : FuncUnfold jdec_ConfigChangeContext [] jdec_ConfigChangeContext.impl
   jdecMember_ConfigChangeContext_unfold : FuncUnfold jdecMember_ConfigChangeContext [] jdecMember_ConfigChangeContext.impl
+  NewMember_unfold : FuncUnfold NewMember [] NewMember.impl
+  computeMemberID_unfold : FuncUnfold computeMemberID [] computeMemberID.impl
+  newMember_unfold : FuncUnfold newMember [] newMember.impl
   setIsLearnerMetric_unfold : FuncUnfold setIsLearnerMetric [] setIsLearnerMetric.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
@@ -7395,6 +7529,9 @@ attribute [instance] Assumptions.RaftCluster_instance
   Assumptions.jenc_ConfigChangeContext_unfold
   Assumptions.jdec_ConfigChangeContext_unfold
   Assumptions.jdecMember_ConfigChangeContext_unfold
+  Assumptions.NewMember_unfold
+  Assumptions.computeMemberID_unfold
+  Assumptions.newMember_unfold
   Assumptions.setIsLearnerMetric_unfold
   Assumptions.«init.0_unfold»
   Assumptions.import_json_Assumption

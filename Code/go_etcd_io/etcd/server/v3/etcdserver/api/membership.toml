@@ -38,6 +38,9 @@ translate = ["!*",
   "setIsLearnerMetric", "RaftCluster.updateMembershipMetric",
   # (prove-ps2-members, 2026-11-22) the backend's setter (`applySnapshot`'s), proved
   "RaftCluster.SetBackend",
+  # (etcd-dist D2, 2026-11-24) the member id's computation (the deployment's check and bootstrap's), over
+  # the proved `URLs.StringSlice`, `sort.Strings`, `strings.Join`, `crypto/sha1` and `encoding/binary`
+  "NewMember", "computeMemberID", "newMember",
   # (prove-ps2-bootstage1, 2026-11-23, #34 stage 1) the cluster's version, read under the lock
   # (`rcLockInv`'s version slot), proved
   "RaftCluster.Version",

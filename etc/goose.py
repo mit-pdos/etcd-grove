@@ -479,6 +479,8 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats",
             # names only (D21 M2): `Process`'s `403` errors (`httptypes.NewHTTPError`)
             "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types",
+            # (etcd-dist D2, 2026-11-24) names only: the multi-machine server's `NewPeerHandler`
+            "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
             # with bodies (etcdserver/api/v3compactor.toml): the auto-compactor (the spec-first
             # pilot, notes/compactor-pilot-plan.md)
@@ -1085,14 +1087,17 @@ PROJECTS = [
         # putget_safe's two programs (notes/putget-dist-plan.md): the member machine's
         # (`putget.Member`: etcdstart's StartServer and Serve) and the client machine's
         # (`putget.Client`: Put, Get, check), of
-        # examples/etcd/dist (etcd_safe's directory, notes/etcd-dist-plan.md; its server and client
-        # packages are stage D2's). A package of the examples' Go module (examples/go.mod), as putget.
+        # examples/etcd/dist (etcd_safe's directory, notes/etcd-dist-plan.md), and (D2) etcd_safe's
+        # packages below. Packages of the examples' Go module (examples/go.mod), as putget.
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "dist"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
-        packages=["./putget"],
+        # (etcd-dist D2, 2026-11-24) etcd_safe's programs: the deployment and its check, the member
+        # machine's server, the orchestrators' and client machines' client, kvremote, enc
+        packages=["./putget", "./deployment", "./enc", "./kvremote", "./server", "./client"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
     ),
     Project(
