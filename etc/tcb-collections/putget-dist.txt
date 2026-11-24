@@ -1,9 +1,10 @@
 # putget_safe (examples/etcd/dist/putget, notes/putget-dist-plan.md): etcd's first distributed theorem,
 # one member machine and one client machine, no crash: `theorem putget_safe : putget_safe.spec`
 # (Proof/.../examples/etcd/dist/putget/TopLevelRobustness.lean), no hypothesis. Its cross-machine steps
-# rest on the five interim axioms of notes/putget-dist-plan.md §12 (`etcd_dist.etcdAddrRaw`,
-# `etcd_dist.etcdAddr_set`, `etcd_dist.Serve_dist.wp_proof`, `etcd_dist.Client_Put_dist.wp_proof`,
-# `etcd_dist.Client_Get_dist.wp_proof`), retired by #24's switch and S2's proofs. The rest is the
+# rest on the four interim axioms of notes/putget-dist-plan.md §12 (the table `etcd_dist.etcdSvc`,
+# `etcd_dist.Serve_dist.wp_proof`, `etcd_dist.Client_Put_dist.wp_proof`,
+# `etcd_dist.Client_Get_dist.wp_proof`; since the S2 interface switch the address fact is grpc's
+# `grpcAddrAt` and `etcdAddr_set` a theorem), retired by S2's `etcdSvc` and proofs. The rest is the
 # single-process member's and client's trust base. Baseline written by --check --update after a full
 # VM build.
 #

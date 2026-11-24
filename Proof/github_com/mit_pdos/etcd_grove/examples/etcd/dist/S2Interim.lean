@@ -211,9 +211,9 @@ messages' wire parts (`pbPutRequest.wire`, ...) with the spec `etcdPubSpec γE (
 published view, `grpcNoCall` for the methods no client of the theorem calls. It cannot be defined yet:
 the entries' specs need the member's apply environment from its view (`etcdEnvOf ν`, open question O1)
 and specs that take no `HeapGS` (O2). It has no law: no proof can learn an entry of it, so nothing can
-call or serve it through grpc's own axioms (`Invoke` needs `isGrpcRpcMd`, an entry of the table at the
-address; `Server.Serve` needs `grpcServes`, a handler for each entry), only through the interim axioms
-`Serve_dist`, `Client_Put_dist` and `Client_Get_dist`. A table is data, so the axiom is consistent
+call it through grpc's own `Invoke` (`isGrpcRpcMd` needs an entry of the table at the address), and only a
+server registering no unary method serves it through `Server.Serve` (`grpcServes … [] [] []` holds
+vacuously: every call gets `Unimplemented`). A table is data, so the axiom is consistent
 (`GrpcSvc` is inhabited). Retired by S2's `etcdSvc` (the cluster id `cid` moves into the view, #24
 05:09Z). -/
 axiom etcdSvc [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
@@ -243,8 +243,10 @@ instance etcdAddrAt_persistent (a : GoString) (γE : GName) (mid : w64) :
 /-- **The start law** (`notes/putget-dist-plan.md` §12; proved since the S2 interface switch, 2026-11-24,
 where it was an axiom): the deployment's start sets the unset address `a` to serve etcd's table for
 `(γE, mid)`, over a fresh slot map (`depSlots_alloc`, then `grpc_addr_set`). It spends `addrUnset a`:
-`a`'s pending set, its token and its listening token, so `a` is set at most once (`netLisTok_excl`) and
-no program can `Listen` at `a` through `netAddrFree` after it. -/
+`a`'s pending set, its token and its listening token, so `a` is set at most once (`netLisTok_excl`). It is
+not the only source of `etcdAddrAt`: `net.Listen`'s `netAddrLeft` sets a table too (`addr_set_proto_tok`), and
+`etcdAddrAt`'s `addrProto` lets its holder listen at `a` (`listen_au`); with `bridge.New` that refutes
+`Client_Put_dist`/`Client_Get_dist` (review 4, pending a decision, `notes/putget-dist-plan.md` §12). -/
 theorem etcdAddr_set (E : CoPset) (a : GoString) (γE : GName) (mid : w64) :
     ⊢ regCtx (Gg := Gg) -∗ addrUnset (Gg := Gg) a ={E}=∗ etcdAddrAt (GF := GF) a γE mid := by
   iintro #Hreg Hu

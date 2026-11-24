@@ -36,6 +36,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** Delete the token from `wal.bootRes` (a deletion of trust) and from the start bundles.
 - **Decision.** Accepted (Upamanyu, 2026-11-24, via coordinator-E); applied on `dist-putget-interim/2026-11-24`.
 
+## 2026-11-24: interim putget axioms over the S2 interface switch (A1 restated, A2 retired)
+
+- **Spec.** `etcd_dist.etcdAddrAt` (`Proof/.../examples/etcd/dist/S2Interim.lean`): was `□ etcdAddrRaw a γE mid`
+  (an axiomatized predicate, produced only by the axiom `etcdAddr_set`); now `∃ σ, grpcAddrAt a (etcdSvc γE mid)`
+  over the axiomatized heap-free table `etcd_dist.etcdSvc`; `etcdAddr_set` (statement unchanged) a theorem.
+- **Defect.** None in the old statement; the S2 interface switch (`6d5a98fb3d`) put `grpcAddrAt`/`grpc_addr_set`
+  on `lean`, so the interim trust can be stated in its vocabulary, one axiom fewer.
+- **Evidence.** `notes/putget-dist-plan.md` §12, "Over the S2 interface switch"; adversarial review of the four
+  remaining axioms (the `axiom` skill, 2026-11-24, `notes/audit.md`).
+- **Proposed change.** As above; A3-A5 (`Serve_dist`, `Client_Put_dist`, `Client_Get_dist`) unchanged (their
+  narrowing needs S2's etcd side: O1, O2, a listen at a set address). Interim, retired by S2's `etcdSvc` and proofs.
+- **Decision.** Pending (the owner reviews the axioms' text before landing). Review 4 found A4/A5 false with
+  `bridge.New` in both forms (`notes/putget-dist-plan.md` §12, "Review 4"); proposed fix on `bridge.New`.
+
 ## 2026-11-24: interim: S2 interface for putget; retired by #24's switch and S2 proofs
 
 - **Spec.** New trust-boundary specs (no SpecPlan counterpart): `Spec/.../examples/etcd/dist/ServeDist.lean`

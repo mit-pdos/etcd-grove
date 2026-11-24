@@ -509,8 +509,8 @@ review: `s2-interim/review.md` (the `axiom` skill; Go evidence `review-go/proxyr
 
 | # | Axiom | File | Asserts |
 |---|---|---|---|
-| A1 | `etcd_dist.etcdAddrRaw` (`etcdAddrAt := □ etcdAddrRaw`) | `Proof/.../etcd/dist/S2Interim.lean` | the address `a` serves etcd's KV calls for the member `mid` publishing at `γE` (opaque; intended interpretation #24's `∃ σ, depSlotsCtx ∗ grpcAddrAt a (etcdSvc γE mid)`) |
-| A2 | `etcd_dist.etcdAddr_set` | same | the start sets an unset address (`addrUnset a`, spent) to A1 |
+| A1 | `etcd_dist.etcdSvc` (since 2026-11-24; until then the opaque predicate `etcdAddrRaw`, `etcdAddrAt := □ etcdAddrRaw`) | `Proof/.../etcd/dist/S2Interim.lean` | etcd's service table for the member `mid` publishing at `γE` (heap-free `GrpcSvc GF`, no law); `etcdAddrAt a γE mid := ∃ σ, grpcAddrAt a (etcdSvc γE mid)` (#24's retirement form, over the S2 switch's `grpcAddrAt`) |
+| A2 | `etcd_dist.etcdAddr_set` (**a theorem** since 2026-11-24: `depSlots_alloc`, `grpc_addr_set`) | same | the start sets an unset address (`addrUnset a`, spent) to A1 |
 | A3 | `etcd_dist.Serve_dist.wp_proof` | `Spec`/`Proof/.../etcd/dist/ServeDist.lean` | `etcdstart.Serve(s, a)` of a started member whose view is published at `γE`, at an address set by A2, returns and starts no stuck or panicking thread |
 | A4 | `etcd_dist.Client_Put_dist.wp_proof` | `.../ClientPutDist.lean` | `cli.Put` of a no-proxy client of `[ep]` before it knows the view: on `nil`, a published view, a putget invariant at it, the put's flag |
 | A5 | `etcd_dist.Client_Get_dist.wp_proof` | `.../ClientGetDist.lean` | `cli.Get` of that client at the published view: on `nil`, a reply whose first value is the put's |
@@ -589,3 +589,42 @@ obligation). Then the axioms are theorems with the same statements.
   start axiom's `startRights` still hands it out and nothing consumes it; deleting it (with that conjunct of
   `startRights`) changes the start axiom's statement, a separate decision. Docstrings (`Start.lean`, `WalDir.lean`)
   say so; every collection's baseline rerun on the VM.
+
+**Over the S2 interface switch (2026-11-24, `origin/lean` `62ca03cfa2` merged; the switch is `6d5a98fb3d`).** The
+switch put `grpcAddrAt`, `grpcSvcAt`, `grpc_addr_set` (proved), the heap-free `isGrpcRpcMd` and a trust-boundary
+`grpc.Server.Serve.wp_proof` over a service table (`grpcServeTok gs lis a Svc`) on `lean`. What it retires here:
+- **A2 is a theorem**, and **A1 is now only the table**: `etcdAddrAt a γE mid := ∃ σ, grpcAddrAt a (etcdSvc γE mid)`,
+  exactly the retirement form above, with `etcd_dist.etcdSvc : GName → w64 → GrpcSvc GF` axiomatized (heap-free: no
+  `HeapGS`; in `etc/heapfree-roots.txt` with `etcdAddrAt`, `envAt`, `envPubInv`). It has no law: no proof learns an
+  entry, so `Invoke` (`isGrpcRpcMd` needs an entry at the address) and `Server.Serve` (`grpcServes` needs a handler
+  per entry) cannot use it; only A3-A5 do. The defined fact exposes `addrProto` at `a` (a raw program may dial or
+  listen there), but over the opaque `grpcCliPI`/`grpcSrvPI` no proof writes or learns any byte (the switch's review,
+  `notes/axiom-review/s2-interface.md`); A3's docstring (F4) now says so instead of "no other program can dial `a`".
+- **A3-A5 stay whole-call axioms, text unchanged.** Narrowing them is S2's etcd side, which the switch did not
+  supply: the table itself (`etcdSvc` over `etcdPubSpec`/`etcdEnvOf ν`, blocked on O1: `AEnv` is not countable,
+  and O2: the client-facing specs take the member's `AEnv`, `client_Put_own` needs `kvRegsAt ⟨ep, E, …⟩` and
+  `kvLogLb E.γs F`), the pub-form client proofs (`client_Put_pub`), and a member listening at an address its
+  deployment set (`grpcServeTok`'s branch `grpcSrvNew ∗ netListenerOpen lis a`: no `net.Listen` spec gives
+  `netListenerOpen` at a set address yet) with `grpcServes (etcdSvc γE mid)`. A narrower A4/A5 such as
+  "`etcdAddrAt ∗ envAt γE ν ⊢ ∃ E γr cid, kvRegsAt ⟨ep, E, γr, cid, mid⟩`" would hand the client machine specs
+  built at its own `HeapGS` from the member's `AEnv` (O2), a cross-heap transfer: not taken.
+- Interim axioms now four: `etcdSvc`, `Serve_dist`, `Client_Put_dist`, `Client_Get_dist`.
+
+**Review 4 (2026-11-24, the `axiom` skill, on `530dc2af99`): A4 and A5 are false with `bridge.New`, in both forms.**
+`bridge.New.wp_proof` (on `lean`) takes only `netListenerAt l a` (`addrClaim ∗ netListenerOpen`). A program holding
+`netAddrFree a` gets a listener at `a` and `etcdAddrAt a γE mid` at a view it fabricates (`envPub_start`/`env_publish`,
+a KV ghost variable holding `{k ↦ v}`, `putGetInv` with its flag at 1), bridges `a` to a real etcd whose store is empty,
+and A5 proves its `Get` returns `v`: Go panics (`scratch/pgint-review/gocx`, 5/5 runs; the proof sketched, not built).
+- New form (`530dc2af99`): `net.Listen` gives `netAddrLeft a`, which sets `a`'s table (`addr_set_proto_tok`, as
+  `grpc.start'` does); or `etcdAddr_set` then `listen_au` from `etcdAddrAt`'s `addrProto`.
+- Old form (`etcdAddrRaw`, the earlier reviews' "a listener before the law can never accept"): the net part's
+  `Listen` only lends the listening token, so the program listens first, keeps `addrUnset a` for `etcdAddr_set`, and
+  `bridge.New` needs no `Accept` (the lead's reading of `Net/Spec/net/Listen.lean`, not built).
+- `putget_safe`'s own conclusion is not hit (its start gives only `addrUnset`, no `addrClaim`), but A4/A5 are false as
+  statements. Likely the same route refutes the S2 switch's `Invoke` with a table the program picks, no interim axiom
+  involved (not built).
+- **Proposed fix (needs the owner's sign-off: a trusted change on `lean`):** `bridge.New` also consumes `netAddrLeft a`
+  (a bridged address's protocols are its target's). Then in both forms nothing can both set `a`'s table and bridge
+  it. A local alternative, `etcdAddr_set` also spending `addrClaim a`, does not fit: the distributed start hands out
+  only `addrUnset`. Until decided the branch does not land; the docstrings say "known false".
+

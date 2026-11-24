@@ -31,8 +31,9 @@ server from the started member (`v3rpc.Server`), listens at `a` (`net.Listen`), 
 `gs.Serve(l)` on its own goroutine and returns, and no thread it starts gets stuck or panics on
 the connections to `a`, each of which carries the calls of `Client_Put_dist`/`Client_Get_dist`
 (review F4; since the S2 interface switch `etcdAddrAt` is `grpcAddrAt a (etcdSvc γE mid)`, whose
-`addrProto` lets another program dial `a`, but no proof establishes the opaque `grpcCliPI` of any
-bytes, so such a connection carries nothing a proof wrote; nothing is claimed of other bytes). Every call that reaches a handler is one a client deposited under `a`'s
+`addrProto` lets another program dial, listen and accept at `a`, serve an empty grpc server there, or
+bridge it, review 4; no proof establishes the opaque `grpcCliPI`/`grpcSrvPI` of any bytes, and this
+axiom's post is `True`; nothing is claimed of other bytes). Every call that reaches a handler is one a client deposited under `a`'s
 protocol (the interpretation of `etcdAddrAt`): a unary call of etcd's KV table at `(γE, mid)`,
 whose spec is at the view published at `γE`. The member's view is that view
 (`ν = memberView ρ`), and the member is `mid` (`memberUp`'s id), so every such call meets the
@@ -49,8 +50,8 @@ bytes and the attempt's slot). The post is `True`: the member's proof only branc
 Retired by S2's `etcdSvc`. The interface switch (2026-11-24) made `etcdAddrAt` grpc's own address fact
 over the axiomatized table and `Server.Serve` a trust-boundary axiom over a table
 (`grpc.Server.Serve.wp_proof`, `grpcServeTok gs lis a Svc`); what is left is S2's etcd side: a member
-listening at an address its deployment set (`grpcServeTok`'s branch `grpcSrvNew ∗ netListenerOpen lis a`;
-no `net.Listen` spec gives `netListenerOpen` at a set address yet) and `grpcServes (etcdSvc γE mid)` from
+listening at an address its deployment set (`grpcServeTok`'s branch `grpcSrvNew ∗ netListenerOpen lis a`,
+from `listen_au` over `etcdAddrAt`'s `addrProto`) and `grpcServes (etcdSvc γE mid)` from
 the handlers' contracts (`phase7-plan.md` §2.4, §3, "`etcdstart`"), the published view converted through
 `etcdPubSpec`.
 Its statement needs no change, but S2's version may strengthen the post. **Obligation for S2's
