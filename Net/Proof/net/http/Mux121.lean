@@ -371,7 +371,8 @@ def mapOfRoutes (M : GMap GoString net.http.muxEntry) (R : GMap GoString GoInter
 def mux121P (γ : Mux121Names) (mux : Loc) (q : Qp) : IProp GF :=
   iprop(∃ (st : Mux121St) (R : GMap GoString GoInterface) (M : GMap GoString net.http.muxEntry),
     ghostVar γ.st q.half st ∗ ghostMapAuth γ.r q R ∗ rep121 (DFrac.own q) mux st M ∗
-    ⌜mapOfRoutes M R ∧ ∀ k, k ∈ st.pats ↔ (R !! k).isSome⌝)
+    ⌜mapOfRoutes M R ∧ (∀ k, k ∈ st.pats ↔ (R !! k).isSome) ∧
+      ∀ k v, R !! k = some v → v ≠ interface.nil⌝)
 
 /-- After `handle` inserts `p`: the state's facts for the new map, routes and patterns. -/
 theorem mux121_insert_ok (st : Mux121St) (M : GMap GoString net.http.muxEntry)
@@ -408,7 +409,7 @@ set_option hygiene false in
 /-- The end of `wp_mux121_handle`, once the lock is given back with the new state. -/
 local macro "mux121_close " mt:term:max et:term:max nt:term:max hs:term:max : tactic => `(tactic| (
   ihave %hm'n := ownMap_not_nil _ _ _ $$ HM
-  have Hfacts := mux121_insert_ok st M R p (GoInterface.ok hi) $mt $et $nt hp hm'n Hok.1 HMR
+  have Hfacts := mux121_insert_ok st M R p (GoInterface.ok hi) $mt $et $nt hp hm'n Hok.1 ⟨HMR.1, HMR.2.1⟩
   imod ghostVar_update_halves { m := $mt, es := $et, ents := $nt, pats := p :: st.pats }
     γ.st st st $$ Hv Hv0 with ⟨Hv, Hv0⟩
   imod ghost_map_insert_persist p (GoInterface.ok hi) hRp $$ HA with ⟨HA, #Hel⟩
@@ -422,7 +423,11 @@ local macro "mux121_close " mt:term:max et:term:max nt:term:max hs:term:max : ta
     simp only [hm'n, ↓reduceIte]
     iframe
     ipureintro
-    exact ⟨⟨Hfacts.1, $hs⟩, Hfacts.2⟩
+    refine ⟨⟨Hfacts.1, $hs⟩, Hfacts.2.1, Hfacts.2.2, fun k v hv => ?_⟩
+    rw [GMap.lookup_insert_eq_iff] at hv
+    by_cases hk : p = k
+    · simp only [hk, ↓reduceIte, Option.some.injEq] at hv; subst hv; exact hh
+    · simp only [hk, ↓reduceIte] at hv; exact HMR.2.2 k v hv
   try wp_auto
   iapply HΦ
   iexists { m := $mt, es := $et, ents := $nt, pats := p :: st.pats }
@@ -491,7 +496,7 @@ theorem wp_mux121_handle (wp_Search : sort.Search.spec (GF := GF) (hG := hG)) (m
     | ok i => exact ⟨i, rfl⟩
   try wp_auto
   have hRp : R !! p = none := by
-    have h1 : ¬ (R !! p).isSome = true := fun h0 => hnew ((HMR.2 p).mpr h0)
+    have h1 : ¬ (R !! p).isSome = true := fun h0 => hnew ((HMR.2.1 p).mpr h0)
     cases hr : R !! p with
     | none => rfl
     | some _ => simp [hr] at h1
@@ -511,6 +516,83 @@ theorem wp_mux121_handle (wp_Search : sort.Search.spec (GF := GF) (hG := hG)) (m
     rw [decide_eq_false hmn]
     try wp_auto
     mux121_rest st.m
+
+/-- A reader's view of the matcher (`P rfrac`), for a registered path: its state, and the path's
+entry in the map. -/
+theorem mux121P_found (γ : Mux121Names) (mux : Loc) (q : Qp) (path : GoString) (h : GoInterface) :
+    mux121P (GF := GF) (hG := hG) γ mux q -∗ path ↪[γ.r]□ h -∗
+      ∃ (st : Mux121St) (R : GMap GoString GoInterface) (M : GMap GoString net.http.muxEntry),
+        ghostVar γ.st q.half st ∗ ghostMapAuth γ.r q R ∗ rep121 (DFrac.own q) mux st M ∗
+        ⌜(mapOfRoutes M R ∧ (∀ k, k ∈ st.pats ↔ (R !! k).isSome) ∧
+          ∀ k v, R !! k = some v → v ≠ interface.nil) ∧ R !! path = some h ∧
+          M !! path = some ⟨h, path⟩⌝ := by
+  iintro HP #Hel
+  iunfold mux121P at HP
+  icases HP with ⟨%st, %R, %M, Hv, HA, Hrep, %HMR⟩
+  ihave %HRp := ghost_map_lookup $$ HA Hel
+  iexists st, R, M
+  iframe
+  ipureintro
+  refine ⟨HMR, HRp, ?_⟩
+  rw [HMR.1 path, HRp]; rfl
+
+/-- `mux.handler(host, path)` of a registered path, by a reader (a reader slot of the matcher's
+lock): the path's handler and the path. -/
+theorem wp_mux121_handler (mux : Loc) (γ : Mux121Names) (host path : GoString) (h : GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗
+        sync.ownRWMutex (structFieldRef net.http.serveMux121 go!"mu" mux) (mux121P γ mux) ∗
+        path ↪[γ.r]□ h }}
+      (App (App (Val (mux @!! go.GoType.PointerType net.http.serveMux121.ty @!! go!"handler"))
+        (Val #host)) (Val #path))
+    {{ RET (PairV #h #path); sync.ownRWMutex (structFieldRef net.http.serveMux121 go!"mu" mux)
+        (mux121P γ mux) }} := by
+  wp_start as ⟨Hrw, #Hel⟩
+  try wp_auto
+  wp_apply wp_with_defer as %defer defer
+  try wp_auto
+  wp_apply sync.RWMutex.wp_RLock $$ [$Hrw] as ⟨Hrl, HP⟩
+  icases mux121P_found γ mux _ path h $$ HP Hel with ⟨%st, %R, %M, Hv, HA, Hrep, %HMR, %HRp, %HMp⟩
+  iunfold rep121 at Hrep
+  icases Hrep with ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
+  try wp_auto
+  ihave Hrep : rep121 (DFrac.own sync.rfrac) mux st M $$ [Hm Hes Hh Hents Hcap HM]
+  · iunfold rep121; iframe; ipureintro; exact Hok
+  wp_apply wp_mux121_match_found mux (DFrac.own sync.rfrac) st M path ⟨h, path⟩ HMp $$ Hrep as Hrep
+  try wp_auto
+  obtain ⟨hi, rfl⟩ : ∃ i, h = GoInterface.ok i := by
+    cases h with
+    | nil => exact absurd rfl (HMR.2.2 path _ HRp)
+    | ok i => exact ⟨i, rfl⟩
+  try wp_auto
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hv HA Hrep] as Hrw
+  · iunfold mux121P; iexists st, R, M; iframe; ipureintro; exact HMR
+  try wp_auto
+  iapply HΦ
+  iframe
+
+/-- `mux.redirectToPathSlash(host, path, u)` of a registered path, by a reader: no redirect. -/
+theorem wp_mux121_redirectToPathSlash (mux : Loc) (γ : Mux121Names) (host path : GoString)
+    (u : Loc) (h : GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗
+        sync.ownRWMutex (structFieldRef net.http.serveMux121 go!"mu" mux) (mux121P γ mux) ∗
+        path ↪[γ.r]□ h }}
+      (App (App (App (Val (mux @!! go.GoType.PointerType net.http.serveMux121.ty @!!
+        go!"redirectToPathSlash")) (Val #host)) (Val #path)) (Val #u))
+    {{ RET (PairV #u #false); sync.ownRWMutex (structFieldRef net.http.serveMux121 go!"mu" mux)
+        (mux121P γ mux) }} := by
+  wp_start as ⟨Hrw, #Hel⟩
+  try wp_auto
+  wp_apply sync.RWMutex.wp_RLock $$ [$Hrw] as ⟨Hrl, HP⟩
+  icases mux121P_found γ mux _ path h $$ HP Hel with ⟨%st, %R, %M, Hv, HA, Hrep, %HMR, %HRp, %HMp⟩
+  try wp_auto
+  wp_apply wp_mux121_shouldRedirect_found mux (DFrac.own sync.rfrac) st M host path ⟨h, path⟩ HMp
+    $$ Hrep as Hrep
+  try wp_auto
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hv HA Hrep] as Hrw
+  · iunfold mux121P; iexists st, R, M; iframe; ipureintro; exact HMR
+  try wp_auto
+  iapply HΦ
+  iframe
 
 end defs
 
