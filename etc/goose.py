@@ -632,6 +632,9 @@ PROJECTS = [
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",
             "google.golang.org/protobuf/internal/pragma",
+            # types only: the message gRPC's robustness driver (examples/lib/grpcdriver) carries,
+            # `StringValue`, and its constructor `String`, with its body
+            "google.golang.org/protobuf/types/known/wrapperspb",
             # names only: the types of clientv3.Client's fields
             "google.golang.org/grpc",
             "google.golang.org/grpc/credentials",
