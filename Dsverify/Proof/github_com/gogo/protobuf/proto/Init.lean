@@ -14,7 +14,7 @@ precondition `True`).
 module
 
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

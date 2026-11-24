@@ -6,7 +6,7 @@ module
 public import Dsverify.GeneratedProof.gryff.src.masterlib
 public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.net.rpc.Init
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Dsverify.Proof.gryff.src.masterproto.Init
 public import Dsverify.Proof.net.http.Init
 public import Perennial.Proof.time.Link

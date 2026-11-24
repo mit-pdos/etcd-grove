@@ -9,7 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.cmd.server1.Base
 public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

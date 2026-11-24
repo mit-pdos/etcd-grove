@@ -8,7 +8,7 @@ public import Dsverify.Proof.gryff.src.masterproto.Init
 public import Dsverify.Proof.net.rpc.Init
 public import Perennial.Proof.log.Link
 public import Perennial.Proof.time.Link
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Perennial.Proof.fmt.Link
 public import Dsverify.Proof.net.http.Init
 

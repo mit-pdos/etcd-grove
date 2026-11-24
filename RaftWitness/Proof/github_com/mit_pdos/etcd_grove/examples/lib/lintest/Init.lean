@@ -14,7 +14,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import RaftWitness.Proof.github_com.anishathalye.porcupine.Init
-public import RaftWitness.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

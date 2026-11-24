@@ -39,6 +39,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
 public import Proof.k8s_io.apiserver.pkg.util.feature.Gate
 public import Perennial.Proof.context.Base
 public import Proof.math.rand.Base
+public import Proof.path.PkgInit
 
 @[expose] public section
 
@@ -365,12 +366,7 @@ instance k8s_io_apimachinery_pkg_util_validation_field_get_is_pkg_init_wf_inst :
 
 -- `encoding/json`'s instance: `etcdserver/apply/Base.lean` (D43 M4, 2026-10-26: membership's).
 
-instance path_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.path :=
-  define_is_pkg_init iprop(True)
-instance path_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.path :=
-  build_get_is_pkg_init_wf
+-- `path`'s instance: `Proof/path/PkgInit.lean` (L1, 2026-11-24)
 
 instance k8s_io_apimachinery_pkg_fields_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.fields :=

@@ -10,7 +10,7 @@ kit's closed statement. Replace by the model's proved `wp_initialize'` when it l
 module
 
 public import Proof.math.rand.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

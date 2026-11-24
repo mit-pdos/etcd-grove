@@ -10,7 +10,7 @@ variable).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Base
-public import RaftNoAx.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

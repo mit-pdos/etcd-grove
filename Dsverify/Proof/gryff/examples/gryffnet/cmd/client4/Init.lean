@@ -9,7 +9,7 @@ module
 
 public import Dsverify.Proof.gryff.examples.gryffnet.cmd.client4.Base
 public import Dsverify.Proof.gryff.examples.gryffnet.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.net.http.Init
 public import Dsverify.Proof.math.rand.Init

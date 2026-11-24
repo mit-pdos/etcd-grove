@@ -28,7 +28,7 @@ public import KvNet.Proof.syscall.Init
 public import Proof.os.Models
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.errors.NewVar
-public import KvNet.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
