@@ -377,7 +377,11 @@ PROJECTS = [
         # modernize analyzer's errorsastype rewrite across the modules, and by hand where `As` is the
         # first operand of an `&&` (fileutil's preallocExtend/preallocFixed, isSafeRetryImmutableRPC),
         # so that those proofs use Perennial's proved `AsType` spec instead of its `errors.As` axiom.
-        rev="edc800c6f26223e2da34f874c0dad3e1b3c668b7",
+        # Then (sortslice, 2026-11-24, mit-pdos/etcd-grove#18, approved by Upamanyu via
+        # coordinator-E) a336e97f9 (branch `goose-lean-slicessort`, on edc800c6f): mvcc's
+        # `hashStorage.Store` sorts with `slices.SortFunc(s.hashes, cmp.Compare on Revision)` instead
+        # of `sort.Slice` (whose reflection Perennial does not model), an upstream-ready change.
+        rev="a336e97f92ff403336ddb096643bdc5f0b002ec4",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
