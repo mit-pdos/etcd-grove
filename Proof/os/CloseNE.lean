@@ -33,7 +33,7 @@ theorem os.File.Close.wp_dirSNE {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : �
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
     {{ RET #GoInterface.nil; emp }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf

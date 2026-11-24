@@ -39,7 +39,7 @@ instance pmFile_timeless (B : BNs) (db : Loc) (dq : DFrac) (ms : MapSt) :
 theorem fileOwn_nonnull (f : Loc) (fd : w64) (nm : GoString) (dq : DFrac) :
     fileOwn (GF := GF) f fd nm dq ⊢ ⌜f ≠ null⌝ ∗ fileOwn f fd nm dq := by
   unfold fileOwn
-  iintro ⟨%inner, #Hf, Hd, #Hn⟩
+  iintro ⟨%inner, #Hf, Hd, #Hn, #Hnb⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Hf with ⟨-, %h⟩
   isplitr
   · ipureintro; exact h

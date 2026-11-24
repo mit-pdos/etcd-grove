@@ -124,7 +124,7 @@ variable [os.Assumptions]
 theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG := hG) := by
   intro f fd name dqf dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hown⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hown⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
@@ -320,7 +320,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   intro f fd name dqf sl data dqs off dq d N P R γ Good Ok m bs fa fb hwr hoff hgap hbig hn hn2
     hN hfz hW
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hown, Hc⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hsl, Hosfd, Hown, Hc⟩
   icases csOwnF_wf _ _ $$ Hown with %Hwf
   have hlen : bs.length = m.size := Hwf.1
   ihave #Hf2 := Hf
@@ -501,7 +501,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
 theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF) (hG := hG) := by
   intro f fd name dqf sz dq d N P R γ Good Ok m bs fa fb hfd0 hwr hsz hgrow hN hT
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hown, Hc⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hown, Hc⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto

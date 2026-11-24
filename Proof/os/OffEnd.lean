@@ -39,7 +39,7 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
             os.ownOff f (W64 m.size + off)) ∨
          (⌜err ≠ interface.nil⌝ ∗ os.ownOff f o)) }} := by
   unfold os.ownFile os.ownOff
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
   icombine Hf Hf' gives %hin
   cases hin
   ihave #Hf2 := Hf

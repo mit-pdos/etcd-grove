@@ -470,7 +470,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
                 off.toNat + data.length ≤ max m.size maxBytes ∧ LoWr m' (off.toNat + data.length)⌝) ∨
          (⌜err ≠ interface.nil⌝ ∗ osFd fd dq d ∗ errOkOrNil err)) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
+  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl dqs data $$ Hsl with %Hlen
@@ -751,7 +751,7 @@ theorem wp_tailWriteW (Mr : WalMarshal) (R : Roots) (jr : Ino)
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   try wp_auto

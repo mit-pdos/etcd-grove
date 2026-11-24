@@ -65,14 +65,14 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
     (dd ds : OsFd) (m : OsMeta) (qm qb : DFrac) (bs : List ByteG) (o j : Nat)
     (hfdd : 0 ≤ fdd.toInt) (hfds : 0 ≤ fds.toInt) (hwr : dd.writable = true) (hrd : ds.readable = true)
     (hbs : bs.length = m.size) (hm : m.size < 2 ^ 61) :
-    {{ osInv (GF := GF) ∗ structFieldRef os.file go!"fd" ind ↦{dqd} fdd ∗
-        structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗
+    {{ osInv (GF := GF) ∗ structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ind) ↦{dqd} fdd ∗
+        structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ins) ↦{dqs} fds ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         io.cpG ind ins dd.ino o bs j }}
       (App (App (App (App (Val (@! os.modelPollCopyFileRange)) (Val #ind)) (Val #ins))
         (Val #(null : Loc))) (Val #(W64 0x7fffffffffffffff)))
     {{ (wr : w64) (h : Bool) (err : GoInterface), RET (PairV (PairV #wr #h) #err);
-        structFieldRef os.file go!"fd" ind ↦{dqd} fdd ∗ structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗
+        structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ind) ↦{dqd} fdd ∗ structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ins) ↦{dqs} fds ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         ∃ j' : Nat, io.cpG ind ins dd.ino o bs j' ∗ ⌜(h = true → err = interface.nil → o + j' = bs.length) ∧
           (err = interface.nil ∨ ∃ l : Loc, err = interface.mkOk (go.GoType.PointerType os.SyscallError.ty) #l)⌝ }} := by

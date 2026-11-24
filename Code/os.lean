@@ -270,7 +270,8 @@ opaque doInRootCreatingDirectory [GooseExts] [GoGlobalContext] : val
 
 opaque doInRootAlwaysResolveTerminalSlash [GooseExts] [GoGlobalContext] : val
 
-opaque supportsCreateWithStickyBit [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def supportsCreateWithStickyBit [GooseExts] [GoGlobalContext] : val :=
+  #true
 
 opaque supportsCloseOnExec [GooseExts] [GoGlobalContext] : val
 

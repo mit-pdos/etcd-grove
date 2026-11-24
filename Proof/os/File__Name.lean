@@ -25,7 +25,7 @@ variable [os.Assumptions]
 theorem os.File.Name.wp_proof : os.File.Name.spec (GF := GF) (hG := hG) := by
   intro f fd name dq
   unfold os.ownFile
-  wp_start as ⟨%inner, #Hf, Hfd, #Hn⟩
+  wp_start as ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto

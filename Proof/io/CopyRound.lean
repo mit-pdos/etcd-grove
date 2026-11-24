@@ -52,14 +52,14 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
     (hdoff : doff = W64 vs.length) (hs0 : 0 ≤ soff.toInt) (hsoff : soff.toNat ≤ bs.length)
     (hbs : bs.length = m.size) (hm : m.size < 2 ^ 61) (hvs : vs.length ≤ m.size)
     (hmx0 : 0 < mx.toInt) (hmx : mx.toInt ≤ 0x7ffff000) :
-    {{ osInv (GF := GF) ∗ structFieldRef os.file go!"fd" ind ↦{dqd} fdd ∗
+    {{ osInv (GF := GF) ∗ structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ind) ↦{dqd} fdd ∗
         structFieldRef os.file go!"off" ind ↦ doff ∗
-        structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗ structFieldRef os.file go!"off" ins ↦ soff ∗
+        structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ins) ↦{dqs} fds ∗ structFieldRef os.file go!"off" ins ↦ soff ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         io.copyDst dd.ino (· = vs) }}
       (App (App (App (Val (@! os.modelCopyFileRangeRound)) (Val #ind)) (Val #ins)) (Val #mx))
     {{ (w e : w64), RET (PairV #w #e);
-        structFieldRef os.file go!"fd" ind ↦{dqd} fdd ∗ structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗
+        structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ind) ↦{dqd} fdd ∗ structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ins) ↦{dqs} fds ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         ∃ k : Nat, ⌜w = W64 k ∧ k ≤ mx.toNat ∧ (0 < k → e = W64 0) ∧
             (k = 0 → e = W64 0 → bs.length ≤ soff.toNat) ∧ soff.toNat + k ≤ bs.length⌝ ∗

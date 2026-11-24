@@ -196,7 +196,7 @@ theorem os.OpenFile.wp_proof_crash :
 theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (hG := hG) := by
   intro f fd name dqf sl data dqs off dq d N p R γ Good m bs hwr hoff hgap hbig hn hn2 hN hW
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hown⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hsl, Hosfd, Hown⟩
   icases cfOwn_wf _ _ _ _ $$ Hown with %Hwf
   have hlen : bs.length = m.size := Hwf.1
   ihave #Hf2 := Hf

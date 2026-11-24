@@ -27,7 +27,7 @@ variable [os.Assumptions]
 theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG := hG) := by
   intro f name
   unfold os.ownFile
-  wp_start as ⟨-, %inner, #Hf, Hfd, #Hn⟩
+  wp_start as ⟨-, %inner, #Hf, Hfd, #Hn, #Hnb⟩
   ihave ⟨%e, #Heok, #He⟩ := os.errClosed_of_pkgInit $$ Hpkg
   unfold os.ErrClosed at *
   ihave #Hf2 := Hf

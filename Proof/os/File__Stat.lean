@@ -56,7 +56,7 @@ private abbrev os.File.Stat.tripleNE : Prop :=
 private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := hG) := by
   intro f fd name dqf dq dqm d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hm⟩
   unfold os.model.inner os.model.arbitraryMode
   ihave #Hf2 := Hf
   iStructNamed Hf2
@@ -79,7 +79,7 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       try wp_auto
       iStructNamed fs
       try wp_auto
-      wp_apply os.model.wp_base as %nm _
+      wp_apply filepathlite.Base.wp_lex as %nm _
       try wp_auto
       wp_apply wp_ArbitraryInt as %x _
       ipersist name
@@ -127,7 +127,7 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
 private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name dqf dq dqm d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hm⟩
   unfold os.model.inner os.model.arbitraryMode
   ihave #Hf2 := Hf
   iStructNamed Hf2
@@ -138,7 +138,7 @@ private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG)
   iapply wp_fupd
   iStructNamed fs
   try wp_auto
-  wp_apply os.model.wp_base as %nm _
+  wp_apply filepathlite.Base.wp_lex as %nm _
   try wp_auto
   wp_apply wp_ArbitraryInt as %x _
   ipersist name

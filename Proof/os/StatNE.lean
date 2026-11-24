@@ -84,7 +84,7 @@ theorem os.model.wp_stat_dirSW (op p : GoString) (R : Roots) (J : Ino) (dq : DFr
     wp_apply wp_osDirCloseS fd J .idle CoPset.subseteq_top $$ Hos Hfd as %e2
     iStructNamed fs
     try wp_auto
-    wp_apply os.model.wp_base as %nm _
+    wp_apply filepathlite.Base.wp_lex as %nm _
     try wp_auto
     wp_apply wp_ArbitraryInt as %x _
     ipersist name
@@ -193,7 +193,7 @@ theorem os.model.wp_stat_fileAnySW (op d b : GoString) (R : Roots) (j i : Ino) (
       try wp_auto
       iStructNamed fs
       try wp_auto
-      wp_apply os.model.wp_base as %nm _
+      wp_apply filepathlite.Base.wp_lex as %nm _
       try wp_auto
       wp_apply wp_ArbitraryInt as %x _
       ipersist name

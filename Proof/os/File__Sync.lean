@@ -28,7 +28,7 @@ variable [os.Assumptions]
 theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
   intro f fd name dqf dq d m lo xs hcov
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hbs⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hm, Hbs⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
@@ -98,7 +98,7 @@ private abbrev os.File.Sync.tripleNEB : Prop :=
 private theorem os.File.Sync.wp_oldB : os.File.Sync.tripleOldB (GF := GF) (hG := hG) := by
   intro f fd name dqf dq d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hm⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
@@ -147,7 +147,7 @@ private theorem os.File.Sync.wp_oldB : os.File.Sync.tripleOldB (GF := GF) (hG :=
 private theorem os.File.Sync.wp_NEB : os.File.Sync.tripleNEB (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name dqf dq d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hm⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto

@@ -294,7 +294,7 @@ theorem os.File.Close.wp_dirS (f : Loc) (fd : w64) (name : GoString) (j : Ino) (
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
     {{ (err : GoInterface), RET #err; EtcdGrove.fmtErrorOkOrNil err }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
@@ -338,7 +338,7 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
          ((∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e) ∗
             ∃ r0 rs, osDirFdS fd j (.reading N r0 rs))) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hcl⟩
+  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hcl⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto

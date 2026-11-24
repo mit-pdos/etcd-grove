@@ -55,6 +55,7 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   "fileStat", "File.Fd", "File.fd", "File.readFrom", "File.spliceToFile",
   "rawConn.Control", "rawConn.Read", "rawConn.Write",
   "MkdirAll", "Mkdir", "Remove", "fixLongPath", "ignoringEINTR", "syscallMode",
+  "supportsCreateWithStickyBit",
   "ModeDir", "ModeSymlink", "ModeSetuid", "ModeSetgid", "ModeSticky"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
 imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll", "sync/atomic", "time",

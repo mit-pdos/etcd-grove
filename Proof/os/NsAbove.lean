@@ -197,7 +197,7 @@ theorem os.File.Sync.wp_outS (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
     {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osOutFd fd }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
@@ -236,7 +236,7 @@ theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
     {{ (err : GoInterface), RET #err; emp }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf

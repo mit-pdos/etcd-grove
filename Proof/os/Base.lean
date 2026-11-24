@@ -69,11 +69,13 @@ variable [package_sem' : os.Assumptions]
 
 include sem package_sem' in
 /-- The `*os.File` `f` is open on the fd `fd`, named `name`: `f` points to a `File` whose inner
-`file` holds the fd in its `pfd.Sysfd` (a fraction `dq` of it: `Close` writes it) and the name. -/
+`file` holds the fd in its `pfd.Sysfd` (a fraction `dq` of it: `Close` writes it), the name, and
+`nonblock` false (the real `fd()` reads it; the model's `OpenFile` never sets it). -/
 def ownFile (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
   iprop(∃ inner : Loc, f ↦□ (os.File.mk inner) ∗
     structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner) ↦{dq} fd ∗
-    structFieldRef os.file go!"name" inner ↦□ name)
+    structFieldRef os.file go!"name" inner ↦□ name ∗
+    structFieldRef os.file go!"nonblock" inner ↦□ false)
 
 include sem package_sem' in
 /-- The `fileStat` at `fs` (what `(*File).Stat` returns, as a `FileInfo`) holds the size `sz`, and
