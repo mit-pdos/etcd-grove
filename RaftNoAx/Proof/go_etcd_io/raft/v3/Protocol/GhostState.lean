@@ -643,6 +643,31 @@ theorem campLink_cand (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM
   iintro %H
   ileft; ipureintro; intro F0 k Hk
   rw [H] at Hk; cases Hk; exact List.prefix_refl _
+
+/-- (2026-11-24, the campaign map's closure) Closing a key keeps the link: the closing value's log
+is empty. -/
+theorem campLink_close (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (T : w64)
+    (F : List EntryM) : campLink (GF := GF) γ id camps T F ⊢ campLink γ id (<[T := campNone]> camps) T F := by
+  unfold campLink
+  iintro (%H | #H)
+  · ileft; ipureintro; intro F0 k Hk
+    rw [GMap.lookup_insert_eq] at Hk
+    unfold campNone at Hk
+    simp only [Option.some.injEq, Prod.mk.injEq] at Hk
+    rw [← Hk.1]; exact List.nil_prefix
+  · iright; iexact H
+
+/-- (2026-11-24) Closing the key of the node's term, which has no record, keeps `campOwn`: the node
+is no candidate (a candidate has its term's record). -/
+theorem campOwn_close (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (s : PState)
+    (F : List EntryM) : camps !! s.term = none →
+    campOwn (GF := GF) γ id camps s F ⊢ campOwn γ id (<[s.term := campNone]> camps) s F := by
+  intro Hn
+  unfold campOwn
+  cases hr : s.role with
+  | candidate => iintro %H; rw [Hn] at H; cases H
+  | leader => exact .rfl
+  | follower => exact .rfl
 /-- Node `v`'s `k`-th vote-time log: it voted in `T` with full log `F`, knowing the leader
 of `T` iff `d` (so its histories then are bounded by `vbnd T d`). -/
 def vbnd (T : w64) (d : Bool) : Int := uint.Z T + (if d then 1 else 0)
@@ -2424,17 +2449,22 @@ inductive Prom where
   | vote (T c : w64) (d : Bool) (Fv : List EntryM)
   | ack (T i : w64)
   | camp (T : w64) (F : List EntryM) (k : w64)
+  /-- (2026-11-24, the campaign map's closure) closing the campaign map's key `T`: no campaign
+  record in `T`, for good (`campNone`, `isCampNone`); the cut makes it for the node's term. -/
+  | close (T : w64)
 
 instance Prom_countable : Pos.Countable Prom :=
   .ofInjective (fun
       | .vote T c d Fv => Pos.Countable.encode
-          (Sum.inl (T, c, d, Fv) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ (w64 × List EntryM × w64)))
+          (Sum.inl (T, c, d, Fv) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ ((w64 × List EntryM × w64) ⊕ w64)))
       | .ack T i => Pos.Countable.encode
-          (Sum.inr (Sum.inl (T, i)) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ (w64 × List EntryM × w64)))
+          (Sum.inr (Sum.inl (T, i)) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ ((w64 × List EntryM × w64) ⊕ w64)))
       | .camp T F k => Pos.Countable.encode
-          (Sum.inr (Sum.inr (T, F, k)) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ (w64 × List EntryM × w64))))
+          (Sum.inr (Sum.inr (Sum.inl (T, F, k))) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ ((w64 × List EntryM × w64) ⊕ w64)))
+      | .close T => Pos.Countable.encode
+          (Sum.inr (Sum.inr (Sum.inr T)) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ ((w64 × List EntryM × w64) ⊕ w64))))
     (by
-      rintro (⟨_, _, _, _⟩ | ⟨_, _⟩ | ⟨_, _, _⟩) (⟨_, _, _, _⟩ | ⟨_, _⟩ | ⟨_, _, _⟩) h <;>
+      rintro (⟨_, _, _, _⟩ | ⟨_, _⟩ | ⟨_, _, _⟩ | _) (⟨_, _, _, _⟩ | ⟨_, _⟩ | ⟨_, _, _⟩ | _) h <;>
         have h := Pos.encode_inj h <;> simp_all)
 
 /-- The key a new vote-time log takes: past every key in use. -/
@@ -2447,6 +2477,7 @@ def DurMaps.add (W : DurMaps) : Prom → DurMaps
   | .ack T i => DurMaps.mk W.voted (<[(T, i) := ()]> W.acks) W.camps W.vlogs
       (W.evs ++ [Aev.ack T i])
   | .camp T F k => DurMaps.mk W.voted W.acks (<[T := (F, k)]> W.camps) W.vlogs W.evs
+  | .close T => DurMaps.mk W.voted W.acks (<[T := campNone]> W.camps) W.vlogs W.evs
 
 /-- The maps with the pending list applied in order. -/
 def virt (W : DurMaps) (π : List Prom) : DurMaps := π.foldl DurMaps.add W
@@ -2457,6 +2488,7 @@ def PromFresh (W : DurMaps) : Prom → Prop
   | .vote T _ _ _ => W.voted !! T = none
   | .ack _ _ => True
   | .camp T _ _ => W.camps !! T = none
+  | .close T => W.camps !! T = none
 
 /-- Every promise of `π` is new to the maps before it. -/
 def PromsFresh (W : DurMaps) (π : List Prom) : Prop :=
@@ -2531,6 +2563,12 @@ theorem DurLe_add (W : DurMaps) (p : Prom) : PromFresh W p → DurLe W (W.add p)
     have Ht : T ≠ t := by rintro rfl; rw [Hf] at h; cases h
     show (<[T := (F, k)]> W.camps) !! t = some x
     rw [GMap.lookup_insert_ne _ _ Ht]; exact h
+  | close T =>
+    simp only [PromFresh] at Hf
+    refine ⟨fun _ _ h => h, fun _ h => h, fun t x h => ?_, fun _ _ h => h, List.prefix_refl _⟩
+    have Ht : T ≠ t := by rintro rfl; rw [Hf] at h; cases h
+    show (<[T := campNone]> W.camps) !! t = some x
+    rw [GMap.lookup_insert_ne _ _ Ht]; exact h
 
 theorem PromsFresh_nil (W : DurMaps) : PromsFresh W [] := by
   intro k p h; simp at h
@@ -2592,6 +2630,7 @@ theorem virt_voted_isSome (W : DurMaps) (π : List Prom) (t : w64) :
       · rw [GMap.lookup_insert_ne _ _ h]; exact H
     | ack _ _ => exact H
     | camp _ _ _ => exact H
+    | close _ => exact H
 
 theorem virt_acks_isSome (W : DurMaps) (π : List Prom) (k : w64 × w64) :
     (W.acks !! k).isSome → ((virt W π).acks !! k).isSome := by
@@ -2609,6 +2648,7 @@ theorem virt_acks_isSome (W : DurMaps) (π : List Prom) (k : w64 × w64) :
       · rw [h, GMap.lookup_insert_eq]; rfl
       · rw [GMap.lookup_insert_ne _ _ h]; exact H
     | camp _ _ _ => exact H
+    | close _ => exact H
 
 theorem virt_camps_isSome (W : DurMaps) (π : List Prom) (t : w64) :
     (W.camps !! t).isSome → ((virt W π).camps !! t).isSome := by
@@ -2626,6 +2666,33 @@ theorem virt_camps_isSome (W : DurMaps) (π : List Prom) (t : w64) :
       by_cases h : T = t
       · rw [h, GMap.lookup_insert_eq]; rfl
       · rw [GMap.lookup_insert_ne _ _ h]; exact H
+    | close T =>
+      show ((<[T := campNone]> W.camps) !! t).isSome
+      by_cases h : T = t
+      · rw [h, GMap.lookup_insert_eq]; rfl
+      · rw [GMap.lookup_insert_ne _ _ h]; exact H
+
+/-- (2026-11-24, the campaign map's closure) A campaign map entry's fragment: a campaign record
+(`isCampK`), or the closed key (`campNone`, `isCampNone`). -/
+def campFrag (γ : RaftNames) (id t : w64) (x : List EntryM × w64) : IProp GF :=
+  iprop(isCampK γ id t x.1 x.2 ∨ (⌜x = campNone⌝ ∗ isCampNone γ id t))
+
+instance campFrag_persistent (γ : RaftNames) (id t : w64) (x : List EntryM × w64) :
+    Persistent (campFrag (GF := GF) γ id t x) := by
+  unfold campFrag; infer_instance
+
+instance campFrag_timeless (γ : RaftNames) (id t : w64) (x : List EntryM × w64) :
+    Timeless (campFrag (GF := GF) γ id t x) := by
+  unfold campFrag; infer_instance
+
+/-- A real record's entry (not the closing value) is a campaign record. -/
+theorem campFrag_campK (γ : RaftNames) (id t : w64) (x : List EntryM × w64) :
+    x ≠ campNone → campFrag (GF := GF) γ id t x ⊢ isCampK γ id t x.1 x.2 := by
+  intro hx
+  unfold campFrag
+  iintro (#H | ⟨%h, -⟩)
+  · iexact H
+  · exact absurd h hx
 
 /-- The fragments of node `id`'s maps `W` (persistent): its votes, acknowledgements, campaign
 records, vote-time logs and its event history's lower bound. What a message waiting for its
@@ -2633,7 +2700,7 @@ sender's promises to be entered needs (`outMsgOk`), and what *enter* gives. -/
 def durFrags (γ : RaftNames) (id : w64) (W : DurMaps) : IProp GF :=
   iprop(([∗map] t ↦ c ∈ W.voted, isVote γ id t c) ∗
     ([∗map] k ↦ _u ∈ W.acks, isAcked γ id k.1 k.2) ∗
-    ([∗map] t ↦ x ∈ W.camps, isCampK γ id t x.1 x.2) ∗
+    ([∗map] t ↦ x ∈ W.camps, campFrag γ id t x) ∗
     ([∗map] n ↦ x ∈ W.vlogs, isVlog γ id n x.1.1 x.1.2 x.2) ∗
     (∃ γe, ⌜γ.reEvs !! id = some γe⌝ ∗ monoListLbOwn γe W.evs))
 
@@ -2692,6 +2759,7 @@ def promNeed (γ : RaftNames) (id : w64) (W : DurMaps) : Prom → IProp GF
   | .ack T i => ackInF γ T i
   | .camp T F k => iprop(⌜CampOk T F ∧ uint.Z k ≤ plogLastIndexZ base0 F ∧
       γ.reBoot <+: F ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z T)⌝ ∗ isCommitted γ (F.take (uint.Z k).toNat))
+  | .close _ => iprop(True)
 
 instance promNeed_persistent (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) :
     Persistent (promNeed (GF := GF) γ id W p) := by
@@ -2720,6 +2788,7 @@ def promFrag (γ : RaftNames) (id : w64) : Prom → IProp GF
   | .vote T c d Fv => iprop(isVote γ id T c ∗ (∃ n, isVlog γ id n T d Fv) ∗ voteEv γ id T d Fv)
   | .ack T i => isAcked γ id T i
   | .camp T F k => isCampK γ id T F k
+  | .close T => isCampNone γ id T
 
 instance promFrag_persistent (γ : RaftNames) (id : w64) (p : Prom) :
     Persistent (promFrag (GF := GF) γ id p) := by
@@ -2783,10 +2852,10 @@ theorem durFrags_mono (γ : RaftNames) (id : w64) (W W' : DurMaps) :
       isAcked (GF := GF) γ id k.1 k.2) hu') $$ Ha'
   isplitr
   · iapply (BigSepM.bigSepM_forall (Φ := fun (t : w64) (x : List EntryM × w64) =>
-      isCampK (GF := GF) γ id t x.1 x.2)).2
+      campFrag (GF := GF) γ id t x)).2
     iintro %t %x %h
     iapply (BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
-      isCampK (GF := GF) γ id t x.1 x.2) (Hc t x h)) $$ Hc'
+      campFrag (GF := GF) γ id t x) (Hc t x h)) $$ Hc'
   isplitr
   · iapply (BigSepM.bigSepM_forall (Φ := fun (n : Nat) (x : (w64 × Bool) × List EntryM) =>
       isVlog (GF := GF) γ id n x.1.1 x.1.2 x.2)).2
@@ -2992,7 +3061,10 @@ def durPers (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps) : IProp GF
     -- the maps' fragments (a pending one's justification needs them, `promJust`)
     □ (durFrags γ id E -∗ [∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2) ∗
     -- (2026-11-24, the leader-completeness law) the campaign link of `S`'s term (`campLink`)
-    campLink γ id E.camps S.term (fp ++ S.ents))
+    campLink γ id E.camps S.term (fp ++ S.ents) ∗
+    -- (2026-11-24, the campaign map's closure) `S`'s term has its campaign map key set: a record,
+    -- or closed (`campNone`, which the cut adds); the initial state's term `0` excepted
+    ⌜uint.Z S.term = 0 ∨ (E.camps !! S.term).isSome⌝)
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 2048 in

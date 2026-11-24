@@ -24,6 +24,7 @@ import all RaftNoAx.Proof.go_etcd_io.raft.v3.InvNodeRule
 import all RaftNoAx.Proof.go_etcd_io.raft.v3.InvNode
 import RaftNoAx.Proof.go_etcd_io.raft.v3.InvApi
 import RaftNoAx.Proof.go_etcd_io.raft.v3.InvApiDec
+import RaftNoAx.Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
 noncomputable section
@@ -569,7 +570,7 @@ theorem raftState_cmtBefore_agree (γ : Cluster) (N : Namespace) (E : CoPset) (H
   icases Hdur with ⟨%E', Hsh, #Hpers, Hslot, Hi1⟩
   ihave #Hfacts := Hpers
   iunfold durPers at Hfacts
-  icases Hfacts with ⟨%kd, %fp, %hf, #Hents, -, #Hpre, -, -, -, -, -, -, -, -, #Hlink⟩
+  icases Hfacts with ⟨%kd, %fp, %hf, #Hents, -, #Hpre, -, -, -, -, -, -, -, -, #Hlink, -⟩
   obtain ⟨-, -, -, -, hfull, hwf, -, -, -⟩ := hf
   ihave #HrX := logRecs_full (ApiImpl.Cluster.raft γ) S.base fp S.ents hfull $$ Hpre Hents
   have hwX := full_wf S.base fp S.ents hfull hwf
@@ -592,6 +593,81 @@ theorem raftState_cmtBefore_agree (γ : Cluster) (N : Namespace) (E : CoPset) (H
   rcases Hag with Hnil | ⟨P, hl, hP, hag⟩
   · subst Hnil; intro i e _ h; simp at h
   · exact durLogAgrees_of S fp P l hfull hl hP hag
+
+/-- (2026-11-24, the campaign map's closure: `notes/etcd-dist-d6.md`, option (a)) **L2 at the durable
+state, for a leadership shown later**: with its durable state `S`, a node marks it as agreeing with a
+log `l` committed before its campaigns up to `T0 < S.term` (`cmtBefore`), for when it is shown to
+lead `S.term` (`snapshotLeader`), whenever that is. The campaign map's key `S.term` is set and final
+at `S` (`durPers`, `campFrag`): a record, whose log `S`'s full log extends (`campLink`), or closed,
+which no leader of `S.term` can be (`isCampNone_campK`). -/
+theorem raftState_leadAgree (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (m0 : Membership) (id T0 : w64) (S : RaftState) (l : List LogEntry) :
+    uint.Z T0 < uint.Z S.term →
+    isCluster (GF := GF) γ N ∗ confFixed γ E m0 ∗ cmtBefore γ id T0 l ∗ raftState γ id S ⊢
+      |={E}=> raftState γ id S ∗ □ (snapshotLeader γ id S.term ={E}=∗ ⌜durLogAgrees S l⌝) := by
+  intro HT0
+  iintro ⟨#Hcl, #Hfix, #Hcb, Hst⟩
+  unfold cmtBefore
+  ihave #Hcl' := Hcl
+  iunfold isCluster at Hcl'
+  iunfold ApiImpl.isClusterU at Hcl'
+  icases Hcl' with ⟨-, #Hci, -⟩
+  iunfold ApiImpl.clusterInv at Hci
+  icases Hci with ⟨%HNs, -⟩
+  have Hs : (↑(slotN (ApiImpl.Cluster.raft γ) id) : CoPset) ⊆ E := by
+    unfold slotN raftN; rw [HNs]
+    intro p hp
+    have h1 := nclose_subseteq ((N .@ "raft") .@ "slot") id p hp
+    exact (Iris.Std.LawfulSet.mem_diff.mp (ApiImpl.raftN_api N HE "slot" p h1)).1
+  iunfold raftState at Hst
+  iunfold ApiImpl.raftStateU at Hst
+  icases Hst with ⟨Hdur, #Hterm, #Hbudget⟩
+  iunfold ownDurGhost at Hdur
+  icases Hdur with ⟨%E', Hsh, #Hpers, #Hslot, Hi1⟩
+  ihave #Hfacts := Hpers
+  iunfold durPers at Hfacts
+  icases Hfacts with ⟨%kd, %fp, %hf, #Hents, -, #Hpre, -, -, -, -, -, -, -, -, #Hlink, %Hset⟩
+  obtain ⟨-, -, -, -, hfull, hwf, -, -, -⟩ := hf
+  ihave #HrX := logRecs_full (ApiImpl.Cluster.raft γ) S.base fp S.ents hfull $$ Hpre Hents
+  have hwX := full_wf S.base fp S.ents hfull hwf
+  -- the key of `S.term`: set (the term is past `T0`, so not the initial `0`)
+  have Hsome : (E'.camps !! S.term).isSome := by
+    rcases Hset with h | h
+    · have := uint_Z_nonneg T0; omega
+    · exact h
+  obtain ⟨x, hx⟩ := Option.isSome_iff_exists.mp Hsome
+  imod durShares_frags E (ApiImpl.Cluster.raft γ) id E' Hs $$ Hsh Hslot with ⟨Hsh, #Hfr⟩
+  iunfold durFrags at Hfr
+  icases Hfr with ⟨-, -, #Hfc, -⟩
+  ihave #Hx := BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
+    campFrag (GF := GF) (ApiImpl.Cluster.raft γ) id t x) hx $$ Hfc
+  imodintro
+  isplitl [Hsh Hi1]
+  · iunfold raftState; iunfold ApiImpl.raftStateU; iframe Hterm Hbudget
+    iunfold ownDurGhost; iexists E'; iframe Hsh Hpers Hslot Hi1
+  iintro !> #Hsl
+  iunfold snapshotLeader at Hsl
+  icases isLeader_campK (ApiImpl.Cluster.raft γ) id S.term $$ Hsl with ⟨%F0, %kw, #HcK⟩
+  iunfold campFrag at Hx
+  icases Hx with (#HxK | ⟨%Hxn, #Hnone⟩)
+  · -- a campaign record: `id`'s campaign of `S.term`, whose log `S`'s full log extends
+    icases isCampK_agree (ApiImpl.Cluster.raft γ) id S.term x.1 F0 x.2 kw $$ HxK HcK with %Heq
+    have HEc : E'.camps !! S.term = some (F0, kw) := by rw [hx, ← Heq.1, ← Heq.2]
+    iunfold campLink at Hlink
+    icases Hlink with (%Hlk | ⟨%L, #HL, %HLne⟩)
+    · have hF0 := Hlk F0 kw HEc
+      imod cmtBefore_core γ N E HE m0 id T0 S.term l (fp ++ S.ents) F0 kw HT0 hwX hF0
+        $$ Hcl Hfix Hcb Hsl HcK HrX with %Hag
+      imodintro
+      ipureintro
+      rcases Hag with Hnil | ⟨P, hl, hP, hag⟩
+      · subst Hnil; intro i e _ h; simp at h
+      · exact durLogAgrees_of S fp P l hfull hl hP hag
+    · icases isLeader_unique (ApiImpl.Cluster.raft γ) L id S.term $$ HL Hsl with %h
+      exact absurd h HLne
+  · -- closed: no leader of `S.term` is `id`
+    iexfalso
+    iapply isCampNone_campK (ApiImpl.Cluster.raft γ) id S.term F0 kw $$ Hnone HcK
 
 end EtcdGrove
 end Perennial

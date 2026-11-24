@@ -43,7 +43,9 @@ Raft's own proofs see the bodies (`import all Proof.go_etcd_io.raft.v3.InvNode`)
 (2026-11-24) Leader completeness through the durable state (`LeaderCompleteLaw.lean`): a committed
 log marked at a node's durable term (`raftState_cmtBefore`, the sealed `cmtBefore`) is in the
 durable log of that node once it leads a later term (`raftState_cmtBefore_agree`, `durLogAgrees`),
-in a cluster of fixed membership (`confFixed`).
+in a cluster of fixed membership (`confFixed`). (2026-11-24, the campaign map's closure) The same at
+the durable state for a leadership shown later (`raftState_leadAgree`: `□ (snapshotLeader γ id S.term
+={E}=∗ ⌜durLogAgrees S l⌝)`), since a durable term's campaign record is final.
 (2026-11-24) The node's lifetime: `RestartNode` gives the node's start term (`nodeStartTerm n S.term`,
 the durable state's), and every `MsgSnap` a `Ready` of `n` hands out is past it
 (`readySnapSources_startTerm`), so a client tells this run's `MsgSnap`s from an earlier run's.

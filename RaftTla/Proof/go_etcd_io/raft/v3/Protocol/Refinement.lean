@@ -2309,6 +2309,7 @@ theorem virt_evs_prefix (W : DurMaps) (π : List Prom) : W.evs <+: (virt W π).e
     | vote _ _ _ _ => exact List.prefix_append _ _
     | ack _ _ => exact List.prefix_append _ _
     | camp _ _ _ => exact List.prefix_refl _
+    | close _ => exact List.prefix_refl _
 
 variable [CrashGS GF] in
 /-- (stage II helper) The event history's invariants, from the log ghost state. -/
@@ -5339,7 +5340,8 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   icases ownLogGhost_campaign γ id s kl (virt V πc) Hrole Hnw $$ Hlg with
-    ⟨%F, %Hcfree, Hlg, #Hjc, #HrF, %HF, #Hvh, %fp0, %HF0, #Hfr0, #Hcm0⟩
+    ⟨%F, %Hcf, Hlg, #Hjc, #HrF, %HF, #Hvh, %fp0, %HF0, #Hfr0, #Hcm0⟩
+  obtain ⟨Hcfree, Hcne⟩ := Hcf
   have Ht' : uint.Z (s.term + W64 1) = uint.Z s.term + 1 := by word
   have Hfree : (virt V πc).voted !! (s.term + W64 1) = none :=
     vote_hist_fresh (virt V πc).voted s _ Hhist (by omega)
@@ -5378,9 +5380,10 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
   · unfold promJust promNeed durFrags
     imodintro
     iintro ⟨-, -, #Hcs, -⟩
-    ihave #HcK := BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
-      isCampK (GF := GF) γ id t x.1 x.2)
+    ihave #HcF := BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
+      campFrag (GF := GF) γ id t x)
       (GMap.lookup_insert_eq (virt V πc).camps (s.term + W64 1) (F, s.commit)) $$ Hcs
+    ihave #HcK := campFrag_campK γ id (s.term + W64 1) (F, s.commit) Hcne $$ HcF
     iexists F
     isplitr; · iapply isCampK_camp $$ HcK
     isplitr; · iexact HrF
@@ -5448,9 +5451,10 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
         rw [Happ]
         unfold durFrags
         icases Hf with ⟨-, -, #Hcs, -⟩
-        ihave #HcK := BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
-          isCampK (GF := GF) γ id t x.1 x.2)
+        ihave #HcF := BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
+          campFrag (GF := GF) γ id t x)
           (GMap.lookup_insert_eq (virt V πc).camps (s.term + W64 1) (F, s.commit)) $$ Hcs
+        ihave #HcK := campFrag_campK γ id (s.term + W64 1) (F, s.commit) Hcne $$ HcF
         ihave #Hcamp := isCampK_camp γ id (s.term + W64 1) F s.commit $$ HcK
         ihave #Hcd := Hcdw $$ HcK
         simp only [pbecomeCandidate]

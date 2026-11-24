@@ -851,7 +851,9 @@ private theorem durPers_init (γ : RaftNames) (id : w64) :
     iexact Hc0
   isplitr
   · imodintro; iintro -; iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr
   · iapply campLink_none γ id ∅ _ _ (by simp)
+  · ipureintro; left; rfl
 
 /-- (stage II helper) A fresh node's durable half at the initial state and its vacant slot, from
 its fresh authorities and slot: the slot invariant allocated with the other halves. -/

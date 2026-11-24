@@ -892,7 +892,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     s.role ≠ .leader →
     uint.Z s.term + 1 < 2 ^ 64 →
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
-      ∃ F, ⌜W.camps !! (s.term + W64 1) = none⌝ ∗
+      ∃ F, ⌜W.camps !! (s.term + W64 1) = none ∧ (F, s.commit) ≠ campNone⌝ ∗
         ownLogGhost γ id (pbecomeCandidate id s) none
           (virt W [.camp (s.term + W64 1) F s.commit, .vote (s.term + W64 1) id false F]) ∗
         promJust γ id W (.camp (s.term + W64 1) F s.commit) ∗
@@ -1074,7 +1074,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
       show (pbecomeCandidate id s).commit = s.commit from rfl]
     iexact Hcmt
   iexists fp ++ s.log
-  isplitr; · ipureintro; exact Hcfree
+  isplitr; · ipureintro; exact ⟨Hcfree, campNone_ne _ _ Hkle⟩
   isplitl
   · rw [Hvirt]
     iexists γm, terms, fp, γw, wins
