@@ -38,7 +38,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
   etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem GooseGlobalGS.gooseInvGS
 
 /-- Every machine of a deployment starts with its files as on disk. -/
-theorem machines_fsInit [GoGlobalContext] {d : Deployment} {σs σc σn : List state} {m : Expr × state}
+theorem machines_fsInit [GoGlobalContext] [GoSemanticsFunctions] {d : Deployment} {σs σc σn : List state} {m : Expr × state}
     (Hσs : ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2) (Hσc : ∀ σ ∈ σc, ClientStart σ)
     (Hσn : ∀ σ ∈ σn, ClientStart σ) (Hl : σs.length = d.members.length)
     (hm : m ∈ machines d σs σc σn) : Fs.FsInit (extLocal Fs.fsExt m.2.world) := by
@@ -51,7 +51,7 @@ theorem machines_fsInit [GoGlobalContext] {d : Deployment} {σs σc σn : List s
   · exact Hσn _ (List.getElem_mem hi)
 
 /-- The statement's premises except the deployment's well-formedness, as one hypothesis's binders. -/
-abbrev BootPremises [GoGlobalContext] [lctx : GoLocalContext] (d : Deployment) (σs σc σn : List state) :
+abbrev BootPremises [GoGlobalContext] [GoSemanticsFunctions] [lctx : GoLocalContext] (d : Deployment) (σs σc σn : List state) :
     Prop :=
   ∃ (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry),
     BootFacts d ps ctxs boot ∧ EtcdEnv d ∧
@@ -93,7 +93,7 @@ def EtcdBootNCBad : Prop :=
     ∀ [GooseGlobalGS .hasLC etcdDistGF], srvLevelK ≤ receiptBound etcdDistGF →
       receiptBound etcdDistGF ≤ 2 ^ 28 - 1 →
       ∀ (i : Nat) (m : Expr × state), (machines d σs σc σn)[i]? = some m →
-        Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2 iprop(True)
+        Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2 (iprop(True) : IProp etcdDistGF)
 
 /-- **`etcd_safe_nocrash` from the machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` (`Net.robust_of_distBootIL`): on a well-formed deployment at its addresses (valid and
@@ -118,14 +118,12 @@ theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
       (fun hlo hb => ?_) ⟨List.nodup_nil, by simp, Hnet.1, Hnet.2⟩ hfresh hg hl
     iintro -
     imodintro
-    iexists (fun _ => iprop(True))
+    iexists (fun _ => (iprop(True) : IProp etcdDistGF))
     isplitr
-    · ipure_intro
+    · ipureintro
       exact HB d Hd σs σc σn Hfips hlo hb
-    · iapply BigSepL.bigSepL_intro
-      intro _ _ _
-      iintro _
-      iexact BI.true_intro
+    · iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp etcdDistGF)) (fun _ _ _ => BI.true_intro))
+      iempintro
 
 end etcd_dist
 end EtcdGrove
