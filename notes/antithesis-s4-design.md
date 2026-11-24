@@ -337,3 +337,18 @@ use `flock /tmp/ant4-build.lock` and `etc/lean-check.py` (server class) rather t
 - **Open for P-harness:** creating `propOk` (raft's deposit of a proposal's data and ticket) in the
   proposer; the `StorageModel` instance reading `bootStorage`'s `storLog` as its `MemoryStorage`'s
   `memLog`; `drivers` (`Add(2)`: generalize `join3` to `joinN` in `lib/join`).
+
+**The order of the remaining proofs** (session 2's plan; each its own files, one build at a time under
+`flock /tmp/ant4-build.lock`):
+1. *P-sim* (`Sim/*.lean`): `gc`, `init` done; `boot`, `recv`, then `quiet`, `apply`, `send`, `ready` (the
+   largest: `InMemory` + `OnDisk`). Each may strengthen `Rel` (recorded in the rawnode note §3.6).
+2. *P-raft-3* (`RawNode__*.lean`): `HasReady`, `Ready`, `Advance` absSpecs first (the `ip` and `PIdle`
+   facts), then `Step`, `Tick`, `Propose` (`InputEndLift`'s lemmas, `RnScope` kept, `ip' = min ip lcp`:
+   `truncateAndAppend` lowers `offsetInProgress` to the first written index), `NewRawNode.emptyStartAbsSpec`;
+   then *P-raft-4* (`RawNodeApiLinked.lean`, the laws).
+3. *P-harness*, leaves first: `deliver`, `send` (over `lib/join/NetJoin`), `reportCause` (one report:
+   `antSim_recv` inside `record`'s AU), then `drain` (the loop invariant is `nodeOwn … (.loop …)`; its
+   reports `antSim_ready`/`_quiet`/`_send`/`_apply`, `raftFactsOwn` extended from `rawNode`'s laws), `run`,
+   `RunCluster` (allocation of `AntNames`, `antSim_init`, the boot reports, the goroutines, the end:
+   `antInv`'s swap to the three `nodeLive`), `Main`, then `Results.lean` (`raft_antithesis_accepts`),
+   adequacy and `Proof/.../TopLevelRobustness.lean`.
