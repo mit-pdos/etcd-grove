@@ -40,6 +40,7 @@ theorem openUDP.wp_proof
     openUDP.spec (GF := GF) (hG := hG) := by
   intro F γu cfg M a Hma Hok
   wp_start as ⟨#HM, Hu⟩
+  iapply wp_fupd
   iunfold udpProcStart at Hu
   icases Hu with ⟨#Hai, %bn, %qc, Hbs⟩
   iunfold udpAddrsInv at Hai
@@ -127,19 +128,18 @@ theorem openUDP.wp_proof
   rw [Hself]
   simp only [Option.getD_some, Option.isSome_some]
   try wp_auto
+  icases Hps with #Hps
   icases (BigSepM.bigSepM_delete Hself).1 $$ Hps with ⟨#Hsp, -⟩
   iunfold isUdpPeerAddr at Hsp
   icases Hsp with ⟨%ip, %port, %a', #Hpa, %Hvd, #Hainv⟩
   wp_apply wp_listenUDP self ip port a' $$ [] as %c ⟨%s, #Hc⟩
-  · iframe Hpkg Hpa
+  · iframe Hpa
     ipureintro; exact Hvd
   try wp_auto
   wp_apply wp_nextBoot γu cfg.ID' cfg.Dir' bn qc $$ [$Hpkg $Hmi $Hbs] as %boot ⟨Hctr, -⟩
   try wp_auto
   wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %km Hkm
   try wp_auto
-  irename : boot_ptr ↦ boot => Hbootv
-  irename : conn_ptr ↦ c => Hconnv
   iStructNamed «$r0»
   imod sync.init_Mutex (udpNetLockInv γu «$r0_ptr» cfg.ID' boot) ⊤ _ $$ mu [seq acks Hkm Hctr]
     with #Hmu
@@ -148,13 +148,14 @@ theorem openUDP.wp_proof
     iexists _, km, ∅
     iframe seq acks Hkm
     isplitl [Hctr]
-    · iexact Hctr
+    · iapply (show (udpCtr γu cfg.ID' boot (W64 0) : IProp GF) ⊢ udpCtr γu cfg.ID' boot 0 from .rfl)
+      iexact Hctr
     iapply BigSepM.bigSepM_empty.2; itrivial
   ipersist id
   ipersist conn
   ipersist addrs
   ipersist boot
-  try wp_auto
+  imodintro
   iapply HΦ
   iexists boot
   iunfold isUdpNet
