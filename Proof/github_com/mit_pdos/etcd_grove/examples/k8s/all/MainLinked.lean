@@ -7,6 +7,10 @@ hypothesis of `clock.RealClock.After`). `Results.lean` restates it.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.MainChecked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.ParamsOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.mulBelow
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.holdToken
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainLinked
@@ -45,6 +49,24 @@ theorem k8s_all.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
   k8s_all.Main.wp_proof k8s_all.holdToken.wp_proof k8s_etcd3.wp_MainPartition
     (k8s_compactor.wp_MainPartition h_After)
+
+/-- **`mulBelow`** (`mulBelow.lean`). -/
+theorem k8s_all.wp_mulBelow : k8s_all.mulBelow.spec (GF := GF) (hG := hG) :=
+  k8s_all.mulBelow.wp_proof
+
+/-- **`ParamsOk`** (`ParamsOk.lean`), over `mulBelow`'s proof. -/
+theorem k8s_all.wp_ParamsOk : k8s_all.ParamsOk.spec (GF := GF) (hG := hG) :=
+  k8s_all.ParamsOk.wp_proof k8s_all.wp_mulBelow
+
+include h_After in
+/-- **The program's entry point does not panic** (`MainChecked.lean`; the pure-premises plan's P5,
+2026-11-24): `Main`'s linked triple behind `ParamsOk`, with the schedules `cluster3.RandomSchedule`
+draws. -/
+theorem k8s_all.wp_MainChecked [_root_.Perennial.net.FieldAssumptions]
+    [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    k8s_all.MainChecked.spec (GF := GF) (hG := hG) :=
+  k8s_all.MainChecked.wp_proof k8s_all.wp_ParamsOk cluster3.wp_RandomSchedule
+    (k8s_all.wp_Main h_After)
 
 end results
 
