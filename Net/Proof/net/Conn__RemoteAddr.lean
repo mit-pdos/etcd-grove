@@ -33,9 +33,11 @@ theorem Conn.RemoteAddr.wp_proof : Conn.RemoteAddr.spec (GF := GF) (hG := hG) :=
   ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
   ihave #Ht2 := Ht
   iStructNamed Ht2
-  wp_method_call
+  iStructNamed Hv
+  (try wp_method_call)
   wp_auto
   wp_apply wp_conn_ok _ fd Hfdn $$ conn
+  iStructNamed conn
   wp_auto
   iapply HΦ
   itrivial

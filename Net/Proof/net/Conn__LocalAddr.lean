@@ -33,9 +33,11 @@ theorem Conn.LocalAddr.wp_proof : Conn.LocalAddr.spec (GF := GF) (hG := hG) := b
   ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
   ihave #Ht2 := Ht
   iStructNamed Ht2
-  wp_method_call
+  iStructNamed Hv
+  (try wp_method_call)
   wp_auto
   wp_apply wp_conn_ok _ fd Hfdn $$ conn
+  iStructNamed conn
   wp_auto
   iapply HΦ
   itrivial

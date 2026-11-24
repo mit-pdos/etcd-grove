@@ -30,7 +30,9 @@ theorem TCPListener.Addr.wp_proof : TCPListener.Addr.spec (GF := GF) (hG := hG) 
   unfold lisAt lisFd fdAt
   wp_start as ⟨%nw, %Hnw, ⟨%fd, %lc, %ra, #Ht, %v, %hv, #Hv⟩, #Hx, %hl⟩
   obtain ⟨-, -, rfl, -⟩ := hv
-  wp_method_call
+  iStructNamed Ht
+  iStructNamed Hv
+  (try wp_method_call)
   wp_auto
   iapply HΦ
   itrivial
