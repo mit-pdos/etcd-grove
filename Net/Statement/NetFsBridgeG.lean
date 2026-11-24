@@ -123,7 +123,19 @@ theorem nodeStart_of_crashBootE [lctx : GoLocalContext] [G : GooseGlobalGS .hasL
         extsLocalStart (L := L) m.2.world -∗ ownGoState (hG := L.goose_go_stateGS) ∅
         ={⊤}=∗ Q L) ⊢
       nodeStart (N + 1) m.2 (crashPreE lo bound crashing i) := by
-  sorry
+  unfold nodeStart
+  rw [hf.2.1]
+  iintro H %L %hT %hL Hls Hgs
+  imod H $$ %L %(hL.trans hf.1) %(by omega) Hls Hgs with HQL
+  imodintro
+  unfold crashPreE
+  iexists Q
+  iframe HQL
+  ipureintro
+  intro m' hm'
+  rw [hm] at hm'
+  cases hm'
+  exact HQ
 
 /-- **The bridge, layer 1** (see the file header): over any list of extensions with the net extension
 and a crash interpretation, with the interpretations' conditions on the initial states given from
@@ -156,7 +168,56 @@ theorem robust_of_crashBootIL [lctx : GoLocalContext] (addrs : List GoString)
             ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc i L) ∗
           [∗list] j ↦ _m ∈ stable, Ps j) :
     Robust crashing stable g threads bound := by
-  sorry
+  intro hfresh hig hil n κs c hsteps hn i tp σ hi e he
+  obtain ⟨Hig, Hil⟩ := HI hig hil
+  have hfc : ∀ (k : Nat) (m : Expr × state), crashing[k]? = some m → m ∈ crashing ++ stable :=
+    fun _ m hm => List.mem_append_left _ (List.mem_of_getElem? hm)
+  have hfst : ∀ (k : Nat) (m : Expr × state), stable[k]? = some m → m ∈ crashing ++ stable :=
+    fun _ m hm => List.mem_append_right _ (List.mem_of_getElem? hm)
+  have Hlive : DistCrashThreadsBelow (crashing.map Prod.fst) (max (n + 1) lo + 1) n
+      (distInit (crashing ++ stable) g) := by
+    intro k κs' c' hk h j tp' σ' hj
+    have := DistCrashThreadsBelow.of_single (boots := crashing.map Prod.fst) (n := n)
+      (distInit_threads hfresh) k κs' c' hk h j tp' σ' hj
+    omega
+  have H := goose_dist_mixed_crash_adequacy (GF := GF) (max (n + 1) lo) (max (n + 1) lo + 1)
+    crashing stable g (fun _ v => v = #()) (fun _ p h => intoVal_ne_PanicV () p h.symm) Hig Hil
+    (fun i L => crashPreE lo bound crashing i L) ?_ ?_
+    n κs c hsteps.nsteps (by omega) (fun m hm => (hfresh m hm).2.2) Hlive i tp σ hi
+  · exact ⟨H.2.1 e he, H.2.2 e he⟩
+  · -- the global setup, every crashing machine's first generation, every stable machine's WP
+    intro G HN
+    iintro Hg
+    ihave Hnet := hasExt_globalStart (X := netExt) g.globalWorld $$ Hg
+    ihave Hs := addrs_start (Gg := G) (extGlobal netExt g.globalWorld) addrs Hnd Hok $$ Hnet
+    imod Hstart (by omega) (by omega) $$ Hs with ⟨%Pc, %Ps, %HPc, %HPs, Hc, Hst⟩
+    imodintro
+    isplitl [Hc]
+    · iapply BigSepL.bigSepL_mono ?_ $$ Hc
+      intro k m hm
+      exact nodeStart_of_crashBootE lo bound (max (n + 1) lo) HN crashing k m hm
+        (hfresh m (hfc k m hm)) (Pc k) (HPc k m hm)
+    · iapply BigSepL.bigSepL_mono ?_ $$ Hst
+      intro k m hm
+      exact nodeWp_of_distBootSL lo bound (max (n + 1) lo) HN (by omega) (by omega) m.1 m.2 (Ps k)
+        (hfresh m (hfst k m hm)) (HPs k m hm)
+  · -- every generation of a crashing machine: its WP, and its next precondition
+    intro hG HN HT k e' σ' Hes Hlctx
+    obtain ⟨G, L⟩ := hG
+    have hL : L.goose_go_local_context = lctx :=
+      Hlctx.trans (hfresh (e', σ') (hfc k _ Hes)).1
+    unfold crashPreE
+    iintro ⟨%Q, %HQ, HQL⟩ Htok
+    imod HQ (e', σ') Hes L hL (by omega) (by omega) (by omega) $$ HQL Htok with ⟨Hwp, Hcr⟩
+    imodintro
+    iframe Hwp
+    iintro %L' Hcrd Hcs Hgs Hlc
+    imod Hcr $$ %L' Hcrd Hcs Hgs Hlc with HQL'
+    imodintro
+    iexists Q
+    iframe HQL'
+    ipureintro
+    exact HQ
 
 end bridgeE
 
@@ -180,7 +241,25 @@ def fsStartResG [G : GooseGlobalGS .hasLC GF] (L : GooseLocalGS GF) (st : Fs.OsS
 theorem fsStartResG_of_localStart [G : GooseGlobalGS .hasLC GF] (L : GooseLocalGS GF)
     (w : ExtsLocalState exts) (h : Fs.FsInit (extLocal Fs.fsExt w)) :
     ⊢ extsLocalStart (GF := GF) (L := L) w ={⊤}=∗ fsStartResG L (extLocal Fs.fsExt w) := by
-  sorry
+  have hdisk : ∀ i f, (extLocal Fs.fsExt w).fs.files !! i = some f →
+      ∃ img sz, f = Fs.OsFile.ofDisk img sz := fun i f hf =>
+    let ⟨img, sz, _, e⟩ := (h.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, e⟩
+  have H0 : extsLocalStart (GF := GF) (L := L) w ⊢
+      Fs.osStart (Fs.gooseOsGS (L := L)) (extLocal Fs.fsExt w) :=
+    hasExt_localStart (X := Fs.fsExt) w
+  iintro Hs
+  icases H0 $$ Hs with Hs
+  unfold Fs.osStart Fs.osStartF Fs.treeStart Fs.bytesMap Fs.metaMap
+  icases Hs with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
+  ihave Hfs := Fs.start_files (Fs.gooseOsGS (L := L)) hdisk $$ [Hb Hm]
+  · iframe
+  imod Fs.osInv_alloc (L := L) ⊤ $$ Hv with #Hinv
+  imod Fs.osSwitchKit_open (L := L) _ _ ⊤ $$ Hd with Hsh
+  imodintro
+  unfold fsStartResG
+  iframe Hinv Hsh
+  iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+    (Fs.fileStart_eq (L := L) i f).1) $$ Hfs
 
 /-- **A crashing machine's boot program `e` is safe from `P`, in every generation**, with the file
 extension's crash resources at the crash premise `Q` and the other extensions' `X`: as `CrashBootWpE`,
@@ -207,7 +286,17 @@ theorem crashBootWpE_of_G [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF]
       Fs.osCrashStart Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) ∗ X L L')
     (lo bound : Nat) (e : Expr) (P : GooseLocalGS GF → IProp GF)
     (H : CrashBootWpG Q X lo bound e P) : CrashBootWpE lo bound e P := by
-  sorry
+  intro L hL h1 h2 h3
+  iintro HP Htok
+  imod H L hL h1 h2 h3 $$ HP Htok with ⟨Hwp, Hcr⟩
+  imodintro
+  iframe Hwp
+  iintro %L' Hcrd Hcs Hgs Hlc
+  icases HC L L' $$ Hcs with ⟨Hcs, HX⟩
+  unfold Fs.osCrashStart
+  icases Hcs with ⟨Hv, %V', Hr⟩
+  imod Fs.osInv_alloc (L := L') ⊤ $$ Hv with #Hinv
+  iapply Hcr $$ %L' %V' Hcrd Hinv Hr HX Hgs Hlc
 
 /-- **A stable machine's boot program `e`, from the local state `σ`, is safe from `P`**, from the file
 start resources (`fsStartResG`), no package initialized and its main thread's token, with the bounds of
@@ -226,7 +315,12 @@ theorem distBootWpSL_of_stableBootG [lctx : GoLocalContext] [G : GooseGlobalGS .
     (lo bound : Nat) (e : Expr) (σ : state) (P : IProp GF)
     (hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (H : StableBootWpG lo bound e σ P) :
     DistBootWpSL lo bound e σ P := by
-  sorry
+  intro hG hGG hL h1 h2 h3
+  obtain ⟨G', L⟩ := hG
+  cases hGG
+  iintro HP Hls Hgs Htok
+  imod fsStartResG_of_localStart L σ.world hfs $$ Hls with Hr
+  iapply H L hL h1 h2 h3 $$ HP Hr Hgs Htok
 
 /-- **The bridge, layer 2** (see the file header): over any list of extensions with the net and file
 extensions whose crash resources split as `HC` says, with the interpretations' conditions on the
@@ -265,7 +359,27 @@ theorem robust_of_netFsBootG [lctx : GoLocalContext] (Q : Fs.OsState → Fs.OsSt
             ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc i L) ∗
           [∗list] j ↦ _m ∈ stable, Ps j) :
     Robust crashing stable g threads bound := by
-  sorry
+  intro hfresh hig hil
+  obtain ⟨Hig, Hil, Hfs⟩ := HI hig hil
+  refine robust_of_crashBootIL (GF := GF) addrs crashing stable g threads bound lo hlo Hnd Hok
+    (fun _ _ => ⟨Hig, Hil⟩) ?_ hfresh hig hil
+  intro G h1 h2
+  iintro Hs
+  imod Hstart h1 h2 $$ Hs with ⟨%Pc, %Ps, %HPc, %HPs, Hc, Hst⟩
+  imodintro
+  iexists Pc, Ps
+  iframe Hst
+  isplitr
+  · ipureintro
+    exact fun i m hm => crashBootWpE_of_G Q X HC lo bound m.1 (Pc i) (HPc i m hm)
+  isplitr
+  · ipureintro
+    exact HPs
+  iapply BigSepL.bigSepL_mono ?_ $$ Hc
+  intro k m hm
+  iintro H %L %hL %hT Hls Hgs
+  imod fsStartResG_of_localStart L m.2.world (Hfs m (List.mem_of_getElem? hm)) $$ Hls with Hr
+  iapply H $$ %L %hL %hT Hr Hgs
 
 end bridgeFs
 
