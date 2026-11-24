@@ -98,7 +98,7 @@ theorem Member.wp_proof
   -- `Serve(s, client)` on a member machine (`Serve_dist`)
   wp_apply (wp_Serve_dist srv client ρ E₀ lg γn id γE ⟨ρ.rd.kv.st⟩) $$ [Hup] as %serr -
   · iframe; iframe #
-    ipureintro; exact ⟨Hms, Hbuq, Hrf, Htb, HLv, Hrb48, rfl⟩
+    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, rfl⟩
   cases serr with
   | ok ei =>
     wp_auto

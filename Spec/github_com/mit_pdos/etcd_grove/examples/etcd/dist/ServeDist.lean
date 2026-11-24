@@ -34,13 +34,12 @@ the started member (`memberUp`, its member id `mid`), the address `a` set to ser
 for `(γE, mid)` (`etcdAddrAt`) and the member's view published at `γE` (`envAt γE ν` at its KV
 state variable's name), `Serve` returns. -/
 abbrev Serve_dist.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
-    (s : Loc) (a : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 28)]
+    [π : NetProtoGS] (s : Loc) (a : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (mid : w64) (γE : GName) (ν : EnvView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk lg ∗
-      ⌜v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧
-        threadBound GF ≤ 2 ^ 28 ∧ srvLevels (GF := GF) ∧ receiptBound GF ≤ 2 ^ 48 ∧
+      ⌜v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ srvLevels (GF := GF) ∧
         ν.st = ρ.rd.kv.st⌝ ∗
       etcdstart.memberUp s ρ E₀ lg γn mid ∗
       etcdAddrAt (Gg := hG.goose_globalGS) a γE mid ∗ envAt (Gg := hG.goose_globalGS) γE ν }}

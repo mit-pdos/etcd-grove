@@ -54,7 +54,8 @@ theorem Client.wp_proof
     (wp_Put_dist : etcd_dist.Client_Put_dist.spec (GF := GF) (hG := hG))
     (wp_Get_dist : etcd_dist.Client_Get_dist.spec (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC π ep γE mid hplain Htb hAs
+  intro CS CRE CEC TB π ep γE mid hplain hAs
+  have Htb : threadBound GF ≤ 2 ^ 31 := TB.threadBound_le
   wp_start as #Hshare
   iunfold clientShare at Hshare
   icases Hshare with ⟨#Haddr, #Hinv⟩

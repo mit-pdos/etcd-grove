@@ -42,9 +42,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 /-- See the file header. -/
 abbrev Client.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)] [π : NetProtoGS]
+    [ContextErrsClient (GF := GF) (hG := hG)] [ThreadBoundLe GF (2 ^ 31)] [π : NetProtoGS]
     (client : GoString) (γE : GName) (mid : w64),
-  plainEndpoint client → threadBound GF ≤ 2 ^ 31 →
+  plainEndpoint client →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget ∗
       clientShare (G := hG.goose_globalGS) client γE mid (putgetPub (G := hG.goose_globalGS)) }}
