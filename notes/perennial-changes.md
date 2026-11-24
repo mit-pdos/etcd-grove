@@ -149,7 +149,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Workaround.** The statement's step bound is `2^31 - 1` (stated, honest; review of #24).
 - **Proposed change.** A dist adequacy that bounds live threads (`threads ≤ 2^31`, a premise on the
   run) while allowing `2^63` steps would restore the `2^63` bound.
-- **Status.** Not proposed yet.
+- **Status.** Done: perennial#690 (`goose_dist_adequacy_below` and crash variants), lean's pin
+  580868e54 (5f5f28beeb); epaxos and swiftpaxos moved to `2^63` steps with `2^31` threads on
+  dsv-steps63 (notes/dsv-epaxos.md, "Step bound 2^63").
 
 ### Goose copies Go doc comments' tabs into Lean doc comments (2026-11-23, dsv-rabia)
 
