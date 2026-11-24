@@ -251,7 +251,9 @@ def LeaderNonpropResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
   (m.Type' = MsgBeat ∧
    ∃ (ms : List Msg) (pvs : GMap w64 Progress),
      s' = { sendMsgs s ms with prvals := pvs } ∧
-     (∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧ HbCtxOk s.rd.ro m'.ctx) ∧
+     -- (#33 S4) no index, log term or entries (`sendHeartbeat` sets none)
+     (∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧ HbCtxOk s.rd.ro m'.ctx ∧
+       m'.index = W64 0 ∧ m'.logterm = W64 0 ∧ m'.entries = []) ∧
      prvalsMatch pvs = prvalsMatch s.prvals) ∨
   (m.Type' = MsgHeartbeatResp ∧
    ∃ (ms : List Msg) (pvs : GMap w64 Progress),

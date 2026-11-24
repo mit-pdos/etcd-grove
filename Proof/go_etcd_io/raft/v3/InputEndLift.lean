@@ -777,9 +777,7 @@ theorem tickEnd_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List
 /-- **A tick's `MsgBeat`** (`tickHeartbeat`): a leader's heartbeats; nothing elsewhere. -/
 theorem tickEnd_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope id s) (hty : m.Type' = MsgBeat)
-    (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s')
-    (hhb : ∀ (ms : List Msg) (pvs : GMap w64 Progress), s' = { sendMsgs s ms with prvals := pvs } →
-      ∀ x ∈ ms, x.index = W64 0 ∧ x.logterm = W64 0 ∧ x.entries = []) :
+    (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') :
     TickEnd c id (toPState s) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
       (by rw [hty]; ie_tyclose MsgVote) h0 h
@@ -803,8 +801,45 @@ theorem tickEnd_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
     ie_tysimp hty at hres
     obtain ⟨-, ms, pvs, rfl, hok, hpm⟩ := hres
     exact Or.inr (Or.inr ⟨by rw [toPState_role, hr]; rfl, ms,
-      fun y hy => ⟨(hok y hy).1, hhb ms pvs rfl y hy⟩,
+      fun y hy => ⟨(hok y hy).1, (hok y hy).2.2⟩,
       ie_toPState_send_prvals s ms pvs (fun _ => hpm)⟩)
+
+/-- (#33 S4) **A tick's `MsgHup` keeps the log's state** (`HupOkC`: a campaign touches no log
+field), `offsetInProgress` with it. -/
+theorem logst_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgHup) (h0 : m.Term' = W64 0)
+    (h : StepEnd c id m ents ctx s s') : s'.logst = s.logst := by
+  have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
+  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; ie_tyclose hty)
+  exact (hhup hst hty).2.2.1.1
+
+/-- (#33 S4) **A tick's `MsgBeat` keeps the log's state**: a leader's heartbeats queue messages
+only; elsewhere nothing. -/
+theorem logst_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScope id s) (hty : m.Type' = MsgBeat)
+    (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') : s'.logst = s.logst := by
+  obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
+      (by rw [hty]; ie_tyclose MsgVote) h0 h
+  cases hr : s.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hs⟩ := hres
+    rw [hs]
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hs⟩ := hres
+    rw [hs]
+  | preCandidate => exact absurd hr hsc.2.2.1
+  | leader =>
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC LeaderNonpropResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, ms, pvs, rfl, -, -⟩ := hres
+    rfl
 
 end lift
 
