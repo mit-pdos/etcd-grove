@@ -339,3 +339,37 @@ Either way the statement changes beyond the recorded AsDecided strengthening, so
 coordinator's call. Then the proof is: ports of reflect's ValueOf/unpackEface/isDirectIface/
 Value.{Type,Kind,IsNil,Elem}; new isDefined, directlyAssignable, implements, AssignableTo, Implements,
 assignTo, Set and valueInterface/packEface; and `as`'s walk on the old asWalk template.
+
+## Exact state at the stop (usage limit, 2026-11-24 late)
+
+**F2 (axiom-tok gate): DONE, validated.** etcd-grove `reflect-s0/2026-11-24` 1ef6e8915a (also merged into
+`reflect-s05/2026-11-24`).
+- Selftest: 0 failures.
+- `axiom-tok --check` over `.lake/tcb.json` on the VM: ok (304 walked, 0 unknown).
+
+**F1 (goose): DONE.** Perennial `reflect-s05` 65768b53a. Negative tests pass. No translated code hits it
+(AST scan). The fix is still needed on Perennial `lean` (the bug predates S0.5; trusted change).
+
+**Perennial `reflect-s05` @ 2eeebdbfc:** F1 + reflectcore stub proofs.
+- Its full build was last run at 3e1ac82bf (green).
+- 2eeebdbfc's new modules built as `Perennial.Proof.internal.reflectcore.Link` (ok).
+- `errors.As.wp_proof` is still the marked sorry.
+
+**etcd-grove `reflect-s05/2026-11-24` @ 4337c89ef1** (pins Perennial 2eeebdbfc):
+- The VM gate runs fixed, in turn: kvwitness table heartbeats; `AsLeafTy`'s premise (with `AsLeaf`
+  deriving it); `ErrOk`'s `kErrOk_intro`.
+- The targeted builds of every affected module passed: Proof.errors.{AsLeaf,AsNoMatch}, kvwitness
+  Adequacy, k8s etcd3 Link, k8s all MainLinked, etcdserver Link, client-go cache Link, examples k8s
+  etcd3 Link (12,455 jobs).
+- The final full gate run at 4337c89ef1 was STOPPED (usage limit) before it finished. Rerun it with the
+  `/shared` overrides.
+- Expected: `tcb` and the collections differ, because Perennial's `errors.As.wp_proof` sorry is reached
+  through k8s' `wp_As_plain`/`AsNoMatch`. Everything else should pass. Not for landing.
+
+**Next steps:**
+1. Rerun the gates on etcd-grove `reflect-s05/2026-11-24` (VM key 44b7416aff694723, origin
+   `.../wt/ho-refl05`); record the tcb/sorry delta.
+2. Coordinator decision on the errors.As statement (options A/B above). Then the proof (round-2 plan).
+3. Port the F1 fix to Perennial lean (with review); the packet's items 3 (goose: + F1) and 7 (gate: the
+   strict `lawDomOk`) are updated.
+4. The full Perennial build at 2eeebdbfc (chunked: `bin/pfull.sh`-style, 3 chunks).
