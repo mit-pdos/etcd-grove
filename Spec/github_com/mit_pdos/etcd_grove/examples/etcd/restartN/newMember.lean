@@ -50,7 +50,7 @@ abbrev newMember.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restartN ∗
       threadTok ∗ etcdstart.memberBuilt s ρ E₀ lg γn id N false ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗
-      netAddrFree peerAddr ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
+      http.httpAddrFree peerAddr ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.newMember))
       (Val #s)) (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client))
   {{ (m : Loc) (err : GoInterface), RET (PairV #m #err);

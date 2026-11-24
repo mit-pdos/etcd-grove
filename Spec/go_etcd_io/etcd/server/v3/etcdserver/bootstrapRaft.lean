@@ -46,11 +46,16 @@ sized flag; the record (`:565-571`): the logger, the heartbeat `TickMs * time.Mi
 `raftConfig(cfg, member.ID, s)`: `ElectionTick` the configuration's (`1 < ElectionTicks`,
 `bootCfgOk`), `HeartbeatTick` `1`, the storage, `MaxSizePerMsg` `2 ^ 20`, `MaxInflightMsgs` `512`,
 `CheckQuorum`, `PreVote` the configuration's, no trace logger, and the logger
-`NewRaftLoggerZap(cfg.Logger.Named("raft"))`, a raft logger over zap (`isLogger`). -/
+`NewRaftLoggerZap(cfg.Logger.Named("raft"))`, a raft logger over zap (`isLogger`).
+
+(Claim #34 stage 4, 2026-11-25; ledger, "`bootstrapRaft.spec`: an id raft refuses") With this member's id
+not one of raft's local targets (`bootGo.idRaftOk`): `bootRaftBuilt`'s `rnStartCfg` holds `ConfigValid`,
+which excludes them (raft's `Config.validate` refuses them), and `membersOk` excludes only `0`. -/
 abbrev bootstrapRaft.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (c w : Loc)
     (bc : bootstrappedCluster) (bw : bootstrappedWAL) (dq dqw : DFrac),
-  cfg.NewCluster' = true → bootCfgOk cfg → bootGo.membersOk cfg U →
+  cfg.NewCluster' = true → bootCfgOk cfg → bootGo.membersOk cfg U → bootGo.idRaftOk cfg U →
+  bootGo.urlsNe U →
   bw.haveWAL' = false → bw.st' = null → bw.ents' = slice.nil → bw.snapshot' = null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       zapLoggerOk cfg.Logger' ∗ c ↦{dq} bc ∗ w ↦{dqw} bw ∗

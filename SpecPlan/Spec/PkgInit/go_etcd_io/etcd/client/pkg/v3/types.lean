@@ -4,6 +4,9 @@ module
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.strconv.Base
+public import Perennial.Proof.strings.Base
+public import Perennial.Proof.sort.Base
+public import Perennial.Proof.fmt.Base
 public import SpecPlan.Spec.PkgInit.net.url
 
 @[expose] public section

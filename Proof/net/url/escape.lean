@@ -16,7 +16,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open github_com.mit_pdos.perennial.goose.model.strings (wp_string_len)
+open github_com.mit_pdos.perennial.goose.model.strings (wp_string_len wp_string_len_maxAddr)
 
 namespace net.url
 
@@ -188,7 +188,7 @@ variable [package_sem : net.url.Assumptions]
 set_option maxHeartbeats 1000000 in
 theorem escape.wp_proof (wp_shouldEscape : shouldEscape.spec (GF := GF) (hG := hG)) :
     escape.spec (GF := GF) (hG := hG) := by
-  intro s mode hmode hlen
+  intro s mode hmode
   wp_start as #Hpkg
   wp_auto
   wp_apply wp_string_to_bytes s as %rs ⟨Hrs, -⟩
@@ -307,7 +307,9 @@ theorem escape.wp_proof (wp_shouldEscape : shouldEscape.spec (GF := GF) (hG := h
         intro h; apply hb; have := congrArg (fun w : w64 => sint.Z w) h; simp at this; word)]
       wp_auto
     all_goals (
-    wp_apply wp_string_len as %Hl
+    wp_apply wp_string_len_maxAddr as %HlM
+    have Hl : s.length < 2 ^ 63 := by unfold maxAddr at HlM; omega
+    have hlen : 3 * s.length < 2 ^ 63 := by unfold maxAddr at HlM; omega
     have hreq : W64 (s.length : Int) + W64 2 * W64 ((escHex mode s : Nat) : Int) =
         W64 ((s.length + 2 * escHex mode s : Nat) : Int) := by word
     rw [hreq]

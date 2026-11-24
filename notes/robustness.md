@@ -114,7 +114,8 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
 | shape | bridge (`Robustness/Statement.lean`) | `Robust` form | examples |
 |---|---|---|---|
 | one process, `RealNsteps` | `Robust.of_single` (`distCrashNsteps_single`) | `Robust [] [(prog, σ)] g bound` | the etcd-server examples (`etcd/*`, `k8s/*`, `mvccfull`, `mvccrand`), raft's (`kv`, `kvdurable`, `kvreconf` and their `N` forms; `RaftNoAx/`'s copy of kvdurable; `RaftWitness/`'s kvwitness; `RaftTla/`'s tracecheck), lintest's six, `goose/prophkv` |
-| one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three), `osfs/bboltfs` |
+| one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three) |
+| one process with crashes, thread bound along it, `RealCrashNstepsBelow` (2026-11-24) | `Robust.of_single_crashing_below` (`Robustness/CrashBelow.lean`: `distCrashNstepsBelow_single_crashing`, then Perennial's `goose_crash_adequacy_below`) | `Robust [(boot, σ)] [] g threads bound` | `osfs/bboltfs` |
 | several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`Net/…/net/*`) |
 | several machines that never crash, `DistNsteps` (2026-11-19) | `robust_of_distBoot`, `robust_of_distProto` (`Net/Statement/DistBridge.lean`: `distNsteps_of_crash_nil`, then `goose_dist_adequacy`), under the deployment premise `DistDeploy plan hosts nodes g` (`Net/Statement/DistDeploy.lean`) | `DistDeploy … → Robust [] nodes g bound` | the network kits (`notes/dsverify-net-port-plan.md`, phases 4 and 6); `echo_dist_robust` (`Net/…/net/echo/RobustLinked.lean`), the non-vacuity check |
 
@@ -126,11 +127,10 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
   `2^48` at `2^28` threads (`mvccfull`, `mvccrand`, since 2026-11-23, #30: mvcc's own receipt
   bound, `ReceiptBoundLe GF (2 ^ 48)` of `mvcc.New`; from 2026-11-22 `2^38`, a convention the
   examples' specs passed along), `2^61 - 3` at `2^31` threads (tracecheck),
-  `2^30 - 1` (`bboltfs`), and any `bound` (a parameter) where the theorem had none (the TCP and
-  `osfs` examples, `prophkv`). `bboltfs`'s statement took a thread-bound hypothesis
-  (`RealCrashThreadsBelow … (2^30)`); its `Robust` form derives it from the step bound, and stays
-  so until crash adequacy along the execution exists (`notes/perennial-changes.md`, "The
-  distributed form": open). The plan to raise the etcd bounds further (`K` receipts per request id,
+  `2^63` at `2^30` threads (`bboltfs`, since 2026-11-24, #30 1b: crash adequacy along the
+  execution, Perennial's `goose_crash_adequacy_below`, perennial#690; before, `2^30 - 1`, the thread
+  bound derived from the step count), and any `bound` (a parameter) where the theorem had none (the
+  TCP and `osfs` examples, `prophkv`). The plan to raise the etcd bounds further (`K` receipts per request id,
   toward `K · 2^48`; the id suffix's wrap, `nonissues/etcd-request-id-suffix-wrap-dup-panic.md`, is
   the real ceiling): claim issue mit-pdos/etcd-grove#30.
 - **A hypothesis that mentioned the execution's length** (`Hprem`: the etcd examples' boot
