@@ -8,9 +8,11 @@ unproved, on `goose-model-overlay-rest-rt-rand` (see "Open").
   `ChooseUint64`), with specs and proofs. They replace the hand-written Lean
   `syscall.arbitraryStrings` (pasted goose output). Standalone commit for fmt:
   `goose-model-overlay-rest-gomodel-choosestring` 1ba3cdff2.
-- **runtime**: Go models `Gosched` (empty: `checkTimeouts` is empty on Linux, `mcall(gosched_m)` is asm
-  plus the scheduler), `buildVersion` (`= gomodel.ChooseString()`: the linker sets it; the real
-  translation gives `""`), `Frames.Next` (arbitrary frames; `new(Func)` under Choose; goose rejects
+- **runtime**: `Gosched` and `buildVersion` are NOT Go models in the final branch (the sections below that
+  show them are superseded): `Gosched` stays lean's trusted one-line `Gosched.impl` (an overlay replacement
+  also replaced it for the runtime's own callers under gc, and its empty body hung `runtime.GC`), and
+  `buildVersion` stays lean's trusted opaque `buildVersionValue` (lean's design, approved). The one Go model is
+  `Frames.Next` (arbitrary frames; `new(Func)` under Choose; goose rejects
   the real one: `inc or dec statement with unsupported type uintptr`). `callers` stays **trusted**:
   `callers.impl := λ skip pcbuf, callersModel skip pcbuf`, where `callersModel` is translated Go added by the
   overlay (writes an arbitrary prefix). Why not a replacement: under gc its body (Choose = false)
@@ -258,7 +260,7 @@ Additions (no claim of their own; a primitive stub carries the TrustedCode claim
 ### Perennial/Code/runtime.toml  (package `runtime`)
 
 - `[model]` before: none
-- `[model]` after:  dir = 'goose/model/overlay/runtime', replaces = ['Gosched', 'buildVersion', 'Frames.Next'], added_methods = []
+- `[model]` after:  dir = 'goose/model/overlay/runtime', replaces = ['Gosched', 'buildVersion', 'Frames.Next'] (final branch: replaces = ['Frames.Next']), added_methods = []
 - model files: goose/model/overlay/runtime/extern.go, goose/model/overlay/runtime/proc.go, goose/model/overlay/runtime/symtab.go, goose/model/overlay/runtime/traceback.go; changed: goose/model/overlay/runtime/extern.go, goose/model/overlay/runtime/proc.go, goose/model/overlay/runtime/symtab.go, goose/model/overlay/runtime/traceback.go
 
 #### `runtime.Frames.Next` (new)
@@ -389,7 +391,7 @@ func (ci *Frames) Next() (frame Frame, more bool) {
 ... (38 more lines)
 ```
 
-#### `runtime.Gosched` (new)
+#### `runtime.Gosched` (SUPERSEDED: trusted `Gosched.impl` in the final branch, see the summary)
 
 Model (goose/model/overlay/runtime/proc.go:6):
 
@@ -419,7 +421,7 @@ func Gosched() {
 }
 ```
 
-#### `runtime.buildVersion` (new)
+#### `runtime.buildVersion` (SUPERSEDED: trusted opaque `buildVersionValue` in the final branch)
 
 Model (goose/model/overlay/runtime/extern.go:8):
 
