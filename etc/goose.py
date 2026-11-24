@@ -570,6 +570,8 @@ PROJECTS = [
             # `gauge`'s field `labelPairs` (`[]*dto.LabelPair`), so that the struct is translated (its
             # methods are, with their bodies). (`counter` also needs `timestamppb`, whose names-only
             # initializer would add two trust-boundary axioms: not taken.)
+            # (prom-registry, route (b), 2026-11-22) and of `Desc.constLabelPairs` (the default registry
+            # is translated)
             "github.com/prometheus/client_model/go",
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)

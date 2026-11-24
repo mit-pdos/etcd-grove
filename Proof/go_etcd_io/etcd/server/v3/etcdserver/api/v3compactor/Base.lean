@@ -27,7 +27,7 @@ namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
