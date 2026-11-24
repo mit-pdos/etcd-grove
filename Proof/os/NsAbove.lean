@@ -229,7 +229,7 @@ theorem os.File.Sync.wp_outS (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     (repeat' isplitl []) <;> iassumption
   · simp only [decide_eq_false he, Bool.not_false]
     wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn Hsys
     iintro %pe #Hpe
     iapply HΦ
     isplitr
@@ -264,7 +264,7 @@ theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
     iapply fmtErrorOkOrNil_nil
   · rw [decide_eq_false he]
     wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn Hsys
     iintro %pe #Hpe
     iapply HΦ
     iapply fmtErrorOkOrNil_of $$ Hpe

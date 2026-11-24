@@ -72,7 +72,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proofFile
         (rmFileOut J go!".touch" i hJ (DFrac.own (1 : Qp).half)) touch_nameOk hfile
         (Qp.half_add_half 1) $$ [Hp Hperm Hq Hau]
       as %e ⟨-, Hp, Hperm, %o', %hok', HQ, Hout⟩
-    · iframe; isplitl [] <;> iassumption
+    · iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
     icases os.rmFileOut_join J _ i hJ o' $$ [HQ Hout] with ⟨%h', Hn, %hc⟩
     · iframe
     (try wp_auto)

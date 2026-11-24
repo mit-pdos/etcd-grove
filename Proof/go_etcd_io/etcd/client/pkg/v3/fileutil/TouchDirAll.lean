@@ -166,7 +166,7 @@ theorem fileutil.TouchDirAll.wp_proof
   wp_apply wp_MkdirAll (joinPath (joinPath [] rcs) cs) name (W32 448) R jp qp h (1 : Qp).half (1 : Qp).half
       (mkOut jp name h (DFrac.own (1 : Qp).half)) hname hnone (Qp.half_add_half 1)
       $$ [Hp Hperm Hq Hau] as %err ⟨#Hfe, Hp, Hperm, %o, %hok, HQ, Hout, Hnew⟩
-  · rw [← callKey_joinPath hR hm cs]; iframe; isplitl [] <;> iassumption
+  · rw [← callKey_joinPath hR hm cs]; iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
   rw [callKey_joinPath hR hm cs]
   ihave Hout := mkOut_join jp name h o $$ [HQ Hout]
   · iframe

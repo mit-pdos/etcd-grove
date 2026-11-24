@@ -589,19 +589,19 @@ theorem wp_removeTmp (wp_Remove : os.Remove.specFileSnc (GF := GF) (hG := hG))
     (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (r : GoString) (X : List GoString)
     (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
     (qc : Qp) (hb : NameOk b) (hbt : b ∈ walTmps) (hcur : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X ∗
         osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
         osNames j (.only [b]) (DFrac.own qTmp) h ∗ trFile i False }}
       (App (Val (@! os.Remove)) (Val #(child dir b)))
     {{ (err : GoInterface), RET #err; osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ tmpClaim j b }} := by
-  iintro %Φ ⟨#Hos, #Hsi, #Hwi, #Hkey, Hp, Hperm, Hn, Ht⟩ HΦ
+  iintro %Φ ⟨#Hpk, #Hos, #Hsi, #Hwi, #Hkey, Hp, Hperm, Hn, Ht⟩ HΦ
   icases osNames_quarters j (.only [b]) h $$ Hn with ⟨Hn, Hr⟩
   ihave Hau := walTmp_osAUnc (W := W) (A := Option (Nat × Nat)) C Mr R jr r dir j X b hbt h
     (rmFileOut j b i h) (rmHist j b i h) (rmFileOut_tmpSplit j b i h) (rmHist_fo j b i h) $$ Hwi [Hr]
   · iunfold walTmpP; iframe Hr; iexact Hkey
   iapply wp_Remove dir b j i R dq h (1 : Qp).half (1 : Qp).half qc
     (rmFileOut j b i h (DFrac.own (1 : Qp).half.half)) hb hcur (Qp.half_add_half 1)
-    $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+    $$ [$Hpk $Hos $Hsi $Hp $Hperm $Hn $Hau]
   inext
   iintro %err ⟨-, Hp, Hperm, %o, -, Ho1, Ho2⟩
   iapply HΦ
