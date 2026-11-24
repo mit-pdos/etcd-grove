@@ -17,6 +17,7 @@ module
 public import Perennial.Golang.Defn
 public import GooseLang.Ext.Fs.Impl
 public import Perennial.TrustedCode.fmt
+public import Perennial.TrustedCode.arbitraryString
 
 @[expose] public section
 

@@ -7,7 +7,7 @@ Untrusted.
 module
 
 public import Proof.os.IgnoringEINTR
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 public import Proof.os.ModelMode
 public import Proof.os.ErrorOk
 public import Proof.internal.filepathlite.Lexical
@@ -72,10 +72,10 @@ theorem os.model.wp_statAbove (op p : GoString) :
          ⌜err ≠ interface.nil⌝ }} := by
   wp_start as -
   try wp_auto
-  wp_apply internal.gomodel.Choose.wp_local as %c -
+  wp_apply internal.gomodel.wp_Choose as %c -
   cases c
   · try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %x -
     try wp_auto
     by_cases hx : x = W64 0
     · subst hx
@@ -105,10 +105,10 @@ theorem os.model.wp_statAbove (op p : GoString) :
     try wp_auto
     wp_apply filepathlite.Base.wp_lex as %nm _
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %sz -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %sz -
     try simp only [os.ModeSymlink, os.ModeDir]
     try wp_auto
-    wp_apply internal.gomodel.Choose.wp_local as %d -
+    wp_apply internal.gomodel.wp_Choose as %d -
     cases d
     all_goals
       try wp_auto
