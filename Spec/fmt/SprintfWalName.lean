@@ -1,11 +1,10 @@
 /-
 `fmt.Sprintf("%016x-%016x.wal", seq, index)` of two `uint64`s (the WAL's `walName`, util.go:117):
-the trust boundary (`Proof/fmt/SprintfWalName.lean`). **Beyond Perennial's model of `Sprintf`**,
-which formats `%0Nd` and `%x` but not `%0Nx` (`Perennial/TrustedCode/fmt.lean`: from `%016x` on its
-output is arbitrary): Go zero-pads the lowercase hexadecimal to the width (`fmt/format.go`,
-`fmtInteger` with the `zero` flag), 16 digits for any `uint64`. The proposed Perennial change, the
-model's `intVerb` reading `%0Nx` as it reads `%0Nd`, is `notes/perennial-changes.md`, "`Sprintf`'s
-`%0Nx`". WAL leaf specs, 2026-11-13; Lean-first.
+Go zero-pads the lowercase hexadecimal to the width (`fmt/format.go`, `fmtInteger` with the `zero`
+flag), 16 digits for any `uint64`. Proved (`Proof/fmt/SprintfWalName.lean`) from Perennial's
+`fmt.wp_Sprintf_walName` over the real `Sprintf` (real `fmt` stage 1, perennial#671, 2026-11-24);
+from 2026-11-13 until then a trust-boundary axiom, beyond Perennial's model of `Sprintf`. WAL leaf
+specs; Lean-first.
 -/
 module
 

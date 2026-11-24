@@ -58,19 +58,27 @@ theorem collectReasonsAndErrors.wp_proof
     (wp_Concat : EtcdGrove.slices.Concat.spec (GF := GF) (hG := hG))
     (wp_aggregate_Error : EtcdGrove.utilerrors.aggregate.Error.spec (GF := GF) (hG := hG)) :
     collectReasonsAndErrors.spec (GF := GF) (hG := hG) := by
+  intro s0 dq0 pre0 d0 m0 k0 N hpre0 hfit0
   have H : ⊢ (∀ (s : GoSlice) (dq : DFrac) (pre : List GoString) (d : ConditionsAwareDecision)
       (m : Dec) (k : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗
-        s ↦*{dq} pre ∗ isDecision d m ∗ ⌜pre.length + m.depth < 2 ^ 63⌝ }}
+        s ↦*{dq} pre ∗ isDecision d m ∗ decNames N d m ∗
+        ⌜(∀ x ∈ pre, x.length ≤ N) ∧ (pre.length + m.depth) * (N + 2) < _root_.Perennial.strings.joinMax⌝ }}
       (App (App (App (Val (@! collectReasonsAndErrors)) (Val #s)) (Val #d)) (Val #k))
     {{ (rs es : GoSlice), RET (PairV #rs #es); s ↦*{dq} pre ∗
-        (∃ xs : List GoString, rs ↦* xs ∗ ownSliceCap GoString rs (DFrac.own 1)) ∗
+        (∃ xs : List GoString, rs ↦* xs ∗ ownSliceCap GoString rs (DFrac.own 1) ∗
+          ⌜xs.length ≤ m.size ∧ ∀ x ∈ xs, x.length ≤ (pre.length + m.depth) * (N + 2) + maxAddr.toNat + 4⌝) ∗
         (∃ ys : List GoInterface, es ↦* ys ∗ ownSliceCap GoInterface es (DFrac.own 1) ∗
           [∗list] e ∈ ys, utilerrors.errTree e) }}
       : IProp GF) := by
     iloeb as IH
     iintro %s %dq %pre %d %m %k
-    wp_start as ⟨Hs, #Hd, %Hdep⟩
+    wp_start as ⟨Hs, #Hd, #Hdn, %Hpre⟩
+    have Hdep : pre.length + m.depth < 2 ^ 61 := by
+      have := Nat.le_mul_of_pos_right (pre.length + m.depth) (show 0 < N + 2 by omega)
+      have := Hpre.2
+      unfold _root_.Perennial.strings.joinMax at this
+      omega
     wp_auto
     icases isDecision_tag d m $$ Hd with %Htag
     wp_join (Q := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ condAwareDecision_ptr ↦ d ∗
@@ -105,10 +113,12 @@ theorem collectReasonsAndErrors.wp_proof
       · wp_auto
         iapply HΦ
         iframe
+        isplitr
+        · ipureintro; simp
         iapply BigSepL.bigSepL_nil.2; itrivial
       cases m with
       | union ks =>
-        icases isDecision_union d ks $$ Hd with ⟨%nds, #Hinner, #HL⟩
+        icases isDecision_union_names N d ks $$ Hd Hdn with ⟨%nds, #Hinner, #HL, %Hnm, #HN⟩
         wp_apply (ConditionsAwareDecision.wp_ptr_UnionedDecisions_of
           wp_ConditionsAwareDecision_UnionedDecisions _ _ d nds) $$ [$condAwareDecision]
           as %f ⟨condAwareDecision, #Hf⟩
@@ -117,18 +127,28 @@ theorem collectReasonsAndErrors.wp_proof
         iapply k8s.wp_forRange2 _ _ _ (by simp) rfl
         iintro %y %Tok %Done HTok #Hy
         iunfold seq2Ok at Hf
-        ihave Hrun := Hf $$ %y %(fun _ => iprop(Tok ∗ ∃ (rsl esl : GoSlice) (rxs : List GoString)
+        ihave Hrun := Hf $$ %y %(fun i => iprop(Tok ∗ ∃ (rsl esl : GoSlice) (rxs : List GoString)
             (eys : List GoInterface) (sd : ConditionsAwareDecision) (an : GoString),
             aggregateReasons_ptr ↦ rsl ∗ rsl ↦* rxs ∗ ownSliceCap GoString rsl (DFrac.own 1) ∗
             aggregateErrors_ptr ↦ esl ∗ esl ↦* eys ∗ ownSliceCap GoInterface esl (DFrac.own 1) ∗
             ([∗list] e ∈ eys, utilerrors.errTree e) ∗ s ↦*{dq} pre ∗ authorizerNamePrefix_ptr ↦ s ∗ unconditionalDecisionToCollect_ptr ↦ k ∗
-            subDecision_ptr ↦ sd ∗ authorizerName_ptr ↦ an)) %(iprop(False)) []
+            subDecision_ptr ↦ sd ∗ authorizerName_ptr ↦ an ∗
+            ⌜rxs.length ≤ Dec.sizeL (ks.take i) ∧
+              ∀ x ∈ rxs, x.length ≤ (pre.length + (Dec.union ks).depth) * (N + 2) + maxAddr.toNat + 4⌝))
+            %(iprop(False)) []
         · iintro !> %i %kk %vv %Hi
           iunfold yield2Ok
           iintro !> %Ψ HI HΨ
           icases HI with ⟨HTok, %rsl, %esl, %rxs, %eys, %sd, %an, aggregateReasons, Hrn, Hrc,
             aggregateErrors, Hen, Hec, #Hest, Hs, authorizerNamePrefix, unconditionalDecisionToCollect,
-            subDecision, authorizerName⟩
+            subDecision, authorizerName, %Hrxs⟩
+          have Hkk : kk.length ≤ N := by
+            rw [List.getElem?_map] at Hi
+            cases h : nds[i]? with
+            | none => simp [h] at Hi
+            | some nd =>
+              simp only [h, Option.map_some, Option.some.injEq, Prod.mk.injEq] at Hi
+              rw [← Hi.1]; exact Hnm nd (List.mem_of_getElem? h)
           iapply Hy $$ %(#kk) %(#vv) %Ψ [] HTok
           · ipureintro; constructor <;> simp
           wp_auto
@@ -164,17 +184,26 @@ theorem collectReasonsAndErrors.wp_proof
             | none => simp [h] at Hi
             | some nd => simp only [h, Option.map_some, Option.some.injEq, Prod.mk.injEq] at Hi ⊢; exact Hi.2
           icases isDecisionL_lookup _ ks i vv Hi' $$ HL with ⟨%mi, %Hmi, #Hdi⟩
+          ihave #Hdni := decNamesL_lookup N _ ks i vv mi Hi' Hmi $$ HN
+          have Hmid := Dec.depth_le_depthL ks i mi Hmi
+          have Hle : (pre.length + 1 + mi.depth) * (N + 2) ≤
+              (pre.length + (Dec.union ks).depth) * (N + 2) := by
+            apply Nat.mul_le_mul_right; simp only [Dec.depth]; omega
           wp_apply IH $$ %s' %(DFrac.own 1) %([pre, [kk]].flatten) %vv %mi %k [Hs']
-            as %rs %es ⟨Hs', ⟨%xs2, Hrs, Hrsc⟩, ⟨%ys2, Hes, Hesc, #Hest2⟩⟩
+            as %rs %es ⟨Hs', ⟨%xs2, Hrs, Hrsc, %Hxs2⟩, ⟨%ys2, Hes, Hesc, #Hest2⟩⟩
           · iframe
             isplitr
             · iexact Hdi
+            isplitr
+            · iexact Hdni
             ipureintro
-            have := Dec.depth_le_depthL ks i mi Hmi
-            simp only [Dec.depth] at Hdep
             simp only [List.flatten_cons, List.flatten_nil, List.append_nil, List.length_append,
               List.length_singleton]
-            omega
+            refine ⟨fun x hx => ?_, ?_⟩
+            · rcases List.mem_append.mp hx with hx | hx
+              · exact Hpre.1 x hx
+              · simp only [List.mem_singleton] at hx; subst hx; exact Hkk
+            · exact Nat.lt_of_le_of_lt Hle Hpre.2
           wp_apply wp_slice_append $$ [$Hrn $Hrc $Hrs] as %rsl' ⟨Hrn, Hrc, -⟩
           wp_apply wp_slice_append $$ [$Hen $Hec $Hes] as %esl' ⟨Hen, Hec, -⟩
           iunfold k8s.forRangePost
@@ -187,9 +216,18 @@ theorem collectReasonsAndErrors.wp_proof
           iframe HTok
           iexists _, _, _, _, _, _
           iframe
-          iapply BigSepL.bigSepL_append.2
-          isplitr; · iexact Hest
-          iexact Hest2
+          isplitl []
+          · iapply BigSepL.bigSepL_append.2
+            isplitr; · iexact Hest
+            iexact Hest2
+          ipureintro
+          simp only [List.flatten_cons, List.flatten_nil, List.append_nil, List.length_append,
+            List.length_singleton] at Hxs2
+          refine ⟨?_, fun x hx => ?_⟩
+          · rw [Dec.sizeL_take_succ ks i mi Hmi]; have := Hxs2.1; have := Hrxs.1; simp only [List.length_append]; omega
+          · rcases List.mem_append.mp hx with hx | hx
+            · exact Hrxs.2 x hx
+            · have := Hxs2.2 x hx; omega
         iunfold iterRunOk at Hrun
         iapply Hrun $$ [HTok aggregateReasons aggregateErrors Hrn Hrc Hen Hec Hs authorizerNamePrefix
           unconditionalDecisionToCollect subDecision authorizerName]
@@ -197,11 +235,13 @@ theorem collectReasonsAndErrors.wp_proof
           iframe HTok
           iexists slice.nil, slice.nil, [], [], _, _
           iframe
-          iapply BigSepL.bigSepL_nil.2; itrivial
+          isplitl []
+          · iapply BigSepL.bigSepL_nil.2; itrivial
+          ipureintro; simp
         iintro !> Hpost
         icases Hpost with (⟨HTok, %rsl, %esl, %rxs, %eys, %sd, %an, aggregateReasons, Hrn, Hrc,
           aggregateErrors, Hen, Hec, #Hest', Hs, authorizerNamePrefix, unconditionalDecisionToCollect,
-          subDecision, authorizerName⟩ | %HF)
+          subDecision, authorizerName, %Hrxs⟩ | %HF)
         rotate_left
         · exact HF.elim
         isplitr
@@ -211,6 +251,10 @@ theorem collectReasonsAndErrors.wp_proof
         wp_auto
         iapply HΦ
         iframe
+        isplitr
+        · ipureintro
+          have := Dec.sizeL_take_le ks (List.map (fun nd => (nd.conditionalAuthorizerName', nd.d')) nds).length
+          exact ⟨by simp only [Dec.size]; omega, Hrxs.2⟩
         iexact Hest'
       | deny => simp [Dec.isUnion] at hU
       | allow => simp [Dec.isUnion] at hU
@@ -218,30 +262,50 @@ theorem collectReasonsAndErrors.wp_proof
       | cmap => simp [Dec.isUnion] at hU
     · wp_apply (ConditionsAwareDecision.wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason _ _ d)
         $$ [$condAwareDecision] as condAwareDecision
+      have HJ : pre.length * (N + (go!": ").length) < _root_.Perennial.strings.joinMax := by
+        have := Nat.mul_le_mul_right (N + 2) (Nat.le_add_right pre.length m.depth)
+        exact Nat.lt_of_le_of_lt this Hpre.2
+      have HJl : ((go!": ").intercalate pre).length ≤ pre.length * (N + 2) :=
+        _root_.Perennial.strings.length_intercalate_le (go!": ") pre N Hpre.1
+      have HJd : pre.length * (N + 2) ≤ (pre.length + m.depth) * (N + 2) :=
+        Nat.mul_le_mul_right (N + 2) (Nat.le_add_right pre.length m.depth)
       wp_join iprop(∃ (sl : GoSlice) (xs : List GoString), aggregateReasons_ptr ↦ sl ∗ sl ↦* xs ∗
           ownSliceCap GoString sl (DFrac.own 1) ∗ s ↦*{dq} pre ∗ authorizerNamePrefix_ptr ↦ s ∗
-          reason_ptr ↦ d.reason') at next
+          reason_ptr ↦ d.reason' ∗
+          ⌜xs.length ≤ m.size ∧ ∀ x ∈ xs, x.length ≤ (pre.length + m.depth) * (N + 2) + maxAddr.toNat + 4⌝) at next
         with [aggregateReasons Hrn Hrc Hs authorizerNamePrefix reason]
-        as ⟨%rsl, %rxs, aggregateReasons, Hrn, Hrc, Hs, authorizerNamePrefix, reason⟩
-      · wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hlen
+        as ⟨%rsl, %rxs, aggregateReasons, Hrn, Hrc, Hs, authorizerNamePrefix, reason, %Hrxs⟩
+      · wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len_maxAddr as %Hlen
         wp_if_destruct
         · iframe
-          try (ipureintro; rfl)
-        · wp_apply (wp_Join s pre dq) $$ [$Hs] as Hs
+          ipureintro; simp
+        · wp_apply (_root_.Perennial.strings.Join_bounded_of wp_Join s pre dq _ N Hpre.1 HJ) $$ [$Hs] as Hs
           wp_apply (wp_slice_literal [interface.mkOk go.string #(go!": ".intercalate pre),
             interface.mkOk go.string #d.reason'])
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply (EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-            (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)))
-            $$ [$Hasl] as %str ⟨-, -⟩
+          wp_apply (EtcdGrove.fmt.wp_Sprintf_pure wp_Sprintf go!"%s: {%s}"
+            [.dir none _root_.Perennial.fmt.verb_s, .lit go!": {", .dir none _root_.Perennial.fmt.verb_s, .lit go!"}"] _ _ _ _
+            (by fmt_encode) (by fmt_fits) (.str _ _ _ (.str _ _ _ .nil)))
+            $$ [$Hasl] as %str ⟨-, %Hstr⟩
           wp_apply wp_slice_literal
           isplitr
           · ipureintro; rfl
           iintro %osl ⟨Hosl, -⟩
           wp_apply wp_slice_append $$ [$Hrn $Hrc $Hosl] as %rsl' ⟨Hrn, Hrc, -⟩
           wp_join_done
+          iexists _, _
+          iframe
+          ipureintro
+          have := length_le_maxAddr_toNat _ Hlen
+          have := Dec.size_pos m
+          refine ⟨by simp; omega, fun x hx => ?_⟩
+          simp only [List.nil_append, List.mem_singleton] at hx
+          subst hx; rw [Hstr]
+          simp only [_root_.Perennial.fmt.render, EtcdGrove.fmt.dirOutFn_str_s, List.length_append,
+            List.append_nil, List.length_cons, List.length_nil]
+          omega
       wp_apply (ConditionsAwareDecision.wp_ptr_Error_of wp_ConditionsAwareDecision_Error _ _ d)
         $$ [$condAwareDecision] as condAwareDecision
       ihave #Hde := isDecision_err d m $$ Hd
@@ -258,7 +322,7 @@ theorem collectReasonsAndErrors.wp_proof
           try (iapply BigSepL.bigSepL_nil.2; itrivial)
         | ok ei =>
           wp_auto
-          wp_apply (wp_Join s pre dq) $$ [$Hs] as Hs
+          wp_apply (_root_.Perennial.strings.Join_bounded_of wp_Join s pre dq _ N Hpre.1 HJ) $$ [$Hs] as Hs
           wp_apply wp_slice_literal
           isplitr
           · ipureintro; rfl
@@ -294,14 +358,15 @@ theorem collectReasonsAndErrors.wp_proof
           iapply BigSepL.bigSepL_nil.2; itrivial
       iapply HΦ
       iframe
+      isplitr
+      · ipureintro; exact Hrxs
       iexact Hest'
-  intro s dq pre d m k hdep
-  iintro %Φ ⟨#Hpkg, Hs, #Hd⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hs, #Hd, #Hdn⟩ HΦ
   ihave #H := H
-  iapply H $$ %s %dq %pre %d %m %k [Hs] HΦ
+  iapply H $$ %s0 %dq0 %pre0 %d0 %m0 %k0 [Hs] HΦ
   iframe Hs
   iframe #
-  ipureintro; exact hdep
+  ipureintro; exact ⟨hpre0, hfit0⟩
 
 end proof
 

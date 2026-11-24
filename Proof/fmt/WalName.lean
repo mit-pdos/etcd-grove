@@ -26,6 +26,7 @@ Lean-first.
 module
 
 public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.fmt.PrintDefs
 
 @[expose] public section
 
@@ -171,6 +172,47 @@ theorem fmt.scanWalName_walNameStr (s i : w64) : fmt.scanWalName (fmt.walNameStr
   have hgo : go!".wal" = W8 46 :: go!"wal" := rfl
   rw [hgo, fmt.scanHex16_hexPad _ _ _ hdot, hlt, h2]
   simp [hb2]
+
+/-! The real `fmt`'s `%016x` (Perennial's `fmt.hexPad`, real `fmt` stage 1) is this file's. -/
+
+theorem fmt.hexPad_zero_eq (w : Nat) : fmt.hexPad w 0 = List.replicate w (W8 48) := by
+  induction w with
+  | zero => rfl
+  | succ w ih =>
+    rw [fmt.hexPad, Nat.zero_div, ih, List.replicate_succ']
+    rfl
+
+/-- `%0Nx` of `n < 16^N` (`N ≥ 1`): the zero-padded hexadecimal is `n`'s last `N` digits. -/
+theorem fmt.padZeros_hexNat (w n : Nat) (hw : 1 ≤ w) (h : n < 16 ^ w) :
+    _root_.Perennial.fmt.padZeros w (_root_.Perennial.fmt.hexNat n) = fmt.hexPad w n := by
+  induction w generalizing n with
+  | zero => omega
+  | succ w ih =>
+    by_cases hn : n < 16
+    · rw [_root_.Perennial.fmt.hexNat_of_lt hn, fmt.hexPad, Nat.div_eq_of_lt hn,
+        Nat.mod_eq_of_lt hn, fmt.hexPad_zero_eq]
+      simp [_root_.Perennial.fmt.padZeros]
+    · have hw' : 1 ≤ w := by
+        rcases w with _ | w
+        · simp at h; omega
+        · omega
+      have h' : n / 16 < 16 ^ w := by
+        rw [Nat.pow_succ] at h; exact Nat.div_lt_of_lt_mul (by rw [Nat.mul_comm]; exact h)
+      have hl := _root_.Perennial.fmt.length_hexNat_le (n / 16) w hw' h'
+      rw [_root_.Perennial.fmt.hexNat_of_ge (by omega), fmt.hexPad, ← ih (n / 16) hw' h']
+      simp only [_root_.Perennial.fmt.padZeros, List.length_append, List.length_singleton,
+        List.append_assoc]
+      congr 2
+      omega
+
+/-- Perennial's `%016x` of a `uint64` is this file's. -/
+theorem fmt.hexPad16_uint (x : w64) :
+    _root_.Perennial.fmt.hexPad 16 (uint.Z x) = fmt.hexPad 16 (uint.nat x) := by
+  have h0 : ¬ uint.Z x < 0 := by word
+  simp only [_root_.Perennial.fmt.hexPad, h0, ↓reduceIte]
+  have hn : (uint.Z x).natAbs = uint.nat x := by word
+  rw [hn]
+  exact fmt.padZeros_hexNat 16 (uint.nat x) (by omega) (by word)
 
 end EtcdGrove
 end Perennial

@@ -53,10 +53,13 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     (wp_Set__Insert : EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG))
     (wp_ErrorfSlice : EtcdGrove.fmt.ErrorfSlice.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecisionUnion.Add.spec (GF := GF) (hG := hG) := by
-  intro p ks name d m
-  wp_start as ⟨Hb, #Hd, %Hwf⟩
+  intro p ks name d m N
+  wp_start as ⟨Hb, #Hd, #Hdn, %Hwf'⟩
+  have Hwf : m.WF ∧ m.depth + 1 < 2 ^ 63 := ⟨Hwf'.1, Hwf'.2.1⟩
+  have Hname := Hwf'.2.2
   iunfold ownBuilder at Hb
-  icases Hb with ⟨%u, %nds, %es, %Hwfl, Hp, Hin, Hinc, #HL, Hes, Hesc, #Hest, Hsub⟩
+  icases Hb with ⟨%u, %nds, %es, %Hwn, Hp, Hin, Hinc, #HL, Hes, Hesc, #Hest, Hsub, #HN⟩
+  obtain ⟨Hwfl, Hnm⟩ := Hwn
   wp_auto
   wp_apply (wp_ConditionsAwareDecisionUnion_ContainsUnconditionalAllowOrDeny p (DFrac.own 1) u)
     $$ [$Hp] as Hp
@@ -254,11 +257,18 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     · ipureintro
       obtain ⟨Hwfl1, Hwfl2⟩ := Hwfl
       obtain ⟨Hwf1, Hwf2⟩ := Hwf
-      exact ⟨Dec.WFL_append ks m Hwfl1 Hwf1, by rw [Dec.depthL_append]; omega⟩
+      refine ⟨⟨Dec.WFL_append ks m Hwfl1 Hwf1, by rw [Dec.depthL_append]; omega⟩, fun nd hnd => ?_⟩
+      rcases List.mem_append.mp hnd with hnd | hnd
+      · exact Hnm nd hnd
+      · simp only [List.mem_singleton] at hnd; subst hnd; exact Hname
     isplitr
     · rw [List.map_append, List.map_singleton]; iexact HL'
     isplitr
     · iexact Hest3
+    isplitl
+    rotate_left
+    · rw [List.map_append, List.map_singleton]
+      iapply decNamesL_snoc N _ ks d m $$ HN Hdn
     iunfold subOk
     isplitr
     · ipureintro; rw [h3, h4, Dec.cuadL_append]
@@ -275,7 +285,7 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     iframe
     iframe #
     isplitr
-    · ipureintro; exact Hwfl
+    · ipureintro; exact ⟨Hwfl, Hnm⟩
     iunfold subOk
     iframe
     ipureintro; rw [Hflag, hc]

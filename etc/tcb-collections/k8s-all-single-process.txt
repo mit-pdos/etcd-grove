@@ -70,7 +70,6 @@ axiom encoding.json.Marshal.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
-axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -160,7 +159,6 @@ axiom metrics.RecordEtcdEvent.wp_proof
 axiom metrics.RecordEtcdRequest.wp_proof
 axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof

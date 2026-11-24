@@ -15,6 +15,7 @@ The physical states after `tryWrite`'s steps and the invariant's facts (`DurOk`)
 -/
 module
 
+public import Perennial.Proof.strings.JoinBounded
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Defs
 public import Spec.os.RenameS
 public import GooseLang.Ext.Fs.TreeSharedCoh
@@ -76,7 +77,9 @@ theorem DFile.base_name {f : DFile} (hf : f.Ok) : path.baseModel f.name = f.b :=
 theorem DFile.join_tmp {f : DFile} (hf : f.Ok) : path.joinModel [f.d, f.tb] = f.tmp := by
   unfold DFile.tmp; rw [DFile.child_eq]; exact filepath.joinModel_name f.d f.tb hf.1 hf.2.2.1
 
-theorem DFile.join_len {f : DFile} (hf : f.Ok) : ([f.d, f.tb].map List.length).sum + 2 < 2 ^ 62 := by
+theorem DFile.join_len {f : DFile} (hf : f.Ok) : ([f.d, f.tb].map List.length).sum + 2 ≤ _root_.Perennial.strings.joinMax := by
+
+  unfold _root_.Perennial.strings.joinMax
   have := hf.2.2.2.2.2
   simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
   omega

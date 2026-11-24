@@ -36,7 +36,7 @@ variable [os.Assumptions]
 abbrev os.MkdirAll.specDirS : Prop :=
   ∀ (d b : GoString) (perm : w32) (R : Roots) (j J : Ino) (qd qn : Qp) (h : NamesH) (qc : Qp),
   NameOk b → h.cur !! b = some (.dir J) →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own qn) h }}
     (App (App (Val (@! os.MkdirAll)) (Val #(child d b))) (Val #perm))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗

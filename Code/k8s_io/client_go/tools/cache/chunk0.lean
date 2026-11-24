@@ -906,8 +906,6 @@ noncomputable def setInformerMetricsProviderOnce [GooseExts] [GoGlobalContext] :
 noncomputable def mutationDetectionEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.mutationDetectionEnabled"
 
-opaque mutationDetectionEnabled.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultMinWatchTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultMinWatchTimeout"
 
@@ -24237,8 +24235,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert noopInformerMetricsProvider.ty InformerMetricsProvider.ty))) (App (Val (GoInstruction (CompositeLiteral noopInformerMetricsProvider.ty))) (LiteralValue [])))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -24273,7 +24273,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultMinWatchTimeout.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val mutationDetectionEnabled.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (GlobalVarAddr mutationDetectionEnabled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore InformerMetricsProvider.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalInformerMetricsProvider))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -24373,7 +24373,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalInformerMetricsProvider InformerMetricsProvider.ty)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc setInformerMetricsProviderOnce _root_.Perennial.sync.Once.ty)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc setInformerMetricsProviderOnce _root_.Perennial.sync.Once.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc mutationDetectionEnabled go.bool)) (Val #()))))))))
 
 abbrev Queue [GooseExts] : Type := GoInterface
 

@@ -124,7 +124,9 @@ func modelReadMIMEHeader(b *bufio.Reader, maxHeaders int64) (textproto.MIMEHeade
 			}
 		}
 		if colon < 0 {
-			return nil, textproto.ProtocolError(fmt.Sprintf("malformed MIME header: missing colon: %q", kv))
+			// MODEL (2026-11-24): %q of string(kv), not of textproto's []byte kv: the same output
+			// (fmt: a byte slice is formatted as a string), here and below
+			return nil, textproto.ProtocolError(fmt.Sprintf("malformed MIME header: missing colon: %q", string(kv)))
 		}
 		// a continuation line follows (obsolete line folding): not modelled
 		if next, err := b.Peek(1); err == nil && (next[0] == ' ' || next[0] == '\t') {
@@ -145,7 +147,7 @@ func modelReadMIMEHeader(b *bufio.Reader, maxHeaders int64) (textproto.MIMEHeade
 			}
 		}
 		if !httpguts.ValidHeaderFieldName(string(k)) {
-			return m, textproto.ProtocolError(fmt.Sprintf("malformed MIME header line: %q", kv))
+			return m, textproto.ProtocolError(fmt.Sprintf("malformed MIME header line: %q", string(kv)))
 		}
 		key := textproto.CanonicalMIMEHeaderKey(string(k))
 		if !httpguts.ValidHeaderFieldValue(string(v)) {

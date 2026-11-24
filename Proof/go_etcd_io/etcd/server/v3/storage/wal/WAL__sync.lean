@@ -324,6 +324,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       · ipureintro; unfold errnoErr; simp; exact H0
       isplitr
       · iapply (_root_.Perennial.errnoErr_fmtErrorOk en (by intro h; exact H0 h))
+        iapply syscall.errnoOk_of_isPkgInit; iPkgInit
       unfold walTailW
       icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]
@@ -350,6 +351,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       · ipureintro; unfold errnoErr; simp; exact H0
       isplitr
       · iapply (_root_.Perennial.errnoErr_fmtErrorOk en (by intro h; exact H0 h))
+        iapply syscall.errnoOk_of_isPkgInit; iPkgInit
       unfold walTailW
       icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]

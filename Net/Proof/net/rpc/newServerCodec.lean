@@ -29,7 +29,7 @@ theorem newServerCodec.wp_proof : newServerCodec.spec (GF := GF) (hG := hG) := b
   wp_auto
   iStructNamed «$r0»
   iapply HΦ
-  iframe rwc werr rerr closed
+  iframe rwc werr closed
 
 end proof
 

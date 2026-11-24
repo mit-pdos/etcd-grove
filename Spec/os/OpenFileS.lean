@@ -22,6 +22,7 @@ Rocq counterpart).
 -/
 module
 
+public import Proof.os.PkgInit
 public import Proof.os.SharedAu
 public import Proof.os.Off
 public import Spec.fmt.ErrorOk
@@ -71,7 +72,7 @@ abbrev os.OpenFile.specCreateS : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 →
   NameOk b → (∀ J, h.cur !! b ≠ some (.dir J)) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
@@ -92,7 +93,7 @@ abbrev os.OpenFile.specCreateSnc : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 →
   NameOk b → (∀ J, h.cur !! b ≠ some (.dir J)) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAUnc (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))

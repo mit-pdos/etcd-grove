@@ -6,6 +6,7 @@ Lean-first.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.PkgInit
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import Proof.os.NsS
 public import Spec.os.StatAbove
@@ -30,7 +31,7 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec : Prop :=
   ∀ (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp),
-  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
       osCallPerm (GF := GF) (callKey R p) qc }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir)) (Val #p))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
@@ -44,11 +45,11 @@ roots' trees (`osOutFd`: only `Sync` and `Close` on it), or an error (2026-11-13
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specAboveRoot : Prop :=
   ∀ (p : GoString) (R : Roots),
   os.AboveRoot R p →
-  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osAboveInv (GF := GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osAboveInv (GF := GF) }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir)) (Val #p))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
       ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
-       ⌜err ≠ interface.nil ∧ f = null⌝) }}
+       ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOk err) }}
 
 end spec
 

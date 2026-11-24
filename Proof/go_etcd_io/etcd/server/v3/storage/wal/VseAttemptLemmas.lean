@@ -100,15 +100,17 @@ theorem vse_exit_streams {C : WalCodec} (hC : C.Ok) (d rp : Loc) (IoE : GoInterf
 /-- **The closer's precondition from the tie's files** (read mode). -/
 theorem walTie_closable (dir : GoString) (write : Bool) :
     ∀ (gs : List SegG) (fs : List (DecFile GF)) (fls lfs : List Loc), fs.length = gs.length →
+    (∀ g ∈ gs, os.closeErrMax (child dir g.name) ≤ wal.closeMsgMax) →
     ([∗list] k ↦ g ∈ gs, walTieFile (GF := GF) dir write fls k g) ∗
       ([∗list] k ↦ F ∈ fs, walFrFile F.fr (fls.getD k null)) ⊢
       [∗list] m ↦ fr ∈ fs.map (·.fr), wal.walClosable (GF := GF) false fr (lfs.getD m null)
-  | [], [], _, _, _ => by
+  | [], [], _, _, _, _ => by
     iintro -
     simp only [List.map_nil]
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
-  | g :: gs, F :: fs, fls, lfs, hl => by
+  | g :: gs, F :: fs, fls, lfs, hl, hgs => by
     have ih := walTie_closable dir write gs fs fls.tail lfs.tail (by simpa using hl)
+      (fun g' hg' => hgs g' (List.mem_cons_of_mem _ hg'))
     have e1 : ∀ (l : List Loc) (k : Nat), l.getD (k + 1) null = l.tail.getD k null := by
       intro l k; cases l <;> simp
     have e2 : ∀ (k : Nat) (g' : SegG), walTieFile (GF := GF) dir write fls (k + 1) g' =
@@ -128,16 +130,17 @@ theorem walTie_closable (dir : GoString) (write : Bool) :
       iexists fls.getD 0 null, rl, fd, _, _
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe Hfl Hfd Hlks Hrl
-      ipureintro; exact hrl
+      ipureintro; exact ⟨hrl, trivial, hgs g (List.mem_cons_self ..)⟩
     · simp only [e1]
       iapply ih
       iframe
-  | [], _ :: _, _, _, hl => by simp at hl
-  | _ :: _, [], _, _, hl => by simp at hl
+  | [], _ :: _, _, _, hl, _ => by simp at hl
+  | _ :: _, [], _, _, hl, _ => by simp at hl
 
 /-- **The segments' halves and the closer's precondition, from every file's stream** (read mode). -/
 theorem vse_close (dir : GoString) (gs : List SegG) (fs : List (DecFile GF)) (fls lfs : List Loc)
-    (htie : WalDecTie dir false gs fs fls) :
+    (htie : WalDecTie dir false gs fs fls)
+    (hgs : ∀ g ∈ gs, os.closeErrMax (child dir g.name) ≤ wal.closeMsgMax) :
     ([∗list] k ↦ F ∈ fs, walFrFile F.fr (fls.getD k null)) ∗ ([∗list] F ∈ fs, ∃ q, F.S q) ⊢
       ([∗list] g ∈ gs, segRes (L := hG.goose_localGS) g) ∗
         [∗list] m ↦ fr ∈ fs.map (·.fr), wal.walClosable false fr (lfs.getD m null) := by
@@ -146,7 +149,7 @@ theorem vse_close (dir : GoString) (gs : List SegG) (fs : List (DecFile GF)) (fl
   icases walTie_files dir false gs fs fls h1 h2
     (fun k F g hF hg => (h3 k F g hF hg).2) $$ Hs with ⟨HS, Ht⟩
   iframe HS
-  iapply walTie_closable dir false gs fs fls lfs h1
+  iapply walTie_closable dir false gs fs fls lfs h1 hgs
   iframe
 
 /-- **The first `n` elements, as the full slice `s[0:n:n]`.** -/
