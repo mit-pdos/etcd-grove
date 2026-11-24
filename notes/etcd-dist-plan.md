@@ -1363,3 +1363,24 @@ restart under D4b's incarnation-keyed issue record would be the way, per generat
 **The thread constant**: `etcdThreads := 2 ^ 28` (`TopLevelDefs.lean`): at least `srvLevelK = 5`, at most
 the `2^28` every server and client spec caps `threadBound` by. The client machines fork few goroutines
 (one per workload helper, `await.go`; one watcher per watch machine), far below it.
+
+## 15. The robustness review's items against the draft (2026-11-24, branch `etcd-safe-lit/2026-11-24`)
+
+The review (`etcd_robust`/`etcd_safe`, section 2 of the group "etcd" review, and its cross-cutting list) was
+written against `lean` `1bdd4e02f1`; this table checks each item at `5f464b7bf9`. `S` = the Spec file
+`Spec/.../examples/etcd/dist/TopLevelRobustness.lean`, `D` = `Proof/.../examples/etcd/dist/TopLevelDefs.lean`,
+`P` = the skeleton `Proof/.../examples/etcd/dist/TopLevelRobustness.lean`, Go paths under `examples/etcd/dist/`.
+
+| Item | State at `5f464b7bf9` | Evidence |
+|---|---|---|
+| (a) `TrustBoundary` → per-function axioms | **open, not ours**: `TrustBoundary` is gone from the statement, but the shared bundle is not yet axioms: `[DialWithBalancerBody]` is still an instance binder, and `Hctx` (context's errors) is a named hypothesis of the skeleton | S:55-58 (no `TrustBoundary`), S:121, S:150 (`DialWithBalancerBody`); `BootBad.lean:217-241` (`Hctx`). No branch on `origin` has the per-function axioms of `bootstrap`, `dialWithBalancer` or `context`'s errors yet (searched 2026-11-24): the putget lead's packet lists them "for the separate per-function-axiom effort" |
+| (b) `memberId`/`WellFormed` into Go, the whole deployment on every machine | **addressed** | S:31-35, S:123 (`d : Deployment` is the Go value, no `Hd`); D:109 (`memberId` a definition, `membership.memberIdOf`, no longer opaque); D:147-197 (every program gets `deploymentLit d` and its index); Go `deployment/deployment.go:326` (`WellFormed`), `server/server.go:97-102`, `client/client.go:172-201` (each returns on failure); `dist_test.go:53` (`TestWellFormed`: 500 random deployments pass, 13 malformed ones fail); `BootBad.lean` (every machine safe on a malformed deployment) |
+| (c) `Hbf`/`BootFacts` quantifying bootstrap's outputs | **open**: (b) removes only `memberId`'s opacity; `BootCore ps ctxs boot` is bootstrap's results, retired by `bootstrap`'s spec (#34, branches `bootstrap-link/2026-11-25`, `bootstrap-stage2/2026-11-25`) | S:125, S:152; D:125-127 |
+| (d) `EtcdEnv` folded into the consuming axioms or Go checks; `leasePeersOk` proved | **open, needs trusted changes**: each field is an opaque `Prop` that a trust-boundary axiom takes; folding one in restates that axiom (`storage.NewBackendQuota`, `auth.NewAuthStore`, `EtcdServer.leaseTimeToLive`, grpc's server start, bbolt's open); `leasePeersOk` is opaque (`LeaseRead.lean:152`), and proving what it says needs the peer handler (`etcdhttp.NewPeerHandler`, names-only, phase 7 S5) | S:126, S:153; D:253-264 |
+| (e) `HEnv` → a Go `ETCD_VERIFY` check at program start | **open, needs a trusted change**: a check in Go reads the variable once, but `os.Getenv.spec` (`Spec/os/Getenv.lean`) gives `etcdVerifyOffValue` only under the token `envVerifyOff`, and says nothing linking two reads, so the check cannot produce the token the backend's checks need. Removing `HEnv`/`HEnvTok` needs `os.Getenv`'s axiom restated over the process's fixed environment (each key one value per run), which retires `verifyEnvOff` and `envVerifyOffTok`, or the distributed start giving the token (premises-to-axioms item G, an adequacy change) | S:133-134, S:158-159; `Proof/.../verify/Env.lean:46,57` |
+| (f) the bounds named; `2^48` the receipt cap, with its reasons in the header | **partly**: `etcdThreads` is named (D:275); the step bound is the bare literal `2 ^ 48` (S:139, S:163) and the header names only `idutil` (S:24-28) | |
+| (g) `etcdNetExts` instead of `[GooseExts] … [HasExt …]` | **addressed** | S:105-106 |
+| (h) the client machines (`NodeMain`, `Args.Nodes`) | **addressed** (stage D8) | D:195-209 (`nodeProg`, `nodeMachines`), S:131, S:138; Go `client/client.go:193` (`NodeDeployment`), `cmd/node` |
+| (i) the driver's liveness retries | **open** | Go `client/client.go:79-105` (`AwaitCluster`, 60 × 500 ms), `client/await.go:9-34` (`AwaitAccept`, 300 × 100 ms), `client/nodes.go:200-210` (`ConnectRetry`), `client/durable.go:13-18, 50` (`durableTries`) |
+| (j) redundant `NetStart` and `.init` premises | **addressed** | no `NetStart`; `ServerStart`/`ClientStart` are the file system's only (D:228-235); P:109-111 takes the net's start from `Robust`'s `extsInitLocal`/`extsInitGlobal` |
+| (k) the header's history | **partly**: S:9-10 ("2026-11-22, the naming on #24"), S:48 ("approved 2026-11-23"), S:55 ("2026-11-24"), S:113-114; D:107-108, D:250-251 | |
