@@ -5,7 +5,9 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State (2026-11-23, eighth agent, P12: review #24's craq findings fixed):** craq is on
+**State (2026-11-24, tenth agent, P14: on lean 37bfea9484):** `lean` merged (Perennial b3f2fc485, dsv-steps63 landed); `Client.Call`'s frame bound discharged (P13); the closed `craq_remote_robust` waits for the real-`fmt` pin bump (`pin-bump-52d62e83c/2026-11-24`: Perennial ed1955557's proved `strings.Cut`/`TrimLeft`), until then `craq_remote_robust_of_strings`; non-vacuity instances: none without axioms (P14). Lands right after the pin bump.
+
+**Older state (2026-11-23, eighth agent, P12: review #24's craq findings fixed):** craq is on
 `models-rpc-http`'s shapes verbatim (merged `origin/models-rpc-http` fda1e58c0a and `origin/lean`
 69adf61913); the dial is Net's proved `net.rpc.DialHTTP.wp`; the net/rpc world's allocation is
 proved; the statement's step bound is `2 ^ 31 - 1`; craq lands after models-rpc-http. See P12.
@@ -641,3 +643,20 @@ porcupine replaces it).
     local axioms), `∃ rs` (`local_rpcHttpServe`: local opaque `local_muxOwner`/`local_muxHas`, local
     axioms for persistence, `HandleHTTP`, `ListenAndServe`) with the eleven `RpcBoot`s (local axioms,
     one per command). No unsatisfiable field.
+- **P14. Tenth agent (2026-11-24, from the ninth agent's unpushed 296417da29): lean 37bfea9484.**
+  Merged `origin/lean` 37bfea9484 (dsv-steps63 and the land-queue batches landed; Perennial still
+  b3f2fc485): no conflict (the ninth agent's merge of 5c7f7d2e59 had resolved the Net/ and generated
+  ones, lean's side), and the branch's diff against lean is craq's own files only. `gen-init --check`
+  (274), `kitgen --check`, `goose.py --check --project dsv-craq` clean without regenerating.
+  Dropped: `Dsverify/Scratch/CraqAxioms.lean` (scratch), and **the axiom-based
+  `examples/craqnet/NonVacuityLinked.lean`** (P13's: every instance was a local axiom, the eleven
+  `RpcBoot`s each its premise restated; the coordinator's rule for this round is no new axioms, so
+  only axiom-free instances count; the file is in history, c17f4f4c68/296417da29). **Non-vacuity,
+  what remains** (no premise class of craq's statement has an axiom-free instance at this pin):
+  `net.rpc.InitHyp`/`net.http.InitHyp` (their closure reaches names-only initializers: dsv-gryff's
+  walks rest on local axioms for them), `LogHyp` (Perennial's `log` is names only), `RpcHttpServe`
+  (net/http's server, `DefaultServeMux`, `rpc.HandleHTTP`: not in Net yet), the eleven `RpcBoot`s
+  (net/rpc's and net/http's initializers: names only). **Strings**: lean's pin b3f2fc485 does not
+  contain Perennial ed1955557 (52d62e83c does), so `DialHTTP.wp` still takes `h_Cut`/`h_TrimLeft`
+  and the theorem is `craq_remote_robust_of_strings`; after the pin bump: `craq_remote_robust :=
+  craq_remote_robust_of_strings (fun => ⟨…Cut proof, …TrimLeft proof⟩)`, delete `StringsPending`.

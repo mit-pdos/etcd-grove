@@ -3,7 +3,7 @@
 # (Dsverify/Proof/github_com/despreston/go_craq/Craq/), the kit's links
 # (examples/craqnet/Link.lean) and its closed theorem `craq_remote_robust`
 # (examples/craqnet/TopLevelRobustness.lean: twelve machines, Robust [] under DistDeploy, over the
-# statement's premises: InitHyps, LogHyp, the net/rpc-over-HTTP classes, rpcAlloc, RpcBoot, F1, F3).
+# statement's premises: InitHyps, LogHyp, RpcHttpServe, the eleven RpcBoots).
 # Its `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` only.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-craq.txt            what it rests on
