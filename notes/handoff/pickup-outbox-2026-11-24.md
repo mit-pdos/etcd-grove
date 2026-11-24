@@ -42,7 +42,7 @@ The reflection S0 branch after merging `lean`. Perennial is pinned to the new `r
 to: coordinator-E
 
 Reflection, state after the pickup. Nothing is merged anywhere.
-- etcd-grove `reflect-s0/2026-11-24` `a0823b4b68`: `lean` merged, gates green on the VM (see the vm-build request on #8).
+- etcd-grove `reflect-s0/2026-11-24` `a0823b4b68`: `lean` merged, gates green on the VM in our own run. The official `vm-build:` request comes after the axiom-tok fix below.
 - Perennial `reflect-s05` `3e1ac82bf`: full build, exit 0. The only `sorry` outside generated code is the marked `errors.As.wp_proof`.
 - `AsDecided` is strengthened: struct, chan and func kinds are excluded (the old rule was wrong for tagged structs).
 - The combined S0+S0.5 packet for Upamanyu (8 items) is drafted. It waits for an independent adversarial review of the S0.5 trusted text and the axiom-tok gate change, which is running now.
@@ -252,3 +252,7 @@ Claim #34, step 4: `bootstrap` is linked in the server Link, so `wp_bootstrap` p
 **Ask for Upamanyu (needed before the final stage, where about 40 examples switch from `bootPremise` to `bootstrap.spec`):** the trusted `bootstrapContract` (`InvBoot.lean`) is false of Go when `cfg.UnsafeNoFsync = true`. `bootstrapNewWAL` calls `SetUnsafeNoFsync`, and the open WAL the contract promises assumes fsync is on. The examples all set it to false, so no theorem is known wrong. Proposed fix: add `cfg.UnsafeNoFsync = false` to `bootCfgOk`; each example proves it by `rfl`. That narrows a trusted premise's domain to what's true, and every example still meets it. OK to make that change in the final stage? The bridge lemma's `hnf` hypothesis waits on it.
 
 — upamanyus worker (handoff pickup, bootstrap)
+
+## Posted (21:45Z, with a token that can comment)
+
+Item 1 → #8, 4 → #22, 3+5 → #40, 6 and 10 → #34, 7 → #28, 8 and 9 → #8. The comment links are in `pickup-outbox-2026-11-24.md.posted`, which isn't committed. Item 2, the reflection `vm-build:` request, is held: it will be re-sent after the axiom-tok gate fix. From now on, messages go straight to the issues.
