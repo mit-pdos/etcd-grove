@@ -574,6 +574,9 @@ PROJECTS = [
             # and the `buffer.NewPool` they call
             "go.uber.org/zap/internal/stacktrace", "go.uber.org/zap/internal/bufferpool",
             "go.uber.org/zap/buffer",
+            # (zap-z2, 2026-11-23) what `zapcore.CheckedEntry.Write` and its terminal hooks call: zap's
+            # `internal/exit` (`With`, over `os.Exit`) with its body, `multierr` names only (no core)
+            "go.uber.org/zap/internal/exit", "go.uber.org/multierr",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",

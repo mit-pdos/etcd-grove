@@ -20,9 +20,9 @@ zap_Error:
 zap_Int32:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
-zap_Logger__Panic:
+zap_Logger__Panic: pool_Pool__Get
 context_TODO:
 # (prove-etcdserver, 2026-11-20) the observers, proved over FormatBool's and WithLabelValues' specs
 strconv_FormatBool:
@@ -106,3 +106,7 @@ isNil: reflect_ValueOf
 warnOfExpensiveGenericRequest: zap_Duration zap_String zap_Error zap_Logger__Warn
 WarnOfExpensiveReadOnlyRangeRequest: isNil warnOfExpensiveGenericRequest
 WarnOfExpensiveReadOnlyTxnRequest: etcdserverpb_NewLoggableTxnRequest isNil etcdserverpb_ResponseOp__GetResponseRange etcdserverpb_RangeResponse__GetKvs warnOfExpensiveGenericRequest
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:
+pool_Pool__Get:

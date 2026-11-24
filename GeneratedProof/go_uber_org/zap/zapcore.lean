@@ -4,9 +4,12 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.go_uber_org.multierr
 public import GeneratedProof.go_uber_org.zap.internal.color
+public import GeneratedProof.go_uber_org.zap.internal.exit
 public import GeneratedProof.go_uber_org.zap.internal.pool
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.runtime
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

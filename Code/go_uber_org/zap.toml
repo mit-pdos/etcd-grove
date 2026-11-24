@@ -26,7 +26,10 @@ translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
   "Float64",
   # (zap-z1, 2026-11-23) `Logger.check` (until then the trust boundary of leveled logging) and the hook
   # override it calls; what its annotation path names (stack traces, buffers) stays names only
-  "Logger.check", "terminalHookOverride"]
+  "Logger.check", "terminalHookOverride",
+  # (zap-z2, 2026-11-23) `Panic` and `Fatal` (until then trust-boundary axioms): `check` at `PanicLevel`/
+  # `FatalLevel` returns an entry whose `after` hook panics or exits (zapcore's `CheckWriteAction`)
+  "Logger.Panic", "Logger.Fatal", "PanicLevel", "FatalLevel"]
 # zapcore so that the generic `anyFieldC[T]` (a function type returning `zapcore.Field`) is
 # translated: Goose emits an axiomatized generic type as `∀ (T : go.type), go.type`, which
 # does not elaborate (the Lean name is go.GoType).

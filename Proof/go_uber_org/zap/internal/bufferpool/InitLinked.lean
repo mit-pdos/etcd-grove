@@ -56,7 +56,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_call
   try wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
-  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pbuf -
+  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pbuf -
   try wp_auto
   -- translated initializer of Get))
   -- translated initializer of _pool))

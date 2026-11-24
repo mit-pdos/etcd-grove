@@ -222,7 +222,4 @@ axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verifyEnvOff
 axiom withVersion.wp_proof
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

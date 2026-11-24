@@ -1,5 +1,9 @@
 /-
-The trust boundary: `zap.Stack` (`go.uber.org/zap` is names-only).
+The trust boundary: `zap.Stack` (names only). (zap-z2, 2026-11-23) Not provable over Perennial's trusted
+`runtime.callers` (`ca6df841b`), which may fill its buffer on every call: `stacktrace.Capture(skip, Full)`
+then doubles its buffer until `make` fails (at the latest when the length overflows), where Go's
+finite stack stops it
+(`notes/perennial-changes.md`, "`runtime.callers` may fill its buffer every time").
 -/
 module
 
