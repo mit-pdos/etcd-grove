@@ -568,10 +568,10 @@ instance streamAttemptMd_persistent (conn : Loc) (F : GrpcMd → GrpcMd → Prop
     Persistent (streamAttemptMd (GF := GF) conn F om md) := by
   unfold streamAttemptMd; infer_instance
 
+include hG in
 /-- The raw fact behind `grpcConnClosed` (opaque, interim: made only by `ClientConn.Close`'s axiom,
 `Spec/google_golang_org/grpc/ClientConn__Close.lean`; S2d's proof of `Close` over the model defines it
 from the connection's state, which its signature's heap instance, `hG`, will need). -/
-include hG in
 opaque grpcConnClosedRaw (conn : Loc) : IProp GF := iprop(True)
 
 /-- **The connection `conn` is closed** (persistent; grpc-trusted-T, T8, 2026-11-24): a
