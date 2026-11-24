@@ -31,7 +31,7 @@ theorem etcdserverpb.authClient.UserGrantRole.wp_proof
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdserverpb.authClient.UserGrantRole.spec (GF := GF) (hG := hG) := by
   intro ac conn addr Spec Q ctx om cd inp m opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hsend, #Hopts, #Hok, %Hsz⟩
+  wp_start as ⟨Hlt, #Hstub, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hsend, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -56,7 +56,7 @@ theorem etcdserverpb.authClient.UserGrantRole.wp_proof
     show (pbAuthUserGrantRoleResponse (GF := GF)).ty = etcdserverpb.AuthUserGrantRoleResponse.ty from rfl] at hI
   ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/UserGrantRole" addr ([sm] ++ vs) (attemptPre conn om Spec m Q) $$ []
   · iapply reqPre_box; iexact Hpre
-  wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
+  wp_apply hI $$ [Hlt Hsend Hblank Hpre'] as %err ⟨Hlt, Hin', Hres⟩
   · iframe #
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
@@ -64,6 +64,7 @@ theorem etcdserverpb.authClient.UserGrantRole.wp_proof
   · subst Herr
     wp_auto
     iapply HΦ
+    iframe Hlt
     isplitl [Hin']
     · simp only [pbAuthUserGrantRoleRequest]; iexact Hin'
     unfold authCallOut
@@ -76,6 +77,7 @@ theorem etcdserverpb.authClient.UserGrantRole.wp_proof
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       isplitl [Hin']
       · simp only [pbAuthUserGrantRoleRequest]; iexact Hin'
       unfold authCallOut
