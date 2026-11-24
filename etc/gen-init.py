@@ -5665,7 +5665,10 @@ NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.lib.remote.counter'] + \
 NET_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
             'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
             'halfclose': ['server', 'client'], 'preface': ['server', 'client', 'junk'],
-            'shutdown': ['node']}
+            'shutdown': ['node'], 'rpcdriver': ['server', 'client']}
+# (2026-11-24) net/rpc's driver (notes/library-drivers.md): its package and its service's
+NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.rpcdriver',
+             'github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service']
 NET_PKGS += [f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}'
             for ex, ns in NET_NODES.items() for n in ns]
 # The part's programs whose adequacy theorem needs the package table of their import closure (as

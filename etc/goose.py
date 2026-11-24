@@ -911,10 +911,17 @@ PROJECTS = [
         # (v3, 2026-11-14) `os`, `syscall`, `internal/poll`, `io/fs`, `internal/syscall` are the
         # main tree's, as every project's (`net`'s errors are their values: `*os.SyscallError`,
         # `poll.ErrNetClosing`, `poll.ErrDeadlineExceeded`).
+        # (2026-11-24, rpcdriver: net/rpc and net/http are the part's, from their models, as for the
+        # dsverify kits; the main tree's names-only `bufio`, `net/url`, `path`, `crypto/tls`)
         lean_roots=["github.com/mit-pdos/etcd-grove=Net", "net=Net", "os=", "syscall=",
-                    "io/fs=", "internal/poll=", "internal/syscall="],
+                    "io/fs=", "internal/poll=", "internal/syscall=", "bufio=", "net/url=", "path=",
+                    "crypto/tls=", "golang.org/x/net/http/httpguts=Net", "vendor=Net",
+                    "go/token=Net", "mime/multipart=Net"],
         packages=["net", "./wire", "./echo", "./framed", "./acceptloop", "./duplex", "./halfclose",
                   "./shutdown", "./preface",
+                  # net/rpc's driver (notes/library-drivers.md)
+                  "./rpcdriver", "./rpcdriver/service", "./rpcdriver/cmd/server",
+                  "./rpcdriver/cmd/client",
                   # each node a command of its example, its own process (examples/net/README.md)
                   "./echo/cmd/server",
                   "./echo/cmd/client",
@@ -933,6 +940,9 @@ PROJECTS = [
                   "./preface/cmd/junk",
                   "./shutdown/cmd/node"],
         owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net")],
+        # net/rpc and net/http from their models (the driver's; `goose` builds the generated codec's
+        # model half, rpc_model_gen.go)
+        std_models=["net/rpc", "net/http"],
         # `net` alone into the part KvNet too (notes/kvnet-part.md): kvnet's transport and client
         # protocol are over the net extension
         parts=[Part(
