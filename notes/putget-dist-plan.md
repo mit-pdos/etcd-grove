@@ -707,3 +707,92 @@ statement was `Robust [] (system …) g (threads := 2 ^ 28) (bound := 2 ^ 28 - 1
   handed out at a machine's start): a trusted-semantics change to `os` and to the distributed start, for the
   owner. `verifyEnvOff` is an opaque `axiom … : Prop` (no witness can meet it), and `envVerifyOffTok` is
   produced only by the single-process `goose_adequacy_start` under it.
+
+## 13. `putgetK_safe`: `k` members, each on a machine of its own, and one client (2026-11-24, branch `dist-putgetk/2026-11-24`)
+
+The k-member version of `putget_safe`: an etcd cluster of `k` members on `k` machines plus one client machine,
+no crash, over `goose_dist_adequacy` through `Net.robust_of_distBootIL`. Plan: coordinator-E's
+`putgetk-plan.md` (items 1-3 done here; the member boot's peer half waits for S5, phase 7, #24/#18).
+
+**The programs** (`examples/etcd/dist/putgetk`, project `putgetk-dist` of `etc/goose.py`, inside
+putget-dist's `dist` directory; `Init`/`InitLinked`/`PkgTable` by `etc/gen-init.py`, `Base.lean` by hand):
+- `Member(i, peers, clients)`: the initial cluster's map (member `j` named `Name(j) = "putgetk-j"`, its one
+  peer URL `http://peers[j]`, as `etcdstart.StartMembers` builds it), member `i` started by
+  `etcdstart.StartMember` (the in-process `putgetN`'s per-member step: `NewServer`, its raft handler served
+  by `http.Serve` on a listener at its own peer address, `Start`), `etcdstart.Serve` at `clients[i]`, then
+  `holdForever`. Token `putgetk`. **No Go change** to etcdstart: `NewMember` already listens on the member's
+  own peer address, which is on its own machine.
+- `Client(ep)`: `putget.Client(ep)` (putget-dist's package, imported), against member 0's client address,
+  so the client machine's proof is putget's (`Client.wp_proof`, `client_boot`).
+- `cmd/{member,client}`; `TestMemberIDs` (the ids' 16 low bits distinct and not 0 at the statement's
+  addresses, token `putgetk`); `TestPutGetK` (3 member machines, 1 client machine; `DIST_RUN=1`): run
+  2026-11-24 on namespaces (the rerun in a user namespace): round 0 (no fault) checked; faulty rounds 3 of 4
+  checked, one ended (3 partitions); no panic, no member exit.
+
+**The start, `etcd_dist.etcdClusterStart`** (`Proof/.../examples/etcd/dist/ClusterStart.lean`, proved, no
+axiom of its own, no `sorry`), over the global ghost state: from `regCtx` and each member's
+`addrUnset peer ∗ addrUnset client`, every peer address set (`S5Draft.http_addr_set`, the structure taken as
+a hypothesis `S5`), `clusterAllocN` once over the members' ids, then per member `envPub_start` at `Pub c id`
+(a function of the cluster's names `c : ClusterNames`) and `etcdAddr_set` (A2). Returns the names' pure facts
+(`ClusterOk`), a publication name per member, each member's `memberStartShare` (`clusterFacts`, every
+member's `httpAddrAt`, its `memberSlice`, its `memberSvcShare`), the clients' `clientStartShare` (persistent:
+`clusterFacts`, `clientSvcFacts`) and, in the lease mode `none`, the client's `etcdKV` apart (for the start
+or machine that allocates the putget invariant from it: below). No fact beyond the interim S2 axioms and
+`S5Draft`'s existing fields was needed.
+
+**The statement, `putgetK_safe.spec`** (`Spec/.../examples/etcd/dist/putgetk/TopLevelRobustness.lean`,
+approved below; defs `Proof/.../dist/putgetk/TopLevelDefs.lean`): `k = 3`, fixed addresses (member `i` on
+`10.77.(i+1).1`, peer port 2380, client port 2379: the namespace test's). Boot programs: member `i`'s
+`putgetk.initialize' ;; Member(i, []string{peers}, []string{clients})` (the slices as goose's composite
+literal, `strSliceLit`), the client's `putgetk.initialize' ;; Client("10.77.1.1:2379") ;; ()`. Premises: putget's
+per member: `etcd_putgetN.BootFacts ids ps ctxs boot` with `ids.length = 3`; `Hprem` at every heap over
+`premises` (putgetN's form: per member `bootPremise` at `cfgOk token name`, `urlsN members m`, `dirN`;
+`bootMarshal`; `commonPremises`); `Hctx`/`Hcec`; `authRecordsFit`, `backendUnderQuota`, `grpcRepliesFit`,
+`diskOk`; `σs.length = 3` with `MemberFiles i` per member and `ClientFiles`; `DistDeploy` over the six
+addresses; `HEnv`/`HEnvTok`. Bound `2 ^ 28 - 1`.
+
+**Decision (Upamanyu, 2026-11-24 06:20Z): the statement is approved.** (1) The addresses hard-coded at
+`k = 3` are fine for now (the statement for any `k` comes later). (2) The per-member premises reuse the in-process
+`putgetN`'s, already audited (`etcd_putgetN.BootFacts`, `premises` at `bootPremise`/`bootMarshal`/`commonPremises`):
+keep reusing audited trusted definitions rather than writing new ones.
+
+**The skeleton** (`Proof/.../dist/putgetk/TopLevelRobustness.lean`): `putgetK_safe_of_boot (HS : PutgetKBoot)
+: putgetK_safe.spec`, proved by `robust_of_distBootIL`, as `putget_safe_of_boot`. No axiom, no `sorry`.
+
+**Next** (not done here): the start for the skeleton (`netProto_alloc`, `etcdClusterStart`, the putget
+invariant from `etcdKV` and member 0's `Pub`: putget's `putgetPub` needs a `putGetInv` that the start, not a
+member, allocates now that the KV state is the cluster's); member `i`'s boot up to the peer transport
+(`memberBoot_of_slice`, `StartMember.spec` from the share, `Serve_dist`, `holdForever`) with `S5Draft`'s
+member-side fields as named hypotheses once agreed; then the statement for any `k`.
+
+### 13b. n members, the configuration validated by the program (Upamanyu's redirect, 2026-11-24; supersedes the k = 3 statement)
+
+**The redirect**: go straight to `n` members; the program takes the configuration as input and validates what
+etcd needs, with an early exit; a Go non-vacuity test over many seeds; the statement has no premise fixing or
+constraining the configuration's values; putgetN's audited per-member trust reused; no new contract premise.
+
+**The program** (`examples/etcd/dist/putgetk/putgetk.go`): `MemberID(peer)` (etcd's id for one peer URL:
+SHA-1 of `"http://"+peer+Token`, first 8 bytes big-endian, as `membership.computeMemberID`), `AddrOK(a)` (the
+net extension's `addrOk`), `Valid(peers, clients)` (a member, equal lengths, every address `AddrOK`, the `2n`
+addresses distinct, the ids' 16 low bits distinct and not 0); `Member` returns at once unless
+`i < len(peers) && Valid(...)`; `Client` returns `false` unless `AddrOK(ep)`. Tests: `TestMemberIDEtcd`
+(`MemberID` = etcd's id, 3000 random configurations), `TestAddrOK`, `TestValidSeeds` (19998 of 20000 random
+configurations of 1-9 members pass; the refused ones have colliding prefixes), `TestNonVacuity` (`DIST_RUN=1`;
+8 seeded configurations of 1-5 members, each run fault-free: every client's check ran, "checked").
+
+**The statement** (`Spec/.../dist/putgetk/TopLevelRobustness.lean`): `∀ peers clients` (any lists); `Hprem` at
+`premises n peers clients ps ctxs boot` (putgetN's form at `membersOf peers clients`, one member per peer, and
+`idsOf peers`, the ids etcd computes, `memberIdOf`, a Lean definition over Perennial's proved `crypto.sha1.sha1`);
+`BootLogFacts (idsOf peers) ps ctxs boot` (`BootCore` but its two id conditions, plus the permutation);
+machines `σs : Nat → state` (no length premise); new environment premise `Hfips : GodebugFips140Off`
+(`crypto/sha1.Sum` panics under `GODEBUG=fips140=only`). The decisions, with alternatives, are in the resume
+file's "Decided overnight" (coordinator notes, `plans/putgetk-resume.md`): ids linked through `memberIdOf`;
+`Hfips` (a new top-level premise: for Upamanyu's review); `BootLogFacts` until bootstrap's contract is an
+axiom; `DistDeploy`'s addresses kept (the bridge's); specs claim only what callers need (`Valid`: `true →
+cfgOk`; `AddrOK`: `"" → false`; `Member`/`Client`: their start shares conditional on `cfgOk`/`ep ≠ ""`, the
+start's case split on `cfgOk`).
+
+**Blocker found (2026-11-24)**: Perennial b3f2fc485 translates `hash` (for `crypto/sha1`); this repository's
+own `hash` translation (types only, `hash=` roots) declares the same names, so a module importing etcd's
+mvcc/wal/bbolt and `crypto/sha1` fails. Fix on branch `hash-perennial/2026-11-24` (off `lean`): use Perennial's
+`hash`, keep the repository's `hash/crc32`, `hash/fnv`.

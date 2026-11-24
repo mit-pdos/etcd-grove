@@ -58,6 +58,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # etcd_safe (2026-11-24, notes/etcd-dist-plan.md D2): the member machines' and the client machines'
          'github_com.mit_pdos.etcd_grove.examples.etcd.dist.server',
          'github_com.mit_pdos.etcd_grove.examples.etcd.dist.client',
+         # putgetK_safe (2026-11-24, notes/putget-dist-plan.md §13): the k members' and the client's package
+         'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
@@ -5265,6 +5267,10 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.server'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/PkgTable.lean'
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.client'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/PkgTable.lean'
+# (2026-11-24) putgetK_safe's package (every machine's boot program runs its initializer), for its
+# distributed theorem (notes/putget-dist-plan.md §13)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putgetk/PkgTable.lean'
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
