@@ -92,28 +92,30 @@ def vsrnet.registeredCodecOk : Prop :=
        models_lab.jsoncodec.unmarshalOk (GF := GF) vsrnet.scanF (encoding.json.kitFn go!"jsonUnmarshal")))
 
 /-- **Premise** (#24 J3): the substantive part of the main tree's `typeCodecOk vsrnet.jsonCodec
-scanF T` for the kit's types (`encoding.json.kitTypes`), one field per method/type pair where the
-kit's contract gives a deposit: `(*events.Event).JSONModelMarshalPtr`, and `JSONModelUnmarshal` of
-each payload type (`vsrwire.Frame`'s is proved, round 9: `vsrnet.frameUnmarshalOk`,
-`Proof/vsrnetjson/FrameDec.lean`). Every other part of `typeCodecOk` (a value type's
-`JSONModelMarshal`, the other types' `JSONModelMarshalPtr`, `*Event`'s `JSONModelUnmarshal`, all of
-`log.Logs`) holds because `jsonCodec` gives no deposit there, and is proved
-(`Proof/vsrnetjson/Vacuous.lean`: `vsrnet.codecOk_of`).
+scanF T` for the kit's types (`encoding.json.kitTypes`) that is not proved yet:
+`(*events.Event).JSONModelMarshalPtr`. The `JSONModelUnmarshal` methods of the payload types and
+of `vsrwire.Frame` are proved (round 9: `vsrnet.TypeUnmarshals` below,
+`Proof/vsrnetjson/{FrameDec,PayloadDec}.lean`); every other part of `typeCodecOk` holds because
+`jsonCodec` gives no deposit there (`Proof/vsrnetjson/Vacuous.lean`: `vsrnet.codecOk_of`).
 
-True of the code (jsongen's same-package methods): `marshalAt`/`unmarshalAt` constrain a method
-only at `J`'s deposits. `event`: on a `*events.Event` of a message with plain strings
-(`encP`), `JSONModelMarshalPtr` encodes, never failing, `VsrWire.encEvent m`: `jenc_Event`
-writes `{"@type":N,"data":…}`, the payload by `jencAny`, a `Logs` by its `MarshalJSON`, i.e.
+True of the code (jsongen's same-package methods): `marshalAt` constrains a method only at `J`'s
+deposits. `event`: on a `*events.Event` of a message with plain strings (`encP`),
+`JSONModelMarshalPtr` encodes, never failing, `VsrWire.encEvent m`: `jenc_Event` writes
+`{"@type":N,"data":…}`, the payload by `jencAny`, a `Logs` by its `MarshalJSON`, i.e.
 `json.Marshal([]Log)` through the registered codec, which `encP`'s `codecSet` registers and
 `registeredCodecOk` covers; this is real encoding/json's output (jsongen's same-package tests,
 `json_model_gen_test.go`, run by `jsonmodel_forks.py`, compare the methods with it), which
-`encEvent` is. The payloads: on `encPayload m` into a zero
-payload (`decP`; numbers below `2^64`, `MsgBound`), the payload `m`'s, a `Logs` through its
-`UnmarshalJSON`, i.e. the registered codec. -/
+`encEvent` is. -/
 structure vsrnet.TypeCodecs : Prop where
   event : ∀ l : Loc, ⊢ encoding.json.marshalAt (vsrnet.jsonCodec (GF := GF))
     #(methods (go.GoType.PointerType pkg.events.Event.ty) go!"JSONModelMarshalPtr" #l)
     (interface.mkOk (go.GoType.PointerType pkg.events.Event.ty) #l)
+
+/-- The kit's types' `JSONModelUnmarshal` methods meet the kit's contract where it gives a deposit
+(the 11 payload types and `vsrwire.Frame`). **Not a premise**: proved (round 9,
+`Proof/vsrnetjson/{FrameDec,PayloadDec}.lean`), built in `examples/vsrnet/Link.lean`
+(`vsrTypeUnmarshals`). -/
+structure vsrnet.TypeUnmarshals : Prop where
   request : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
     #(methods (go.GoType.PointerType pkg.events.Request.ty) go!"JSONModelUnmarshal" #l)
     (interface.mkOk (go.GoType.PointerType pkg.events.Request.ty) #l)
@@ -147,6 +149,9 @@ structure vsrnet.TypeCodecs : Prop where
   heartbeat : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
     #(methods (go.GoType.PointerType pkg.events.Heartbeat.ty) go!"JSONModelUnmarshal" #l)
     (interface.mkOk (go.GoType.PointerType pkg.events.Heartbeat.ty) #l)
+  frame : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType vsrwire.Frame.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType vsrwire.Frame.ty) #l)
 
 /-- The kit's JSON facts at the kit's codec and scanner (what the proofs take; the lab's theorem
 `codec_ok`), from the two premises: `vsrnet.codecOk_of` (`Proof/vsrnetjson/Vacuous.lean`). -/

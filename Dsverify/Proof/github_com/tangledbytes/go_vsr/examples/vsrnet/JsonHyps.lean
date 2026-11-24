@@ -26,10 +26,11 @@ codec, `vsrnet.registeredCodecOk` (`Proof/vsrnetjson/Registered.lean`) with `jso
     `vsrwire.Frame` (over the dispatch `unmarshalVia` at the frame), stated at go-vsr's stream
     (`events.rstream` over `DecoderRep`). The main tree has no `NewDecoder`/`Decode` spec yet.
   - `types`: `vsrnet.TypeCodecs` (`Spec/json.lean`): the kit's named types' own `JSONModel*`
-    methods (jsongen's same-package mode) meet `vsrnet.jsonCodec` where it gives a deposit (12
-    fields: `*Event`'s `JSONModelMarshalPtr`, the 11 payloads' `JSONModelUnmarshal`); the rest of the main tree's `typeCodecOk` for the 14 types (`log.Logs`
-    whole) is proved (`Proof/vsrnetjson/Vacuous.lean`); so is `Frame`'s `JSONModelUnmarshal`
-    (round 9, `Proof/vsrnetjson/FrameDec.lean`), which `codecOk` takes from `Link.lean`.
+    methods (jsongen's same-package mode) meet `vsrnet.jsonCodec` where it gives a deposit (one
+    field: `*Event`'s `JSONModelMarshalPtr`); the rest of the main tree's `typeCodecOk` for the 14 types (`log.Logs`
+    whole) is proved (`Proof/vsrnetjson/Vacuous.lean`); so are the payloads' and `Frame`'s
+    `JSONModelUnmarshal` (round 9, `vsrnet.TypeUnmarshals`, `Proof/vsrnetjson/{FrameDec,PayloadDec}.lean`),
+    which `codecOk` takes from `Link.lean`.
 -/
 module
 
@@ -78,12 +79,9 @@ theorem JsonHyps.codecOk (j : JsonHyps (GF := GF) (hG := hG))
     (hc : examples.vsrnet.registeredCodecOk (GF := GF) (hG := hG))
     (hs : ⊢ models_lab.jsoncodec.scanOk (GF := GF) examples.vsrnet.scanF
       models_lab.jsoncodec.scanFn)
-    (hframe : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (examples.vsrnet.jsonCodec (GF := GF))
-      examples.vsrnet.scanF
-      #(methods (go.GoType.PointerType examples.vsrwire.Frame.ty) go!"JSONModelUnmarshal" #l)
-      (interface.mkOk (go.GoType.PointerType examples.vsrwire.Frame.ty) #l)) :
+    (hu : examples.vsrnet.TypeUnmarshals (GF := GF) (hG := hG)) :
     examples.vsrnet.codecOk (GF := GF) (hG := hG) :=
-  examples.vsrnet.codecOk_of hc hs j.types hframe
+  examples.vsrnet.codecOk_of hc hs j.types hu
 
 end hyps
 

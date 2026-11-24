@@ -190,14 +190,11 @@ theorem vsrnet.typeCodecOk_event
       (by vr_ty_ne))
 
 /-- **The kit's JSON facts, from the two premises** (`vsrnet.registeredCodecOk`,
-`vsrnet.TypeCodecs`), the proved `Frame` method (`hframe`: `vsrnet.frameUnmarshalOk`) and the
+`vsrnet.TypeCodecs`), the proved `JSONModelUnmarshal` methods (`hu`) and the
 vacuous parts above. -/
 theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
     (hs : ⊢ models_lab.jsoncodec.scanOk (GF := GF) vsrnet.scanF models_lab.jsoncodec.scanFn)
-    (ht : vsrnet.TypeCodecs (GF := GF))
-    (hframe : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
-      #(methods (go.GoType.PointerType vsrwire.Frame.ty) go!"JSONModelUnmarshal" #l)
-      (interface.mkOk (go.GoType.PointerType vsrwire.Frame.ty) #l)) :
+    (ht : vsrnet.TypeCodecs (GF := GF)) (hu : vsrnet.TypeUnmarshals (GF := GF)) :
     vsrnet.codecOk (GF := GF) := by
   unfold vsrnet.codecOk encoding.json.kitCodecOk
   unfold vsrnet.registeredCodecOk at hc
@@ -215,18 +212,18 @@ theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
   simp only [encoding.json.kitTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at hT
   rcases hT with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · iapply (vsrnet.typeCodecOk_event ht.event)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.request)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.reply)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.prepare)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.prepareOK)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.commit)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.startViewChange)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.doViewChange)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.startView)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.getState)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.newState)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.heartbeat)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hframe)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.request)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.reply)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.prepare)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.prepareOK)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.commit)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.startViewChange)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.doViewChange)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.startView)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.getState)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.newState)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.heartbeat)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hu.frame)
   · iapply vsrnet.typeCodecOk_logs
 
 end proof

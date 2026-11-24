@@ -35,7 +35,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.encoding.json.Results
 public import Net.Proof.models_lab.Results
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Registered
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.FrameDec
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.PayloadDec
 
 @[expose] public section
 
@@ -93,9 +93,31 @@ theorem vsrFrameUnmarshalOk (l : Loc) :
     models_lab.jsoncodec.Member.wp models_lab.jsoncodec.Next.wp models_lab.jsoncodec.Uint.wp
     models_lab.jsoncodec.Valid.wp l
 
+/-- The specs the payload decoders' proofs take (all proved). -/
+theorem vsrDecSpecs : examples.vsrnet.DecSpecs (GF := GF) (hG := hG) :=
+  ⟨models_lab.jsoncodec.At.wp, models_lab.jsoncodec.Empty.wp, models_lab.jsoncodec.Member.wp,
+    models_lab.jsoncodec.Next.wp, models_lab.jsoncodec.String.wp,
+    models_lab.jsoncodec.QuotedUint.wp, models_lab.jsoncodec.SkipSpace.wp,
+    models_lab.jsoncodec.ValueEnd.wp, models_lab.jsoncodec.Valid.wp,
+    pkg.log.Logs.UnmarshalJSON.wp_proof encoding.json.Unmarshal.wp, vsrRegisteredCodecOk,
+    vsrScanOk⟩
+
+/-- The kit's types' `JSONModelUnmarshal` methods meet the kit's contract (round 9). -/
+theorem vsrTypeUnmarshals : examples.vsrnet.TypeUnmarshals (GF := GF) (hG := hG) :=
+  ⟨examples.vsrnet.unmarshalOk_Request vsrDecSpecs, examples.vsrnet.unmarshalOk_Reply vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_Prepare vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_PrepareOK vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_Commit vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_StartViewChange vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_DoViewChange vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_StartView vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_GetState vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_NewState vsrDecSpecs,
+    examples.vsrnet.unmarshalOk_Heartbeat vsrDecSpecs, vsrFrameUnmarshalOk⟩
+
 /-- The kit's JSON facts (`vsrnet.codecOk`) from the premises `j` and the proved parts. -/
 theorem vsrCodecOk (j : JsonHyps (GF := GF) (hG := hG)) : examples.vsrnet.codecOk (GF := GF) (hG := hG) :=
-  j.codecOk vsrRegisteredCodecOk vsrScanOk vsrFrameUnmarshalOk
+  j.codecOk vsrRegisteredCodecOk vsrScanOk vsrTypeUnmarshals
 
 theorem wp_Orch (h : LibHyps (GF := GF) (hG := hG)) : Orch.spec (GF := GF) (hG := hG) :=
   Orch.wp_proof EtcdGrove.remote.wp_Check CfgAddrs.wp_proof
