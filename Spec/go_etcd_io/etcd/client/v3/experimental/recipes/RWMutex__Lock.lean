@@ -31,9 +31,9 @@ under `pfx` with a mod revision below the key's creation at `R`); see `rwLockRes
 abbrev RWMutex.Lock.spec : Prop :=
   ∀ (m s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx : GoString)
     (o : Option (Loc × RemoteKVSt)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRWMutex m s γ client id pfx ∗ rwMyKey m pfx o ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isRWMutex m s γ client id pfx ∗ rwMyKey m pfx o ∗ etcdReached lo) }}
     (App (Val (m @!! go.GoType.PointerType RWMutex.ty @!! go!"Lock")) (Val #()))
-  {{ (err : GoInterface), RET #err; rwLockResult m pfx id .write lo err }}
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (rwLockResult m pfx id .write lo err) }}
 
 end spec
 

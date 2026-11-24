@@ -156,7 +156,7 @@ theorem DoubleBarrier.Enter.wp_proof
     rw [show go!"/waiters" = go!"/" ++ go!"waiters" from rfl, ← List.append_assoc]
     exact List.prefix_append _ _
   wp_apply wp_newUniqueEphemeralKey s γ client id (key ++ go!"/") (key ++ go!"/waiters") lo
-    $$ [$Hsess $Hcl $Hlo] as %ek %err Hres
+    $$ [$Hlt $Hsess $Hcl $Hlo] as %ek %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨hpw, by simp; word⟩
   icases Hres with (⟨%Hnil, %kv, %k, %r, #HKVf, Hek, #Hr, #Hc, %Hkr⟩ | %Hne)
   rotate_left
@@ -229,9 +229,9 @@ theorem DoubleBarrier.Enter.wp_proof
       wp_method_call
       wp_auto
       wp_apply wp_Delete (structFieldRef EphemeralKV go!"RemoteKV" ek) ⟨GoInterface.ok kv, k, r, []⟩
-        (key ++ go!"/") r $$ [Hek] as %derr ⟨Hek, -⟩
+        (key ++ go!"/") r $$ [Hlt Hek] as %derr ⟨Hlt, Hek, -⟩
       · unfold ownRemoteKV RemoteKVSt.val'
-        iframe Hek Hkv Hr
+        iframe Hlt Hek Hkv Hr
         ipureintro; exact ⟨Hkl', Hk⟩
       (try wp_auto)
       rcases derr with _ | _ <;> (try wp_auto) <;>
@@ -254,7 +254,7 @@ theorem DoubleBarrier.Enter.wp_proof
       · iapply optsAt_nil
       ihave #HP := HPut $$ %(key ++ go!"/ready") %([] : GoString) %slice.nil
         %([] : List (OpFull → OpFull)) %(TxnOp.put (key ++ go!"/ready") [] (W64 0)) %R2
-      wp_apply HP $$ [] as %presp %perr Hpres
+      wp_apply HP $$ [$Hlt] as %presp %perr ⟨Hlt, Hpres⟩
       · iframe Hnil HR2
         ipureintro
         exact ⟨putOp_not_panics' _ _, putOp_txnOpOf' _ _, hpr, rfl, putOp_size (by simp; omega) (by simp)⟩

@@ -32,18 +32,17 @@ the error otherwise. -/
 abbrev newUniqueEphemeralKV.spec : Prop :=
   ∀ (s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx kp val : GoString)
     (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ concurrency.isSession s γ client id ∗ isEtcdRecipesClient client pfx ∗
-      etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ recipesPfxMax + 2 ^ 10 ∧ val.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (concurrency.isSession s γ client id ∗ isEtcdRecipesClient client pfx ∗
+      etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ recipesPfxMax + 2 ^ 10 ∧ val.length ≤ recipesStrMax⌝) }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueEphemeralKV))
       (Val #s)) (Val #kp)) (Val #val))
-  {{ (ek : Loc) (err : GoInterface), RET (PairV #ek #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (kv : GoInterfaceOk) (key : GoString) (r : w64),
+  {{ (ek : Loc) (err : GoInterface), RET (PairV #ek #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (kv : GoInterfaceOk) (key : GoString) (r : w64),
         clientKVAddr client ↦□ GoInterface.ok kv ∗
         ownEphemeralKV ek ⟨GoInterface.ok kv, key, r, val⟩ ∗
         etcdReached r ∗ keyCreatedAt pfx key val id r ∗
         ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧
           ∃ t : w64, key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimal (sint.Z t)⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ ek = null⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ ek = null⌝) }}
 
 end spec
 

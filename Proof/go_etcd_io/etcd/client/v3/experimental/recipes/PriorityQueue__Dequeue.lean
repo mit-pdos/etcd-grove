@@ -111,7 +111,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       exact (Hmem v).1 (Hfirst v rfl).1
   -- `claimFirstKey(client.KV, resp.Kvs)`, knowing etcd reached `R`
   wp_auto
-  wp_apply hCFK kv [] gsl gps gkvs R $$ [$Hpkg $Hkv $HRR $Hgps $Hgkvs] as %p %cerr Hcres
+  wp_apply hCFK kv [] gsl gps gkvs R $$ [$Hlt $Hpkg $Hkv $HRR $Hgps $Hgkvs] as %p %cerr ⟨Hlt, Hcres⟩
   · ipureintro
     intro v hv
     obtain ⟨h1, h2⟩ := Hgsub v hv

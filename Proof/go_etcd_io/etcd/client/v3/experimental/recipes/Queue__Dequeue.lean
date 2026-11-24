@@ -107,7 +107,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       exact (Hmem v).1 (Hfirst v rfl).1
   -- `claimFirstKey(client.KV, resp.Kvs)`, knowing etcd reached `R`
   wp_auto
-  wp_apply hCFK kv kp gsl gps gkvs R $$ [$Hpkg $Hkv $HRR $Hgps $Hgkvs] as %p %cerr Hcres
+  wp_apply hCFK kv kp gsl gps gkvs R $$ [$Hlt $Hpkg $Hkv $HRR $Hgps $Hgkvs] as %p %cerr ⟨Hlt, Hcres⟩
   · ipureintro
     intro v hv
     obtain ⟨h1, h2⟩ := Hgsub v hv
@@ -246,7 +246,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       · -- claimed by another dequeuer: retry
         wp_auto
         rw [method_unfold (t := go.GoType.PointerType Queue.ty) (m := go!"Dequeue")]
-        wp_apply IH $$ [$Hpkg $Hcc $Hq $Hlo] as %v' %err' Hres
+        wp_apply IH $$ [$Hlt $Hpkg $Hcc $Hq $Hlo] as %v' %err' ⟨Hlt, Hres⟩
         · ipureintro; exact Hlo0
         (try wp_auto)
         iapply HΦ

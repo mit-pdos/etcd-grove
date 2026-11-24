@@ -37,7 +37,7 @@ local macro "leave_not_lowest" : tactic => `(tactic| (
     (try wp_auto)
     wp_method_call
     wp_auto
-    wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$(frameH `Hek) $(frameH `Hkv) $(frameH `Hlo)] as %derr ⟨Hek, Hres⟩
+    wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$(frameH `Hlt) $(frameH `Hek) $(frameH `Hkv) $(frameH `Hlo)] as %derr ⟨Hlt, Hek, Hres⟩
     · ipureintro; exact Hk
     ihave #Hres := leaveResult_of_delete _ st lo derr $$ Hres
     iunfold leaveResult at Hres
@@ -94,8 +94,8 @@ local macro "leave_not_lowest" : tactic => `(tactic| (
     subst Hwnil
     (try wp_auto)
     wp_method_call
-    wp_apply IH $$ %{ st with kv := GoInterface.nil } %lo [Hmk Hek] as %lerr ⟨Hmk', #Hl⟩
-    · iframe Hb Hlo
+    wp_apply IH $$ %{ st with kv := GoInterface.nil } %lo [Hlt Hmk Hek] as %lerr ⟨Hlt, Hmk', #Hl⟩
+    · iframe Hlt Hb Hlo
       try unfold ownEphemeralKV
       iframe Hmk Hek
       isplitr
@@ -372,7 +372,7 @@ theorem DoubleBarrier.Leave.wp_proof
       · (try iframe Hlt)
         ipureintro; exact Hk
       ihave #Hres := leaveResult_of_delete _ st lo err2 $$ Hres
-      iapply HΦ $$ [Hlt]
+      iapply HΦ
       iframe Hlt
       iframe Hres
       iexists GoInterface.nil
@@ -418,13 +418,13 @@ theorem DoubleBarrier.Leave.wp_proof
       subst Hwnil
       (try wp_auto)
       wp_method_call
-      wp_apply IH $$ %st %lo [Hmk Hek] as %lerr ⟨Hmk', #Hl⟩
-      · iframe Hb Hlo
+      wp_apply IH $$ %st %lo [Hlt Hmk Hek] as %lerr ⟨Hlt, Hmk', #Hl⟩
+      · iframe Hlt Hb Hlo
         try simp only [dbMyKey]
         try unfold ownEphemeralKV
         iframe Hmk Hek Hkv
         ipureintro; (try simp only); first | exact ⟨Hk, Hst⟩ | exact Hst | exact Hk
-      iapply HΦ $$ [Hlt]
+      iapply HΦ
       iframe Hlt
       iframe Hmk' Hl
     · -- not the lowest: delete the key, wait for the lowest's deletion, retry

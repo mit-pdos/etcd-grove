@@ -336,7 +336,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     obtain ⟨h1, h2⟩ := seqTxn_else kp key val g r s0 hok
     (try rw [hok])
     wp_auto
-    wp_apply IH $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
+    wp_apply IH $$ [$Hlt $Hpkg $Hkv $Hlo] as %rk %err ⟨Hlt, Hres⟩
     · ipureintro; exact Hk
     (try wp_auto)
     iapply HΦ
