@@ -647,9 +647,12 @@ noncomputable def ConditionsAwareDecision.UnconditionalPartsOrFailClosed.impl [G
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"FailureDecision"))) (Var "d")) (Val #()))
   (Let "failureDecision" (App (Val (GoInstruction (GoAlloc Decision.ty))) (App (Val (GoInstruction (GoZeroVal Decision.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (Val #(go!"failed closed from conditional decision (with possible outcomes %v) to %s during unconditional authorization"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.SliceType Decision.ty) go.any))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "d")) (Val #()))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List' [Decision.ty]))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (Val #(go!""))
+  (Let "possible" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"failed closed from conditional decision (with possible outcomes [%s]) to %s during unconditional authorization"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "possible")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Decision.ty) go!"String"))) (Var "failureDecision")) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -671,6 +674,29 @@ noncomputable def ConditionsAwareDecision.UnconditionalPartsOrFailClosed.impl [G
   (App (Val (GoInstruction (GoStore Decision.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "reason") (Var "$r0")))))))))
+  (Let "$range" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "d")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List' [Decision.ty]))) (Val #())) (Var "$a0")))
+  (Let "p" (App (Val (GoInstruction (GoAlloc Decision.ty))) (App (Val (GoInstruction (GoZeroVal Decision.ty))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange Decision.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "possible") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "possible")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Decision.ty) go!"String"))) (Var "p")) (Val #())))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "possible") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "possible")) (Val #(go!" ")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Decision.ty))) (Pair (Var "p") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "possible") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Decision.ty))) (Pair (Var "failureDecision") (Var "$r0")))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad Decision.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))
@@ -680,7 +706,7 @@ noncomputable def ConditionsAwareDecision.UnconditionalPartsOrFailClosed.impl [G
     but never the empty set. If the set only contains a single value, it means the
     decision is unconditional.
 
-    go: conditions.go:204:34 -/
+    go: conditions.go:212:34 -/
 noncomputable def ConditionsAwareDecision.PossibleDecisions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -736,7 +762,7 @@ noncomputable def ConditionsAwareDecision.PossibleDecisions.impl [GooseExts] [Go
     this function returns DecisionDeny to the caller, in order to fail closed
     as a conservative approximation. Otherwise, NoOpinion is returned.
 
-    go: conditions.go:224:34 -/
+    go: conditions.go:232:34 -/
 noncomputable def ConditionsAwareDecision.FailureDecision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -765,7 +791,7 @@ noncomputable def ConditionsAwareDecision.FailureDecision.impl [GooseExts] [GoGl
 /-- ContainsUnconditionalAllowOrDeny returns true if this decision's tree contains at least
     one unconditional Allow or Deny leaf.
 
-    go: conditions.go:233:34 -/
+    go: conditions.go:241:34 -/
 noncomputable def ConditionsAwareDecision.ContainsUnconditionalAllowOrDeny.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -804,7 +830,7 @@ noncomputable def ConditionsAwareDecision.ContainsUnconditionalAllowOrDeny.impl 
     This iterator is non-empty if and only if IsUnion() == true.
     Sub-decisions iteration order is preserved.
 
-    go: conditions.go:246:34 -/
+    go: conditions.go:254:34 -/
 noncomputable def ConditionsAwareDecision.UnionedDecisions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -844,7 +870,7 @@ noncomputable def ConditionsAwareDecision.UnionedDecisions.impl [GooseExts] [GoG
     an unconditional decision.
     Reason is an empty string for conditional decisions.
 
-    go: conditions.go:259:34 -/
+    go: conditions.go:267:34 -/
 noncomputable def ConditionsAwareDecision.Reason.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -863,7 +889,7 @@ noncomputable def ConditionsAwareDecision.Reason.impl [GooseExts] [GoGlobalConte
     an unconditional decision.
     Error is nil for conditional decisions.
 
-    go: conditions.go:266:34 -/
+    go: conditions.go:274:34 -/
 noncomputable def ConditionsAwareDecision.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -880,7 +906,7 @@ noncomputable def ConditionsAwareDecision.Error.impl [GooseExts] [GoGlobalContex
 
 /-- String returns a human-readable representation of the decision.
 
-    go: conditions.go:271:34 -/
+    go: conditions.go:279:34 -/
 noncomputable def ConditionsAwareDecision.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -1786,15 +1812,41 @@ noncomputable def ConditionsAwareDecisionUnion.Add.impl [GooseExts] [GoGlobalCon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "errs"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(go!""))
+  (Let "msgs" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"errs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))))
-  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"invalid authorizerName: %v"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.string) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "errs")))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"invalid authorizerName: [%s]"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "msgs")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.error)))) (LiteralValue [(KeyedElement none (ElementExpression go.error (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.error)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"errs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"errs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))) (Var "$r0")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "errs"))
+  (Let "e" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "msgs") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "msgs")) (App (Val (GoInstruction (GoLoad go.string))) (Var "e")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "msgs") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "msgs")) (Val #(go!" ")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "e") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "msgs") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1831,7 +1883,7 @@ noncomputable def ConditionsAwareDecisionUnion.Add.impl [GooseExts] [GoGlobalCon
   (Val #()))))))))
   (Val #())))))
 
-/-- go: conditionsunion.go:86:47 -/
+/-- go: conditionsunion.go:94:47 -/
 noncomputable def ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "unionMap"
   (Lam "conditionalAuthorizerName"
@@ -1866,7 +1918,7 @@ noncomputable def ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.impl
     as a conservative approximation. Otherwise, NoOpinion is returned.
     FailureDecision is not thread-safe.
 
-    go: conditionsunion.go:98:47 -/
+    go: conditionsunion.go:106:47 -/
 noncomputable def ConditionsAwareDecisionUnion.FailureDecision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "unionMap"
   (Lam BAnon
@@ -1896,7 +1948,7 @@ noncomputable def ConditionsAwareDecisionUnion.FailureDecision.impl [GooseExts] 
     Allow or Deny decision within the unioned decisions.
     ContainsUnconditionalAllowOrDeny is not thread-safe.
 
-    go: conditionsunion.go:108:47 -/
+    go: conditionsunion.go:116:47 -/
 noncomputable def ConditionsAwareDecisionUnion.ContainsUnconditionalAllowOrDeny.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "unionMap"
   (Lam BAnon
@@ -1916,7 +1968,7 @@ noncomputable def ConditionsAwareDecisionUnion.ContainsUnconditionalAllowOrDeny.
     but never the empty set.
     PossibleDecisions is not thread-safe.
 
-    go: conditionsunion.go:116:47 -/
+    go: conditionsunion.go:124:47 -/
 noncomputable def ConditionsAwareDecisionUnion.PossibleDecisions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "unionMap"
   (Lam BAnon
@@ -1958,7 +2010,7 @@ noncomputable def ConditionsAwareDecisionUnion.PossibleDecisions.impl [GooseExts
     tree nodes.
     ToDecision is not thread-safe.
 
-    go: conditionsunion.go:135:47 -/
+    go: conditionsunion.go:143:47 -/
 noncomputable def ConditionsAwareDecisionUnion.ToDecision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "unionMap"
   (Lam BAnon
@@ -2101,7 +2153,7 @@ noncomputable def ConditionsAwareDecisionUnion.ToDecision.impl [GooseExts] [GoGl
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad ConditionsAwareDecision.ty))) (Var "$res0"))))))
 
-/-- go: conditionsunion.go:187:6 -/
+/-- go: conditionsunion.go:195:6 -/
 noncomputable def collectReasonsAndErrors.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "authorizerNamePrefix"
   (Lam "condAwareDecision"
