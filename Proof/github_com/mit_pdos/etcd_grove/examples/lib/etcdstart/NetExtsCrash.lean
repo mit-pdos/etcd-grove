@@ -7,7 +7,8 @@ for deployments whose machines crash and restart (`notes/etcd-dist-plan.md` §12
 at `etcdFsSem` (`Fs.fs_crash_interpS etcdSQ etcdCQ`: `etcdFsSem`'s crash is `OsCrash ∧ etcdCQ`, the WAL's `W1`), the net
 extension's (`Net.net_crash_interp`: nothing), and **any** crash interpretation `C` of the issue record
 (D4b designs the one the proofs will use: the record keyed by incarnation). Over it, `DistCrashAdequacy.lean`'s
-general corollary applies (`robust_of_dist_crash_adequacy_etcdNet`): the crash resources split into the file extension's
+general corollary with `Robust`'s thread bound applies (`robust_of_dist_crash_adequacy_etcdNet`, over
+`robust_of_dist_crash_adequacy_fsT`): the crash resources split into the file extension's
 and the issue record's (`etcdNet_crashStart_split`), and the initial states' conditions come from
 `Robust`'s premises and each crashing machine's `FsInit` (`etcdNetExts_crashInitP`; `etcdFsSem`,
 `Fs.fsSemWithS`, has no `initLocal` until D4a).
@@ -79,9 +80,14 @@ theorem etcdNetExts_crashInitP (g : GlobalState) (crashing stable : List (Expr �
     let H := etcdNetExts_initP g (crashing ++ stable) Hfs hg hl
     ⟨H.1, H.2, fun m hm => Hfs m (List.mem_append_left _ hm)⟩
 
-/-- **Distributed crash adequacy as `Robust` for `etcdNetExts`** (`Net.robust_of_dist_crash_adequacy_fs` at the crash interpretations
-`etcdNetExtsCrashInterp C`): a crashing machine's generations get, after a crash, the cells' invariant,
-the file system's crash rest and the issue record's crash resources under `C` (`etcdIdCrashRest C`). -/
+/-- **Distributed crash adequacy as `Robust` for `etcdNetExts`, with `Robust`'s thread bound**
+(`Net.robust_of_dist_crash_adequacy_fsT` at the crash interpretations `etcdNetExtsCrashInterp C`, over
+Perennial's `goose_dist_mixed_crash_adequacy_below`): an execution of `n` steps along which every
+machine keeps fewer than `threads` threads is run at the thread bound `threads` and `max (n + 1) lo`
+receipts; a crashing machine's generations are safe at `threadBound = threads` and any receipt bound
+from `lo` to `bound` and get, after a crash, the cells' invariant, the file system's crash rest and the
+issue record's crash resources under `C` (`etcdIdCrashRest C`); a stable machine's boot program is
+`Net.DistBootWpSLT threads lo bound`. -/
 theorem robust_of_dist_crash_adequacy_etcdNet (C : @ExtCrashInterp idIssueExt idIssue_semantics idIssue_interp)
     [GoGlobalContext] {GF : BundledGFunctors} [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (addrs : List GoString) (crashing stable : List (Expr × state)) (g : GlobalState)
@@ -93,18 +99,18 @@ theorem robust_of_dist_crash_adequacy_etcdNet (C : @ExtCrashInterp idIssueExt id
       ⊢ ([∗list] a ∈ addrs, Net.addrUnset a) ={⊤}=∗
         ∃ (Pc : Nat → GooseLocalGS GF → IProp GF) (Ps : Nat → IProp GF),
           ⌜∀ (i : Nat) (m : Expr × state), crashing[i]? = some m →
-            Net.CrashBootWpG etcdCQ (etcdIdCrashRest C) lo bound m.1 (Pc i)⌝ ∗
+            Net.CrashBootWpGT etcdCQ (etcdIdCrashRest C) threads lo bound m.1 (Pc i)⌝ ∗
           ⌜∀ (j : Nat) (m : Expr × state), stable[j]? = some m →
-            Net.DistBootWpSL lo bound m.1 m.2 (Ps j)⌝ ∗
+            Net.DistBootWpSLT threads lo bound m.1 m.2 (Ps j)⌝ ∗
           ([∗list] i ↦ m ∈ crashing, ∀ L : GooseLocalGS GF,
             ⌜L.goose_go_local_context = lctx⌝ -∗
-            ⌜@ThreadGS.threadBound GF L.goose_threadGS = receiptBound GF + 1⌝ -∗
+            ⌜@ThreadGS.threadBound GF L.goose_threadGS = threads⌝ -∗
             Net.fsStartResG L (extLocal Fs.fsExt m.2.world) -∗
             ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc i L) ∗
           [∗list] j ↦ _m ∈ stable, Ps j) :
     Robust crashing stable g threads bound :=
   letI := etcdNetExtsCrashInterp C
-  Net.robust_of_dist_crash_adequacy_fs (GF := GF) etcdCQ (etcdIdCrashRest C)
+  Net.robust_of_dist_crash_adequacy_fsT (GF := GF) etcdCQ (etcdIdCrashRest C)
     (etcdNet_crashStart_split C) addrs crashing stable g threads bound lo hlo Hnd Hok
     (etcdNetExts_crashInitP g crashing stable Hfs) Hstart
 
