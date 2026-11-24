@@ -1265,6 +1265,23 @@ the issued ids (so a restarted generator cannot reissue them). The D7 split puts
 member's machine: it must be re-established at each generation from the global `idKeyGenFacts` (the
 ghost-level `idIncarnation_alloc`, `idutil/Defs.lean:1011`, exists for the graceful restart).
 
+**D4a/D4b prototypes (2026-11-24, branch `etcd-safe-d4b/2026-11-24`; awaiting the owner's sign-off).**
+D4a: `fsSemWithS`'s `initLocal st _ := FsInit st` (`Premises.lean`), `fs_init_compatS` (`FilteredSem.lean`),
+`etcdNetExts_initR` (no `FsInit` premise). No proof proves `extsInitLocal`, so nothing breaks; the `FsInit`
+in `ServerStart`/`ClientStart`, putget's `MemberFiles` and bboltfs's `bootCrashRobust.spec` becomes
+redundant (dropping it is a statement change, not done). D4b, as designed above but with tombstones in place
+of an epoch counter (equivalent: a key `(e, g)` with `e` below the current epoch can never be issued
+again, so only "past or current `g`" matters): `IdIssueState := GMap w64 (Option Loc)`, crash
+`M' = idIssueCrash M` (every entry `none`), `"Issue"` refuses `none`; ghost API unchanged (`idIssueFrag id
+g` is `id ↪□ some g`) plus `idIssuePast id` (`id ↪□ none`, exclusive with `idIssueFrag`);
+`IdIssue/Crash.lean`: `idIssue_crash_interp` (new ghost map with the old entries as `none`; rest
+`idIssueCrashStart hL hL'`: the old map's authority and the new map's past elements;
+`idIssueCrashStart_past`/`idIssueFrag_crash_past` turn an old incarnation's fact into the new one's
+`idIssuePast`). Semantics examples `examples/idissue/semantics/`; review
+`notes/axiom-review/idissue-crash.md`. For D4c/D6: `idPfxBody`'s `Ip : GMap w64 Loc` must carry the
+previous generations' ids as `idIssuePast` (e.g. `Ip : GMap w64 (Option Loc)` with `idIssueElemAt`) when
+`idPfxInv` is re-established after a crash.
+
 **D4c. The bridge for `etcdNetExts` with crashing machines** (untrusted). Generalize
 `robust_of_netFsBoot{,_addrs}` (`Net/Statement/NetFsBridge.lean`, hard-wired to `kvnetExts`) to a bundle
 `[idIssue, fs at a restricted semantics, net]` with D4b's crash interpretation: `crashPre`, `CrashBootWp`
