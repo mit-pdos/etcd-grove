@@ -53,6 +53,7 @@ def runInv (γ : KdNames) (r : Loc) (n : NodeH) (st : Loc) (ρ : KdRepNames) (pp
     "Hclaim" ∷ ghostVar ρ.ph.ph (1 : Qp).half ((none : Option GName), S) ∗
     "Hcmh" ∷ ghostVar ρ.ph.cm (1 : Qp).half hd ∗
     "%Htie" ∷ ⌜S.term = hd.Term' ∧ S.vote = hd.Vote'⌝ ∗
+    "Hprod" ∷ handoffProducer ρ.rd false ∗
     "Hown" ∷ repOwn γ r ap (W64 ap.length) csp m mA A ∗
     -- (G22) the applier's view: at `D` once the replicated state is `D`'s length, or, while it is
     -- ahead (after a restart below the snapshot), the node's configuration at `len ap` itself
@@ -97,14 +98,14 @@ theorem runInv_init (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st : Loc) (
       runInv γ r n st ρ pp lp sp hp rp := by
   iintro ⟨Hs, Hpp, Hlp, Hsp, Hhp, #HhsO, Hrp⟩
   iunfold runStart at Hs
-  icases Hs with ⟨%csp, %mA, %A, Hdrv, Hcfg, Hrun, Hown, Hclaim, Hcmh, %Htie, %Hla,
+  icases Hs with ⟨%csp, %mA, %A, Hdrv, Hcfg, Hrun, Hown, Hprod, Hclaim, Hcmh, %Htie, %Hla,
     ⟨%c, #Hcp, #Hfz, %Hc⟩, #Hicl⟩
   ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
   ihave %Hap61 : ⌜(ap.length : Int) < 2 ^ 61⌝ $$ [Hown]
   · iunfold repOwn at Hown; iNamed Hown; ipureintro; exact Hlen
   unfold runInv
   iexists l, hs, S, StateFollower, ap, csp, mA, m, A, snapIndex, rafted, c, slice.nil, [], false, hsp
-  iframe Hdrv Hrun Hclaim Hcmh Hown Hsp Hrp Hhp HhsO Hlp Hcp Hfz Hicl Hpp
+  iframe Hdrv Hrun Hclaim Hcmh Hprod Hown Hsp Hrp Hhp HhsO Hlp Hcp Hfz Hicl Hpp
   isplitr
   · ipureintro; exact Htie
   isplitl [Hcfg]
