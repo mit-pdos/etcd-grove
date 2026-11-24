@@ -256,7 +256,8 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
             (cl : Loc),
           rawNode γ.raft.raftNames rn (AntSim.nodeId j) rs' ps₁ [] ip' -∗
           ⌜rs'.storage = rs.storage ∧ rs'.dur = rs.dur ∧ RsView rs' v' ∧ v'.ps = v.ps ∧
-            AntSim.Reach (AntSim.nodeId j) net₀ v' ps₁ ∧ ip' = lcpLen v.ps.log ps₁.log⌝ -∗
+            AntSim.Reach (AntSim.nodeId j) net₀ v' ps₁ ∧ ip' = lcpLen v.ps.log ps₁.log ∧
+            ByOk v'.byE⌝ -∗
           rnTermLB γ.raft rs'.tc -∗
           n.[H.node, go!"cause"] ↦ cl -∗ viewFrag γ j v' -∗ nodeLive γ j -∗ sentLb γ net₀ -∗
           causeOwn γ j v' cl -∗ nodeOwn c γ j n v' (.loop net₀ ps₁)) := by
@@ -274,15 +275,14 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
   isplitr
   · ipureintro; exact ⟨Hrv, hI, hP⟩
   iintro %rs' %ps₁ %ip' %v' %net₀ %cl' Hraw %Hf Htc Hcause Hv Hl Hlb Hco
-  obtain ⟨hsto, hdur, hrv, hps, hR, hip⟩ := Hf
+  obtain ⟨hsto, hdur, hrv, hps, hR, hip, hby⟩ := Hf
   ihave Hnr := Hnrc $$ %rs' %hdur Htc
   iexists rn, ms, si, rs', ps₁, [], ip', cl', applied
   rw [hps]
   dsimp only
   iframe Hrn Hms Hbs Hraw Hnr Hrole Hterm Hvote Hcommit Happ Hcause Hv Hl Hlb Hco
   ipureintro
-  refine ⟨by rw [hsto]; exact Hsto, hrv, rfl, ?_, rfl, hip⟩
-  exact hR
+  exact ⟨by rw [hsto]; exact Hsto, hrv, rfl, hR, rfl, hip, hby⟩
 
 /-- **After a drain, the cause cell reset** (`n.cause = nil` in `run`'s `recv` arm): node `j` is
 between inputs again. -/

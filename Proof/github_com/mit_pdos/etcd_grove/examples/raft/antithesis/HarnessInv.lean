@@ -184,6 +184,10 @@ def NetFacts (st : MsgSt) (m : Msg) : Prop :=
   uint.Z st.msg.Term' < 2 ^ 61 ∧ uint.Z st.msg.Index' < 2 ^ 61 ∧ uint.Z st.msg.LogTerm' < 2 ^ 61 ∧
   uint.Z st.msg.Commit' < 2 ^ 61 ∧ (∀ e ∈ st.ents, uint.Z e.Term' < 2 ^ 61)
 
+/-- A drain's `by`, one of the harness's (`Reach.advance`'s premise). -/
+def ByOk (b : AntCheck.Str) : Prop :=
+  b = go!"boot" ∨ b = go!"recv" ∨ b = go!"tick" ∨ b = go!"propose"
+
 /-- The phases of a node goroutine (see the file header): between inputs; at a drain's loop head,
 the node at `ps₁`, reached from the view by an input, by `Advance`, or by nothing (the boot drain),
 over the sent messages `net₀` (a lower bound of the invariant's); after the drain. -/
@@ -365,14 +369,16 @@ frame): its generation view and free batch slot, its durable state's ghost (`own
 `rs.dur`), its term ceiling within the budget, and the budget; and the cluster's ghost names'
 static facts (`RunCluster` allocates them so): untraced (the inputs' and `Advance`'s exact effects
 are guarded by it), the configuration the three voters (`rnCfg` is `AntSim.cfgM3`), no bound on
-proposed data (`Step`'s message-size premise void), no bootstrap log (`commitIn_camp`'s premise). -/
+proposed data (`Step`'s message-size premise void), no bootstrap log (`commitIn_camp`'s premise),
+raft's invariants' namespace outside the harness's (`readyExt` opens them inside `antN`'s). -/
 def nodeRaft (γ : AntNames) (j : Fin 3) (rs : RNState) : IProp GF :=
   iprop(∃ (x : CrashNames) (g : Nat),
     genView γ.raft.raftNames (AntSim.nodeId j) x 1 g ∗ slotFree γ.raft.raftNames (AntSim.nodeId j) g ∗
     ownDurGhost γ.raft.raftNames (AntSim.nodeId j) rs.dur ∗ rnTermLB γ.raft rs.tc ∗
     rnBudget γ.raft ∗
     ⌜γ.raft.raftNames.reTrace = none ∧ γ.raft.raftNames.reCfg = AntSim.voters3 ∧
-      γ.raft.raftNames.maxData = none ∧ γ.raft.raftNames.reBoot = []⌝)
+      γ.raft.raftNames.maxData = none ∧ γ.raft.raftNames.reBoot = [] ∧
+      (↑(raftN γ.raft.raftNames) : CoPset) ⊆ ⊤ \ ↑antN⌝)
 
 /-- **The cause cell** (`n.cause` at `cl`): while the drain's `recv` is not reported (`by = recv`,
 `told = false`), the report of the handled message `m` (`msgOf(inp.msg, n.id)`, made before
@@ -403,7 +409,9 @@ phase's facts:
 - `idle`: nothing of a `Ready` left (`Idle`), the node at the view's state, idle (`PIdle`), its
   in-progress boundary at the log's end, the cause cell `nil`;
 - `loop net₀ ps₁`: the node at `ps₁`, reached from the view (`Reach` over `net₀`, a lower bound of
-  the sent list), nothing queued, the boundary at the common prefix of the view's log and `ps₁`'s;
+  the sent list), nothing queued, the boundary at the common prefix of the view's log and `ps₁`'s,
+  the drain's `by` one of the harness's (`ByOk`: `Reach.advance` takes it at the next loop head, and
+  `Reach.stay`, the boot drain's, does not record it);
 - `drained`: as `idle`, but the cause cell as `causeOwn` (`run` resets it). -/
 def nodeOwn (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.NodeView) (ph : Phase) :
     IProp GF :=
@@ -422,7 +430,7 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.NodeView
     | .idle => iprop(⌜v.Idle ∧ ps = v.ps ∧ qs = [] ∧ ip = v.ps.log.length ∧ PIdle rs ps ∧
         cl = null⌝)
     | .loop net₀ ps₁ => iprop(⌜ps = ps₁ ∧ AntSim.Reach (AntSim.nodeId j) net₀ v ps₁ ∧ qs = [] ∧
-        ip = lcpLen v.ps.log ps₁.log⌝ ∗ sentLb γ net₀ ∗ causeOwn γ j v cl)
+        ip = lcpLen v.ps.log ps₁.log ∧ ByOk v.byE⌝ ∗ sentLb γ net₀ ∗ causeOwn γ j v cl)
     | .drained => iprop(⌜v.Idle ∧ ps = v.ps ∧ qs = [] ∧ ip = v.ps.log.length ∧ PIdle rs ps⌝ ∗
         causeOwn γ j v cl))
 

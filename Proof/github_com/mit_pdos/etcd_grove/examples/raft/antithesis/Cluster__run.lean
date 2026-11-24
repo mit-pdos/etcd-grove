@@ -154,7 +154,7 @@ theorem Cluster.run.wp_proof
     have hip' : ip' = lcpLen v.ps.log ps'.log := by
       rw [hip]; exact Nat.min_eq_right (lcpLen_le_left _ _)
     ihave Hown := Hclose $$ %_ %ps' %ip' %(v.noteInput .tick) %net₀ %null Hraw
-      %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip'⟩)
+      %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inr (.inl rfl))⟩)
       Htc Hcause Hv Hl Hlb Hco
     have hdr := wp_drain c γ n j (v.noteInput .tick) net₀ ps' q
     rw [show (v.noteInput .tick).byE = go!"tick" from rfl] at hdr
@@ -243,7 +243,7 @@ theorem Cluster.run.wp_proof
         have hip' : ip' = lcpLen v.ps.log ps'.log := by
           rw [hip]; exact Nat.min_eq_right (lcpLen_le_left _ _)
         ihave Hown := Hclose $$ %_ %ps' %ip' %(v.noteInput (.recv m)) %net₀ %cause_ptr Hraw
-          %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip'⟩)
+          %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inl rfl)⟩)
           Htb Hcause Hv Hl Hlb Hco
         have hdr := wp_drain c γ n j (v.noteInput (.recv m)) net₀ ps' q
         rw [show (v.noteInput (.recv m)).byE = go!"recv" from rfl] at hdr
@@ -278,7 +278,7 @@ theorem Cluster.run.wp_proof
         have hip' : ip' = lcpLen v.ps.log ps'.log := by
           rw [hip]; exact Nat.min_eq_right (lcpLen_le_left _ _)
         ihave Hown := Hclose $$ %_ %ps' %ip' %(v.noteInput (.propose data)) %net₀ %null Hraw
-          %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip'⟩)
+          %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inr (.inr rfl))⟩)
           Htc Hcause Hv Hl Hlb Hco
         have hdr := wp_drain c γ n j (v.noteInput (.propose data)) net₀ ps' q
         rw [show (v.noteInput (.propose data)).byE = go!"propose" from rfl] at hdr
