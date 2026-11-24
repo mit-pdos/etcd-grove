@@ -33,11 +33,12 @@ theorem Server.HandleHTTP.wp_proof (wp_Handle : net.http.Handle.spec (GF := GF) 
   intro s γs C W A Ps rp dp hrp hdp hne hrpP hdpP
   wp_start as ⟨%hT, #Hhttp, Hmux, #Hs, #Hsrv, #Henv, #Hset, #Hcon⟩
   wp_auto
-  wp_apply wp_Handle Ps rp _ hrp hrpP (by simp [interface.mkOk]) $$ [$Hhttp $Hmux]
+  wp_apply wp_Handle Ps rp _ hrp hrpP (by simp [interface.mkOk]) (by simp [interface.mkOk])
+      $$ [$Hhttp $Hmux]
     as ⟨Hmux, #Hroute⟩
   wp_auto
   wp_apply wp_Handle (rp :: Ps) dp _ hdp (by simp [hdpP, Ne.symm hne])
-    (by simp [interface.mkOk]) $$ [$Hhttp $Hmux] as ⟨Hmux, -⟩
+    (by simp [interface.mkOk]) (by simp [interface.mkOk]) $$ [$Hhttp $Hmux] as ⟨Hmux, -⟩
   wp_auto
   iapply HΦ
   iframe Hmux

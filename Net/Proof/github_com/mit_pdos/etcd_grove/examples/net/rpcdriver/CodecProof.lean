@@ -216,15 +216,15 @@ theorem decFld_fBytes (ds rest : List w8) (h : ds.length < 2 ^ 64) :
   · intro h; simpa using h
   · intro _; exact decBytes_enc ds rest h
 
-theorem decArgs_enc (id : w64) (data : List w8) (fail : GoString) (hd : data.length < 2 ^ 64)
-    (hf : fail.length < 2 ^ 64) :
-    decArgs (strct [fU64 id, fBytes data, fStr fail]) = some ((id, data, fail), []) := by
-  have e : strct [fU64 id, fBytes data, fStr fail] =
-      W8 1 :: (fU64 id ++ (fBytes data ++ (fStr fail ++ []))) := by
+theorem decArgs_enc (id : w64) (data : List w8) (fl : GoString) (hd : data.length < 2 ^ 64)
+    (hf : fl.length < 2 ^ 64) :
+    decArgs (strct [fU64 id, fBytes data, fStr fl]) = some ((id, data, fl), []) := by
+  have e : strct [fU64 id, fBytes data, fStr fl] =
+      W8 1 :: (fU64 id ++ (fBytes data ++ (fStr fl ++ []))) := by
     simp [strct]
   rw [e]
   simp only [decArgs, decHdr, ↓reduceIte, decFld_fU64, decFld_fBytes data _ hd,
-    decFld_fStr fail _ hf]
+    decFld_fStr fl _ hf]
 
 theorem decReply_enc (id : w64) (data : List w8) (runs : w64) (hd : data.length < 2 ^ 64) :
     decReply (strct [fU64 id, fBytes data, fU64 runs]) = some ((id, data, runs), []) := by
@@ -235,10 +235,10 @@ theorem decReply_enc (id : w64) (data : List w8) (runs : w64) (hd : data.length 
   simp only [decReply, decHdr, ↓reduceIte, decFld_fU64, decFld_fBytes data _ hd]
 
 /-- The bounds a request's round trip needs, from its encoding's length. -/
-theorem encArgs_bounds (id : w64) (data : List w8) (fail : GoString)
-    (h : (encArgs id data fail).length < 2 ^ 63) : data.length < 2 ^ 64 ∧ fail.length < 2 ^ 64 := by
+theorem encArgs_bounds (id : w64) (data : List w8) (fl : GoString)
+    (h : (encArgs id data fl).length < 2 ^ 63) : data.length < 2 ^ 64 ∧ fl.length < 2 ^ 64 := by
   have h1 := len_fBytes data
-  have h2 := len_fStr fail
+  have h2 := len_fStr fl
   simp only [encArgs, tagged, strct, List.flatten_cons, List.flatten_nil, List.length_append,
     List.length_cons, List.append_nil] at h
   omega
@@ -255,15 +255,15 @@ theorem tagged_inj {t b b' : List w8} (h : tagged t b = tagged t b') : b = b' :=
   List.append_cancel_left h
 
 /-- The request encoding is injective (under the bound a decoding gives). -/
-theorem encArgs_inj (id id' : w64) (data data' : List w8) (fail fail' : GoString)
-    (hl : (encArgs id data fail).length < 2 ^ 63)
-    (h : encArgs id data fail = encArgs id' data' fail') :
-    id = id' ∧ data = data' ∧ fail = fail' := by
-  have hl' : (encArgs id' data' fail').length < 2 ^ 63 := h ▸ hl
-  obtain ⟨hd, hf⟩ := encArgs_bounds id data fail hl
-  obtain ⟨hd', hf'⟩ := encArgs_bounds id' data' fail' hl'
-  have e1 := decArgs_enc id data fail hd hf
-  rw [tagged_inj h, decArgs_enc id' data' fail' hd' hf'] at e1
+theorem encArgs_inj (id id' : w64) (data data' : List w8) (fl fl' : GoString)
+    (hl : (encArgs id data fl).length < 2 ^ 63)
+    (h : encArgs id data fl = encArgs id' data' fl') :
+    id = id' ∧ data = data' ∧ fl = fl' := by
+  have hl' : (encArgs id' data' fl').length < 2 ^ 63 := h ▸ hl
+  obtain ⟨hd, hf⟩ := encArgs_bounds id data fl hl
+  obtain ⟨hd', hf'⟩ := encArgs_bounds id' data' fl' hl'
+  have e1 := decArgs_enc id data fl hd hf
+  rw [tagged_inj h, decArgs_enc id' data' fl' hd' hf'] at e1
   cases e1; exact ⟨rfl, rfl, rfl⟩
 
 section proof
@@ -352,7 +352,7 @@ theorem wp_rpcSent_t4 (x : w64) :
 
 set_option hygiene false in
 /-- The last step of a struct encoder's proof: its bytes are `Wire.lean`'s. -/
-macro "enc_close" : tactic => `(tactic| (
+local macro "enc_close" : tactic => `(tactic| (
   iapply HΦ
   isimp only [strct, fld, fStr, fU64, fBytes, List.flatten_cons,
     List.flatten_nil, List.append_assoc, List.cons_append, List.nil_append, List.singleton_append,
@@ -436,8 +436,7 @@ theorem wp_rpcEnc_t5 (sl : GoSlice) (dq : DFrac) (x : List w8) :
     (try wp_auto)
     iapply HΦ
     iframe Hsl Hcap
-    unfold encBytes
-    rw [← hlen, List.append_assoc,
+    rw [encBytes_eq, ← hlen, List.append_assoc,
       show (x.map encU8).flatten =
         ((x.take (sint.nat i)).map encU8).flatten by
         rw [hn, List.take_length]]
@@ -720,8 +719,6 @@ theorem wp_rpcDec_t6 (b : GoSlice) (bs : List w8) (dq : DFrac) (p : Loc) (v0 : w
       iapply Hback $$ Hr
 
 
-set_option hygiene false in
-
 /-- A slice's length and capacity, as integers. -/
 theorem ownSlice_lenZ (r : GoSlice) (dq : DFrac) (vs : List w8) :
     (r ↦*{dq} vs : IProp GF) ⊢ ⌜sint.Z r.len = vs.length ∧ sint.Z r.len ≤ sint.Z r.cap⌝ := by
@@ -759,7 +756,7 @@ set_option hygiene false in
 /-- One field of a struct decoder: the state is `Hr : R ↦*{dq} cur`, `Hback` (back to `b`),
 `hlR` (`R`'s length); `L` decodes the field into `F` (pure decoder `D`); `ft` closes a failure
 (with `Hb : b ↦*{dq} bs`). -/
-macro "fld_step " L:term:max D:term:max F:ident " fail " ft:tacticSeq : tactic => `(tactic| (
+local macro "fld_step " L:term:max D:term:max F:ident " fail " ft:tacticSeq : tactic => `(tactic| (
   rcases cur with _ | ⟨c, cur⟩
   · rw [decide_eq_true (show sint.Z R.len < sint.Z (W64 1) by
       rw [show sint.Z (W64 1) = 1 from rfl]; simp only [List.length_nil] at hlR; omega)]
@@ -823,7 +820,7 @@ macro "fld_step " L:term:max D:term:max F:ident " fail " ft:tacticSeq : tactic =
 
 set_option hygiene false in
 /-- `hdr_step`, with the closing tactic `cl` for the header's failures. -/
-macro "hdr_step_with " _D:ident " (" cl:tacticSeq ")" : tactic => `(tactic| (
+local macro "hdr_step_with " _D:ident " (" cl:tacticSeq ")" : tactic => `(tactic| (
   ihave %Hl := ownSlice_len _ _ _ $$ Hb
   ihave %Hwf := ownSlice_wf _ _ _ $$ Hb
   wp_func_call
@@ -864,7 +861,7 @@ macro "hdr_step_with " _D:ident " (" cl:tacticSeq ")" : tactic => `(tactic| (
 set_option hygiene false in
 /-- A decoding's success tail: `Hr2`, `Hback2` (the inner decoder's rest, empty), `Hback`; ends
 with `Hd` back and the length check done, before `HΦ`. -/
-macro "dec_ok" : tactic => `(tactic| (
+local macro "dec_ok" : tactic => `(tactic| (
   ihave %Hl2 := ownSlice_len _ _ _ $$ Hr2
   wp_auto
   ihave Hd := Hback $$ [Hback2 Hr2]
@@ -1035,9 +1032,9 @@ theorem wp_rpcDec_t5 (b : GoSlice) (bs : List w8) (dq : DFrac) (p : Loc)
         ipureintro; rfl
 
 
-theorem wp_rpcEnc_t3 (id : w64) (dsl : GoSlice) (dqs : DFrac) (data : List w8) (fail : GoString) :
-    encFn (GF := GF) rpcEnc_t3 #(service.Args.mk id dsl fail)
-      (strct [fU64 id, fBytes data, fStr fail]) iprop(dsl ↦*{dqs} data) := by
+theorem wp_rpcEnc_t3 (id : w64) (dsl : GoSlice) (dqs : DFrac) (data : List w8) (fl : GoString) :
+    encFn (GF := GF) rpcEnc_t3 #(service.Args.mk id dsl fl)
+      (strct [fU64 id, fBytes data, fStr fl]) iprop(dsl ↦*{dqs} data) := by
   intro b bs
   wp_start as ⟨Hb, Hcap, HR⟩
   all_goals (
@@ -1077,8 +1074,8 @@ theorem wp_rpcEnc_t3 (id : w64) (dsl : GoSlice) (dqs : DFrac) (data : List w8) (
     (try (wp_apply wp_rpcEnc_t5 dsl dqs data _ _ $$ [$Hb $Hcap $HR] as %b2 ⟨Hb, Hcap, HR⟩)))
   all_goals (
     (try wp_auto)
-    wp_apply wp_rpcSent_t7 fail
-    by_cases h3 : fail = [] <;> simp only [h3, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true])
+    wp_apply wp_rpcSent_t7 fl
+    by_cases h3 : fl = [] <;> simp only [h3, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true])
   all_goals (
     (try wp_auto)
     wp_apply wp_slice_literal (V := w8) _
@@ -1087,7 +1084,7 @@ theorem wp_rpcEnc_t3 (id : w64) (dsl : GoSlice) (dqs : DFrac) (data : List w8) (
     iintro %sl1 ⟨Hsl1, -⟩
     wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
     (try wp_auto)
-    (try (wp_apply wp_rpcEnc_t7 fail _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩)))
+    (try (wp_apply wp_rpcEnc_t7 fl _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩)))
   all_goals (
     (try wp_auto)
     enc_close)
@@ -1150,7 +1147,7 @@ theorem wp_rpcEnc_t9 (id : w64) (dsl : GoSlice) (dqs : DFrac) (data : List w8) (
     enc_close)
 
 theorem enc_Args : enc_Args.spec (GF := GF) := by
-  intro p dq id dsl fail dqs data Ψ
+  intro p dq id dsl fl dqs data Ψ
   iintro ⟨Hp, Hsl, HΨ⟩
   unfold drvCodec
   iintro %Φ HΦ
@@ -1162,7 +1159,7 @@ theorem enc_Args : enc_Args.spec (GF := GF) := by
   wp_auto
   wp_apply wp_rpcPutTag _ as %b ⟨Hb, Hcap⟩
   (try wp_auto)
-  wp_apply wp_rpcEnc_t3 id dsl dqs data fail _ _ $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb, Hcap, Hsl⟩
+  wp_apply wp_rpcEnc_t3 id dsl dqs data fl _ _ $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb, Hcap, Hsl⟩
   (try wp_auto)
   iapply HΦ $$ Hb Hcap
   isimp only [encArgs, tagged, tArgs] at HΨ
@@ -1192,7 +1189,7 @@ theorem enc_Reply : enc_Reply.spec (GF := GF) := by
 set_option hygiene false in
 /-- Close an `Args`/`Reply` decoder's proof: the pure decoder `D` computed, the struct put back
 together (its `Data` field in any of its states). -/
-macro "sd_close " D:ident : tactic => `(tactic| (
+local macro "sd_close " D:ident : tactic => `(tactic| (
   iapply HΦ
   simp only [$D:ident, decHdr, decFld, ↓reduceIte, *]
   iframe
@@ -1271,17 +1268,17 @@ theorem wp_rpcDec_t9 (b : GoSlice) (bs : List w8) (dq : DFrac) (p : Loc)
 /-! ## The decoding laws -/
 
 theorem decA_Args : decA_Args.spec (GF := GF) := by
-  intro p id data fail Ψ
+  intro p id data fl Ψ
   iintro ⟨Hp, HΨ⟩
   unfold drvCodec
   iintro %bsl %dq %Φ Hd HΦ
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hp
   ihave %Hlen := ownSlice_lenZ _ _ _ $$ Hd
-  have hb : (encArgs id data fail).length < 2 ^ 63 := by
+  have hb : (encArgs id data fl).length < 2 ^ 63 := by
     have h3 : sint.Z bsl.len < 2 ^ 63 := by word
     omega
-  obtain ⟨hdl, hfl⟩ := encArgs_bounds id data fail hb
-  have hd := decArgs_enc id data fail hdl hfl
+  obtain ⟨hdl, hfl⟩ := encArgs_bounds id data fl hb
+  have hd := decArgs_enc id data fl hdl hfl
   wp_func_call
   wp_call
   wp_auto
@@ -1300,7 +1297,7 @@ theorem decA_Args : decA_Args.spec (GF := GF) := by
   subst Hok
   dec_ok
   iapply HΦ $$ %interface.nil %true Hd %(by simp) [HΨ Hp Hsl]
-  · iapply HΨ $$ %hb Hp Hsl
+  · iapply HΨ $$ %sl %hb Hp Hsl
   simp only [ite_true]
   ipureintro; trivial
 

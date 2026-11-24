@@ -32,7 +32,7 @@ variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 /-- See the file header. -/
 abbrev Svc.Echo.spec : Prop :=
   ∀ (γid : GName) (s a r : Loc) (id : w64) (dsl : GoSlice) (fail : GoString) (v : service.Reply),
-  {{ isSvc γid s ∗ a ↦ service.Args.mk id dsl fail ∗ r ↦ v ∗ idTok γid id }}
+  {{ isSvc (GF := GF) γid s ∗ a ↦ service.Args.mk id dsl fail ∗ (r ↦ v : IProp GF) ∗ idTok γid id }}
     (App (App (Val (s @!! go.GoType.PointerType service.Svc.ty @!! go!"Echo")) (Val #a))
       (Val #r))
   {{ (e : GoInterface), RET #e; a ↦ service.Args.mk id dsl fail ∗

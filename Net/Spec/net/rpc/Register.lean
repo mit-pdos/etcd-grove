@@ -49,6 +49,8 @@ abbrev Register.spec_fresh : Prop :=
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil⌝ ∗ svcReg γ C nm S ∗ svcOwn γf (R.insert nm ()) }}
 
+variable [log.Assumptions]
+
 /-- `Register(rcvr)` of a receiver with no method net/rpc can serve (`rcvrNone nm`), its type's name
 `nm` exported, on `DefaultServer` in any registry mode (`defaultServerAny γ`): an error
 (`Server.Register.spec_none`). Proved in `Net/Proof/net/rpc/RegisterNone.lean`. -/

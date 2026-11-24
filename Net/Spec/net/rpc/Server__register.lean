@@ -12,6 +12,7 @@ nil pointer); the methods are not empty (`rcvrIs`). Proved in
 module
 
 public import Net.Proof.net.rpc.ServerDefs
+public import Perennial.Proof.log.Base
 
 @[expose] public section
 
@@ -62,6 +63,8 @@ abbrev Server.register.spec_fresh : Prop :=
   {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗
       svcReg γ C (if useName then name else nm) S ∗
       svcOwn γf (R.insert (if useName then name else nm) ()) }}
+
+variable [log.Assumptions]
 
 /-- `register` of a receiver with no method net/rpc can serve (`rcvrNone nm`: name `nm`, not a nil
 pointer, no methods), under `register`'s premises on the name (`regNameOk`): it logs ("has no

@@ -14,9 +14,13 @@ ghost state.
   `Handle`s, at the boot). From net/http's first initialization at `DefaultServeMux` (`muxOwn dmux []`,
   `Net/Proof/net/http/InitFirst.lean`).
 * `muxRoute m p h` (persistent): `m` sends a request for the literal path `p` to the handler `h`.
-* `litPattern p`: a literal path pattern: no method, no host, `/`-initial, no `{`, `}` or `%`, not
-  ending in `/{$}` (for such patterns Go 1.22's conflict rule is equality, so `p ∉ Ps` is exactly
-  what `register` needs not to panic).
+* `litPattern p`: a literal path pattern: `/`-initial, every byte one the model's request parser
+  leaves alone in a path (`pathByte`, the model's `modelPathByte`: letters, digits and
+  `- _ . ~ $ & + , / : ; = @`). So no method or host (no space or tab: `parsePattern` splits a
+  method at either), no wildcard (`{`, `}`), no escape (`%`), no query (`?`): a request for `p` is
+  routed to `p` (`/a?b` would route to `/a`), and for such patterns Go 1.22's conflict rule is
+  equality, so `p ∉ Ps` is exactly what `register` needs not to panic. (Until 2026-11-24 an
+  exclusion list, which admitted a tab and `?`: `notes/axiom-review/net-http-interim.md`.)
 * `rpcHjHandler h W a` (persistent): the handler `h` serves net/rpc's `CONNECT` handshake on a
   connection dialed to `a` in the rpc world `W`: given the request's head and the right to hijack the
   connection (`hijackOk`, what net/http's `conn.serve` gives a handler), its `ServeHTTP` returns the
@@ -27,6 +31,7 @@ ghost state.
 module
 
 public import Net.Proof.net.http.ServerDefs
+public import Net.Proof.net.http.RequestDefs
 public import Net.Proof.net.rpc.Proto
 public import Net.GeneratedProof.net.http
 
@@ -44,7 +49,7 @@ namespace net.http
 
 /-- A literal path pattern (see the file header). -/
 def litPattern (p : GoString) : Prop :=
-  p.head? = some (W8 47) ∧ W8 123 ∉ p ∧ W8 125 ∉ p ∧ W8 37 ∉ p ∧ W8 32 ∉ p
+  p.head? = some (W8 47) ∧ ∀ b ∈ p, pathByte b = true
 
 /-- The ghost names of a mux: its routes (a ghost map from a pattern to its handler) and its
 registered patterns (a ghost variable, half with the registering owner). -/

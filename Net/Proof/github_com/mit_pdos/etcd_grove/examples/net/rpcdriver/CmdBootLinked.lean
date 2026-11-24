@@ -38,7 +38,7 @@ theorem kitG : github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.KitG (getIs
 
 set_option maxHeartbeats 4000000 in
 /-- **Command `server`'s boot** (see the file header). -/
-theorem wp_boot :
+theorem wp_boot (hT : threadBound GF ≤ 2 ^ 30) :
     {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing (getIsPkgInit (GF := GF)) ∗
@@ -55,7 +55,7 @@ theorem wp_boot :
   iframe Hown
   iintro Hown
   try wp_auto
-  wp_apply github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.boot_rpcdriver kitG $$ Hown as ⟨Hown, #Hd, HR⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.boot_rpcdriver kitG hT $$ Hown as ⟨Hown, #Hd, HR⟩
   try wp_auto
   iframe Hown HR
   isplitr
@@ -80,7 +80,7 @@ theorem kitG : github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.KitG (getIs
 
 set_option maxHeartbeats 4000000 in
 /-- **Command `client`'s boot** (see the file header). -/
-theorem wp_boot :
+theorem wp_boot (hT : threadBound GF ≤ 2 ^ 30) :
     {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing (getIsPkgInit (GF := GF)) ∗
@@ -97,7 +97,7 @@ theorem wp_boot :
   iframe Hown
   iintro Hown
   try wp_auto
-  wp_apply github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.boot_rpcdriver kitG $$ Hown as ⟨Hown, #Hd, HR⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.boot_rpcdriver kitG hT $$ Hown as ⟨Hown, #Hd, HR⟩
   try wp_auto
   iframe Hown HR
   isplitr

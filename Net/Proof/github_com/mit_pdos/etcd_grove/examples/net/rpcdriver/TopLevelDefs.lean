@@ -52,11 +52,14 @@ def system [GoGlobalContext] (σs σc : state) : List (Expr × state) :=
 `HTTPAddr`). -/
 def rpcAddrs : List GoString := [go!"127.0.0.1:7211", go!"127.0.0.1:7212"]
 
-/-- The statement's step bound, `2 ^ 31 - 1`: Net's net/rpc server (`Server.ServeCodec.spec`, run
-by `rpc.Accept` and by the HTTP handler `rpc.HandleHTTP` registers) needs the machine's thread bound
-`threadBound GF ≤ 2 ^ 31` (its wait group's counter is an `int32`), and the deployment bridge bounds
-the threads by the step count (as the net/rpc kits, `swiftnet`'s and `epaxosnet`'s statements). -/
-def rpcStepBound : Nat := 2 ^ 31 - 1
+/-- The statement's step bound, `2 ^ 30 - 1`: net/http's mux (`DefaultServeMux`'s `RWMutex`, whose
+reader-slot pools hold at most `2 ^ 30` readers: net/http's first initialization's
+`threadBound GF ≤ 2 ^ 30`) and Net's net/rpc server (`Server.ServeCodec.spec`, its wait group's
+`int32` counter: `threadBound GF ≤ 2 ^ 31`) bound the machine's threads, and the deployment bridge
+bounds the threads by the step count (`threadBound = receiptBound + 1`). (Until 2026-11-24
+`2 ^ 31 - 1`, as the net/rpc kits; lowered with the mux's reader slots,
+`notes/axiom-review/net-http-interim.md`.) -/
+def rpcStepBound : Nat := 2 ^ 30 - 1
 
 end github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
 end Perennial

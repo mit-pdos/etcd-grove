@@ -56,8 +56,8 @@ theorem ownInitializing_of_empty (g : GoString → IProp GF) :
   iapply BigSepM.bigSepM_empty.2
   iempintro
 
-variable {G : GoString → IProp GF} (hk : KitG G)
-include hk
+variable {G : GoString → IProp GF} (hk : KitG G) (hT : threadBound GF ≤ 2 ^ 30)
+include hk hT
 
 set_option goose.wp.extras true
 
@@ -88,8 +88,9 @@ theorem boot_rpcdriver :
   wp_apply (net.http.wp_init_first (gOff [pkg_id.net.rpc, pkg_id.net.http] G)
       (gOff [pkg_id.net.rpc] G) (gOff_off _ _ _ (by decide))
       (wfX_net_http hk _ rpcLe (by decide))
-      (fun p hp => by unfold gOff; by_cases h : p = pkg_id.net.rpc <;> simp [h, hp])) $$ Hown
+      (fun p hp => by unfold gOff; by_cases h : p = pkg_id.net.rpc <;> simp [h, hp])) $$ [$Hown]
     as ⟨Hown, #H4, Hmux⟩
+  · ipureintro; exact hT
   wp_apply net.wp_initialize' _ (wfO_net hk _ rpcLe) $$ Hown as ⟨Hown, #H5⟩
   wp_apply (net.rpc.wp_init_first (gOff [pkg_id.net.rpc] G) G (gOff_off _ _ _ (by decide))
       (wf_net_rpc hk) (fun p hp => (gOff_ne _ _ _ (by simp [hp])).symm)) $$ Hown

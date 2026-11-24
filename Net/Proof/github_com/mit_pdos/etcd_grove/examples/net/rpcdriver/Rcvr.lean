@@ -78,7 +78,7 @@ theorem echoSvc_Echo (γid : GName) (args : List w8) (Φ : List w8 → GoString 
 
 theorem newArg_Echo (L : CodecLaws (GF := GF)) (HE : service.Svc.Echo.spec (GF := GF) (hG := hG))
     (γid : GName) (s : Loc) :
-    net.rpc.codecSet drvCodec ∗ service.isSvc γid s ⊢
+    net.rpc.codecSet (drvCodec (GF := GF)) ∗ service.isSvc γid s ⊢
     newArgOk drvCodec (ptrIface service.Svc.ty s) (echoSvc γid go!"Echo")
       (mOf rpcNewArg_r0_Echo rpcNewReply_r0_Echo rpcCall_r0_Echo) := by
   iintro ⟨#Hcs, #HS⟩

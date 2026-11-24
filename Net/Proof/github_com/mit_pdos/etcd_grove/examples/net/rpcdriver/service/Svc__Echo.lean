@@ -49,13 +49,13 @@ theorem Svc.Echo.wp_proof : Svc.Echo.spec (GF := GF) (hG := hG) := by
       rw [gmap_get?_eq]; exact hlk)).1 $$ Hbig with ⟨⟨-, Htok2⟩, -⟩
     icases idTok_excl γid id $$ Htok Htok2 with ⟨⟩
   | none =>
-    have hv0 : (m !! id).getD (zero_val w64) = W64 0 := by
-      rw [show m !! id = none from hlk]; rfl
     have h01 : (W64 0 + W64 1 : w64) = W64 1 := by decide
+    have hz : (Perennial.zero_val w64 : w64) + W64 1 = W64 1 := by
+      first | rfl | decide | exact h01
     wp_auto
     wp_apply +noauto (wp_map_lookup1 (K := w64) (V := w64) go.uint64 go.uint64 mref m id
       (DFrac.own 1)) $$ Hm as Hm
-    rw [hv0]
+    rw [show m !! id = none from hlk, Option.getD_none]
     wp_auto
     (try rw [h01])
     wp_apply (wp_mapInsert (K := w64) (V := w64) go.uint64 mref m id _) $$ Hm as Hm
@@ -63,6 +63,7 @@ theorem Svc.Echo.wp_proof : Svc.Echo.spec (GF := GF) (hG := hG) := by
       _ id (DFrac.own 1)) $$ Hm as Hm
     rw [GMap.lookup_insert, Option.getD_some]
     wp_auto
+    (try rw [hz])
     wp_apply sync.Mutex.wp_Unlock (muAddr s) (svcInv γid s) $$ [$Hmu $Hlk Hruns Hm Hbig Htok]
     · unfold svcInv
       iexists mref, _
@@ -70,7 +71,7 @@ theorem Svc.Echo.wp_proof : Svc.Echo.spec (GF := GF) (hG := hG) := by
       iapply (BigSepM.bigSepM_insert (show PartialMap.get? m id = none by
         rw [gmap_get?_eq]; exact hlk)).2
       iframe Hbig Htok
-      (try (ipureintro; first | rfl | decide | exact h01))
+      (try (ipureintro; first | rfl | decide | exact h01 | exact hz))
     wp_if_destruct
     all_goals (try (wp_apply net.rpc.wp_errors_New' as %x #HN))
     all_goals (
@@ -79,7 +80,7 @@ theorem Svc.Echo.wp_proof : Svc.Echo.spec (GF := GF) (hG := hG) := by
       isplitl [Hr]
       · iexact Hr)
     all_goals first
-      | (ileft; ipureintro; exact ⟨rfl, rfl⟩)
+      | (ileft; ipureintro; first | exact ⟨rfl, rfl⟩ | exact ⟨trivial, rfl⟩ | (simp; done))
       | (iright
          isplitr
          · ipureintro; assumption

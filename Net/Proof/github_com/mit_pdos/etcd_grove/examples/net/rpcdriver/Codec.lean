@@ -147,13 +147,14 @@ structure CodecLaws : Prop where
 the `Svc` service's spec (`Svc.lean`'s `echoSvc`). -/
 abbrev svcRcv.spec : Prop :=
   ∀ (γid : GName) (s : Loc), ⌜s ≠ null⌝ ∗ net.rpc.codecSet drvCodec ∗ service.isSvc γid s ⊢
-    drvCodec.rcv (ptrIface service.Svc.ty s)
+    (drvCodec (GF := GF)).rcv (ptrIface service.Svc.ty s)
       (net.rpc.rcvrIs drvCodec (ptrIface service.Svc.ty s) (echoSvc γid) go!"Svc" false)
 
 /-- (d) A `*service.NoMethods`: a receiver with no method. -/
 abbrev noMethodsRcv.spec : Prop :=
-  ∀ (p : Loc), ⌜p ≠ null⌝ ⊢
-    drvCodec.rcv (ptrIface service.NoMethods.ty p) (net.rpc.rcvrNone go!"NoMethods")
+  ∀ (p : Loc), (⌜p ≠ null⌝ : IProp GF) ⊢
+    (drvCodec (GF := GF)).rcv (ptrIface service.NoMethods.ty p)
+      (net.rpc.rcvrNone (GF := GF) go!"NoMethods")
 
 end codec
 

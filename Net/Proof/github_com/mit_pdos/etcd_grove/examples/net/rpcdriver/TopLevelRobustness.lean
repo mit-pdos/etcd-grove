@@ -106,7 +106,7 @@ theorem rpcdriver_robust : rpcdriver_robust.spec := by
     dsimp only at hGG hctx
     subst hGG hctx
     letI hG : HeapGS .hasLC netGF := ⟨G', L⟩
-    have hTb : threadBound netGF ≤ 2 ^ 31 := by unfold rpcStepBound at hrb'; omega
+    have hTb : threadBound netGF ≤ 2 ^ 30 := by unfold rpcStepBound at hrb'; omega
     have hRb : receiptBound netGF ≤ 2 ^ 64 := by unfold rpcStepBound at hrb'; omega
     match i, hm with
     | 0, hm =>
@@ -115,11 +115,11 @@ theorem rpcdriver_robust : rpcdriver_robust.spec := by
       iintro ⟨#Htl, #Hhl⟩ - Hgs Htok
       imodintro
       unfold boot_server boot
-      wp_apply cmd.server.wp_boot $$ Hgs as ⟨Hown, #Hpkg, Hres⟩
+      wp_apply cmd.server.wp_boot hTb $$ Hgs as ⟨Hown, #Hpkg, Hres⟩
       wp_auto
       wp_apply (cmd.server.wp_main wp_Register wp_Server γid γw) $$ [Hres]
       · iframe Hpkg Hres Htl Hhl
-        ipureintro; exact hTb
+        ipureintro; omega
       wp_auto
       itrivial
     | 1, hm =>
@@ -128,13 +128,13 @@ theorem rpcdriver_robust : rpcdriver_robust.spec := by
       iintro ⟨⟨#Htl, #Hhl⟩, Hids⟩ - Hgs Htok
       imodintro
       unfold boot_client boot
-      wp_apply cmd.client.wp_boot $$ Hgs as ⟨Hown, #Hpkg, Hres⟩
+      wp_apply cmd.client.wp_boot hTb $$ Hgs as ⟨Hown, #Hpkg, Hres⟩
       wp_auto
       ihave #Htcp := net.rpc.rpcLisP_addrOk _ _ _ _ (by decide) $$ Htl
       ihave #Hha := net.rpc.rpcLisP_addrOk _ _ _ _ (by decide) $$ Hhl
       wp_apply (cmd.client.wp_main wp_Register wp_Client γid γw) $$ [Hres Htok Hids] as -
       · iframe Hpkg Hres Htok Htcp Hha Hids
-        ipureintro; exact ⟨hTb, hRb⟩
+        ipureintro; exact ⟨by omega, hRb⟩
       wp_auto
       itrivial
   · simp only [system]

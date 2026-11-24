@@ -10,7 +10,7 @@ it with net/rpc over raw TCP, `rpc.Accept` at `TCPAddr`, and over HTTP, `rpc.Han
 net/rpc guarantees: the driver's sections register, dial, call-success, server-error,
 other-errors, concurrent-calls, close) -- deployed at `rpcAddrs` (`DistDeploy`: the addresses
 distinct and valid, no connection, no listener). In every execution of fewer than `rpcStepBound`
-steps (`2 ^ 31 - 1`: net/rpc's server's thread bound, `TopLevelDefs.lean`), with any number of
+steps (`2 ^ 30 - 1`: the threads net/http's mux and net/rpc's server allow, `TopLevelDefs.lean`), with any number of
 threads, no thread of either machine is stuck and none has a top-level panic (`Robust`,
 `Robustness/Statement.lean`), each machine a fresh Go process (`Robust`'s premise). Since the
 client panics when a property of net/rpc fails, this says each holds, under every fault the net

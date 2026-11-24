@@ -23,7 +23,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS]
+variable [π : NetProtoGS] [log.Assumptions]
 
 theorem Register.wp_proof_none
     (wp_Register : Server.Register.spec_none (GF := GF) (hG := hG)) :
