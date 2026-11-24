@@ -43,6 +43,7 @@ section pure
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
 
 /-- **Every put under the prefix decodes** (`kvWritesDec`), from the states' (`kvWfHist`) when
 each revision changes one key at most and nothing is compacted: a revision's one put is in its
