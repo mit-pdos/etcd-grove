@@ -532,6 +532,41 @@ P4 (d)); when they are, recheck that their tables list these packages.
   then the kit (`Kit/` rewritten onto remote, as paxos's `Kit.lean`/`KitProof.lean`/`Mains.lean`),
   then the statement (`craq_remote_robust`, as `paxos_remote_robust`).
 
+## Non-vacuity: open (decision 2026-11-24)
+
+**Decision** (kaashoek, 2026-11-24): dsv-craq lands **without** non-vacuity instances; the gap is
+recorded here and real instances are a follow-up. Why: the instances P13 wrote
+(`examples/craqnet/NonVacuityLinked.lean`) were all local axioms, each restating the premise it
+instantiated (the eleven `RpcBoot`s literally the premise's statement), so they showed nothing about
+the premises' consistency.
+
+**Premise classes of `craq_remote_robust.spec`** with no axiom-free instance (all of them;
+`Dsverify/Spec/github_com/despreston/go_craq/examples/craqnet/TopLevelRobustness.lean`, checked
+against the statement at afff9fd399):
+
+- `net.rpc.InitHyp`, `net.http.InitHyp`: their closure reaches names-only initializers;
+- `LogHyp` (`Craq/LogHyp.lean`: `log.Default`, `*Logger.Printf`/`Println`; Perennial's `log` is
+  names only);
+- `RpcHttpServe` (`Craq/HttpRpc.lean`: net/http's `DefaultServeMux`, `rpc.HandleHTTP`,
+  `http.ListenAndServe`; not in Net);
+- the eleven `RpcBoot`s, one per command (`cmd.client0`..`client4`, `cmd.server1`..`server6`):
+  net/rpc's and net/http's initializers, names only.
+
+Not a class of the statement, but a premise of the proved theorem: `stringsPending.spec`
+(`craq_remote_robust_of_strings`; Perennial's `strings.Cut`/`TrimLeft`), which goes with the pin
+bump that brings their specs (P14).
+
+**The removed axiom-based files** are in history: `Dsverify/Proof/github_com/despreston/go_craq/
+examples/craqnet/NonVacuityLinked.lean` (added c17f4f4c68, last at 296417da29) and the scratch
+`Dsverify/Scratch/CraqAxioms.lean` (296417da29), both deleted by 7fd59eedf5.
+
+**Follow-up order:** dsv-gryff's cheap instances first (its leaf library classes: `strings.Index`,
+`sort.Slice`, `math/rand.Seed`); craq has no such leaf class, its first candidate is `LogHyp` (a
+spec of Go's `log` in Perennial). Then `net.rpc.InitHyp`, `net.http.InitHyp`, `RpcHttpServe` and
+the eleven `RpcBoot`s, which depend on Upamanyu's model initialization of net/rpc and net/http
+(their initializers translated with bodies, net/http's server in Net); shared with dsv-gryff's
+`RpcHttpHyp`/`RpcBootHyp`.
+
 ## Which lab run
 
 `craq-bump-1` (the end of craq-net-2 → craq-net-clients-1 → craq-bump-1): clients on nodes of their
