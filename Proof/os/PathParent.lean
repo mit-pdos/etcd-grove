@@ -187,7 +187,7 @@ macro "mkdirall_loop2 " P:term:max m0:term:max hB0:ident K:tactic : tactic => `(
     simp only [show (0 : Int) ≤ sint.Z (W64 (k : Int)) by word, ↓reduceIte,
       show sint.nat (W64 (k : Int)) = k by word, List.getElem?_eq_getElem hk]
     try wp_auto
-    wp_apply os.wp_IsPathSeparator
+    wp_apply os.wp_IsPathSeparatorF
     by_cases hs : ($P)[k] = slashB
     · rw [decide_eq_true hs]
       simp only [Bool.not_true]
@@ -220,7 +220,7 @@ set_option hygiene false in
 /-- `MkdirAll`'s parent of the path `P` (at `path_ptr`), from `i := len(path) - 1` to
 `parent := path[:i]`: `parent ↦ os.parentModel P`, then `K` (once per exit of the loops). -/
 macro "mkdirall_parent " P:term:max K:tactic : tactic => `(tactic| (
-  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %hPlen
   try wp_auto
   ihave HT : (∃ (n : Nat), "i" ∷ i_ptr ↦ (W64 (n : Int) - W64 1) ∗
       "%Hn" ∷ ⌜n ≤ ($P).length ∧ os.trailIdx $P n = os.trailIdx $P ($P).length⌝ : IProp GF) $$ [i]
@@ -235,7 +235,8 @@ macro "mkdirall_parent " P:term:max K:tactic : tactic => `(tactic| (
     rw [if_neg (by simp only [decide_eq_true_eq]; intro h; exact Bool.false_ne_true (go.intoVal_inj h)),
       if_pos (by simp)]
     try wp_auto
-    have hB0 : os.backIdx $P 0 = os.backIdx $P (os.trailIdx $P ($P).length) := by rw [← Hnt]
+    have hB0 : os.backIdx $P 0 = os.backIdx $P (os.trailIdx $P ($P).length) := by
+      rw [← Hnt]; simp only [os.trailIdx]
     mkdirall_loop2 $P 0 hB0 $K
   | succ k =>
     have hk : k < ($P).length := by omega
@@ -245,7 +246,7 @@ macro "mkdirall_parent " P:term:max K:tactic : tactic => `(tactic| (
     simp only [show (0 : Int) ≤ sint.Z (W64 (k : Int)) by word, ↓reduceIte,
       show sint.nat (W64 (k : Int)) = k by word, List.getElem?_eq_getElem hk]
     try wp_auto
-    wp_apply os.wp_IsPathSeparator
+    wp_apply os.wp_IsPathSeparatorF
     by_cases hs : ($P)[k] = slashB
     · rw [decide_eq_true hs, if_pos (by simp)]
       try wp_auto
@@ -287,6 +288,12 @@ theorem os.wp_IsPathSeparator (c : w8) :
   rw [show decide (W8 47 = c) = decide (c = slashB) from decide_eq_decide.mpr eq_comm]
   iapply HΦ
   try itrivial
+
+/-- `os.wp_IsPathSeparator` at the callee as `wp_auto` leaves it (`functions os.IsPathSeparator`). -/
+theorem os.wp_IsPathSeparatorF (c : w8) :
+    {{ (True : IProp GF) }} (App (Val (@! os.IsPathSeparator)) (Val #c))
+    {{ RET #(decide (c = slashB)); True }} :=
+  os.wp_IsPathSeparator c
 
 end proof
 

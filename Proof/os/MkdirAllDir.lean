@@ -127,12 +127,7 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   have htn : RootsTreeName R (child (joinPath r0 cs) b) := by
     rw [← joinPath_snoc]; exact os.treeName_snoc hm hcsb
   try wp_auto
-  try wp_auto
-  wp_stub os.fsPathKind.impl
-  wp_apply wp_osPathKindS R _ hpin CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi as %k %hk
-  obtain ⟨-, rfl⟩ := hk.resolve_right (fun h => h.1 htn)
-  try wp_auto
-  rw [show (go!"os.Stat" : GoString) = os.Stat from rfl]
+  try rw [show (go!"os.Stat" : GoString) = os.Stat from rfl]
   ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
   wp_apply os.Stat.wp_childDirS (joinPath r0 cs) b R j J qd qn h qc hb hJ $$ [Hp Hn Hperm]
     as %fi %err ⟨Hp, Hn, Hperm, Hres⟩
@@ -145,7 +140,8 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
     fileStat_isDir Hfs
     wp_if_destruct
     all_goals
-      try (unfold os.model.pathError; wp_apply wp_errno)
+      try wp_auto
+      try wp_alloc pe as Hpe
       try wp_auto
       iapply HΦ
       iframe
@@ -153,8 +149,6 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   | nil => exact absurd rfl herr
   | ok ie =>
   try wp_auto
-  wp_apply os.model.wp_mkdirAllParent
-  rw [os.parentModel_child _ b hb]
   have hrne : 0 < r0.length := by
     obtain ⟨rc, hne, -, hrf⟩ := (hR.2.2 (r0, j0) hm).1
     rcases rc with _ | ⟨x, rc⟩
@@ -162,50 +156,63 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
     · simp only at hrf; rw [hrf]; simp [joinPath]
   have hplen : 0 < (joinPath r0 cs).length := by
     simp only [joinPath, List.length_append]; omega
-  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %hlen
-  rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 ((joinPath r0 cs).length : Int)) by word)]
-  try wp_auto
-  ihave Hs := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).1 $$ Hp
-  wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ qc hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm⟩
-  · (try rw [hkr]); iframe; iframe #
-  (try rw [hkr])
-  ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
-  cases e with
-  | ok ie2 =>
-    -- the parent's `MkdirAll` failed
+  have hPne : (child (joinPath r0 cs) b) ≠ [] := by simp [child]
+  have hpl := os.parentModel_length _ hPne
+  rw [os.parentModel_child _ b hb] at hpl
+  mkdirall_parent (child (joinPath r0 cs) b) (
+    rw [os.parentModel_child _ b hb]
     try wp_auto
-    iapply HΦ
-    iframe
-  | nil =>
-  try wp_auto
-  rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
-  wp_apply os.Mkdir.wp_takenS (joinPath r0 cs) b perm R j (.only [b]) _ (DFrac.own qn) h qc hb hbN
-      (by rw [hJ]; rfl) $$ [Hp Hn Hperm] as %e ⟨Hp, Hn, Hperm, %he⟩
-  · (try rw [hkr]); iframe; iframe #
-  (try rw [hkr])
-  cases e with
-  | nil => exact absurd rfl he
-  | ok ie3 =>
-  try wp_auto
-  rw [show (go!"os.Lstat" : GoString) = os.Lstat from rfl]
-  wp_apply os.Lstat.wp_childDirS (joinPath r0 cs) b R j J qd qn h qc hb hJ $$ [Hp Hn Hperm]
-    as %fi %err ⟨Hp, Hn, Hperm, Hres⟩
-  · (try rw [hkr]); iframe; iframe #
-  (try rw [hkr])
-  icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr2)
-  · obtain ⟨rfl, rfl⟩ := hfe
+    wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
     try wp_auto
-    fileStat_isDir Hfs
-    wp_if_destruct
-    all_goals
+    wp_apply filepathlite.VolumeName.wp_lex
+    try wp_auto
+    wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+    try wp_auto
+    have hpb : (joinPath r0 cs).length < 2 ^ 63 := by omega
+    rw [decide_eq_true (show sint.Z (W64 (([] : GoString).length : Int)) <
+        sint.Z (W64 ((joinPath r0 cs).length : Int)) by simp only [List.length_nil]; word)]
+    try wp_auto
+    ihave Hs := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).1 $$ Hp
+    wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ qc hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm⟩
+    · (try rw [hkr]); iframe; iframe #
+    (try rw [hkr])
+    ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
+    cases e with
+    | ok ie2 =>
+      -- the parent's `MkdirAll` failed
+      try wp_auto
       iapply HΦ
       iframe
-  · cases err with
-    | nil => exact absurd rfl herr2
-    | ok ie4 =>
+    | nil =>
     try wp_auto
-    iapply HΦ
-    iframe
+    try rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
+    wp_apply os.Mkdir.wp_takenS (joinPath r0 cs) b perm R j (.only [b]) _ (DFrac.own qn) h qc hb hbN
+        (by rw [hJ]; rfl) $$ [Hp Hn Hperm] as %e ⟨Hp, Hn, Hperm, %he⟩
+    · (try rw [hkr]); iframe; iframe #
+    (try rw [hkr])
+    cases e with
+    | nil => exact absurd rfl he
+    | ok ie3 =>
+    try wp_auto
+    try rw [show (go!"os.Lstat" : GoString) = os.Lstat from rfl]
+    wp_apply os.Lstat.wp_childDirS (joinPath r0 cs) b R j J qd qn h qc hb hJ $$ [Hp Hn Hperm]
+      as %fi %err ⟨Hp, Hn, Hperm, Hres⟩
+    · (try rw [hkr]); iframe; iframe #
+    (try rw [hkr])
+    icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr2)
+    · obtain ⟨rfl, rfl⟩ := hfe
+      try wp_auto
+      fileStat_isDir Hfs
+      wp_if_destruct
+      all_goals
+        iapply HΦ
+        iframe
+    · cases err with
+      | nil => exact absurd rfl herr2
+      | ok ie4 =>
+      try wp_auto
+      iapply HΦ
+      iframe)
 
 end proof
 
