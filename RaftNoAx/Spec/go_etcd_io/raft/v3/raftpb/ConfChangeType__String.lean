@@ -1,0 +1,38 @@
+-- The copy for the part `RaftNoAx/` of `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean` (etc/copy-part.py; rerun it, do not edit).
+/-
+`raftpb.ConfChangeType.String` (`raftpb/raft.pb.go`, protoc-gen-go): the name of a value, `ConfChangeType_name`'s entry,
+else the decimal (protobuf-go's `EnumStringOf`). Trusted code since 2026-11-23 (#25, as
+`MessageType.String`'s: `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`, which argues the model is Go's;
+trusted model approved by the coordinator under the user's delegation, review requested on #25);
+names-only until then. `DescribeConfChange` formats it with `%v`.
+-/
+module
+
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.CCEnumName
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- `t.String()` returns `raftpb.ccTypeString t`: `ConfChangeType_name`'s entry at `t`, else `t` in decimal. -/
+abbrev raftpb.ConfChangeType.String.spec : Prop :=
+  ∀ (t : w32),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
+    (App (Val (t @!! raftpb.ConfChangeType.ty @!! go!"String")) (Val #()))
+  {{ RET #(raftpb.ccTypeString t); True }}
+
+end spec
+
+end EtcdGrove
+end Perennial

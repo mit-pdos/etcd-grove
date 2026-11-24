@@ -22,7 +22,8 @@ other module is the main tree's, imported as it is.
 
 - `RaftNoAx/` (notes/raft-noax-part.md): raft's and kvdurable's proofs over a raft of its own
   (project raft-noax of etc/goose.py) and kvdurable's own translation (project kvdurable-noax). Its
-  source is the main tree; its roots the main tree's kvdurable `Results`/`TopLevelRobustness`
+  source is the main tree; its roots raft's (its `Link` and the modules etc/api/raft.txt lists as
+  importable: KvNet's raft is the part's) and the main tree's kvdurable `Results`/`TopLevelRobustness`
   (read in the main tree: the part's own files are not followed).
 - `KvNet/` (notes/kvnet-part.md): kvnet's proof, over raft-noax's raft, the net extension's `net`
   (the part `Net/`) and the bodied `durable` over fsExt (the part `WalTester/`). Its sources are
@@ -236,8 +237,30 @@ def strip(mod, src):
     return mod[len(src) + 1:] if src and mod.startswith(src + ".") else mod
 
 
+def raft_api_roots():
+    """Raft's own roots: its `Link` and the modules its clients may import (`importable` in
+    etc/api/raft.txt, a trailing `.*` every main-tree module below the prefix), but the trace
+    validation's (`Traced*`)."""
+    out = ["Proof.go_etcd_io.raft.v3.Link"]
+    with open(os.path.join(ROOT, "etc", "api", "raft.txt")) as fh:
+        for line in fh:
+            w = line.split()
+            if len(w) < 2 or w[0] != "importable" or ".Traced" in w[1]:
+                continue  # (the trace-validation API, `RaftTla/`'s, not the part's)
+            if w[1].endswith(".*"):
+                d = os.path.join(ROOT, *w[1][:-2].split("."))
+                out += sorted(os.path.relpath(os.path.join(dp, x), ROOT)[:-len(".lean")].replace(os.sep, ".")
+                              for dp, _, fs in os.walk(d) for x in fs if x.endswith(".lean"))
+            else:
+                out.append(w[1])
+    return out
+
+
 def raftnoax_roots(part):
-    return [f"Proof.{lean_pkg(KVD_MAIN)}.Results", f"Proof.{lean_pkg(KVD_MAIN)}.TopLevelRobustness"]
+    """RaftNoAx's roots: raft's (`raft_api_roots`, KvNet takes its raft from the part), and, until
+    they retire, the main tree's kvdurable `Results`/`TopLevelRobustness` (kvdurablenoax's)."""
+    return raft_api_roots() + [f"Proof.{lean_pkg(KVD_MAIN)}.Results",
+                               f"Proof.{lean_pkg(KVD_MAIN)}.TopLevelRobustness"]
 
 
 def own_roots(part):
@@ -436,11 +459,12 @@ def prune_unimported(part, why, files):
                 x = f"{P}.{x}"
             importers.setdefault(x, set()).add(m)
     alive = set(texts)
+    roots = {f"{P}.{r}" for r in part.roots()}
     changed = True
     while changed:
         changed = False
         for m in sorted(alive & set(copied)):
-            if m.endswith((".Results", ".TopLevelRobustness", ".Link")):
+            if m.endswith((".Results", ".TopLevelRobustness", ".Link")) or m in roots:
                 continue
             if m.startswith((f"{P}.TrustedCode.", f"{P}.ManualProof.")) and part.sources != [""]:
                 continue  # (a translated package's, kept whether or not imported)

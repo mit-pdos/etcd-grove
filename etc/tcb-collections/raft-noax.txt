@@ -8,4 +8,7 @@
 # Checked 2026-11-18 by `etc/tcb-report.py --collection ... --check` after a full build: 0 axioms, 0 sorries
 # (the axioms Goose emits for untranslatable declarations are not counted: `#print axioms` lists 331 of them,
 # each declared in a generated `Code` module).
+# (2026-11-24) Raft's own linked results in the part (its Link.lean), the part's root once kvdurablenoax
+# retires (raft_kvnet_robust's raft is the part's).
+roots ^RaftNoAx/Proof/go_etcd_io/raft/v3/Link\.lean$
 roots ^RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/(Link|Results)\.lean$
