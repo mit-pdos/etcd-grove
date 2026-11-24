@@ -132,23 +132,23 @@ the counter), `udp_record` (token → `udpMsgAt`), `udp_boot_bump` (the sync's g
 `udpDgOk_send` (`Intact` keeps `udpDgOk`), and the reassembly lemma (the chunks of one name, all
 `udpMsgAt`-agreeing, flatten to the body).
 
-## The Link wiring (later: the kvnet lead's transport and node proofs are still landing in `Link.lean`)
+## The Link (`etc/gen-link.py --kvudp`, 2026-11-24)
 
-Each `Proof/K/<fn>.lean` declares `<fn>.wp_proof` taking its callees' specs (the files' hypotheses).
-For `etc/gen-link.py` (KvNet's list, `etc/link-lean-first-kvnet*.txt` or wherever the TCP functions
-are listed): add the 36 functions `putUint32, putHeader, putFragment, putAck, getDatagram, fragments, parseAddr,
-udpAddr, timer, udpNet.{nextSeq, expectAck, forgetAck, acked, write, newTransport, receive, stepper,
-ack, handle}, udpTransport.{start, stop, Send, dropped, writeAll, runPeer, sendSnapshot},
-newReassembler, reassembler.{add, remember}, BootFileOf, nextBoot, listenUDP, openUDP, startNodeUDP,
-RunUDP, RunNodeUDP`. The parametrized ones are linked at kvnet's instantiation: `udpNet.receive`,
-`udpNet.stepper` at `F rep stp` (as `Node.servePeer`); `startNodeUDP` at `(γ vs dir)` (as
-`StartNode`: `kvFacts γ (fun _ => True)`, `kvRep γ vs dir`, `kvConfRead`, `kvStp γ vs dir`,
-`kvNodeStart γ vs dir`, callees `startNode`, `start`, `stopIncarnation` at the same, `openUDP`,
-`udpNet.newTransport`); `RunUDP`, `RunNodeUDP` at `F rep cf S` (as `Run`, `RunNode`). Perennial callees
-not yet hypotheses (phase 2 adds them): `time.Sleep`, `time.AfterFunc` (as `listen.lean`, via
-`Perennial.Proof.time.Link`), `littleEndian.Uint32/Uint64/PutUint32`. (The Go used
-`binary.LittleEndian.AppendUint32`, which has no Perennial spec; it now calls a helper `putUint32`,
-`PutUint32` into a `[4]byte` then `append`, as `putUint64`: commit `4d73d2d950`.)
+`KvNet/Proof/K/cmd/kvudp/Link.lean` is generated (`etc/link_kvnet.py`, `udp=True`): its roots are the
+part's own proofs whose section has `[HasExt udpExt]`, and the pure helpers `UDP_PURE`; the kvnet
+proofs they reach (`startNode`, `start`, `Node.stepPeer`, `Node.accept`, ...) are linked again under
+the UDP section's instances. `--kvnet` leaves the UDP proofs out of its roots, so kvnet's `Link.lean`
+is unchanged (its result statements would otherwise all need `[HasExt udpExt]`, which kvnet's
+`[netExt, fsExt]` lacks). Generic proofs are linked at the store's instantiation (`INST`):
+`udpNet.receive`, `udpNet.stepper` at `kvFacts γ _`, `kvRep γ vs dir`, `kvStp γ vs dir`; `RunUDP`,
+`RunNodeUDP` as `Run`, `RunNode`; `startNodeUDP`'s proof is concrete. The three `net` UDP specs have no
+linked result in the part yet (their proofs are `Net/`'s, `udp-net`): hypotheses `h_net_ListenUDP`,
+`h_net_UDPConn_WriteToUDP`, `h_net_UDPConn_ReadFromUDP` of the results that reach them. The top-level
+proof module imports this `Link`. Perennial callees not yet hypotheses of the proofs (phase 2 adds them
+where needed): `time.Sleep`, `time.AfterFunc` (as `listen.lean`, via `Perennial.Proof.time.Link`),
+`littleEndian.Uint32/Uint64/PutUint32`. (The Go used `binary.LittleEndian.AppendUint32`, which has no
+Perennial spec; it now calls a helper `putUint32`, `PutUint32` into a `[4]byte` then `append`, as
+`putUint64`: commit `4d73d2d950`.)
 
 ## Design risks
 

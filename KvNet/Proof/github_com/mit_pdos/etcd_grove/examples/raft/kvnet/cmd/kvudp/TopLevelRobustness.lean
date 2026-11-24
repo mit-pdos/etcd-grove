@@ -18,6 +18,7 @@
 module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.cmd.kvudp.TopLevelRobustness
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.cmd.kvudp.Link
 
 @[expose] public section
 
