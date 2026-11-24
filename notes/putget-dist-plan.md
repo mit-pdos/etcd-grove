@@ -618,7 +618,7 @@ or machine that allocates the putget invariant from it: below). No fact beyond t
 `S5Draft`'s existing fields was needed.
 
 **The statement, `putgetK_safe.spec`** (`Spec/.../examples/etcd/dist/putgetk/TopLevelRobustness.lean`,
-DRAFT for review; defs `Proof/.../dist/putgetk/TopLevelDefs.lean`): `k = 3`, fixed addresses (member `i` on
+approved below; defs `Proof/.../dist/putgetk/TopLevelDefs.lean`): `k = 3`, fixed addresses (member `i` on
 `10.77.(i+1).1`, peer port 2380, client port 2379: the namespace test's). Boot programs: member `i`'s
 `putgetk.initialize' ;; Member(i, []string{peers}, []string{clients})` (the slices as goose's composite
 literal, `strSliceLit`), the client's `putgetk.initialize' ;; Client("10.77.1.1:2379") ;; ()`. Premises: putget's
@@ -627,6 +627,11 @@ per member: `etcd_putgetN.BootFacts ids ps ctxs boot` with `ids.length = 3`; `Hp
 `bootMarshal`; `commonPremises`); `Hctx`/`Hcec`; `authRecordsFit`, `backendUnderQuota`, `grpcRepliesFit`,
 `diskOk`; `σs.length = 3` with `MemberFiles i` per member and `ClientFiles`; `DistDeploy` over the six
 addresses; `HEnv`/`HEnvTok`. Bound `2 ^ 28 - 1`.
+
+**Decision (Upamanyu, 2026-11-24 06:20Z): the statement is approved.** (1) The addresses hard-coded at
+`k = 3` are fine for now (the statement for any `k` comes later). (2) The per-member premises reuse the in-process
+`putgetN`'s, already audited (`etcd_putgetN.BootFacts`, `premises` at `bootPremise`/`bootMarshal`/`commonPremises`):
+keep reusing audited trusted definitions rather than writing new ones.
 
 **The skeleton** (`Proof/.../dist/putgetk/TopLevelRobustness.lean`): `putgetK_safe_of_boot (HS : PutgetKBoot)
 : putgetK_safe.spec`, proved by `robust_of_distBootIL`, as `putget_safe_of_boot`. No axiom, no `sorry`.

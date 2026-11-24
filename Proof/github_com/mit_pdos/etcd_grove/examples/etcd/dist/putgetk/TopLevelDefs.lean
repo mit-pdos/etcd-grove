@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/dist/putgetk`: the definitions `putgetK_safe`'s statement is written in (DRAFT for review)
+# `etcd/dist/putgetk`: the definitions `putgetK_safe`'s statement is written in (approved 2026-11-24: `notes/putget-dist-plan.md` §13)
 
 `putgetK_safe` (`Spec/.../examples/etcd/dist/putgetk/TopLevelRobustness.lean`, `notes/putget-dist-plan.md`
 §13) is about `k = 3` member machines and one client machine, none of which crashes: member `i`'s machine

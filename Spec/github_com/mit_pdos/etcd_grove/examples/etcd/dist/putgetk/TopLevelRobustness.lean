@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/dist/putgetk`: `putgetK_safe` at `k = 3`, stated (DRAFT for review)
+# `etcd/dist/putgetk`: `putgetK_safe` at `k = 3`, stated (approved 2026-11-24: `notes/putget-dist-plan.md` §13)
 
 **Three etcd members, each on a machine of its own, and one client on another** (`notes/putget-dist-plan.md`
 §13: `putget_safe`, `Spec/.../examples/etcd/dist/putget/TopLevelRobustness.lean`, with a cluster of `k`
