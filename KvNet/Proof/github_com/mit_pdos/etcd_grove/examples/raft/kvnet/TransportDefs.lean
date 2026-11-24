@@ -11,7 +11,7 @@ the specs of `Transport.*`, `Node.serve`/`serveClient`/`handle`.
   and addressed to `id`, is one `node.Step` takes (`stepIn`). Its proof is raft's `stepIn_intro`
   (with `msgCredits`, `snapLocalMsg`, the sent token) at `F`'s instance, after decision B.
 * `isTransportCore F t γ N id n` (persistent): the transport's id, its node (`isNode n γ N id`, the
-  interface over `*node` at `n`), its stats, and its stop channel (2026-11-24, G5: `stop` closes it,
+  interface over `*node` at `n`, untraced: `node.ReportSnapshot`'s premise), its stats, and its stop channel (2026-11-24, G5: `stop` closes it,
   the senders return; `isTransportStop`, whose closer `transportStopper` `newTransport` gives).
 * `qElem F pid m` (the peer queue's element, `Transport.enqueue`/`runPeer`): a message for the peer
   `pid` (`msgPtsC`, at any fractions), with its fact `F.msgOk src st` and a length a frame can carry:
@@ -90,7 +90,7 @@ def isTransportCore (F : KvFacts GF) (t : Loc) (γ : Cluster) (N : Namespace) (i
     t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"node"] ↦□
       interface.mkOk (go.GoType.PointerType node.ty) #n.loc ∗
     t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"stats"] ↦□ sp ∗
-    isStats sp ∗ isNode n γ N id ∗ isTransportStop t sc γsc)
+    isStats sp ∗ isNode n γ N id ∗ ⌜Cluster.trace γ = none⌝ ∗ isTransportStop t sc γsc)
 
 /-- A peer's sender `p` (see the file header): its id, its address with its protocols. -/
 def isPeerAddr (F : KvFacts GF) (p : Loc) (pid : w64) (a : GoString) : IProp GF :=
