@@ -55,7 +55,7 @@ proves safe that panics) instead of working around it.
 
 Changes to the system's Go code under `{{GO_DIR}}`: {{CODE_CHANGES}}. Where allowed, each is a fix of a
 bug the deployment's test can trigger, committed with a failing-then-passing Go test, and never a
-change to the orchestrator, the model or the codec. Prophecy patches
+change to the driver, the driver's model or the codec. Prophecy patches
 (`etc/proph-patches/dsv-{{KIT}}/`) are allowed when they pass `etc/prophcheck`.
 
 ## Building and checking

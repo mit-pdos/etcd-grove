@@ -10,8 +10,8 @@ system deployed over the network, and the goal to prove about it. Its `CLAUDE.md
   configuration (`PKGS`, `PROGRAMS`, `HYP_INITS`, ...) and, if the kit uses the generator, its
   `KITGEN` section (`SETUP.md`). `etc/dsv/README.md` documents every name.
 - **The Go program** under `examples/dsverify/<kit>/` (a Go module of its own): the system's code,
-  and the kit package with its machines: an orchestrator (`Orch`), client machines (`Client(c)`),
-  server machines (`Server(id)`), each with a command `cmd/<machine>/main.go`. The orchestrator
+  and the kit package with its machines: a driver (`Orch`), client machines (`Client(c)`),
+  server machines (`Server(id)`), each with a command `cmd/<machine>/main.go`. The driver
   drives the clients through `examples/lib/remote` and panics unless porcupine accepts the history
   (`NET.md`, `TESTING.md`).
 - **The translation**: `Dsverify/Code/`, `Dsverify/GeneratedProof/` (Goose's output) and any
@@ -38,7 +38,7 @@ system deployed over the network, and the goal to prove about it. Its `CLAUDE.md
 - the statement file, every premise class it names (its `class` and the definitions it is written
   in), `TopLevelDefs.lean`, the non-vacuity module;
 - the environment: `Net/`, `Robustness/`, the main tree, Perennial, `examples/lib/` (remote,
-  lintest), the kit's orchestrator, model and codec (what the statement's "porcupine accepts every
+  lintest), the kit's driver, the driver's model and codec (what the statement's "porcupine accepts every
   history" means);
 - `etc/` scripts other than the kit file; the kit file's statement and premise parts
   (`KITGEN`'s `statement`, `defs`, `HYP_INITS`).

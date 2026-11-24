@@ -44,7 +44,7 @@ In a challenge the top-level statement, its premises and the program it is about
 (`CHALLENGE.md`): Scope does not choose them, and nothing you learn changes them. It records what
 they mean, so that every later statement is written against the right target:
 
-- **The configuration** the program covers: the machines, what the orchestrator chooses at random
+- **The configuration** the program covers: the machines, what the driver chooses at random
   and over which ranges, the workload, the faults the network model allows (`NET.md`), and what the
   statement leaves out (crashes, liveness, configurations outside the ranges). Read it off the Go,
   not the prose.
@@ -54,7 +54,7 @@ they mean, so that every later statement is written against the right target:
   proofs.
 - **What every case breaks**: list the paths the program can take that the obvious invariant rules
   out (a leader change, a recovery, a retried read, an unknown write, a configuration the
-  orchestrator may choose): each is a design decision better made now than in the middle of the
+  driver may choose): each is a design decision better made now than in the middle of the
   interface's plumbing.
 - **Bugs in the target**: read the in-scope code for bugs, and write each finding's failing Go test
   (`TRUST.md`, "Findings"). Then a **stress test with direct checks** (required, timeboxed to about 20
@@ -242,7 +242,7 @@ depend on the answer.
 
 *Where, and what counts as approved.* Make the stage's worktree and branch at Scope, not at the freeze,
 so `questions.md` is always at the worktree's root, where every agent on the branch and the
-orchestrator find it. An entry marked "approved by the user, <date>, via <session>" (or "vetoed") is
+driver find it. An entry marked "approved by the user, <date>, via <session>" (or "vetoed") is
 the user's decision: agents act on it without asking again. An approval given anywhere else (a dialog,
 a chat) is first copied into `questions.md` in that form by whoever received it; agents act on the
 file, not on relayed messages.
