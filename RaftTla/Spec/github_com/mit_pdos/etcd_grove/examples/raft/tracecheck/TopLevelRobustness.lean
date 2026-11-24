@@ -39,20 +39,21 @@ variable [go_gctx : GoGlobalContext]
 /-- **`raft_tracecheck_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `raft_tracecheck_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 61 - 3` steps along which fewer than `2 ^ 31` threads are live, no
-thread is stuck and none has an unrecovered panic. (2026-11-24) The bootstrap log is
-`tracecheck.bootLog 3`, the bytes Go computes (until then a premise `boot` with its pure facts
-`tracecheck.BootLogFacts boot`, unprovable while the decoder was opaque); `Hprem` is `proto.Marshal`'s
+execution of fewer than `2 ^ 61 - 5` steps along which fewer than `2 ^ 31` threads are live, no
+thread is stuck and none has an unrecovered panic. (2026-11-24) `Main` draws the number of voters, `1 + below(5)` (until then three), and the
+bootstrap log of `nv` voters is `tracecheck.bootLog nv`, the bytes Go computes (until then a premise
+`boot` with its pure facts `tracecheck.BootLogFacts boot`, unprovable while the decoder was opaque);
+`Hprem` is, at each size `Main` can draw, `proto.Marshal`'s
 contract at its conf changes (`tracecheck.premises_of_marshal`). -/
 def raft_tracecheck_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
-    (Hprem : ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) (tracecheck.bootLog 3))
+    (Hprem : ∀ nv : Nat, 1 ≤ nv → nv ≤ tracecheck.maxNodes → ∀ hG : HeapGS .hasLC tcGF,
+      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) nv (tracecheck.bootLog nv))
     (σ : state) (g : GlobalState),
     Robustness.Robust [] [(tracecheckProgram, σ)] g (threads := 2 ^ 31)
-      (bound := 2 ^ 61 - 3)
+      (bound := 2 ^ 61 - 5)
 
 end closed
 end EtcdGrove

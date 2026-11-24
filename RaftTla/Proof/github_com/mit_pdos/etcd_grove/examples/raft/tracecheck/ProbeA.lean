@@ -52,6 +52,7 @@ public import RaftTla.Spec.go_etcd_io.raft.v3.node__Step
 public import RaftTla.Proof.go_etcd_io.raft.v3.TracedNodeApi
 public import RaftTla.Proof.go_etcd_io.raft.v3.ConfchangeApi
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvTraceLogger
+public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Defs
 
 @[expose] public section
 
@@ -71,13 +72,14 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
 section defs
 variable [GooseExts]
 
-/-- The three voters (`concurrent.go`: `Peer{ID: i}` for `i = 1, 2, 3`). -/
-abbrev tcVoters : List w64 := [W64 1, W64 2, W64 3]
+/-- The `n` voters (`concurrent.go`: `Peer{ID: i}` for `i = 1 … n`; 2026-11-24: `n` is `Main`'s draw,
+until then `3`). -/
+abbrev tcVoters (n : Nat) : List w64 := tracecheck.bootVoters n
 /-- Their bootstrap contexts (nil). -/
-abbrev tcCtxs : List (List w8) := [[], [], []]
+abbrev tcCtxs (n : Nat) : List (List w8) := List.replicate n []
 
 /-- `tracecheck.BootLogFacts` (§1.1). -/
-abbrev BootLogFacts (boot : List LogEntry) : Prop := BootLog tcVoters tcCtxs boot
+abbrev BootLogFacts (n : Nat) (boot : List LogEntry) : Prop := tracecheck.BootLogFacts n boot
 
 theorem w32_2_ne_0 : W32 2 ≠ W32 0 := by decide
 theorem w32_2_ne_1 : W32 2 ≠ W32 1 := by decide
@@ -122,33 +124,40 @@ instance tcSnapsInv_persistent (γ : Cluster) : Persistent (tcSnapsInv (GF := GF
 
 /-! ## 1. Allocation (§2.2's first rows): `harness_alloc`, then the harness's invariants -/
 
-theorem tcVoters_facts :
-    tcVoters ≠ [] ∧ tcVoters.Nodup ∧ W64 0 ∉ tcVoters ∧ (tcVoters.length : Int) < 2 ^ 62 ∧
-      tcVoters.length < 2 ^ 40 := by
-  refine ⟨by simp, ?_, ?_, by simp, by simp⟩
-  · simp only [List.nodup_cons, List.mem_cons, List.not_mem_nil, List.nodup_nil]
-    refine ⟨?_, ?_, ?_, trivial⟩ <;> (try simp only [or_false]) <;> (intro h; rcases h with h | h <;> revert h <;> decide)
-  · simp only [List.mem_cons, List.not_mem_nil, or_false]
-    rintro (h | h | h) <;> revert h <;> decide
+theorem tcVoters_length (n : Nat) : (tcVoters n).length = n := by
+  simp [tcVoters, tracecheck.bootVoters]
+
+theorem tcVoters_facts (n : Nat) (h1 : 1 ≤ n) (h5 : n ≤ tracecheck.maxNodes) :
+    tcVoters n ≠ [] ∧ (tcVoters n).Nodup ∧ W64 0 ∉ tcVoters n ∧ ((tcVoters n).length : Int) < 2 ^ 62 ∧
+      (tcVoters n).length < 2 ^ 40 := by
+  have hl := tcVoters_length n
+  unfold tracecheck.maxNodes at h5
+  refine ⟨?_, ?_, ?_, by rw [hl]; omega, by rw [hl]; omega⟩
+  · intro h; rw [h] at hl; simp at hl; omega
+  · rcases (by omega : n = 1 ∨ n = 2 ∨ n = 3 ∨ n = 4 ∨ n = 5) with rfl | rfl | rfl | rfl | rfl <;>
+      decide
+  · rcases (by omega : n = 1 ∨ n = 2 ∨ n = 3 ∨ n = 4 ∨ n = 5) with rfl | rfl | rfl | rfl | rfl <;>
+      decide
 
 /-- **The harness's allocation, with its invariants** (§2.2): `harness_alloc` at the three voters,
 then `tcOpsInv` from `ownCommittedOps γ boot`, `confPolicy` from `ownConfDecisions γ ∅`
 (`confPolicy_alloc`), `tcSnapsInv` from `ownSnapsMade γ []`. Each comes out of `harness_alloc`'s post
 as the design says. -/
-theorem probeA_alloc (N : Namespace) (boot : List LogEntry) (γt : GName) (E : CoPset)
-    (hE : ↑N ⊆ E) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (HB : BootLogFacts boot) :
-    ⊢ bootMarshal (GF := GF) tcVoters tcCtxs (LogEntry.toEntries boot 0) -∗ traceFrag γt [] ={E}=∗
+theorem probeA_alloc (N : Namespace) (n : Nat) (h1 : 1 ≤ n) (h5 : n ≤ tracecheck.maxNodes)
+    (boot : List LogEntry) (γt : GName) (E : CoPset)
+    (hE : ↑N ⊆ E) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (HB : BootLogFacts n boot) :
+    ⊢ bootMarshal (GF := GF) (tcVoters n) (tcCtxs n) (LogEntry.toEntries boot 0) -∗ traceFrag γt [] ={E}=∗
       ∃ (γ : Cluster) (γd : GName) (tn : TraceNames),
-        ⌜Cluster.trace γ = some γd ∧ tn.tr = γt ∧ tn.voters = tcVoters ∧
+        ⌜Cluster.trace γ = some γd ∧ tn.tr = γt ∧ tn.voters = tcVoters n ∧
           γ.snapLoc = (fun _ => none) ∧ γ.dup = false ∧ γ.bootLen = boot.length ∧
           γ.maxData = none⌝ ∗
-        traceDir γd tn ∗ Cluster.traceSim γ tcVoters tn ∗ isCluster γ N ∗
+        traceDir γd tn ∗ Cluster.traceSim γ (tcVoters n) tn ∗ isCluster γ N ∗
         tcOpsInv γ boot ∗ confPolicy γ tcConfN tcRule ∗ tcSnapsInv γ ∗
-        confAt γ 0 (Membership.simple (GMap.listToSet tcVoters)) ∗ isCommittedLogLb γ boot ∗
-        [∗list] i ∈ tcVoters, voterStart γ N tcVoters tcCtxs tn i := by
-  obtain ⟨Hne, Hnd, Hnz, Hlen, -⟩ := tcVoters_facts
+        confAt γ 0 (Membership.simple (GMap.listToSet (tcVoters n))) ∗ isCommittedLogLb γ boot ∗
+        [∗list] i ∈ tcVoters n, voterStart γ N (tcVoters n) (tcCtxs n) tn i := by
+  obtain ⟨Hne, Hnd, Hnz, Hlen, -⟩ := tcVoters_facts n h1 h5
   iintro #Hm Hfr
-  imod harness_alloc (GF := GF) N tcVoters tcCtxs boot γt E hE Hrb Hne Hnd Hnz Hlen HB $$ Hm Hfr
+  imod harness_alloc (GF := GF) N (tcVoters n) (tcCtxs n) boot γt E hE Hrb Hne Hnd Hnz Hlen HB $$ Hm Hfr
     with ⟨%γ, %γd, %tn, %Hγ, #Hd, #Hinv, Hops, -, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hvs⟩
   obtain ⟨Htr, Htn, Hvs', Hdup, Hsl, Hbl, Hmd⟩ := Hγ
   imod inv_alloc tcOpsN E (tcOpsBody (GF := GF) γ boot) $$ [Hops] with #Hops
@@ -172,44 +181,36 @@ theorem probeA_alloc (N : Namespace) (boot : List LogEntry) (γt : GName) (E : C
 /-- **A voter's `StartNode` precondition from its part** (`voterStart`, `startTraceC_intro`): the
 `nodeBoot`, durable state and vacant slot `StartNode.tracedSpec` takes, and its `startTraceC γ vs cv`
 for a configuration of the voter's id logging to the names' trace. -/
-theorem probeA_startPre (γ : Cluster) (N : Namespace) (γd : GName) (tn : TraceNames) (cv : Config)
-    (Htr : Cluster.trace γ = some γd) (Hvs : tn.voters = tcVoters) (Hpv : cv.PreVote' = false)
+theorem probeA_startPre (n : Nat) (γ : Cluster) (N : Namespace) (γd : GName) (tn : TraceNames) (cv : Config)
+    (Htr : Cluster.trace γ = some γd) (Hvs : tn.voters = tcVoters n) (Hpv : cv.PreVote' = false)
     (Hcq : cv.CheckQuorum' = false) (Hnil : cv.TraceLogger' ≠ interface.nil)
     (Hfit : receiptBound GF + max γ.bootLen 2 ≤ 2 ^ 61) :
-    ⊢ voterStart (GF := GF) γ N tcVoters tcCtxs tn cv.ID' -∗ traceDir γd tn -∗
-      Cluster.traceSim γ tcVoters tn -∗ isTraceLogger tn.tr cv.TraceLogger' -∗
-      nodeBoot γ N tcVoters tcCtxs cv.ID' ∗ nodeVacant γ cv.ID' ∗ raftState γ cv.ID' RaftState.init ∗
-        startTraceC γ N tcVoters cv := by
+    ⊢ voterStart (GF := GF) γ N (tcVoters n) (tcCtxs n) tn cv.ID' -∗ traceDir γd tn -∗
+      Cluster.traceSim γ (tcVoters n) tn -∗ isTraceLogger tn.tr cv.TraceLogger' -∗
+      nodeBoot γ N (tcVoters n) (tcCtxs n) cv.ID' ∗ nodeVacant γ cv.ID' ∗ raftState γ cv.ID' RaftState.init ∗
+        startTraceC γ N (tcVoters n) cv := by
   iintro Hv #Hd #Hinv #Hlog
   unfold voterStart
   icases Hv with ⟨#Hb, ⟨Hrs, Hvac⟩, Hsh, Hbt⟩
   iframe Hb Hrs Hvac
-  iapply startTraceC_intro γ γd tn tcVoters cv Htr Hvs Hpv Hcq (by simp) Hnil N Hfit
+  iapply startTraceC_intro γ γd tn (tcVoters n) cv Htr Hvs Hpv Hcq (by simp) Hnil N Hfit
     $$ Hd Hinv Hlog Hsh Hbt
 
-/-- **The end of the run** (§2.2's last row): the three `StartNode`s' `startDone`s, one voter's
+/-- **The end of the run** (§2.2's last row): the `StartNode`s' `startDone`s, one voter's
 `nodeBoot`, the directory and the simulation's invariant give `runOver c` (`runOver_intro`, at the
-three voters: fewer than `2^40` and than `numBound`). -/
-theorem probeA_end (c r : Loc) (γ : Cluster) (N : Namespace) (γd : GName) (tn : TraceNames)
+`n ≤ maxNodes` voters: fewer than `2^40` and than `numBound`). -/
+theorem probeA_end (n : Nat) (h1 : 1 ≤ n) (h5 : n ≤ tracecheck.maxNodes) (c r : Loc) (γ : Cluster)
+    (N : Namespace) (γd : GName) (tn : TraceNames) (id : w64)
     (htr : Cluster.trace γ = some γd) :
     ⊢ c.[G.Cluster, go!"rec"] ↦□ r -∗ isSyncRecorder (GF := GF) tn.tr r -∗
-      nodeBoot γ N tcVoters tcCtxs (W64 1) -∗ traceDir γd tn -∗ Cluster.traceSim γ tcVoters tn -∗
-      startDone γ (W64 1) -∗ startDone γ (W64 2) -∗ startDone γ (W64 3) -∗ runOver c := by
-  iintro #Hc #Hr #Hb #Hd #Hinv #H1 #H2 #H3
-  iapply runOver_intro c r γ N tcVoters tcCtxs (W64 1) γd tn htr (by simp) (by simp)
-    (by simp [Etcdraft.numBound]) $$ Hc Hr Hb Hd Hinv
-  imodintro
-  iapply (BigSepL.bigSepL_cons (Φ := fun _ i => startDone (GF := GF) γ i)).2
-  isplitr
-  · iexact H1
-  iapply (BigSepL.bigSepL_cons (Φ := fun _ i => startDone (GF := GF) γ i)).2
-  isplitr
-  · iexact H2
-  iapply (BigSepL.bigSepL_cons (Φ := fun _ i => startDone (GF := GF) γ i)).2
-  isplitr
-  · iexact H3
-  iapply (BigSepL.bigSepL_nil (Φ := fun _ i => startDone (GF := GF) γ i)).2
-  iempintro
+      nodeBoot γ N (tcVoters n) (tcCtxs n) id -∗ traceDir γd tn -∗ Cluster.traceSim γ (tcVoters n) tn -∗
+      □ ([∗list] i ∈ tcVoters n, startDone γ i) -∗ runOver c := by
+  obtain ⟨Hne, -, -, -, Hl40⟩ := tcVoters_facts n h1 h5
+  have hl := tcVoters_length n
+  unfold tracecheck.maxNodes at h5
+  iintro #Hc #Hr #Hb #Hd #Hinv #Hs
+  iapply runOver_intro c r γ N (tcVoters n) (tcCtxs n) id γd tn htr Hne Hl40
+    (by rw [hl]; unfold Etcdraft.numBound; omega) $$ Hc Hr Hb Hd Hinv Hs
 
 /-! ## 2. `handleReady`'s refutations and its `ConfChangeV2` arm (§2.3, A6) -/
 
@@ -235,7 +236,7 @@ theorem probeA_noSnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st
 `ConfChangeV2`, from `tcOpsInv`'s clause and the committed operations' prefix (`ownCommittedOps_lb_prefix`):
 not a filler (type `2`), not empty, it would be a requested entry, so in `boot` (whose entries are
 `AddNode`s, type `1`: `BootLog`) or past it (the proposer's, type `0`). No position argument is needed. -/
-theorem tc_emptyV2 (boot ops l : List LogEntry) (e : LogEntry) (HB : BootLogFacts boot)
+theorem tc_emptyV2 (boot ops l : List LogEntry) (e : LogEntry) {n : Nat} (HB : BootLogFacts n boot)
     (hops : boot <+: ops ∧ ∀ op ∈ ops.drop boot.length, op.type = W32 0) (hpre : opsOf l <+: ops)
     (he : e ∈ l) (ht : e.type = W32 2) : e.isEmptyV2 := by
   by_cases hne : e.isEmptyV2
@@ -258,7 +259,7 @@ theorem tc_emptyV2 (boot ops l : List LogEntry) (e : LogEntry) (HB : BootLogFact
 
 /-- **The committed entries of type `2` are empty `ConfChangeV2`s** (the design's `tc_confShaped`,
 in the form the arm uses): `tcOpsInv` opened, `ownCommittedOps_lb_prefix`, `tc_emptyV2`. -/
-theorem tcOps_emptyV2 (γ : Cluster) (boot l : List LogEntry) (E : CoPset) (HB : BootLogFacts boot)
+theorem tcOps_emptyV2 (γ : Cluster) (boot l : List LogEntry) (E : CoPset) {n : Nat} (HB : BootLogFacts n boot)
     (hE : ↑tcOpsN ⊆ E) :
     ⊢ tcOpsInv (GF := GF) γ boot -∗ isCommittedLogLb γ l ={E}=∗
       ⌜∀ e ∈ l, e.type = W32 2 → e.isEmptyV2⌝ := by
@@ -277,7 +278,7 @@ theorem tcOps_emptyV2 (γ : Cluster) (boot l : List LogEntry) (E : CoPset) (HB :
 
 /-- The bootstrap log's entries are requested entries (type `1`: no filler, no empty
 `ConfChangeV2`). -/
-theorem opsOf_boot_append (boot x : List LogEntry) (HB : BootLogFacts boot) :
+theorem opsOf_boot_append (boot x : List LogEntry) {n : Nat} (HB : BootLogFacts n boot) :
     opsOf (boot ++ x) = boot ++ opsOf x := by
   unfold opsOf
   rw [List.filter_append]
@@ -293,7 +294,7 @@ theorem opsOf_boot_append (boot x : List LogEntry) (HB : BootLogFacts boot) :
 /-- **A committed `ConfChange` (type `1`) is at a bootstrap position** (A6's `ConfChange` arm: "past the
 bootstrap log, impossible"): past `boot` the requested entries are the proposer's (type `0`), and a
 type-`1` entry is a requested one. Positional, through the prefix `opsOf l <+: ops`. -/
-theorem tc_v1_boot (boot ops l : List LogEntry) (k : Nat) (e : LogEntry) (HB : BootLogFacts boot)
+theorem tc_v1_boot (boot ops l : List LogEntry) (k : Nat) (e : LogEntry) {n : Nat} (HB : BootLogFacts n boot)
     (hops : boot <+: ops ∧ ∀ op ∈ ops.drop boot.length, op.type = W32 0) (hpre : opsOf l <+: ops)
     (hbl : boot <+: l) (hk : l[k]? = some e) (ht : e.type = W32 1) : k < boot.length := by
   by_cases hlt : k < boot.length
@@ -318,7 +319,7 @@ theorem tc_v1_boot (boot ops l : List LogEntry) (k : Nat) (e : LogEntry) (HB : B
 `ownCommittedOps_lb_prefix`, the committed log's agreement with `boot`). At such a position the entry is
 the voter's `AddNode` (`BootLogFacts`), and `Membership.applyChange_addVoter` gives the step at the
 simple membership of the voters: A6's `ConfChange` arm needs nothing else. -/
-theorem tcOps_v1_boot (γ : Cluster) (boot l : List LogEntry) (E : CoPset) (HB : BootLogFacts boot)
+theorem tcOps_v1_boot (γ : Cluster) (boot l : List LogEntry) (E : CoPset) {n : Nat} (HB : BootLogFacts n boot)
     (hE : ↑tcOpsN ⊆ E) :
     ⊢ tcOpsInv (GF := GF) γ boot -∗ isCommittedLogLb γ boot -∗ isCommittedLogLb γ l ={E}=∗
       ⌜∀ (k : Nat) (e : LogEntry), l[k]? = some e → e.type = W32 1 → k < boot.length⌝ := by
@@ -349,7 +350,7 @@ applies (`Membership.applyChange_leaveJoint`, the probe's P1, at the membership'
 `confAt_restorable`), and `confPolicy_decide` records `.apply` of it: `node.ApplyConfChange.spec`'s
 `confDecided` and its two `applyChange` premises (`o = o'`, at the view's membership `m`). -/
 theorem probeA_confV2 (γ : Cluster) (N : Namespace) (boot l : List LogEntry)
-    (k : Nat) (e : LogEntry) (m : Membership) (E : CoPset) (HB : BootLogFacts boot)
+    (k : Nat) (e : LogEntry) (m : Membership) (E : CoPset) {n : Nat} (HB : BootLogFacts n boot)
     (hk : l[k]? = some e) (ht : e.type = W32 2) (hE1 : ↑tcOpsN ⊆ E) (hE2 : ↑tcConfN ⊆ E) :
     ⊢ isCluster (GF := GF) γ N -∗ tcOpsInv γ boot -∗ confPolicy γ tcConfN tcRule -∗
       isCommittedLogLb γ l -∗ confAt γ k m ={E}=∗
