@@ -868,7 +868,9 @@ EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoStri
 # (`lessorApplyOk`, `etcdserver/SnapRO.lean`), a section variable (its `LEAN_FIRST` entry above)
 NAMESPACED["--mvccrand"] = "mvccrand"
 EXTRA_IMPORTS["--mvccrand"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
-                               "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link"]
+                               "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
+                               # (P3, 2026-11-24) `absent`'s `errors.Is` (an `=` callee)
+                               "Proof.errors.IsPathErrnoNotExist"]
 EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]\n"
                             "variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]\n")
 # mvcc's full tester (examples/mvccfull, F1 Draft, 2026-11-09): as mvccrand's, and the lessor's
@@ -878,7 +880,9 @@ EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api
                                "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
                                "Proof.sort.SortAnyLessLinked",
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
-                               "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
+                               "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults",
+                               # (P3, 2026-11-24) `absent`'s `errors.Is` (an `=` callee)
+                               "Proof.errors.IsPathErrnoNotExist"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
 # (prom-registry, route (b), 2026-11-22) prometheus's `Register` is proved over the real registry's
 # `(*Registry).Register` (`=` callee of v3rpc's `prometheus_Register`)

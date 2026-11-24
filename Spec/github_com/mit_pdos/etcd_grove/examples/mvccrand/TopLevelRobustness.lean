@@ -16,7 +16,6 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TopLevelDefs
 public import Spec.sort.Slice
-public import GooseLang.Ext.Fs.PathFitsLemmas
 
 @[expose] public section
 
@@ -45,7 +44,10 @@ variable [go_gctx : GoGlobalContext]
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `mvccrand_adequate`'s other hypotheses: in every
 execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are live, no thread
-is stuck and none has an unrecovered panic. -/
+is stuck and none has an unrecovered panic. The directory `r` is only a root of the machine's file
+system: the program (`MainAt`) checks that it fits and that its database's name is free, and returns
+otherwise (P3 of the pure-premise plan, 2026-11-24; until then the premises `Hrfit : Fs.DirFits r`
+and `Habs`, no entry `mvccrand.db` in `r`). -/
 def mvccrand_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
@@ -56,9 +58,7 @@ def mvccrand_robust.spec : Prop :=
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (r : GoString)
     (HEnv : verifyEnvOff (mvccrandProgram r)) (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
-    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
-    (Habs : (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 go!"mvccrand.db" = none)
-    (Hrfit : Fs.DirFits r),
+    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots),
     Robustness.Robust [] [(mvccrandProgram r, σ)] g (threads := 2 ^ 28)
       (bound := 2 ^ 48)
 
