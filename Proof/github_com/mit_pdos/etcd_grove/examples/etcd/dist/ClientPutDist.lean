@@ -35,7 +35,7 @@ sets `useProxy` false and never wraps the resolver in its proxy-resolving `deleg
 dials through an HTTP `CONNECT` proxy that `HTTPS_PROXY` names; review F1, evidence `TestProxyRogue`
 and `TestWithNoProxyFix`, `notes/putget-dist-plan.md` §12): each attempt dials `ep` itself,
 deposits the call's request precondition in the connection's slot and writes the request under
-`ep`'s protocol (`etcdAddrAt`'s interpretation). `ep`'s only acceptor is the member `mid`
+`ep`'s protocol (`etcdAddrAt`'s interpretation). The only acceptor at `ep` that can answer a call is the member `mid`
 publishing at `γE` (`Serve_dist`; review 4 found this false while `bridge.New` took only `netListenerAt l a`: a program could set `etcdAddrAt ep …` and relay `ep` to an unrelated etcd; since 2026-11-24 `bridge.New` also consumes `netAddrLeft a`, which whoever sets `ep`'s table has spent, `notes/axiom-review/bridge-addrleft.md`), which instantiates the deposit at its own published view, so the
 caller's update runs at that view. The deposit is under a later (review F2): the member takes program
 steps between reading the deposit from the connection's slot and firing the update, so it strips one

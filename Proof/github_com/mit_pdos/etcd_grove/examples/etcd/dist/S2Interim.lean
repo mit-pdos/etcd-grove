@@ -212,7 +212,7 @@ published view, `grpcNoCall` for the methods no client of the theorem calls. It 
 the entries' specs need the member's apply environment from its view (`etcdEnvOf ν`, open question O1)
 and specs that take no `HeapGS` (O2). It has no law: no proof can learn an entry of it, so nothing can
 call it through grpc's own `Invoke` (`isGrpcRpcMd` needs an entry of the table at the address), and only a
-server registering no unary method serves it through `Server.Serve` (`grpcServes … [] [] []` holds
+server registering no method (unary or stream; its interceptors may be anything) serves it through `Server.Serve` (`grpcServes … [] [] []` holds
 vacuously: every call gets `Unimplemented`). A table is data, so the axiom is consistent
 (`GrpcSvc` is inhabited). Retired by S2's `etcdSvc` (the cluster id `cid` moves into the view, #24
 05:09Z). -/

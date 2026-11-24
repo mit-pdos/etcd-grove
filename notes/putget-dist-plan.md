@@ -628,3 +628,31 @@ and A5 proves its `Get` returns `v`: Go panics (`scratch/pgint-review/gocx`, 5/5
   it. A local alternative, `etcdAddr_set` also spending `addrClaim a`, does not fit: the distributed start hands out
   only `addrUnset`. Until decided the branch does not land; the docstrings say "known false".
 
+- **Decided (2026-11-24, the coordinator):** the proposed fix, on its own branch `bridge-new-addrleft/2026-11-24`
+  (queued to land), merged here. A second review found the hole on `lean` itself, with no interim axiom (the table set
+  to etcd's KV entries at fabricated names; the proved `client_Get_own` over `Invoke`; `examples/axiomcx/bridgeinvoke/`);
+  `notes/axiom-review/bridge-addrleft.md`. The docstrings now record the fix.
+
+**Review 5 (2026-11-24, the `axiom` skill, on `395a24818f`, after `bridge.New`'s fix): A1, A3, A4, A5 survive.**
+- Routes tried, each blocked: a raw relay (the opaque protocols are per connection number); a grpc server at `ep`
+  through `grpc.start` (`Serve` needs `grpcServes` of the unknown table: only an empty server, which answers
+  `Unimplemented`); the bridge (it consumes `netAddrLeft a`, which neither route A nor route B leaves); loopback
+  across machines (every acceptor must meet the table's protocols); crash and restart (a restarted member has new
+  names, `envAt` is one-shot, `ep`'s table set once); two members at one `(γE, mid)` (`envAt_agree`, `mid` in the
+  table); fabricating `envAt` (no server behind it: an error) or a `putGetInv` on the real member's state (needs the
+  one client half of `etcdKV`); the proxy (F1's fix); HTTP at `ep` (Go's server answers grpc's HTTP/2 preface over
+  HTTP/1.1 with method `PRI`, so the client gets an error, which A4/A5 allow; evidence
+  `notes/axiom-review/http-register-addrleft/httph2c_main.go.txt`).
+- Docstrings corrected: A4/A5 "`ep`'s only acceptor" (others can accept, none can answer a call successfully); A3's
+  list of what another program may do at `a` (an HTTP server through `listen_au` and `http.register`), and its claim
+  covers every byte arriving at `a`, not only the calls; `etcdSvc`'s empty server registers no method, unary or stream.
+- **Found outside the targets, open (reported to the coordinator):** `http.register` (`Proof/net/http/Axioms.lean`)
+  has `bridge.New`'s pre-fix hole: it takes only `netListenerAt l a`, so a program sets `a`'s net protocols from
+  `net.Listen`'s `netAddrLeft a` to trivial ones, sends a raw `GET`, and `Serve_ok` promises the handler a request of
+  `a`'s http protocol (every request a `POST`): Go panics 5/5 (`notes/axiom-review/http-register-addrleft/`; Lean
+  sketch not built). Not in `putget_safe`'s trust base (its collection has no `http.register`/`reserve`/`Serve_ok`);
+  in the single-process `etcd-all`, `k8s-all`, `leaseexpiryN` collections. Proposed fix, as for the bridge:
+  `register` (or `reserve`) also consumes `netAddrLeft a`.
+- A lead, untested: `etcd_noRefusal`/`etcd_noOtherRefusal` (`v3rpc/NoRefusal.lean`) derive the global, pure
+  `noRefusalAt addr` from a server under construction and `netListenerAt`; with `listen_au` re-listening it may
+  outlive the server it came from.
