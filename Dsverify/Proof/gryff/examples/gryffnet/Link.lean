@@ -7,8 +7,9 @@ RemoteAddr`, `Listener.Accept`, `Listen`, `Dial`, `DialTimeout`) and dsv-bufio's
 (`Client.Call`, `SetCodec`, the package-level `Register` on `defaultServer`); `io.ReadFull`'s
 every-length form (`lib.io.ReadFull.wp_proofLt`); the kit's model (`Model.wp_proof`); remote's
 `Check`/`ServeClient`. `encoding/binary`'s varints (`binaryVarintHyps`, Perennial's proofs). What is not proved stays
-a premise (the statement's): the `InitHyp`s, `StringsIndexHyp`, `SortSliceHyp`, `MathPowHyp`, `RandSeedHyp`, `RpcHttpAddr`,
-`RpcHttpHyp`, `RpcBootHyp`. `DialHTTP` is Net's `net.rpc.DialHTTP.wp`, over Perennial's proofs of
+a premise (the statement's): the `InitHyp`s, `SortSliceHyp`, `MathPowHyp`, `RandSeedHyp`, `RpcHttpAddr`,
+`RpcHttpHyp`, `RpcBootHyp`; `StringsIndexHyp` stays a class here, discharged by the top-level proof
+(`StrIndexHolds.lean`). `DialHTTP` is Net's `net.rpc.DialHTTP.wp`, over Perennial's proofs of
 `strings.Cut`/`TrimLeft`.
 -/
 module
