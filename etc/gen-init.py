@@ -494,6 +494,22 @@ trust-boundary axioms `<X>_init`).''',
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
 
+# (phase 7 S5, 2026-11-24) net/url's character-class table `table` (`encoding_table.go`), translated:
+# an array literal of 86 keyed constants (what `shouldEscape`/`ishex` read, for the ServeMux's
+# `EscapedPath`/`PathUnescape`); its value is `encTableList` (`Proof/net/url/Escape.lean`: Go's
+# generator's reference functions), by evaluation
+SPECIAL['net.url'] = dict(
+    doc='''Its fact (`urlInit`, `url/PkgInit.lean`): `table` holds `encTableList`, the entries
+`gen_encoding_table.go` computes, read-only for good. Its initializer allocates `table`, initializes
+`strings` and stores the table's literal (phase 7 S5, 2026-11-24: translated, with `shouldEscape`,
+`unescape`, `escape`, `EscapedPath`).''',
+    alloc_types={'table': 'GoArray w8 256'},
+    before={'table': ['try wp_auto']},
+    finish=['ipersist Htable'] + FIN_PRE + ['unfold urlInit', 'iexists _; iframe Htable',
+            'ipureintro', 'set_option maxRecDepth 100000 in decide'],
+)
+
+
 # (2026-11-19) Kubernetes' conditional authorization (KEP-5681, project k8s-authz)
 SPECIAL['k8s_io.apiserver.pkg.authorization.authorizer'] = dict(
     doc='''Its fact (`authorizerInit`, `authorizer/Base.lean`): `ErrorConditionEvaluationNotSupported`

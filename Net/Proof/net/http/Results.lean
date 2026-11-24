@@ -25,6 +25,9 @@ The request's URI (2026-11-23): the model's `modelParseRequestURI` (`url.ParseRe
 The request (2026-11-23): `readRequestLimit` on net/rpc's `CONNECT` request, and
 `Server.maxHeaderValueCount`.
 
+net/url's escaping (2026-11-24, phase 7 S5; what the ServeMux runs on a request's path): `shouldEscape`,
+`ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`.
+
 The chunked writer (2026-11-24, phase 7 S5): `net/http/internal`'s `NewChunkedWriter`,
 `chunkedWriter.Write` (over Perennial's `fmt.Fprintf`) and `chunkedWriter.Close`; both methods call
 `io.WriteString`, names only at the pin (`notes/perennial-changes.md`): linked over its spec
@@ -87,6 +90,10 @@ public import Net.Proof.net.http.modelPathByte
 public import Net.Proof.net.http.parseRequestLine
 public import Net.Proof.net.http.validMethod
 public import Net.Proof.net.http.internal.NewChunkedWriter
+public import Proof.net.url.shouldEscape
+public import Proof.net.url.ishex
+public import Proof.net.url.unhex
+public import Proof.net.url.validEncoded
 public import Net.Proof.net.http.internal.chunkedWriter__Write
 public import Net.Proof.net.http.internal.chunkedWriter__Close
 public import Net.Proof.net.http.isToken
@@ -244,6 +251,26 @@ theorem chunkedWriter.Close.wp : chunkedWriter.Close.spec (GF := GF) (hG := hG) 
 end chunked
 
 end net.http.internal
+
+namespace net.url
+
+/-! ### net/url's escaping, for the ServeMux (phase 7 S5, 2026-11-24) -/
+
+section url
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.url.Assumptions]
+
+theorem shouldEscape.wp : shouldEscape.spec (GF := GF) (hG := hG) := shouldEscape.wp_proof
+theorem ishex.wp : ishex.spec (GF := GF) (hG := hG) := ishex.wp_proof
+theorem unhex.wp : unhex.spec (GF := GF) (hG := hG) := unhex.wp_proof
+theorem validEncoded.wp : validEncoded.spec (GF := GF) (hG := hG) :=
+  validEncoded.wp_proof shouldEscape.wp
+
+end url
+
+end net.url
 end Perennial
 
 #print axioms Perennial.net.http.internal.NewChunkedWriter.wp
@@ -261,3 +288,7 @@ end Perennial
 #print axioms Perennial.net.http.validMethod.wp
 #print axioms Perennial.net.http.readRequestLimit.wp
 #print axioms Perennial.net.http.Server.maxHeaderValueCount.wp
+#print axioms Perennial.net.url.shouldEscape.wp
+#print axioms Perennial.net.url.ishex.wp
+#print axioms Perennial.net.url.unhex.wp
+#print axioms Perennial.net.url.validEncoded.wp
