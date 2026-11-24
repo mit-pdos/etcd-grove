@@ -1,0 +1,7 @@
+# The receivers the gryff kit registers with net/rpc (the master's Register for the replicas, a
+# replica's Ping/BeTheLeader for the master). The codec (rpc_*gen.go) is generated from this by
+# models/net/rpc/rpcgen.py:
+#   models/net/rpc/rpcgen.py examples/dsverify/gryff/examples/gryffnet/rpc.toml examples/dsverify/gryff/examples/gryffnet --pkg gryffnet
+[rpc]
+imports = { masterlib = "gryff/src/masterlib", gryff = "gryff/src/gryff" }
+receivers = ["*masterlib.Master", "*gryff.Replica"]
