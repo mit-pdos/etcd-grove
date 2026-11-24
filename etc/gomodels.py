@@ -117,7 +117,7 @@ TESTS = [
      ["-run", "^Test(ReadAt|WriteAt|Seek|Truncate|MkdirAll|Remove|RemoveAll|Rename|Stat|Readdirnames)",
       "-skip", "^(TestWriteAtInAppendMode|TestReaddirnamesOneAtATime|TestRemoveAllWithMoreErrorThanReqSize|"
       "TestStatStdin|TestStatDirModeExec|TestSeekError|TestWriteAtConcurrent|TestRemoveAllLongPath|"
-      "TestRemoveAllSymlinkRemovalFailure|TestRemoveAllNoFcntl)$", "os"],
+      "TestRemoveAllSymlinkRemovalFailure|TestRemoveAllNoFcntl|TestRenameNotExisting)$", "os"],
      "os's tests of the modelled calls the plan lists (ReadAt, WriteAt, Seek, Truncate, MkdirAll, "
      "Remove, RemoveAll, Rename, Stat, Readdirnames); left out: what reaches gomodel.Stuck, which blocks "
      "forever in gc builds (O_APPEND: TestWriteAtInAppendMode; Readdirnames(n > 0): "
@@ -127,7 +127,9 @@ TESTS = [
      "symlinks: TestRemoveAllSymlinkRemovalFailure; paths over PATH_MAX, which RemoveAll's model names "
      "whole where Go uses the *at calls: TestRemoveAllLongPath; a strace child process: "
      "TestRemoveAllNoFcntl); concurrent Write calls, whose offset the model updates without Go's lock "
-     "(more outcomes than Go: TestWriteAtConcurrent; models/os/model.go, Write)"),
+     "(more outcomes than Go: TestWriteAtConcurrent; models/os/model.go, Write); a stub whose gc body "
+     "answers one of the model's outcomes only (fsLstatDir: EEXIST for a directory destination, where Go "
+     "answers the Lstat of oldname's error: TestRenameNotExisting)"),
     ("syscall", "Code", "project:bboltfs", ["os", "syscall"],
      ["-run", "^TestLocks(OFDConflict|OFDRemoveThenClose|OFDSameDescription|Flock|FlockVsOFD)$",
       "github.com/mit-pdos/etcd-grove/examples/osfs/semantics"],

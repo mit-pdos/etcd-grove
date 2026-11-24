@@ -185,3 +185,10 @@ func Unlink(path string) error {
 func Rmdir(path string) error {
 	return errnoErr(Errno(fsRmdir(path)))
 }
+
+// Not modelled: the environment setters (Setenv, Unsetenv, Clearenv, and the runtime's setenv hook
+// they call; os.Setenv, ... over them). They are neither translated nor modelled in this package's
+// configuration (Code/syscall.toml), so a program reaching them has no translation. A model of them
+// must be stuck when the key is "GODEBUG" (the lead's decision, 2026-11-24): Go's runtime re-parses
+// GODEBUG there, and the models that read a GODEBUG setting (time's timer channels, ...) assume it is
+// constant during the run.

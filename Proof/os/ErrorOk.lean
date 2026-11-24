@@ -149,7 +149,9 @@ theorem wp_wrapErrno_ok (op : GoString) (inner : Loc) (name : GoString) (e : w64
   wp_apply wp_modelErrno
   try wp_auto
   wp_apply wp_modelPathError_ok op name e he
-  iexact HΦ
+  iintro %pe #Hok
+  try wp_auto
+  iapply HΦ $$ Hok
 
 /-- A `*LinkError` at `le` with persistent fields `op`, `old`, `new` and an `Err` that is
 `fmtErrorOk` is `fmtErrorOk` (its `Error()`, translated, concatenates the four). -/

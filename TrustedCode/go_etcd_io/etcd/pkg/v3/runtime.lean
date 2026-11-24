@@ -25,6 +25,7 @@ module
 
 public import Perennial.Golang.Defn
 public import TrustedCode.os
+public import Code.os
 public import TrustedCode.syscall
 
 @[expose] public section
