@@ -15,6 +15,7 @@ module
 
 public import Net.GeneratedProof.net.http
 public import Perennial.Spec.sort.Search
+public import Perennial.Proof.sync.Results
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section
@@ -37,14 +38,22 @@ variable [GooseExts]
 /-- The physical state of a `serveMux121` (see the file header). -/
 structure Mux121St where
   m : GoMap
-  M : GMap GoString net.http.muxEntry
   es : GoSlice
   ents : List net.http.muxEntry
+  pats : List GoString
+
+instance muxEntry.countable : Pos.Countable net.http.muxEntry :=
+  .ofInjective (fun e => Pos.Countable.encode (e.h', e.pattern'))
+    (by rintro ⟨a, b⟩ ⟨c, d⟩ h; have h := Pos.encode_inj h; simp_all)
+
+instance Mux121St.countable : Pos.Countable Mux121St :=
+  .ofInjective (fun st => Pos.Countable.encode (st.m, st.es, st.ents, st.pats))
+    (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
 /-- What the matcher's state says of its patterns (see the file header). -/
-def Mux121St.ok (st : Mux121St) : Prop :=
-  (st.m = map.nil → st.M = ∅) ∧
-  ∀ k e, st.M !! k = some e → e.pattern' = k ∧ k.head? = some (W8 47)
+def Mux121St.ok (st : Mux121St) (M : GMap GoString net.http.muxEntry) : Prop :=
+  (st.m = map.nil → M = ∅) ∧
+  ∀ k e, M !! k = some e → e.pattern' = k ∧ k.head? = some (W8 47)
 
 /-- `appendSorted`'s list: `append`, `copy` one place down, the new entry at `i`. -/
 theorem appendSorted_list {α : Type} (ents : List α) (z e : α) (i : Nat) (hi : i < ents.length) :
@@ -135,20 +144,21 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
 
 /-- The matcher at `mux` in state `st`, at `dq` (see the file header). -/
-def rep121 (dq : DFrac) (mux : Loc) (st : Mux121St) : IProp GF :=
+def rep121 (dq : DFrac) (mux : Loc) (st : Mux121St) (M : GMap GoString net.http.muxEntry) :
+    IProp GF :=
   iprop(structFieldRef net.http.serveMux121 go!"m" mux ↦{dq} st.m ∗
     structFieldRef net.http.serveMux121 go!"es" mux ↦{dq} st.es ∗
     structFieldRef net.http.serveMux121 go!"hosts" mux ↦{dq} false ∗
     st.es ↦*{dq} st.ents ∗ ownSliceCap net.http.muxEntry st.es dq ∗
-    ⌜st.ok ∧ sortedDesc st.ents⌝ ∗
-    (if st.m = map.nil then True else st.m ↦${dq} st.M))
+    ⌜st.ok M ∧ sortedDesc st.ents⌝ ∗
+    (if st.m = map.nil then True else st.m ↦${dq} M))
 
 /-- `mux.match(path)` of a registered path: its entry. -/
-theorem wp_mux121_match_found (mux : Loc) (dq : DFrac) (st : Mux121St) (path : GoString)
-    (e : net.http.muxEntry) (he : st.M !! path = some e) :
-    {{ rep121 (GF := GF) (hG := hG) dq mux st }}
+theorem wp_mux121_match_found (mux : Loc) (dq : DFrac) (st : Mux121St) (M : GMap GoString net.http.muxEntry)
+    (path : GoString) (e : net.http.muxEntry) (he : M !! path = some e) :
+    {{ rep121 (GF := GF) (hG := hG) dq mux st M }}
       (App (Val (mux @!! go.GoType.PointerType net.http.serveMux121.ty @!! go!"match")) (Val #path))
-    {{ RET (PairV #e.h' #path); rep121 dq mux st }} := by
+    {{ RET (PairV #e.h' #path); rep121 dq mux st M }} := by
   by_cases hm : st.m = map.nil
   · simp only [rep121]
     wp_start as ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
@@ -157,7 +167,7 @@ theorem wp_mux121_match_found (mux : Loc) (dq : DFrac) (st : Mux121St) (path : G
   simp only [rep121, hm, ↓reduceIte]
   wp_start as ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
   wp_auto
-  wp_apply wp_map_lookup2 go.string net.http.muxEntry.ty st.m st.M path dq $$ HM with HM
+  wp_apply wp_map_lookup2 go.string net.http.muxEntry.ty st.m M path dq $$ HM with HM
   rw [he]
   simp only [Option.getD_some, Option.isSome_some, decide_true]
   wp_auto
@@ -168,11 +178,12 @@ theorem wp_mux121_match_found (mux : Loc) (dq : DFrac) (st : Mux121St) (path : G
 
 /-- `mux.shouldRedirectRLocked(host, path)` of a registered path: no redirect. -/
 theorem wp_mux121_shouldRedirect_found (mux : Loc) (dq : DFrac) (st : Mux121St)
-    (host path : GoString) (e : net.http.muxEntry) (he : st.M !! path = some e) :
-    {{ rep121 (GF := GF) (hG := hG) dq mux st }}
+    (M : GMap GoString net.http.muxEntry) (host path : GoString) (e : net.http.muxEntry)
+    (he : M !! path = some e) :
+    {{ rep121 (GF := GF) (hG := hG) dq mux st M }}
       (App (App (Val (mux @!! go.GoType.PointerType net.http.serveMux121.ty @!!
         go!"shouldRedirectRLocked")) (Val #host)) (Val #path))
-    {{ RET #false; rep121 dq mux st }} := by
+    {{ RET #false; rep121 dq mux st M }} := by
   by_cases hm : st.m = map.nil
   · simp only [rep121]
     wp_start as ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
@@ -197,7 +208,7 @@ theorem wp_mux121_shouldRedirect_found (mux : Loc) (dq : DFrac) (st : Mux121St)
   wp_apply wp_load_slice_index _ (sint.Z (W64 0)) [path, host ++ path] _ path (by decide) $$ [Hlit] with Hlit
   · iframe; ipureintro; rfl
   try wp_auto
-  wp_apply wp_map_lookup2 go.string net.http.muxEntry.ty st.m st.M path dq $$ HM with HM
+  wp_apply wp_map_lookup2 go.string net.http.muxEntry.ty st.m M path dq $$ HM with HM
   rw [he]
   simp only [Option.isSome_some, decide_true]
   wp_auto
@@ -345,6 +356,161 @@ theorem wp_appendSorted (wp_Search : sort.Search.spec (GF := GF) (hG := hG)) (es
       rwa [show sint.Z i = ((sint.nat i : Nat) : Int) by word] at this
     rw [← hfin]
     iframe
+
+/-- The ghost names of a `serveMux121`: its state (a ghost variable, half with the owner) and its
+routes (a ghost map, a pattern to its handler). -/
+structure Mux121Names where
+  st : GName
+  r : GName
+
+/-- The map's contents `M` are the routes `R`, each entry its pattern and handler. -/
+def mapOfRoutes (M : GMap GoString net.http.muxEntry) (R : GMap GoString GoInterface) : Prop :=
+  ∀ k, M !! k = (R !! k).map (fun h => ⟨h, k⟩)
+
+/-- The matcher's lock guards `P q` (a reader `q = rfrac`, the writer `1`). -/
+def mux121P (γ : Mux121Names) (mux : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ (st : Mux121St) (R : GMap GoString GoInterface) (M : GMap GoString net.http.muxEntry),
+    ghostVar γ.st q.half st ∗ ghostMapAuth γ.r q R ∗ rep121 (DFrac.own q) mux st M ∗
+    ⌜mapOfRoutes M R ∧ ∀ k, k ∈ st.pats ↔ (R !! k).isSome⌝)
+
+/-- After `handle` inserts `p`: the state's facts for the new map, routes and patterns. -/
+theorem mux121_insert_ok (st : Mux121St) (M : GMap GoString net.http.muxEntry)
+    (R : GMap GoString GoInterface) (p : GoString) (h : GoInterface) (m' : GoMap) (es' : GoSlice)
+    (ents' : List net.http.muxEntry) (hp : p.head? = some (W8 47)) (hm' : m' ≠ map.nil)
+    (Hok : st.ok M) (HMR : mapOfRoutes M R ∧ ∀ k, k ∈ st.pats ↔ (R !! k).isSome) :
+    Mux121St.ok { m := m', es := es', ents := ents', pats := p :: st.pats }
+        (GMap.insert p { h' := h, pattern' := p } M) ∧
+      mapOfRoutes (GMap.insert p { h' := h, pattern' := p } M) (GMap.insert p h R) ∧
+      ∀ k, k ∈ p :: st.pats ↔ ((GMap.insert p h R) !! k).isSome := by
+  refine ⟨⟨fun h0 => absurd h0 hm', ?_⟩, ?_, ?_⟩
+  · intro k e he
+    rw [GMap.lookup_insert_eq_iff] at he
+    by_cases hk : p = k
+    · subst hk; simp only [↓reduceIte, Option.some.injEq] at he; subst he; exact ⟨rfl, hp⟩
+    · simp only [hk, ↓reduceIte] at he; exact Hok.2 k e he
+  · intro k
+    rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]
+    by_cases hk : p = k
+    · subst hk; simp
+    · simp only [hk, ↓reduceIte]; exact HMR.1 k
+  · intro k
+    rw [GMap.lookup_insert_eq_iff, List.mem_cons]
+    by_cases hk : p = k
+    · subst hk; simp
+    · simp only [hk, ↓reduceIte, HMR.2 k]
+      constructor
+      · rintro (h0 | h0)
+        · exact absurd h0.symm hk
+        · exact h0
+      · intro h0; exact Or.inr h0
+
+set_option hygiene false in
+/-- The end of `wp_mux121_handle`, once the lock is given back with the new state. -/
+local macro "mux121_close " mt:term:max et:term:max nt:term:max hs:term:max : tactic => `(tactic| (
+  ihave %hm'n := ownMap_not_nil _ _ _ $$ HM
+  have Hfacts := mux121_insert_ok st M R p (GoInterface.ok hi) $mt $et $nt hp hm'n Hok.1 HMR
+  imod ghostVar_update_halves { m := $mt, es := $et, ents := $nt, pats := p :: st.pats }
+    γ.st st st $$ Hv Hv0 with ⟨Hv, Hv0⟩
+  imod ghost_map_insert_persist p (GoInterface.ok hi) hRp $$ HA with ⟨HA, #Hel⟩
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hlocked Hv0 HA Hm Hes Hh Hents Hcap HM]
+  · iframe Hlocked
+    iunfold mux121P
+    iexists { m := $mt, es := $et, ents := $nt, pats := p :: st.pats },
+      GMap.insert p (GoInterface.ok hi) R, GMap.insert p { h' := GoInterface.ok hi, pattern' := p } M
+    iframe
+    iunfold rep121
+    simp only [hm'n, ↓reduceIte]
+    iframe
+    ipureintro
+    exact ⟨⟨Hfacts.1, $hs⟩, Hfacts.2⟩
+  try wp_auto
+  iapply HΦ
+  iexists { m := $mt, es := $et, ents := $nt, pats := p :: st.pats }
+  iframe Hv
+  iframe #
+  ipureintro; rfl))
+
+set_option hygiene false in
+/-- `wp_mux121_handle` from the map's insertion on (the map at `mt`). -/
+local macro "mux121_rest " mt:term:max : tactic => `(tactic| (
+  wp_apply (wp_mapInsert (K := GoString) (V := net.http.muxEntry) go.string $mt _ p
+    { h' := GoInterface.ok hi, pattern' := p }) $$ HM as HM
+  try wp_auto
+  wp_apply wp_string_len as %Hpl
+  try wp_auto
+  have hlen1 : 1 ≤ p.length := by cases p with | nil => exact absurd rfl hpne | cons _ _ => simp
+  have hl0 : 0 ≤ sint.Z (W64 (p.length : Int) - W64 1) := by word
+  have hidx : sint.nat (W64 (p.length : Int) - W64 1) = p.length - 1 := by word
+  obtain ⟨c, hc⟩ : ∃ c, p[p.length - 1]? = some c := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  have hc0 : p[0]? = some (W8 47) := by
+    cases p with | nil => exact absurd rfl hpne | cons a l => simp at hp ⊢; exact hp
+  simp only [hl0, ↓reduceIte, hidx, hc]
+  try wp_auto
+  wp_if_destruct
+  · try wp_auto
+    wp_apply wp_appendSorted wp_Search st.es st.ents { h' := GoInterface.ok hi, pattern' := p } Hok.2
+      $$ [Hents Hcap] as %es' ⟨%i, %Hi, Hents, Hcap⟩
+    · iframe
+    try wp_auto
+    simp only [hc0]
+    try wp_auto
+    mux121_close $mt es' (st.ents.take i ++ { h' := GoInterface.ok hi, pattern' := p } :: st.ents.drop i) Hi.2
+  · try wp_auto
+    simp only [hc0]
+    try wp_auto
+    mux121_close $mt st.es st.ents Hok.2))
+
+/-- `mux.handle(p, h)` by the owner (the other half of the state): `p` registered for `h`. -/
+theorem wp_mux121_handle (wp_Search : sort.Search.spec (GF := GF) (hG := hG)) (mux : Loc)
+    (γ : Mux121Names) (st : Mux121St) (p : GoString) (h : GoInterface)
+    (hp : p.head? = some (W8 47)) (hh : h ≠ interface.nil) (hnew : p ∉ st.pats) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.sort ∗
+        sync.isRWMutexGuard (structFieldRef net.http.serveMux121 go!"mu" mux) (mux121P γ mux) ∗
+        ghostVar γ.st (1 : Qp).half st }}
+      (App (App (Val (mux @!! go.GoType.PointerType net.http.serveMux121.ty @!! go!"handle"))
+        (Val #p)) (Val #h))
+    {{ RET #(); ∃ st' : Mux121St, ghostVar γ.st (1 : Qp).half st' ∗ p ↪[γ.r]□ h ∗
+        ⌜st'.pats = p :: st.pats⌝ }} := by
+  wp_start as ⟨#Hguard, Hv⟩
+  wp_apply wp_with_defer as %defer defer
+  try wp_auto
+  wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlocked, HP⟩
+  iunfold mux121P at HP
+  icases HP with ⟨%st0, %R, %M, Hv0, HA, Hrep, %HMR⟩
+  ihave %Heq := ghostVar_agree γ.st st (1 : Qp).half st0 (1 : Qp).half $$ Hv Hv0
+  subst Heq
+  iunfold rep121 at Hrep
+  icases Hrep with ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
+  try wp_auto
+  have hpne : p ≠ [] := by intro h0; simp [h0] at hp
+  rw [decide_eq_false hpne]
+  try wp_auto
+  obtain ⟨hi, rfl⟩ : ∃ i, h = GoInterface.ok i := by
+    cases h with
+    | nil => exact absurd rfl hh
+    | ok i => exact ⟨i, rfl⟩
+  try wp_auto
+  have hRp : R !! p = none := by
+    have h1 : ¬ (R !! p).isSome = true := fun h0 => hnew ((HMR.2 p).mpr h0)
+    cases hr : R !! p with
+    | none => rfl
+    | some _ => simp [hr] at h1
+  have hMp : M !! p = none := by rw [HMR.1 p, hRp]; rfl
+  by_cases hmn : st.m = map.nil
+  · irevert HM; simp only [hmn, ↓reduceIte]; iintro -
+    have hM0 : M = ∅ := Hok.1.1 hmn
+    try wp_auto
+    wp_apply (wp_map_make1 (K := GoString) (V := net.http.muxEntry) _ _) as %m' HM
+    irevert HM; rw [← hM0]; iintro HM
+    try wp_auto
+    mux121_rest m'
+  · irevert HM; simp only [hmn, ↓reduceIte]; iintro HM
+    wp_apply wp_map_lookup2 go.string net.http.muxEntry.ty st.m M p (DFrac.own 1) $$ HM with HM
+    rw [hMp]
+    try wp_auto
+    rw [decide_eq_false hmn]
+    try wp_auto
+    mux121_rest st.m
 
 end defs
 
