@@ -1,21 +1,28 @@
 /-
-**The crash bridge over any list of extensions with the net and Linux file extensions** (etcd-dist
-stage D4c, `notes/etcd-dist-plan.md` §12; proved, untrusted): `NetFsBridge.lean`'s
-`robust_of_netFsBoot{,_addrs}` (hard-wired to `[netExt, fsExt]` at `fs_semantics`) for a bundle of
-extensions given by its instances, so that it applies to etcd's `[idIssueExt, fsExt at etcdFsSem,
-netExt]` (`etcdstart/NetExtsCrash.lean`) as to kvnet's (`NetFsBridgeGKvnet.lean` re-derives
-`robust_of_netFsBoot_addrs`).
+**Perennial's distributed crash adequacy, restated as `Robust`** (etcd-dist stage D4c,
+`notes/etcd-dist-plan.md` §12; proved, untrusted): `robust_of_dist_crash_adequacy` is an untrusted
+corollary of `goose_dist_mixed_crash_adequacy` (`Perennial/GooseLang/DistAdequacy.lean`) that states its
+conclusion as `Robust crashing stable g threads bound` (`Robustness/Statement.lean`), over any bundle of
+extensions with the net extension and a crash interpretation. It generalizes `NetFsBridge.lean`'s
+`robust_of_netFsBoot{,_addrs}` (the same corollary hard-wired to `[netExt, fsExt]` at `fs_semantics`),
+which `DistCrashAdequacyKvnet.lean` re-derives from it (`robust_of_netFsBoot_addrs_of_adequacy`); etcd's
+bundle `[idIssueExt, fsExt at etcdFsSem, netExt]` is an instance (`etcdstart/NetExtsCrash.lean`).
+
+The deployments with no crashing machine (`DistBridgeExts.lean`'s `robust_of_distBootIL`, over
+`goose_dist_adequacy`) are not derived from it: Perennial's mixed theorem needs a crash interpretation of
+every extension (`GooseCrashInterp`) even when no machine crashes, which a bundle need not have (the issue
+record on `lean` has none).
 
 Two layers:
 
-1. `robust_of_crashBootIL`: any list of extensions with the net extension and a crash interpretation
+1. `robust_of_dist_crash_adequacy`: any list of extensions with the net extension and a crash interpretation
    (`GooseCrashInterp`). A crashing machine's generation is safe from its precondition, and gives it
    back for the next generation from the extensions' raw crash resources (`CrashBootWpE`:
    `extsCrashStart L L'`); its first generation's precondition comes from the raw start resources
    (`extsLocalStart`); a stable machine's obligation is `DistBootWpSL` (`DistBridgeExts.lean`). The
    step and thread bounds as `robust_of_distBootIL`: an execution of `n` steps is run at `max (n + 1) lo`
    receipts and one thread more.
-2. `robust_of_netFsBootG`: the list also has the Linux file extension, at any semantics with
+2. `robust_of_dist_crash_adequacy_fs`: the list also has the Linux file extension, at any semantics with
    `FsSemOk` (`fs_semantics`, `etcdFsSem := fsSemWithS etcdSQ (fun _ _ => True)`, ...), and its crash
    resources split (`HC`) into the file extension's at some crash premise `Q` (`osCrashStart Q`: the
    crash interpretation `fs_crash_interp` has `Q := True`, `fs_crash_interpS SQ Q` has `Q`) and the rest
@@ -81,7 +88,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-! ## Layer 1: any list of extensions with the net extension and a crash interpretation -/
 
-section bridgeE
+section adequacyE
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GooseCrashInterp] [HasExt netExt]
   [GoGlobalContext]
 variable {GF : BundledGFunctors} [hPre : GooseGpreS GF]
@@ -137,7 +144,8 @@ theorem nodeStart_of_crashBootE [lctx : GoLocalContext] [G : GooseGlobalGS .hasL
   cases hm'
   exact HQ
 
-/-- **The bridge, layer 1** (see the file header): over any list of extensions with the net extension
+/-- **Distributed crash adequacy as `Robust`** (`goose_dist_mixed_crash_adequacy`'s corollary, see the
+file header): over any list of extensions with the net extension
 and a crash interpretation, with the interpretations' conditions on the initial states given from
 `Robust`'s (`HI`), the deployment's addresses distinct and valid, and an update from the network's start
 resources (every address unset) to
@@ -149,7 +157,7 @@ resources (every address unset) to
 
 gives `Robust crashing stable g threads bound`, for any thread bound; the update and the obligations get
 `lo ≤ receiptBound GF ≤ bound`. -/
-theorem robust_of_crashBootIL [lctx : GoLocalContext] (addrs : List GoString)
+theorem robust_of_dist_crash_adequacy [lctx : GoLocalContext] (addrs : List GoString)
     (crashing stable : List (Expr × state)) (g : GlobalState) (threads bound lo : Nat)
     (hlo : lo ≤ bound) (Hnd : addrs.Nodup) (Hok : ∀ a ∈ addrs, addrOk a = true)
     (HI : extsInitGlobal g → (∀ m, m ∈ crashing ++ stable → extsInitLocal m.2 g) →
@@ -219,11 +227,11 @@ theorem robust_of_crashBootIL [lctx : GoLocalContext] (addrs : List GoString)
     ipureintro
     exact HQ
 
-end bridgeE
+end adequacyE
 
 /-! ## Layer 2: the list also has the Linux file extension -/
 
-section bridgeFs
+section adequacyFs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GooseCrashInterp] [HasExt netExt]
   [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hPre : GooseGpreS GF]
@@ -322,7 +330,8 @@ theorem distBootWpSL_of_stableBootG [lctx : GoLocalContext] [G : GooseGlobalGS .
   imod fsStartResG_of_localStart L σ.world hfs $$ Hls with Hr
   iapply H L hL h1 h2 h3 $$ HP Hr Hgs Htok
 
-/-- **The bridge, layer 2** (see the file header): over any list of extensions with the net and file
+/-- **Distributed crash adequacy as `Robust`, with the Linux file extension** (see the file header;
+`robust_of_dist_crash_adequacy` with the file extension's resources unpacked): over any list of extensions with the net and file
 extensions whose crash resources split as `HC` says, with the interpretations' conditions on the
 initial states and every crashing machine's files as on disk given from `Robust`'s (`HI`), the
 deployment's addresses distinct and valid, and an update from the network's start resources (every
@@ -334,7 +343,7 @@ address unset) to
   (`DistBootWpSL`; from `StableBootWpG` by `distBootWpSL_of_stableBootG`),
 
 gives `Robust crashing stable g threads bound`, for any thread bound. -/
-theorem robust_of_netFsBootG [lctx : GoLocalContext] (Q : Fs.OsState → Fs.OsState → Prop)
+theorem robust_of_dist_crash_adequacy_fs [lctx : GoLocalContext] (Q : Fs.OsState → Fs.OsState → Prop)
     (X : GooseLocalGS GF → GooseLocalGS GF → IProp GF)
     (HC : ∀ L L' : GooseLocalGS GF, extsCrashStart L L' ⊢
       Fs.osCrashStart Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) ∗ X L L')
@@ -361,7 +370,7 @@ theorem robust_of_netFsBootG [lctx : GoLocalContext] (Q : Fs.OsState → Fs.OsSt
     Robust crashing stable g threads bound := by
   intro hfresh hig hil
   obtain ⟨Hig, Hil, Hfs⟩ := HI hig hil
-  refine robust_of_crashBootIL (GF := GF) addrs crashing stable g threads bound lo hlo Hnd Hok
+  refine robust_of_dist_crash_adequacy (GF := GF) addrs crashing stable g threads bound lo hlo Hnd Hok
     (fun _ _ => ⟨Hig, Hil⟩) ?_ hfresh hig hil
   intro G h1 h2
   iintro Hs
@@ -381,7 +390,7 @@ theorem robust_of_netFsBootG [lctx : GoLocalContext] (Q : Fs.OsState → Fs.OsSt
   imod fsStartResG_of_localStart L m.2.world (Hfs m (List.mem_of_getElem? hm)) $$ Hls with Hr
   iapply H $$ %L %hL %hT Hr Hgs
 
-end bridgeFs
+end adequacyFs
 
 end Net
 end Perennial
