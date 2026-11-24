@@ -35,7 +35,7 @@ four spaces (a tab elsewhere is an error), in `--check` too.
 A `HYP_INITS` package's `Dsverify/Proof/<pkg>/Init.lean` declares `class InitHyp GF : Prop` holding
 that package's `wp_initialize'`. It asserts that **Go runs the package's untranslated initializers
 without panicking** -- the same trust as gen-init's `opaqueInitsOk`/`initFuncsOk` axioms it replaces,
-moved to where it can be seen. So (#24, upamanyus's condition for this mechanism):
+moved to where it can be seen. So (#24, the condition for this mechanism):
 - every `[<pkg>.InitHyp GF]` a kit needs is a **premise of its top-level statement**: it appears in
   the `.spec` of `Dsverify/Proof/<kit>/.../TopLevelRobustness.lean` (the file an auditor reads);
 - **no `instance` of an `InitHyp` class may exist anywhere** (it would need an axiom, or be one in

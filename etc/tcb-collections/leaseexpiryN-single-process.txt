@@ -47,8 +47,6 @@ axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom binary.WriteUint8.wp_proof
-axiom bytes.Buffer.Write.wp_proof
-axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom dataDirAbsent

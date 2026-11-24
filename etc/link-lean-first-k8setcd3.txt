@@ -96,8 +96,8 @@ getField:
 decodeObj: getField
 # apimachinery's runtime, with bodies (stage 6c): what the driver's contract rests on (the trust
 # boundary: `bytes.Buffer`'s and `reflect`'s specs, and `conversion.EnforcePtr`)
-Buffer__Bytes:
-Buffer__Write:
+Buffer__Bytes: =_root_.Perennial.bytes.Buffer.wp_Bytes
+Buffer__Write: =_root_.Perennial.bytes.Buffer.wp_Write
 reflect_Value__Type:
 reflect_Zero:
 reflect_Value__Set:
