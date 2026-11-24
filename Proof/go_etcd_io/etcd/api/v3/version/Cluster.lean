@@ -117,7 +117,6 @@ theorem version.Cluster.wp_proof
   ihave #Hstr : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
   · iPkgInit
   wp_auto
-  have hSp := fmt.wp_Sprintf_pure wp_Sprintf
   wp_apply wp_NewVersion v as %pv %err Hr
   icases Hr with (⟨%Hok, %x, #Hx, #His⟩ | %Hbad)
   · obtain ⟨-, -, Herr⟩ := Hok
@@ -129,7 +128,7 @@ theorem version.Cluster.wp_proof
     try (isplitr; (ipureintro; rfl))
     iintro %sla ⟨Hargs, -⟩
     wp_auto
-    wp_apply (hSp go!"%d.%d" [.dir none _root_.Perennial.fmt.verb_d, .lit go!".", .dir none _root_.Perennial.fmt.verb_d] _ _ _ _
+    wp_apply (fmt.wp_Sprintf_pure wp_Sprintf go!"%d.%d" [.dir none _root_.Perennial.fmt.verb_d, .lit go!".", .dir none _root_.Perennial.fmt.verb_d] _ _ _ _
       (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil)))
       $$ [$Hargs] as %str ⟨-, %Hout⟩
     iapply HΦ
@@ -183,7 +182,7 @@ theorem version.Cluster.wp_proof
     try (isplitr; (ipureintro; rfl))
     iintro %sla ⟨Hargs, -⟩
     wp_auto
-    wp_apply (hSp go!"%s.%s" [.dir none _root_.Perennial.fmt.verb_s, .lit go!".", .dir none _root_.Perennial.fmt.verb_s] _ _ _ _
+    wp_apply (fmt.wp_Sprintf_pure wp_Sprintf go!"%s.%s" [.dir none _root_.Perennial.fmt.verb_s, .lit go!".", .dir none _root_.Perennial.fmt.verb_s] _ _ _ _
       (by fmt_encode) (by fmt_fits) (.str _ _ _ (.str _ _ _ .nil)))
       $$ [$Hargs] as %str ⟨-, %Hout⟩
     iapply HΦ
