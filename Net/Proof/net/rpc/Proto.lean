@@ -37,8 +37,8 @@ the requests in `reqs` (`reqsWire`, lower bound; fewer than `2 ^ 64` of them, so
 numbers are distinct); what the acceptor writes is a prefix of the wire of answers (`respsWire`:
 for each its index, `"Service.Method"`, message and reply), each with its persistent answer.
 Readers parse frames from a stream that may end mid-frame, so the protocols speak of prefixes; they
-also bound each payload's length (below `2 ^ 63`, as a Go slice's), so a frame's length prefix
-determines it.
+also bound each payload's length (a request's by `maxFrameN`, the frames a server reads; an answer's
+below `2 ^ 63`, as a Go slice's), so a frame's length prefix determines it.
 
 **The handshake** (`RpcWorld.hs`, `RpcWorld.hsAns`, per address; `rpcAddrP W a hs hsAns`): before
 its requests a dialer writes `W.hs a`, and before its answers an acceptor writes `W.hsAns a`, so
@@ -129,8 +129,12 @@ abbrev post (r : RpcReq) : GName := r.2.2.1
 abbrev col (r : RpcReq) : GName := r.2.2.2
 end RpcReq
 
-/-- A request's payloads fit a frame. -/
-def reqOk (r : RpcReq) : Prop := r.sm.length + 16 < 2 ^ 63 ∧ r.body.length < 2 ^ 63
+/-- A request's payloads fit a frame the server reads (`maxFrameN`: the model's client never
+builds a longer one, `clientCodec.WriteRequest`'s stuck point). -/
+def reqOk (r : RpcReq) : Prop := r.sm.length + 16 ≤ maxFrameN ∧ r.body.length ≤ maxFrameN
+
+theorem reqOk_lt {r : RpcReq} (h : reqOk r) : r.sm.length + 16 < 2 ^ 63 ∧ r.body.length < 2 ^ 63 := by
+  unfold reqOk maxFrameN at h; omega
 
 /-- The wire of the requests `L`, the `i`-th with the sequence number `i`. -/
 def reqsWire (L : List RpcReq) : List w8 :=
