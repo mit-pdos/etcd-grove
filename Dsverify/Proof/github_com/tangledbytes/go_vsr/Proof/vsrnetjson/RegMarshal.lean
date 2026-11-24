@@ -89,8 +89,11 @@ theorem vsrnet.registeredMarshalOk :
     simp only [encoding.json.marshalsByCodec, interface.mkOk, vsrnet.event_marshalerPtr] at hby
     exact absurd hby.1 (by decide)
   · subst hv
-    wp_apply (vsrnet.wp_jsonMarshal_logs wp_AppendRaw wp_AppendQuotedUint wp_AppendString
-      sl dq es hes) $$ [Hl] as %s ⟨Hs, Hcap, Hl⟩
+    iapply (vsrnet.wp_jsonMarshal_logs wp_AppendRaw wp_AppendQuotedUint wp_AppendString
+      sl dq es hes) $$ [Hl]
+    · iexact Hl
+    inext
+    iintro %s ⟨Hs, Hcap, Hl⟩
     icases HΦ with ⟨HΦ, -⟩
     rw [show VsrJson.ser (VsrJson.logsJV es) = pkg.log.encLogs es from rfl]
     iapply HΦ $$ Hs Hcap
