@@ -172,19 +172,22 @@ theorem Client.dial.wp_proof
   · have Hdok : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ []) rb := by
       rw [List.append_nil]; exact Hdok1
-    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
+    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) $$ [$Hgrpc]
       as %conn %err Hres
     · isplitr
       · iunfold dialOptsAt
         iexists _
         iframe Ho2
         simp only [List.append_nil]; iexact Hex
-      isplitr
-      · ipureintro; exact Hpre
+      isplitl [Hrb]
+      · iunfold dialTargetOk
+        ileft
+        iframe Hrb
+        ipureintro; exact ⟨Hdok, Hpre⟩
       rw [Hcr, credsOfDial_nil]
       iapply BigSepL.bigSepL_nil.2; itrivial
     iapply HΦ
-    icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
+    icases Hres with (⟨%Herr, #Hconn, #Hcc, #Hco⟩ | %Herr)
     · ileft
       isplitr
       · ipureintro; exact Herr
@@ -196,6 +199,16 @@ theorem Client.dial.wp_proof
       · unfold isEtcdConnG
         iexists ic
         iframe Hconn Hic
+        unfold etcdConnStream
+        iexists _
+        iframe Hco
+        ipureintro
+        have hs := streamIcOf_etcdDial cfg rb si ic [] (Or.inl rfl)
+        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;>
+          first
+          | simp [connOptsOf, hs]
+          | (unfold connOptsOf streamIcOf kaOpts; split <;>
+              simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
       · iapply connTokOk_none conn _ P
         iexact Hcc
     · iright
@@ -204,20 +217,23 @@ theorem Client.dial.wp_proof
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++
         [GrpcDialOpt.perRPCCreds pc]) rb :=
       dialOk_perRPCCreds _ rb pc Hdok1
-    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
+    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) $$ [$Hgrpc]
       as %conn %err Hres
     · isplitr
       · iunfold dialOptsAt
         iexists _
         iframe Ho2
         simp only [List.append_nil]; iexact Hex
-      isplitr
-      · ipureintro; exact Hpre
+      isplitl [Hrb]
+      · iunfold dialTargetOk
+        ileft
+        iframe Hrb
+        ipureintro; exact ⟨Hdok, Hpre⟩
       rw [Hcr, show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] by simp [GrpcDialOpt.credsOf]]
       iapply BigSepL.bigSepL_singleton.2
       iexact Hpc
     iapply HΦ
-    icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
+    icases Hres with (⟨%Herr, #Hconn, #Hcc, #Hco⟩ | %Herr)
     · ileft
       isplitr
       · ipureintro; exact Herr
@@ -230,6 +246,16 @@ theorem Client.dial.wp_proof
       · unfold isEtcdConnG
         iexists ic
         iframe Hconn Hic
+        unfold etcdConnStream
+        iexists _
+        iframe Hco
+        ipureintro
+        have hs := streamIcOf_etcdDial cfg rb si ic [GrpcDialOpt.perRPCCreds pc] (Or.inr ⟨pc, rfl⟩)
+        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;>
+          first
+          | simp [connOptsOf, hs]
+          | (unfold connOptsOf streamIcOf kaOpts; split <;>
+              simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
       · iapply connTokOk_one conn pc P
         iexact Hcc
     · iright

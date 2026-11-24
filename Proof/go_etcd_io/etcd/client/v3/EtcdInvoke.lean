@@ -156,7 +156,7 @@ theorem etcdConn_InvokeMdE (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (
   · -- (2026-10-21, D29) a write on a refusal-free connection, with scalar call options: never
     -- retried
     iunfold isEtcdConn at Hconn0
-    icases Hconn0 with ⟨%ic, #Hgc, -, #Hic⟩
+    icases Hconn0 with ⟨%ic, #Hgc, -, #Hic, -⟩
     iapply wp_true_sep
     iapply (wp_Invoke conn addr [ic] [] anyRes (GoInterface.ok ctx) method
       (interface.mkOk (go.GoType.PointerType Req.ty) #inp)

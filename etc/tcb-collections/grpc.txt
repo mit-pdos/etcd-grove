@@ -64,7 +64,6 @@ axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
-axiom etcdStreamInterceptor
 axiom etcd_noRefusal
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
@@ -167,6 +166,7 @@ axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom status.Status.Code.wp_proof
+axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
 axiom types.NewURLs.wp_proof

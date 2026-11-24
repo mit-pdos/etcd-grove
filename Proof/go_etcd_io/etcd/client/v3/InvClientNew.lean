@@ -85,6 +85,12 @@ theorem plainEndpoints_singleton (ep : GoString) : plainEndpoint ep → plainEnd
 /-- The scheme of etcd's manual resolver (`internal/resolver.Schema`). -/
 def etcdScheme : GoString := go!"etcd-endpoints"
 
+/-- **`si` is etcd's client stream interceptor** (grpc-trusted-T, T7, 2026-11-24: a definition, gRPC's
+`streamIcMdIs` at etcd's relation `etcdVersionMd`; until then an axiomatized property of grpc's
+`InvDial.lean`): introduced only by the client's `streamClientInterceptor` axiom, whose `withVersion`
+sets `client-api-version`. -/
+def etcdStreamInterceptor (si : GoFunc) : Prop := streamIcMdIs si etcdVersionMd
+
 end pure
 
 section resolverOwn
@@ -235,6 +241,16 @@ theorem unaryIcsOf_kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) (ds : List Gr
   split
   · exact unaryIcsOf_keepalive ds
   · rfl
+
+/-- **The stream interceptor of etcd's dial** (grpc-trusted-T, T7): `dialSetupOpts`'s, whatever the
+keepalive option and the per-RPC credentials. -/
+theorem streamIcOf_etcdDial (cfg : go_etcd_io.etcd.client.v3.Config) (rb : GoInterface)
+    (si ic : GoFunc) (ex : List GrpcDialOpt)
+    (hex : ex = [] ∨ ∃ pc, ex = [GrpcDialOpt.perRPCCreds pc]) :
+    streamIcOf (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+      [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ ex) = some si := by
+  rcases hex with rfl | ⟨pc, rfl⟩ <;> unfold streamIcOf kaOpts <;> split <;>
+    simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append]
 
 /-- The keepalive option keeps a dial `NewClient`'s. -/
 theorem dialOk_kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) (ds : List GrpcDialOpt)

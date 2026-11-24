@@ -180,15 +180,41 @@ instance grpcServes_persistent (Svc : GrpcSvc GF) (ics sics : List GoFunc)
     Persistent (grpcServes Svc ics sics regs sregs) := by
   unfold grpcServes; infer_instance
 
+/-- **Every reply the table `Svc` lets a handler send marshals** (persistent; grpc-trusted-T, T9,
+2026-11-24; interim, retired by phase 7 decision B's W3, the codec's proof, which makes the bound the
+codec's own): for each entry, the reply model registered for its reply's Go type (`grpcRepModelOf`,
+`streamRepModelOf`: the one the entry's handler sends through, `grpcServes`) bounds the encoding of
+every reply it sends (`Rep.send l m`) below `grpcMsgMax` (2 ^ 32), below `grpcReplyMax`, so grpc's
+marshalling of it allocates no more than Go's `maxAlloc` (`InvGrpcServer.lean`, `grpcReplyMax`). Below
+`grpcMsgMax`, not `grpcReplyMax`: a model's default `wireLen` is `grpcMsgMax`, "no bound known", which
+must not pass (the axiom review: below `grpcReplyMax` held of every default model, `RangeResponse`'s
+among them, whose shared `Kvs` encode past `maxAlloc`). A reply model's explicit `wireLen` is trusted
+(`ProtoMsg.wireLen`'s doc: part of the instance's wire model) and so reviewed as a size bound when it is
+registered; today only `StringValue`'s (`s.length + 11`) is below `grpcMsgMax`. The other way to the size premise
+of `Serve`'s trusted model than the workload premise `grpcRepliesFit`: a property of the registered
+models, which a program with bounded replies proves (the gRPC driver's `StringValue`). -/
+def grpcRepliesBounded (Svc : GrpcSvc GF) : IProp GF :=
+  iprop(□ ∀ (name : GoString) (ent : GrpcSvcEntry GF), ⌜Svc name = some ent⌝ -∗
+    match ent with
+    | .unary e => ∀ Rep : ProtoMsgT GF, ⌜grpcRepModelOf GF e.Wp.ty = some Rep⌝ -∗
+        □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝
+    | .stream e => ∀ Rep : StreamMsgT GF, ⌜streamRepModelOf GF e.Wp.ty = some Rep⌝ -∗
+        □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝)
+
+instance grpcRepliesBounded_persistent (Svc : GrpcSvc GF) :
+    Persistent (grpcRepliesBounded Svc) := by
+  unfold grpcRepliesBounded; infer_instance
+
 /-- **The right to serve `gs` on `lis` at `a`, for the table `Svc`** (what `gs.Serve(lis)` takes):
 Go's configuration `c` of `gs`, being built (`grpcSrvNew`), with the node's open listener at `a`, or
-both bound together by a no-refusal certificate (`grpcSrvAtLis`); full names jointly distinct; the replies' size premise; `a` serving `Svc`
-(`grpcAddrAt`); `gs` serving `Svc` (`grpcServes`). -/
+both bound together by a no-refusal certificate (`grpcSrvAtLis`); full names jointly distinct; the replies' size premise, or (since
+grpc-trusted-T, T9) the table's registered reply models bounding every reply (`grpcRepliesBounded`);
+`a` serving `Svc` (`grpcAddrAt`); `gs` serving `Svc` (`grpcServes`). -/
 def grpcServeTok (gs : Loc) (lis : GoInterface) (a : GoString) (Svc : GrpcSvc GF) : IProp GF :=
   iprop(∃ (c : GrpcSrvCfg GF) (svcs : List GoString),
     ((grpcSrvNew gs c.ics c.sics svcs c.regs c.sregs ∗ netListenerOpen lis a) ∨
       grpcSrvAtLis gs lis a c.ics c.sics svcs c.regs c.sregs) ∗
-    ⌜grpcSrvNodup c ∧ grpcRepliesFit⌝ ∗
+    ⌜grpcSrvNodup c⌝ ∗ (⌜grpcRepliesFit⌝ ∨ grpcRepliesBounded Svc) ∗
     (∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
       grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) a Svc) ∗
     grpcServes Svc c.ics c.sics c.regs c.sregs)
@@ -479,7 +505,9 @@ theorem grpc.startCore (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sic
   · iexact Hn
   isplitr
   · ipureintro
-    exact ⟨hnd, hfit⟩
+    exact hnd
+  isplitr
+  · ileft; ipureintro; exact hfit
   isplitr
   · iexists hX, π, σ
     iexact Ha

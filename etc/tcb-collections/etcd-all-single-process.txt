@@ -65,7 +65,6 @@ axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
-axiom etcdStreamInterceptor
 axiom etcd_noRefusal
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -241,6 +240,7 @@ axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
+axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof

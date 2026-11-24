@@ -48,7 +48,7 @@ the run (the replies to the program's own clients' calls) exceeds it; the facts 
 in such a run, so the trusted `Serve` model's leaves (`respond`'s size claim), reached through
 `grpcServeTok`, are true under it, and so is every result built on them (the served results
 `etcd_kv_served`, `ServedOn`, `AuthnServedOn`, v3rpc's, whose statements do not show it). The token
-yields `grpcRepliesFit` (it is a conjunct of `grpcServeTok`), which holds wherever the token is made:
+yields `grpcRepliesFit` or, since T9, `grpcRepliesBounded` (a disjunct of `grpcServeTok`), which holds wherever the token is made:
 it is `grpc.start'`'s premise.
 
 **The health service** (`grpcHealthSrv hs`, persistent, axiomatized): grpc's `*health.Server`
