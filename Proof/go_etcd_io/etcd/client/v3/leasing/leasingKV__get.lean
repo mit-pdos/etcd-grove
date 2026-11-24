@@ -50,7 +50,7 @@ theorem leasingKV.get.wp_proof
     (hML : leasingKV.monitorLease.spec (GF := GF) (hG := hG)) :
     leasingKV.get.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o lo q
-  wp_start as ⟨#Hlkv, #Hctx, #HctxC, #Hop, #Hlo, %Ho, Hopen, Htok⟩
+  wp_start as ⟨Hlt, #Hlkv, #Hctx, #HctxC, #Hop, #Hlo, %Ho, Hopen, Htok⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
@@ -73,8 +73,9 @@ theorem leasingKV.get.wp_proof
   cases b
   · -- the session is not ready: the client's `Do`
     wp_auto
-    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
+    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hlt $Hctx $HctxC $Hop $Hlo] as %r %err ⟨Hlt, #Hres⟩
     · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
+      (try iframe Hlt)
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
     try wp_auto
@@ -82,6 +83,7 @@ theorem leasingKV.get.wp_proof
     · iframe #; iframe
     imodintro
     iapply HΦ
+    iframe Hlt
     iframe
     unfold getOutcome
     ileft
@@ -98,8 +100,9 @@ theorem leasingKV.get.wp_proof
   · -- not a get the cache serves: the client's `Do`
     subst Hret Hok
     wp_auto
-    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
+    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hlt $Hctx $HctxC $Hop $Hlo] as %r %err ⟨Hlt, #Hres⟩
     · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
+      (try iframe Hlt)
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
     try wp_auto
@@ -107,6 +110,7 @@ theorem leasingKV.get.wp_proof
     · iframe #; iframe
     imodintro
     iapply HΦ
+    iframe Hlt
     iframe
     unfold getOutcome
     ileft
@@ -128,8 +132,9 @@ theorem leasingKV.get.wp_proof
         $$ [$Hpkg $Hcache $Hrd $Hpeek] as %mb ⟨Hrd, %st, #Hseen, %Hmb⟩
       cases mb
       · wp_auto
-        wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
+        wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hlt $Hctx $HctxC $Hop $Hlo] as %r %err ⟨Hlt, #Hres⟩
         · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
+          (try iframe Hlt)
         try wp_auto
         wp_apply hRG $$ [$Hcv $resp] as resp
         try wp_auto
@@ -137,6 +142,7 @@ theorem leasingKV.get.wp_proof
         · iframe #; iframe
         imodintro
         iapply HΦ
+        iframe Hlt
         iframe
         unfold getOutcome
         ileft
@@ -148,8 +154,9 @@ theorem leasingKV.get.wp_proof
         · ipureintro; exact concurrency.keyOp_not_panics
         obtain ⟨-, hkk, hke, -, -⟩ := keyGet_fields o.key
         wp_apply hAcq lkv γ pfx ctx cs o.key opK (opGetModel o.key []) lo
-          $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $HopK $Hlo] as %resp %err ⟨Hrd, Hacq⟩
+          $$ [$Hlt $Hpkg $Hlkv $Hrd $Hctx $HctxC $HopK $Hlo] as %resp %err ⟨Hlt, Hrd, Hacq⟩
         · ipureintro
+          (try iframe Hlt)
           refine ⟨keyGet_txnOpOf _, hkk, hke, ?_, ?_, ?_⟩ <;> simp [op_simps, (show o.key.length ≤ 2 ^ 27 from Ho.2.1)]
         icases Hacq with (⟨%Hne, %Hresp⟩ | ⟨%Heq, Hacq⟩)
         · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
@@ -162,6 +169,7 @@ theorem leasingKV.get.wp_proof
           · iframe #; iframe
           imodintro
           iapply HΦ
+          iframe Hlt
           iframe
           unfold getOutcome
           iright; iright; iright; iright
@@ -193,6 +201,7 @@ theorem leasingKV.get.wp_proof
           · iframe #; iframe
           imodintro
           iapply HΦ
+          iframe Hlt
           iframe
           unfold getOutcome
           iright; iright; iright; ileft
@@ -268,6 +277,7 @@ theorem leasingKV.get.wp_proof
         try wp_auto
         imodintro
         iapply HΦ
+        iframe Hlt
         iframe
         unfold getOutcome
         iright; iright; ileft
@@ -282,8 +292,9 @@ theorem leasingKV.get.wp_proof
         ipureintro
         exact ⟨he0.2.symm, Hrev.symm, Hlo_r⟩
     · wp_auto
-      wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
+      wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hlt $Hctx $HctxC $Hop $Hlo] as %r %err ⟨Hlt, #Hres⟩
       · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
+        (try iframe Hlt)
       try wp_auto
       wp_apply hRG $$ [$Hcv $r] as r
       try wp_auto
@@ -291,6 +302,7 @@ theorem leasingKV.get.wp_proof
       · iframe #; iframe
       imodintro
       iapply HΦ
+      iframe Hlt
       iframe
       unfold getOutcome
       ileft
@@ -304,6 +316,7 @@ theorem leasingKV.get.wp_proof
     · iframe #; iframe
     imodintro
     iapply HΦ
+    iframe Hlt
     iframe
     unfold getOutcome
     iright; ileft

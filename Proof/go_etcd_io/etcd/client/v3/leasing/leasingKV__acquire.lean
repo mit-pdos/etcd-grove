@@ -49,7 +49,7 @@ theorem leasingKV.acquire.wp_proof
     (hFE : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG)) :
     leasingKV.acquire.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key opv o lo
-  wp_start as ⟨#Hlkv, Hrd, #Hctx, #HctxC, #Hop, #Hlo, %Ho⟩
+  wp_start as ⟨Hlt, #Hlkv, Hrd, #Hctx, #HctxC, #Hop, #Hlo, %Ho⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
@@ -81,6 +81,7 @@ theorem leasingKV.acquire.wp_proof
     ihave #HErrD := HErr $$ %Broadcast.Done
     wp_apply HErrD $$ [$Hclosed] as %err2 %Herr2 -
     iapply HΦ
+    iframe Hlt
     iframe
     ileft
     ipureintro; exact ⟨Herr2, rfl⟩
@@ -98,6 +99,7 @@ theorem leasingKV.acquire.wp_proof
     wp_auto
     wp_for_post
     iapply HΦ
+    iframe Hlt
     iframe
     ileft
     ipureintro; exact ⟨Hne1, rfl⟩
@@ -242,8 +244,9 @@ theorem leasingKV.acquire.wp_proof
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ (TxnBuild.mk (acquireTxn key (pfx ++ key) id o) true true true) (by rfl) $$ HB
-  wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
+  wp_apply HCommit $$ %_ %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
   · ipureintro
+    (try iframe Hlt)
     refine ⟨TxnModel.under_nil _, ?_⟩
     obtain ⟨h1, h2, h3⟩ := Ho.2.2.2
     have hk : key.length ≤ 2 ^ 27 := Ho.2.1 ▸ h1
@@ -292,12 +295,14 @@ theorem leasingKV.acquire.wp_proof
           wp_auto
           wp_for_post
           iapply HΦ
+          iframe Hlt
           iframe
           ileft
           ipureintro; exact ⟨Hne, rfl⟩
     · wp_auto
       wp_for_post
       iapply HΦ
+      iframe Hlt
       iframe
       ileft
       ipureintro; exact ⟨Hne, rfl⟩
@@ -328,6 +333,7 @@ theorem leasingKV.acquire.wp_proof
     wp_auto
     wp_for_post
     iapply HΦ
+    iframe Hlt
     iframe
     iright
     isplitr
@@ -386,6 +392,7 @@ theorem leasingKV.acquire.wp_proof
       wp_auto
       wp_for_post
       iapply HΦ
+      iframe Hlt
       iframe
       iright
       isplitr
@@ -413,6 +420,7 @@ theorem leasingKV.acquire.wp_proof
       try wp_auto
       wp_for_post
       iapply HΦ
+      iframe Hlt
       iframe
       iright
       isplitr

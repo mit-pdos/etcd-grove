@@ -31,11 +31,12 @@ theorem RemoteKV.Delete.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF)
   intro rk st pfx lo
   rcases st with ⟨kv, key, rev, val⟩
   unfold ownRemoteKV RemoteKVSt.val'
-  wp_start as ⟨⟨Hrk, %Hkl⟩, #Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, ⟨Hrk, %Hkl⟩, #Hkv, #Hlo, %Hk⟩
   cases kv with
   | nil =>
     wp_auto
     iapply HΦ
+    iframe Hlt
     iframe Hrk
     ipureintro; exact ⟨Hkl, rfl⟩
   | ok kv =>
@@ -48,12 +49,14 @@ theorem RemoteKV.Delete.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF)
     ihave #Hnil := optsAt_nil (GF := GF)
     iunfold isEtcdDeleteKVTodo at HDel
     obtain ⟨hkk, hke⟩ := concurrency.deleteOp_fields key
-    wp_apply HDel $$ %key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hnil $Hlo] as %resp %err #Hres
+    wp_apply HDel $$ %key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hlt $Hnil $Hlo] as %resp %err ⟨Hlt, #Hres⟩
     · ipureintro
+      (try iframe Hlt)
       refine ⟨concurrency.deleteOp_not_panics key, ?_, by rw [hke]; simp, rfl, deleteOp_size Hkl⟩
       rw [hkk, hke]; exact concurrency.keyRangeUnder_key pfx key Hk
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe Hrk Hres
     ipureintro; exact Hkl
 

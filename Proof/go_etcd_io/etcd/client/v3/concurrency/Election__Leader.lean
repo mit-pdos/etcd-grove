@@ -66,7 +66,7 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     (hWFC : EtcdGrove.WithFirstCreate.spec (GF := GF) (hG := hG)) :
     Election.Leader.spec (GF := GF) (hG := hG) := by
   intro e s γ client id pfx ctx cs lo
-  wp_start as ⟨#He, #Hctx, #HctxC, #Hlo⟩
+  wp_start as ⟨Hlt, #He, #Hctx, #HctxC, #Hlo⟩
   ihave #He' := He
   iunfold isElection at He'
   icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -81,8 +81,9 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   (try wp_auto)
   iunfold isEtcdKV at HKV
   ihave #HG := HKV $$ %ctx %cs %pfx %slf %(withTopM (W64 2) (W64 1)) %lo
-  wp_apply HG $$ [] as %gresp %gerr #Hgres
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
   · iframe Hctx HctxC Hslf Hlo
+    (try iframe Hlt)
     ipureintro
     exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx, ownerOp_size Hpl⟩
   iunfold kvGetResult at Hgres
@@ -93,6 +94,7 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
       | ok g => exact ⟨g, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; iright
     ipureintro; exact ⟨rfl, Hgne⟩
   subst Hgnil
@@ -123,6 +125,7 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     icases Hci with ⟨-, -, -, -, ⟨%eNL, #HeNL⟩⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · ipureintro; rfl
@@ -140,6 +143,7 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     wp_auto
     ihave #Hkv := Hgkv $$ %0 %kp %w %rfl %rfl
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

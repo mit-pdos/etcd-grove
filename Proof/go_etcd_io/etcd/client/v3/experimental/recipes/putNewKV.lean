@@ -37,7 +37,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG := hG)) :
     putNewKV.spec (GF := GF) (hG := hG) := by
   intro kv pfx key val lease lo
-  wp_start as ⟨#Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, %Hk⟩
   iunfold isRecipesKV at Hkv
   icases Hkv with ⟨-, #HTxn, -, -⟩
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -140,6 +140,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     · exact absurd Hn Hne
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright; iright
     iframe Hce
     ipureintro; exact ⟨Hne, rfl⟩
@@ -165,6 +166,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     icases Hri with ⟨⟨%eK, #HeK, -⟩, -, -, -⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · unfold concurrency.isPkgErr
@@ -190,6 +192,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

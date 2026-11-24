@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
     stm.commit.spec (GF := GF) (hG := hG) := by
   intro lvl b pfx st lo
-  wp_start as ⟨#Henv, Hrs, Hws, #Hcf, #Hlo, %Hsz⟩
+  wp_start as ⟨Hlt, #Henv, Hrs, Hws, #Hcf, #Hlo, %Hsz⟩
   iunfold stmEnv at Henv
   icases Henv with ⟨%c, %ctx, %cs, #Hc, #Hcl, #Hctx, #Hcs⟩
   iunfold isEtcdSTMClient at Hcl
@@ -67,8 +67,9 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
   ihave #Hfacts := readsAt_readFacts pfx rsMap st.reads $$ Hreads
   ihave %Hru := readFacts_under pfx st.reads $$ Hfacts
   ihave %Hwu := writesAt_under pfx wsMap st.writes $$ Hwrites
-  wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
+  wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
   · ipureintro
+    (try iframe Hlt)
     exact ⟨stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (by simp),
       stmCommit_size Hsz Hms Hops.2 (.inl rfl)⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
@@ -81,6 +82,7 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
     (try wp_auto)
     wp_apply wp_panic
     iapply HΦ
+    iframe Hlt
     iapply stmRet_abort _ (by simp)
   subst Heq
   have hm : ({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild).model =
@@ -96,6 +98,7 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iframe
     ileft; ipureintro; rfl
@@ -103,6 +106,7 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iframe
     by_cases hnull : resp = null

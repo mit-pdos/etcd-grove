@@ -63,7 +63,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     newSequentialKV.spec (GF := GF) (hG := hG) := by
   intro kv pfx kp val lo
   iloeb as IH
-  wp_start as ⟨#Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, %Hk⟩
   ihave #Hkv' := Hkv
   iunfold isRecipesKV at Hkv'
   icases Hkv' with ⟨#HGet, #HTxn, -, -⟩
@@ -79,9 +79,10 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   wp_apply hWLK $$ [$Hcv] as %gsl ⟨#Hgsl, -⟩
   ihave #Hgres := optsAt_res gsl (withTopM (W64 0) (W64 2)) (iprop(True) : IProp GF) $$ Hgsl
   iunfold isEtcdKVTodo at HGet
-  wp_apply HGet $$ %kp %gsl %(withTopM (W64 0) (W64 2)) %(iprop(True) : IProp GF) %lo [$Hgres $Hlo]
-    as %gresp %gerr ⟨-, #Hgr, -⟩
+  wp_apply HGet $$ %kp %gsl %(withTopM (W64 0) (W64 2)) %(iprop(True) : IProp GF) %lo [$Hlt $Hgres $Hlo]
+    as %gresp %gerr ⟨Hlt, -, #Hgr, -⟩
   · ipureintro
+    (try iframe Hlt)
     exact ⟨lastKeyOp_not_panics, (lastKeyOp_fields kp).1, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
       lastKeyOp_size (by word)⟩
@@ -93,6 +94,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact ⟨Hgne, rfl⟩
   subst Hgnil
@@ -213,6 +215,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   · subst Hv
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact ⟨by simp, rfl⟩
   subst Hv
@@ -319,6 +322,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact ⟨Hne, rfl⟩
   subst Heq
@@ -335,6 +339,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     · ipureintro; exact Hk
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iexact Hres
   · -- committed
     obtain ⟨hmod, h1, h2⟩ := seqTxn_then kp key val g r s0 Hgle.2 hok
@@ -344,6 +349,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     irename «$r0» => Hrk
     generalize «$r0_ptr» = rk at *
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

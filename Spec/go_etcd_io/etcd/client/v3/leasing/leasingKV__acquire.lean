@@ -57,12 +57,12 @@ abbrev leasingKV.acquire.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key : GoString) (opv : go_etcd_io.etcd.client.v3.Op)
     (o : OpFull) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ opFullAt opv o ∗ etcdReached lo ∗
-      ⌜txnOpOf o = some (.get o) ∧ o.key = key ∧ o.base.rangeEnd = [] ∧ OpShape (2 ^ 27) 0 0 o⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ levelTok 0 ∗ (isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ opFullAt opv o ∗ etcdReached lo ∗
+      ⌜txnOpOf o = some (.get o) ∧ o.key = key ∧ o.base.rangeEnd = [] ∧ OpShape (2 ^ 27) 0 0 o⌝) }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"acquire")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opv))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); lkvReader lkv γ pfx ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (lkvReader lkv γ pfx ∗
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∨
-       (⌜err = GoInterface.nil⌝ ∗ acquireResult γ pfx key lo o resp)) }}
+       (⌜err = GoInterface.nil⌝ ∗ acquireResult γ pfx key lo o resp))) }}
 
 end spec
 

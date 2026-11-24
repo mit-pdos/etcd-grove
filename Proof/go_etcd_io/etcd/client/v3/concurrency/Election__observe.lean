@@ -257,7 +257,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
     Election.observe.spec (GF := GF) (hG := hG) := by
   intro e s γs client id pfx ctx cs ch γ sent L Rl
-  wp_start as ⟨#He, #Hctx, #HctxC, #Hcc, #Hch, Hprod, Hauth, #HRl, %HL, %HRl0⟩
+  wp_start as ⟨Hlt, #He, #Hctx, #HctxC, #Hcc, #Hch, Hprod, Hauth, #HRl, %HL, %HRl0⟩
   ihave #He' := He
   iunfold isElection at He'
   icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -299,8 +299,9 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
   wp_apply wp_WFC $$ [$Hcv] as %slf ⟨#Hslf, -⟩
   (try wp_auto)
   ihave #HG := HKV $$ %ctx %cs %pfx %slf %(withTopM (W64 2) (W64 1)) %Rl
-  wp_apply HG $$ [] as %gresp %gerr #Hgres
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
   · iframe Hctx HctxC Hslf HRl
+    (try iframe Hlt)
     ipureintro
     exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx, ownerOp_size Hpl⟩
   iunfold kvGetResult at Hgres
@@ -314,7 +315,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     wp_apply wp_spsc_close γ.spsc ch (observeElem γ pfx) (fun _ => iprop(True)) sent
       $$ [$Hch $Hprod]
     (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
   subst Hgnil
   obtain ⟨Hrev0, -, HoP⟩ := observe_ownerOp_rev pfx
   have HR0lo : sint.Z Rl ≤ sint.Z R0 := HR0le.1 (observe_ownerOp_rev pfx).2.1
@@ -583,7 +584,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     wp_apply wp_spsc_close γ.spsc ch (observeElem γ pfx) (fun _ => iprop(True)) sent
       $$ [$Hch $Hprod]
     (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
   iNamed Hj
   (try wp_auto)
   wp_apply wp_slice_literal (l := [kvp])
@@ -713,7 +714,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
         wp_apply wp_spsc_close γ.spsc ch (observeElem γ pfx) (fun _ => iprop(True)) sent
           $$ [$Hch $Hprod]
         (try wp_auto)
-        iapply HΦ; itrivial
+        iapply HΦ; iframe Hlt; try itrivial
       simp only [↓reduceIte]
       icases Hrecv with ⟨HP, Hwcons⟩
       iunfold rangeWatchElem at HP
@@ -885,7 +886,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
           wp_apply wp_spsc_close γ.spsc ch (observeElem γ pfx) (fun _ => iprop(True)) sent
             $$ [$Hch $Hprod]
           (try wp_auto)
-          iapply HΦ; itrivial
+          iapply HΦ; iframe Hlt; try itrivial
         iapply BigAndL.bigAndL_nil.2
         itrivial
       -- the events are done: the next response
@@ -926,7 +927,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     wp_apply wp_spsc_close γ.spsc ch (observeElem γ pfx) (fun _ => iprop(True)) sent
       $$ [$Hch $Hprod]
     (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

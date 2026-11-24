@@ -56,6 +56,7 @@ local macro "enter_wait" : tactic => `(tactic| (
         | ok e => exact ⟨e, rfl⟩
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       unfold enterResult
       iright; iright
       isplitr
@@ -68,6 +69,7 @@ local macro "enter_wait" : tactic => `(tactic| (
     obtain ⟨-, -, Hwk, Hwe⟩ := keyWatchOp_fields (key ++ go!"/ready") r
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     unfold enterResult
     ileft
     isplitr
@@ -105,7 +107,7 @@ theorem DoubleBarrier.Enter.wp_proof
     (wp_WaitEvents : WaitEvents.spec (GF := GF) (hG := hG)) :
     DoubleBarrier.Enter.spec (GF := GF) (hG := hG) := by
   intro b s γ client id key count o lo
-  wp_start as ⟨#Hb, Hmk, #Hlo⟩
+  wp_start as ⟨Hlt, #Hb, Hmk, #Hlo⟩
   ihave #Hb' := Hb
   iunfold isDoubleBarrier at Hb'
   icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %HcountB, #Hsess, #Hcl, #Hclosed⟩
@@ -122,7 +124,7 @@ theorem DoubleBarrier.Enter.wp_proof
   wp_auto
   wp_apply wp_Client s γ client id $$ [$Hcp $Hsess]
   (try wp_auto)
-  wp_apply wp_enteredClients b s γ client id key count lo $$ [$Hb $Hlo] as %resp1 %err1 Hr1
+  wp_apply wp_enteredClients b s γ client id key count lo $$ [$Hlt $Hb $Hlo] as %resp1 %err1 ⟨Hlt, Hr1⟩
   icases Hr1 with (⟨%Hnil1, %R1, %kvs1, #HR1, #Hw1, %HR1le⟩ | %Hne1)
   rotate_left
   · obtain ⟨e, rfl⟩ : ∃ e, err1 = GoInterface.ok e := by
@@ -131,6 +133,7 @@ theorem DoubleBarrier.Enter.wp_proof
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     unfold enterResult
     iright; iright
     isplitr
@@ -143,6 +146,7 @@ theorem DoubleBarrier.Enter.wp_proof
   wp_auto
   wp_if_destruct
   · iapply HΦ
+    iframe Hlt
     unfold enterResult
     iright; ileft
     isplitr
@@ -163,6 +167,7 @@ theorem DoubleBarrier.Enter.wp_proof
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     unfold enterResult
     iright; iright
     isplitr
@@ -176,7 +181,7 @@ theorem DoubleBarrier.Enter.wp_proof
   wp_auto
   ihave Hmk := dbMyKey_new b client (key ++ go!"/") (key ++ go!"/waiters") k kv ek r hpw Hkr.1
     $$ [$Hmk $Hek $HKVf $Hcl]
-  wp_apply wp_enteredClients b s γ client id key count r $$ [$Hb $Hr] as %resp2 %err2 Hr2
+  wp_apply wp_enteredClients b s γ client id key count r $$ [$Hlt $Hb $Hr] as %resp2 %err2 ⟨Hlt, Hr2⟩
   icases Hr2 with (⟨%Hnil2, %R2, %kvs2, #HR2, #Hw2, %HR2le⟩ | %Hne2)
   rotate_left
   · obtain ⟨e, rfl⟩ : ∃ e, err2 = GoInterface.ok e := by
@@ -185,6 +190,7 @@ theorem DoubleBarrier.Enter.wp_proof
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     unfold enterResult
     iright; iright
     isplitr
@@ -230,6 +236,7 @@ theorem DoubleBarrier.Enter.wp_proof
       (try wp_auto)
       rcases derr with _ | _ <;> (try wp_auto) <;>
       · iapply HΦ
+        iframe Hlt
         unfold enterResult
         iright; ileft
         isplitr
@@ -259,6 +266,7 @@ theorem DoubleBarrier.Enter.wp_proof
           | ok e => exact ⟨e, rfl⟩
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         unfold enterResult
         iright; iright
         isplitr
@@ -269,6 +277,7 @@ theorem DoubleBarrier.Enter.wp_proof
       subst Hpnil
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       unfold enterResult
       ileft
       isplitr

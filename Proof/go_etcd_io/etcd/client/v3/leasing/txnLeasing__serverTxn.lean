@@ -53,7 +53,7 @@ theorem txnLeasing.serverTxn.wp_proof
     (hrfb : txnLeasing.revokeFallback.spec (GF := GF) (hG := hG)) :
     txnLeasing.serverTxn.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs b lo
-  wp_start as ⟨Htxn, Hrd, #Hcc, #Hlo, %Hsz⟩
+  wp_start as ⟨Hlt, Htxn, Hrd, #Hcc, #Hlo, %Hsz⟩
   unfold ownTxnLeasing
   icases Htxn with ⟨%t0, %B0, %csl, %tsl, %esl, %tops, %eops, -, -, -, Hl, #Hlkv, Hc, #Hctx, #HctxC,
     Hcs, Hcso, Hts, Htso, Hes, Heso, %Hops⟩
@@ -72,6 +72,7 @@ theorem txnLeasing.serverTxn.wp_proof
     | ok e =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       iframe
       iexists tops, eops
       isplitr
@@ -124,6 +125,7 @@ theorem txnLeasing.serverTxn.wp_proof
       wp_for_post
       wp_apply hclose $$ [$Hwsl $Hwcs] as Hwsl
       iapply HΦ
+      iframe Hlt
       iframe
       iexists tops, eops
       isplitr
@@ -139,7 +141,7 @@ theorem txnLeasing.serverTxn.wp_proof
     iintro %usl ⟨Husl, -⟩
     ipersist Husl
     wp_auto
-    wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
+    wp_apply HTxn $$ %ctx %cs [$Hlt $Hctx $HctxC] as %t ⟨Hlt, %B, HB, #HBs⟩
     iunfold txnBuilderSpecO at HBs
     icases HBs with ⟨#HIf, #HThen, #HElse, #HCommit⟩
     wp_apply_raw HIf $$ %TxnBuild.empty %cmps %ms [$HB]
@@ -233,6 +235,7 @@ theorem txnLeasing.serverTxn.wp_proof
         · wp_for_post
           wp_apply hclose $$ [$Hwsl $Hwcs] as Hwsl
           iapply HΦ
+          iframe Hlt
           iframe
           iexists tops, eops
           isplitr
@@ -304,6 +307,7 @@ theorem txnLeasing.serverTxn.wp_proof
           ipersist Hth
           wp_apply hclose $$ [$Hwsl $Hwcs] as Hwsl
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           iexists tops, eops
           isplitr
@@ -353,6 +357,7 @@ theorem txnLeasing.serverTxn.wp_proof
           wp_for_post
           wp_apply hclose $$ [$Hwsl $Hwcs] as Hwsl
           iapply HΦ
+          iframe Hlt
           iframe
           iexists tops, eops
           isplitr

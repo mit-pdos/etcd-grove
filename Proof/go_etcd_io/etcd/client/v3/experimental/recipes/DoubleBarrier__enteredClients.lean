@@ -32,7 +32,7 @@ theorem DoubleBarrier.enteredClients.wp_proof
     (wp_WithSort : WithSort.spec (GF := GF) (hG := hG)) :
     DoubleBarrier.enteredClients.spec (GF := GF) (hG := hG) := by
   intro b s γ client id key count lo
-  wp_start as ⟨#Hb, #Hlo⟩
+  wp_start as ⟨Hlt, #Hb, #Hlo⟩
   ihave #Hb' := Hb
   iunfold isDoubleBarrier at Hb'
   icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %HcountB, #Hsess, #Hcl, #Hclosed⟩
@@ -73,8 +73,9 @@ theorem DoubleBarrier.enteredClients.wp_proof
   ihave #HG := HKV $$ %(key ++ go!"/waiters") %optsSl %([withPrefixM, withSortM (W64 2) (W64 1)] : List (OpFull → OpFull))
     %iprop(True) %lo
   wp_auto
-  wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres, -⟩
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, -⟩
   · iframe Hopts' Hlo
+    (try iframe Hlt)
     ipureintro
     exact ⟨waitersOp_not_panics.1, (waitersOp_t _).1, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
@@ -90,6 +91,7 @@ theorem DoubleBarrier.enteredClients.wp_proof
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; ipureintro; exact Hgne
   subst Hgnil
   obtain ⟨Hrev0, Hser, HnP, -⟩ :=
@@ -106,6 +108,7 @@ theorem DoubleBarrier.enteredClients.wp_proof
   obtain ⟨Hperm, Hsorted⟩ := waitersOp_kvs _ s' gkvs hwp Hgok
   wp_auto
   iapply HΦ
+  iframe Hlt
   ileft
   isplitr
   · ipureintro; rfl

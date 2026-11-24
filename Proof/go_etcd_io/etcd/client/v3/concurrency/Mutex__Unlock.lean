@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) :
     Mutex.Unlock.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
-  wp_start as ⟨#Hm, Hst, #Hctx, #HctxC, #Hlo⟩
+  wp_start as ⟨Hlt, #Hm, Hst, #Hctx, #HctxC, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
   icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -41,6 +41,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
   wp_if_destruct
   · -- myKey == ""
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · unfold isPkgErr; iframe HeL; ipureintro; simp
@@ -50,6 +51,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
   wp_if_destruct
   · -- myRev <= 0
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · unfold isPkgErr; iframe HeL; ipureintro; simp
@@ -59,6 +61,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
   wp_if_destruct
   · -- myKey == "\x00"
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · unfold isPkgErr; iframe HeL; ipureintro; simp
@@ -86,8 +89,9 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
     wp_auto
     ihave #Hnil := optsAt_nil (GF := GF)
     iunfold isEtcdDeleteKV at HDel
-    wp_apply HDel $$ %ctx %cs %st.key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hctx $HctxC $Hnil $Hlo] as %dresp %derr #Hd
+    wp_apply HDel $$ %ctx %cs %st.key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hlt $Hctx $HctxC $Hnil $Hlo] as %dresp %derr ⟨Hlt, #Hd⟩
     · ipureintro
+      (try iframe Hlt)
       refine ⟨deleteOp_not_panics st.key, ?_⟩
       rw [(deleteOp_fields st.key).1, (deleteOp_fields st.key).2]
       exact ⟨keyRangeUnder_key pfx st.key Hif, deleteOp_size Hkl⟩
@@ -99,6 +103,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
         | ok e => exact ⟨e, rfl⟩
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright; iright
       isplitr
       · ipureintro; exact Hne
@@ -108,6 +113,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
     ihave #Habs := deleteTxn_absent pfx st.key r' s' $$ Hts
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -127,6 +133,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
     simp only [List.set_cons_succ, List.set_cons_zero]
     exact .cons_string _ _ (.cons_string _ _ .nil)
   iapply HΦ
+  iframe Hlt
   iright; iright
   iframe
   ipureintro; exact ⟨by simp, Hkl⟩

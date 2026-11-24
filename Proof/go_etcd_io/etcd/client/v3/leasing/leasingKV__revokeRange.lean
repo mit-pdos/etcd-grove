@@ -31,7 +31,7 @@ theorem leasingKV.revokeRange.wp_proof
     (hRLK : leasingKV.revokeLeaseKvs.spec (GF := GF) (hG := hG)) :
     leasingKV.revokeRange.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs b e
-  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, %Hbe⟩
+  wp_start as ⟨Hlt, #Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, %Hbe⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkv, #Hp, -, -, -, #HKV, -⟩
@@ -77,8 +77,9 @@ theorem leasingKV.revokeRange.wp_proof
   iunfold isEtcdKV at HKV
   ihave #H0 := etcdReached_zero (GF := GF)
   ihave #HG := HKV $$ %ctx %cs %(pfx ++ b) %_ %([withRangeM L] : List (OpFull → OpFull)) %(W64 0)
-  wp_apply HG $$ [] as %gresp %gerr #Hgres
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
   · iframe Hctx HctxC Hopts H0
+    (try iframe Hlt)
     ipureintro
     refine ⟨by simp [opGetPanics, op_simps], by simp [op_simps], ?_⟩
     apply opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 2 ^ 27 + 2 ^ 26) (V := 0)

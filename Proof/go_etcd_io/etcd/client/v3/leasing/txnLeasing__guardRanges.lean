@@ -63,7 +63,7 @@ theorem txnLeasing.guardRanges.wp_proof
     (hCR : EtcdGrove.CreateRevision.spec (GF := GF) (hG := hG)) :
     txnLeasing.guardRanges.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs dq sl os
-  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hops, %Hos⟩
+  wp_start as ⟨Hlt, Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hops, %Hos⟩
   ihave #HLKV' := HLKV
   iunfold isLeasingKV at HLKV'
   icases HLKV' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, -, #Hkvf, #Hpfxf, -, -, -,
@@ -146,14 +146,16 @@ theorem txnLeasing.guardRanges.wp_proof
         wp_apply wp_bytes_to_string esl2 o.base.rangeEnd DFrac.discard $$ [$He2] as -
         (try wp_auto)
         have Hob := Hos o (List.mem_of_getElem? Hoi)
-        wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$HLKV $Hrd $Hsr $Hctx $HctxC $Hcc]
-          as %maxRev %err Hrd
+        wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$Hlt $HLKV $Hrd $Hsr $Hctx $HctxC $Hcc]
+          as %maxRev %err ⟨Hlt, Hrd⟩
         · ipureintro; exact Hob
+          (try iframe Hlt)
         cases err with
         | ok e =>
           (try wp_auto)
           wp_for_post
           iapply HΦ
+          iframe Hlt
           iframe
           ileft; ipureintro; exact ⟨by simp, rfl⟩
         | nil =>
@@ -199,8 +201,9 @@ theorem txnLeasing.guardRanges.wp_proof
           ihave #HG := HKV' $$ %ctx %cs %o.key %gsl %(lastRevGs o.base.rangeEnd) %(W64 0)
           ihave #H0 := etcdReached_zero (GF := GF)
           obtain ⟨Hnp, Ht1, HnP, Hrev0⟩ := lastRevOp_facts o.key o.base.rangeEnd
-          wp_apply HG $$ [] as %gresp %gerr #Hgres
+          wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
           · iframe Hctx HctxC Hopts H0
+            (try iframe Hlt)
             ipureintro; exact ⟨Hnp, Ht1, lastRevOp_size _ _ Hob.1 Hob.2⟩
           iunfold kvGetResult at Hgres
           icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, -, Hgr⟩)
@@ -211,6 +214,7 @@ theorem txnLeasing.guardRanges.wp_proof
             (try wp_auto)
             wp_for_post
             iapply HΦ
+            iframe Hlt
             iframe
             ileft; ipureintro; exact ⟨by simp, rfl⟩
           subst Hgnil
@@ -308,6 +312,7 @@ theorem txnLeasing.guardRanges.wp_proof
               by simp [compareM, cmpWithRangeM, cmpKeyM], by simp [compareM, cmpWithRangeM, cmpKeyM]⟩
   · (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe
     iright
     isplitr

@@ -33,7 +33,7 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
     (wp_waitDelete : waitDelete.spec (GF := GF) (hG := hG)) :
     waitDeletes.spec (GF := GF) (hG := hG) := by
   intro ctx cs client pfx maxCreateRev lo
-  wp_start as ⟨#Hcl, #Hctx, #HctxC, #Hcc, #Hlo, %Hp⟩
+  wp_start as ⟨Hlt, #Hcl, #Hctx, #HctxC, #Hcc, #Hlo, %Hp⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
   icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, -, -, -, -, #HKV, -, -, -⟩
@@ -83,8 +83,9 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
   iunfold isEtcdKV at HKV
   ihave #HG := HKV $$ %ctx %cs %pfx %gsl
     %(withTopM (W64 2) (W64 2) ++ [withMaxCreateRevM maxCreateRev]) %lo'
-  wp_apply HG $$ [] as %gresp %gerr #Hgres
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
   · iframe Hctx HctxC Hopts Hlo'
+    (try iframe Hlt)
     ipureintro
     exact ⟨lastCreateOp_not_panics maxCreateRev, lastCreateOp_t pfx maxCreateRev,
       lastCreateOp_size maxCreateRev Hp.2.1⟩
@@ -97,6 +98,7 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
     wp_auto
     wp_for_post
     iapply HΦ
+    iframe Hlt
     ileft; ipureintro; exact Hgne
   subst Hgnil
   obtain ⟨Hrev0, Hser, HnP⟩ := lastCreateOp_rev pfx maxCreateRev
@@ -126,6 +128,7 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
     (try wp_auto)
     wp_for_post
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; rfl
@@ -175,6 +178,7 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
     (try wp_auto)
     wp_for_post
     iapply HΦ
+    iframe Hlt
     ileft; ipureintro; exact Hwne
   subst Hwnil
   (try wp_auto)

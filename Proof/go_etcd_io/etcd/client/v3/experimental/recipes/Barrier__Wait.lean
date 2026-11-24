@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
     Barrier.Wait.spec (GF := GF) (hG := hG) := by
   intro b client key lo
-  wp_start as ⟨#Hcc, #Hb, #Hlo, %Hlo0⟩
+  wp_start as ⟨Hlt, #Hcc, #Hb, #Hlo, %Hlo0⟩
   iunfold isBarrier at Hb
   icases Hb with ⟨#Hbc, #Hbx, #Hbk, #Hcl, %Hkl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
@@ -42,8 +42,9 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
   ihave #Hopts := optsAt_res slice.nil [] iprop(True) $$ Hnil
   iunfold isEtcdKVTodo at HGet
   ihave #HG := HGet $$ %key %slice.nil %([] : List (OpFull → OpFull)) %iprop(True) %lo
-  wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres, -⟩
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, -⟩
   · iframe Hopts Hlo
+    (try iframe Hlt)
     ipureintro
     exact ⟨keyOp_not_panics, (keyOp_t key).1, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
@@ -56,6 +57,7 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Hgne
   subst Hgnil
@@ -78,6 +80,7 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
   wp_if_destruct
   · -- no key: released already
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -116,12 +119,14 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
         | ok e => exact ⟨e, rfl⟩
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro; exact Hwne
     subst Hwnil
     ihave ⟨%r, #Hr, #Habs, %Hrr⟩ := waitedEvent_key_delete key key (R + W64 1) ev $$ Hwev
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

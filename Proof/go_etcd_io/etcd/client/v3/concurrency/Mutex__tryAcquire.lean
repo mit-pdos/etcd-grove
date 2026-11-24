@@ -45,7 +45,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     (hGRR : EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG)) :
     Mutex.tryAcquire.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
-  wp_start as ⟨#Hm, Hst, #Hctx, #HctxC, #Hlo⟩
+  wp_start as ⟨Hlt, #Hm, Hst, #Hctx, #HctxC, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
   icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -211,8 +211,9 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
+  wp_apply HCommit $$ %({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
   · ipureintro
+    (try iframe Hlt)
     exact ⟨acquireTxn_under pfx key id Hpfx Hpk, acquireTxn_size pfx key id Hpl (by omega)⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
@@ -223,6 +224,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
       | ok e => exact ⟨e, rfl⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; exact Hne
@@ -288,6 +290,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     icases Hkp with ⟨%kks, %kvsl, -, -, #Hcr, -⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; rfl
@@ -320,6 +323,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
       ⟨ps[1]'(by simp at Hlens; omega), List.getElem?_eq_getElem _⟩
     ihave #Hop1 := Hops $$ %1 %p1 %(TxnOp.get (ownerOp pfx)) %(TxnOpResult.range (rangeSel (putKv r key [] id s0) (ownerOp pfx)) (rangeIn (putKv r key [] id s0) (ownerOp pfx)).length) %hp1 %rfl %rfl
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; rfl

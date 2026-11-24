@@ -49,6 +49,7 @@ local macro "leave_not_lowest" : tactic => `(tactic| (
         | ok e => exact ⟨e, rfl⟩
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       isplitl [Hmk Hek]
       · iexists GoInterface.nil
         try simp only [dbMyKey]
@@ -79,6 +80,7 @@ local macro "leave_not_lowest" : tactic => `(tactic| (
         | ok e => exact ⟨e, rfl⟩
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       isplitl [Hmk Hek]
       · iexists GoInterface.nil
         try simp only [dbMyKey]
@@ -100,6 +102,7 @@ local macro "leave_not_lowest" : tactic => `(tactic| (
       · unfold isRecipesKV; itrivial
       ipureintro; (try simp only); first | exact ⟨Hk, Hst⟩ | exact Hst | exact Hk
     iapply HΦ
+    iframe Hlt
     iframe Hmk'
     try unfold leaveResult
     (try iunfold leaveResult at Hl)
@@ -120,7 +123,7 @@ theorem DoubleBarrier.Leave.wp_proof
     DoubleBarrier.Leave.spec (GF := GF) (hG := hG) := by
   intro b s γ client id key count ek st lo
   iloeb as IH generalizing %st %lo
-  wp_start as ⟨#Hb, Hmk, #Hlo, %Hst⟩
+  wp_start as ⟨Hlt, #Hb, Hmk, #Hlo, %Hst⟩
   ihave #Hb' := Hb
   iunfold isDoubleBarrier at Hb'
   icases Hb' with ⟨#Hbs, #Hbctx, #Hbkey, #Hbcount, %HcountB, #Hsess, #Hcl, #Hclosed⟩
@@ -166,8 +169,9 @@ theorem DoubleBarrier.Leave.wp_proof
   ihave #HG := HKV $$ %(key ++ go!"/waiters") %optsSl %([withPrefixM] : List (OpFull → OpFull))
     %iprop(True) %lo
   wp_auto
-  wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres, -⟩
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, -⟩
   · iframe Hopts' Hlo
+    (try iframe Hlt)
     ipureintro
     exact ⟨waitersOp_not_panics.2, (waitersOp_t _).2, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
@@ -183,6 +187,7 @@ theorem DoubleBarrier.Leave.wp_proof
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     isplitl [Hmk]
     · iexists st.kv; iexact Hmk
     unfold leaveResult
@@ -210,6 +215,7 @@ theorem DoubleBarrier.Leave.wp_proof
       apply List.eq_nil_of_length_eq_zero
       rw [← Hgl, Hgsl.1, Hif]; rfl
     iapply HΦ
+    iframe Hlt
     isplitl [Hmk]
     · iexists st.kv; iexact Hmk
     unfold leaveResult
@@ -334,8 +340,9 @@ theorem DoubleBarrier.Leave.wp_proof
       obtain ⟨hdk, hde⟩ := concurrency.deleteOp_fields (key ++ go!"/ready")
       (try wp_auto)
       wp_apply HDel $$ %(key ++ go!"/ready") %slice.nil %([] : List (OpFull → OpFull)) %lo
-        [$Hnilo $Hlo] as %dresp %derr #Hdres
+        [$Hlt $Hnilo $Hlo] as %dresp %derr ⟨Hlt, #Hdres⟩
       · ipureintro
+        (try iframe Hlt)
         refine ⟨concurrency.deleteOp_not_panics _, ?_, by rw [hde]; simp, rfl,
           deleteOp_size (by simp; omega)⟩
         rw [hdk, hde]; exact concurrency.keyRangeUnder_key _ _ hpr
@@ -347,6 +354,7 @@ theorem DoubleBarrier.Leave.wp_proof
           | ok e => exact ⟨e, rfl⟩
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         isplitl [Hmk Hek]
         · iexists st.kv
           try simp only [dbMyKey]
@@ -360,10 +368,12 @@ theorem DoubleBarrier.Leave.wp_proof
       (try wp_auto)
       wp_method_call
       wp_auto
-      wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$Hek $Hkv $Hlo] as %err2 ⟨Hek, Hres⟩
+      wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$Hlt $Hek $Hkv $Hlo] as %err2 ⟨Hlt, Hek, Hres⟩
       · ipureintro; exact Hk
+        (try iframe Hlt)
       ihave #Hres := leaveResult_of_delete _ st lo err2 $$ Hres
-      iapply HΦ
+      iapply HΦ $$ [Hlt]
+      iframe Hlt
       iframe Hres
       iexists GoInterface.nil
       try simp only [dbMyKey]
@@ -396,6 +406,7 @@ theorem DoubleBarrier.Leave.wp_proof
           | ok e => exact ⟨e, rfl⟩
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         isplitl [Hmk Hek Hkv]
         · iexists st.kv
           try simp only [dbMyKey]
@@ -413,7 +424,8 @@ theorem DoubleBarrier.Leave.wp_proof
         try unfold ownEphemeralKV
         iframe Hmk Hek Hkv
         ipureintro; (try simp only); first | exact ⟨Hk, Hst⟩ | exact Hst | exact Hk
-      iapply HΦ
+      iapply HΦ $$ [Hlt]
+      iframe Hlt
       iframe Hmk' Hl
     · -- not the lowest: delete the key, wait for the lowest's deletion, retry
       leave_not_lowest

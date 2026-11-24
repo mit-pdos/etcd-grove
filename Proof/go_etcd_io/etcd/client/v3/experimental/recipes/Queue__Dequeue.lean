@@ -37,7 +37,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
     Queue.Dequeue.spec (GF := GF) (hG := hG) := by
   intro q client kp lo
   iloeb as IH
-  wp_start as ⟨#Hcc, #Hq, #Hlo, %Hlo0⟩
+  wp_start as ⟨Hlt, #Hcc, #Hq, #Hlo, %Hlo0⟩
   ihave #Hq' := Hq
   iunfold isQueue at Hq'
   icases Hq' with ⟨#Hqc, #Hqx, #Hqk, %HkpB, #Hcl⟩
@@ -55,8 +55,9 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
   iunfold isEtcdKVTodo at HGet
   ihave #HG := HGet $$ %kp %osl %(withTopM (W64 3) (W64 1)) %iprop(True) %lo
   obtain ⟨Ht, Hk, He, Hrev, Hser, -, -, Hl, Hc, -, Hf1, Hf2, Hf3, Hf4⟩ := firstRevOp_fields kp Hkp
-  wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres, #Hmore⟩
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, #Hmore⟩
   · iframe Hopts Hlo
+    (try iframe Hlt)
     ipureintro
     exact ⟨firstRevOp_not_panics, Ht, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
@@ -69,6 +70,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Hgne
   subst Hgnil
@@ -119,6 +121,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Hcne
   subst Hcnil
@@ -203,6 +206,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
           | ok e => exact ⟨e, rfl⟩
         wp_auto
         iapply HΦ
+        iframe Hlt
         iright
         ipureintro; exact Hwne
       subst Hwnil
@@ -233,6 +237,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
           | ok e' => exact ⟨e', rfl⟩
         wp_auto
         iapply HΦ
+        iframe Hlt
         iright
         ipureintro; exact Hdne
       subst Hdnil
@@ -244,6 +249,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
         · ipureintro; exact Hlo0
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         iexact Hres
       · -- claimed by this call
         simp only [↓reduceIte]
@@ -259,6 +265,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
         wp_apply wp_bytes_to_string valSl v.value DFrac.discard $$ [$HVs] as -
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         ileft
         isplitr
         · ipureintro; rfl
@@ -271,6 +278,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       · ipureintro; exact Hlo0
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iexact Hres
   · -- the get path: the get's item, claimed by this call
     icases Hcase2 with (⟨%Hpn, -⟩ | ⟨-, %v, %r, %Hgv, #Hpkv, #Hr, #Hdel, Htok, %HRr⟩)
@@ -290,6 +298,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
     wp_apply wp_bytes_to_string valSl v.value DFrac.discard $$ [$HVs] as -
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

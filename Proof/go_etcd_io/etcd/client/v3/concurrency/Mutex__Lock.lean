@@ -47,10 +47,10 @@ theorem Mutex.Lock.wp_proof
     (wp_Unlock : Mutex.Unlock.spec (GF := GF) (hG := hG)) :
     Mutex.Lock.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
-  wp_start as ⟨#Hm, Hst, #Hctx, #HctxC, #Hcc, #Hlo⟩
+  wp_start as ⟨Hlt, #Hm, Hst, #Hctx, #HctxC, #Hcc, #Hlo⟩
   wp_auto
-  wp_apply wp_tryAcquire m s γ client id pfx st ctx cs lo $$ [$Hm $Hst $Hctx $HctxC $Hlo]
-    as %resp %err Hres
+  wp_apply wp_tryAcquire m s γ client id pfx st ctx cs lo $$ [$Hlt $Hm $Hst $Hctx $HctxC $Hlo]
+    as %resp %err ⟨Hlt, Hres⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
   icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -61,6 +61,7 @@ theorem Mutex.Lock.wp_proof
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; iright
     isplitr
     · ipureintro; exact Hne
@@ -113,6 +114,7 @@ theorem Mutex.Lock.wp_proof
   wp_if_destruct
   · -- the owner is `myKey`: locked
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -138,9 +140,10 @@ theorem Mutex.Lock.wp_proof
   have Hpos := (Hrevs ow How).1
   have Hrev1 : 0 < sint.Z (rev - W64 1) := by word
   wp_apply wp_Client s γ client id $$ [$Hsess]
-  wp_apply wp_waitDeletes ctx cs client pfx (rev - W64 1) r $$ [$Hcl $Hctx $HctxC $Hcc $Hr]
-    as %werr Hwd
+  wp_apply wp_waitDeletes ctx cs client pfx (rev - W64 1) r $$ [$Hlt $Hcl $Hctx $HctxC $Hcc $Hr]
+    as %werr ⟨Hlt, Hwd⟩
   · ipureintro; exact ⟨Hpfx, Hpl, Int.le_of_lt Hrev1⟩
+    (try iframe Hlt)
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
   icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, -, #Hctxf, #Hcctx, #HcctxC, #HKV, -, -, -⟩
@@ -157,6 +160,7 @@ theorem Mutex.Lock.wp_proof
       $$ [$Hm HmyKey HmyRev Hmhdr $Hcctx $HcctxC $H0] as %uerr Hu
     · unfold mutexState; iframe; ipureintro; exact Hkln
     iapply HΦ
+    iframe Hlt
     iright; iright
     isplitr
     · ipureintro; exact Hwne
@@ -185,6 +189,7 @@ theorem Mutex.Lock.wp_proof
       $$ [$Hm HmyKey HmyRev Hmhdr $Hcctx $HcctxC $H0] as %uerr Hu
     · unfold mutexState; iframe; ipureintro; exact Hkln
     iapply HΦ
+    iframe Hlt
     iright; iright
     isplitr
     · ipureintro; exact Hgne
@@ -217,6 +222,7 @@ theorem Mutex.Lock.wp_proof
     icases Hci with ⟨-, ⟨%eSE, #HeSE⟩, -⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · unfold isPkgErr
@@ -251,6 +257,7 @@ theorem Mutex.Lock.wp_proof
   icases HgRev with ⟨%ghdr, #Hgh, %Hghnn, #HghR⟩
   wp_auto
   iapply HΦ
+  iframe Hlt
   ileft
   isplitr
   · ipureintro; rfl

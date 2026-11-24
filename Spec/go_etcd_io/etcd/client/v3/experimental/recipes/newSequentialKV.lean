@@ -38,18 +38,16 @@ and freshness hold under a premise on the keys under `kp` (`seqKeyPutAt_order`,
 `seqKeyPutAt_created`, `InvRecipesSeq.lean`). -/
 abbrev newSequentialKV.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx kp val : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp ∧ pfx <+: baseKey kp ∧
-        kp.length ≤ recipesPfxMax + 2 ^ 10 ∧ val.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp ∧ pfx <+: baseKey kp ∧
+        kp.length ≤ recipesPfxMax + 2 ^ 10 ∧ val.length ≤ recipesStrMax⌝) }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newSequentialKV))
       (Val #(GoInterface.ok kv))) (Val #kp)) (Val #val))
-  {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (g r : w64),
+  {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (g r : w64),
         ownRemoteKV rk ⟨GoInterface.ok kv, key, r, val⟩ ∗ etcdReached r ∗
         seqKeyPutAt pfx kp key val g r ∗
         ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z g ∧ sint.Z g ≤ sint.Z r ∧
           sint.Z r < 2 ^ 63 - 1⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ rk = null⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ rk = null⌝) }}
 
 end spec
 

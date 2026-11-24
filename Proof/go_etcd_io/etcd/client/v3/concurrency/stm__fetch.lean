@@ -34,7 +34,7 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     (hAdd : readSet.add.spec (GF := GF) (hG := hG)) :
     stm.fetch.spec (GF := GF) (hG := hG) := by
   intro b pfx reads gs ksl ks
-  wp_start as ⟨#Henv, Hrs, Hopts, %Hgs, #Hks, %Hpk, %Hsz⟩
+  wp_start as ⟨Hlt, #Henv, Hrs, Hopts, %Hgs, #Hks, %Hpk, %Hsz⟩
   ihave %Hlen := ownSlice_len $$ Hks
   wp_auto
   wp_if_destruct
@@ -44,6 +44,7 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
       exact List.length_eq_zero_iff.1 (by rw [h1]; rfl)
     subst Hks0
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iexists reads
     iframe Hrs Hopts
@@ -110,6 +111,7 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
       wp_auto
       wp_for_post
       iapply HΦ
+      iframe Hlt
       iapply stmRet_ret
       iexists reads
       isplitl [Hrf Hrm]
@@ -225,8 +227,9 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     wp_auto
     ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
     · iapply etcdReached_zero
-    wp_apply HCommit $$ %(ks.map (fun k => opGetModel k gs)) %(W64 0) [$HB $H0] as %resp %err #Hres
+    wp_apply HCommit $$ %(ks.map (fun k => opGetModel k gs)) %(W64 0) [$Hlt $HB $H0] as %resp %err ⟨Hlt, #Hres⟩
     · ipureintro
+      (try iframe Hlt)
       refine fetchTxn_size (fun k => ⟨(readOp_fields k gs Hgs).2.1, (readOp_fields k gs Hgs).2.2.1,
         ?_⟩) Hsz.1 Hsz.2
       rcases Hgs with rfl | rfl | ⟨S, rfl⟩ <;> simp [op_simps]
@@ -239,6 +242,7 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
       wp_auto
       wp_apply wp_panic
       iapply HΦ
+      iframe Hlt
       iapply stmRet_abort _ (by simp)
     subst Heq
     obtain ⟨Hpsl, -, -, -⟩ := Hrr
@@ -305,6 +309,7 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     wp_apply hGRR p0 w rr $$ [$Hpbi $Hu $Hw]
     · ipureintro; exact Hpn
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iexists readsAdd reads (ks.zip es)
     isplitl [Hrf Hrm]
