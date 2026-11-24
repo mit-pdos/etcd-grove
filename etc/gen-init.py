@@ -212,7 +212,7 @@ def register(cfg, p, regs):
 
 
 # Perennial packages without Perennial's `wp_initialize'` (names-only there): generated here.
-PERENNIAL_HERE = {'math.rand', 'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
+PERENNIAL_HERE = {'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
 # The `IsPkgInit` instances of `PERENNIAL_HERE` packages that are Perennial's (2026-11-03: `runtime`
 # and its imports, which bbolt imports and whose `wp_initialize'` Perennial does not prove).
 PERENNIAL_INST = {'runtime': 'Perennial.Proof.runtime.Base',
@@ -774,11 +774,9 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 
-# (2026-11-23, Perennial 47ec64a9d translates `math/rand`'s global generator) `math.rand`'s fact stays
-# `True` here (`Proof/math/rand/Base.lean`, not Perennial's `isInit`): its initializer allocates
-# `globalRandGenerator` (dropped) and initializes `sync/atomic` and `sync`. Its other variables are
-# skipped by Perennial's configuration, so no `opaqueInitsOk` axiom any more.
-SPECIAL['math.rand'] = dict(alloc_types=_ALLOC_ANY)
+# (2026-11-24, rand-retire) `math.rand` is Perennial's (47ec64a9d translates its global generator and
+# proves its `wp_initialize'`, fact `isInit`); from 2026-11-23 to then its fact was `True` here and its
+# `Init.lean` generated.
 
 # (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) `io/fs` and `os` record
 # `ErrExist`'s error non-nil (`Proof/os/PkgInit.lean`; the part `LinuxFs/`'s until 2026-11-15, now the

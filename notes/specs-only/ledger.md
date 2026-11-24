@@ -25,6 +25,20 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-24: `rand.Int63n.spec`, `rand.Int31.spec` (`Spec/math/rand/`) -- precondition `True` becomes `isPkgInit pkg_id.math.rand`
+
+- **Spec.** `Spec/math/rand/Int63n.lean`, `rand.Int63n.spec`; `Spec/math/rand/Int31.lean`,
+  `rand.Int31.spec` (no `SpecPlan/` counterpart: the plan names them only in prose, as Perennial's).
+- **Defect.** None in the statement's content; the trust-boundary axioms with precondition `True` are
+  replaced by Perennial's proofs (`math.rand.wp_Int63n`, `wp_Int31`, Perennial 47ec64a9d), whose
+  precondition is the package's `isPkgInit` (the invariant of the global generator, `isInit`).
+- **Evidence.** Perennial's `Spec/math/rand/{Int63n,Int31}.lean`; etcd-grove#26 (math-rand's comment).
+- **Proposed change.** Each precondition gains `isPkgInit (PROP := IProp GF) pkg_id.math.rand`; the
+  post is unchanged. Callers get it from their package's `isPkgInit` (`iPkgInit`: `math/rand` is an
+  import). `Proof/math/rand/{Int63n,Int31}.lean` become theorems from Perennial's linked results.
+- **Decision.** Applied (branch `rand-retire`, 2026-11-24): retires two trust-boundary axioms, weakens
+  no post.
+
 ## 2026-11-23: the model's `strings` stand-ins and read-error wrappers removed (`modelCutByte`/`modelTrimLeftByte`, `connectReader`, `connReader.failed`); `parseRequestLine.spec`, `connReader.Read.spec`, the server reader's deadline specs, `Conn.Read.specLc` (net/http and net/rpc models)
 
 - **Spec.** Removed: `Net/Spec/net/http/modelCutByte.lean`, `modelTrimLeftByte.lean`,

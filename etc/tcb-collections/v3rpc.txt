@@ -14,7 +14,7 @@
 # (the proposal's: otel, prometheus, traceutil, the transport queries, `MarshalIRR`, the context
 # axioms, `errors.IsCtxErr` (proved since 2026-11-22), the new `context.ErrDone`); the handlers' own results do not.
 # Unit W-S (2026-10-14): the watch service (watch.go) adds mvcc's watch stream (its Link) and
-# the watch path's trust boundary: `isClientCtxErr`, `math/rand.Int63n`, `(*time.Duration).Seconds`,
+# the watch path's trust boundary: `isClientCtxErr`, `math/rand.Int63n` (proved by Perennial since 2026-11-24), `(*time.Duration).Seconds`,
 # zap's `NewNop`/`Debug`/`Duration`, verify's `Assert`, time's ticker (see watch.txt).
 # The auth plan's E3y (2026-10-27): `userAdd_end_to_end_on` reaches bcrypt's hashing,
 # `bcrypt.GenerateFromPassword` (the trust boundary, already in the repository's trust base). E3za
@@ -77,8 +77,6 @@ axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
-axiom rand.Int31.wp_proof
-axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom sort.SliceIsSorted.wp_proof

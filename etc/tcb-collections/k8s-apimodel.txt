@@ -10,4 +10,3 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link
 axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
 axiom corev1.Node.DeepCopyObject.wp_proof
 axiom corev1.Pod.DeepCopyObject.wp_proof
-axiom rand.Int63n.wp_proof

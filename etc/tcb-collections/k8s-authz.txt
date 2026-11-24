@@ -13,7 +13,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/(Results|TopLevel
 axiom Perennial.net.http.initFuncsOk
 axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.SprintfSlice.wp_proof
-axiom rand.Int63n.wp_proof
 axiom slices.Clone.wp_proof
 axiom slices.Concat.wp_proof
 axiom slices.ContainsFunc.wp_proof

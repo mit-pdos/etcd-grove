@@ -173,6 +173,7 @@ theorem NewServer.wp_proof
     unfold srvFixed cfgAt
     simp only [named, tableOf, resField]
     iframe #
+    iPkgInit
     ipureintro; exact Hbound
   iunfold apiState
   iexists []

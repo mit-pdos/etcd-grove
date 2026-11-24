@@ -1,9 +1,11 @@
 /-
-The trust boundary: `rand.Int63n` (`math/rand` is names-only in Perennial).
+`rand.Int63n`: Perennial's proof (`math.rand.wp_Int63n`, Perennial 47ec64a9d). (The trust boundary, an
+axiom, until 2026-11-24, rand-retire.)
 -/
 module
 
 public import Spec.math.rand.Int63n
+public import Perennial.Proof.math.rand.Link
 
 @[expose] public section
 
@@ -12,15 +14,17 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI 
+open Iris Iris.BI
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.math.rand.Assumptions]
 
-axiom rand.Int63n.wp_proof : rand.Int63n.spec (GF := GF) (hG := hG)
+theorem rand.Int63n.wp_proof : rand.Int63n.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.math.rand.wp_Int63n
 
 end proof
 

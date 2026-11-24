@@ -2,7 +2,7 @@
 # server/v3/etcdserver/api/v3rpc/watch.go) over mvcc's watch stream, against the server-end
 # stream interface (`srvStreamIs`, a premise): `watchServer.Watch` and `NewWatchServer` linked
 # (v3rpc/Results.lean's watch section) and the pure step lemmas. The trust boundary: mvcc's
-# (its collection), `isClientCtxErr` (grpc's `status.FromError`), `math/rand.Int63n`,
+# (its collection), `isClientCtxErr` (grpc's `status.FromError`), `math/rand.Int63n` (Perennial's proof since 2026-11-24),
 # `(*time.Duration).Seconds` (Perennial's `time` lacks `Duration.Seconds`, so its pointer wrapper
 # too), and the names-only zap, time, otel, verify, prometheus functions.
 # Unit W-W (2026-10-15): the wire: the generated stream handler and its served result
@@ -46,7 +46,6 @@ axiom promSrvMetrics
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
-axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof

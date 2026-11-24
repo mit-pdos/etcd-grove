@@ -123,7 +123,7 @@ newUnaryInterceptor: api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__Is
 # and a server-end stream interface (`srvStreamIs`, InvWatchStream.lean: a premise).
 # The server's getters `Watchable`, `AuthInfoFromCtx`, `AuthStore` are linked in the server's
 # Link (`@`). Trust boundary (axioms):
-# `isClientCtxErr` (grpc's `status.FromError`), `math/rand.Int63n`, `(*time.Duration).Seconds`
+# `isClientCtxErr` (grpc's `status.FromError`), `math/rand.Int63n` (Perennial's proof since 2026-11-24), `(*time.Duration).Seconds`
 # (the pointer wrapper of the untranslated `Duration.Seconds`); zap's, time's, otel's, verify's
 # and prometheus's names-only functions as elsewhere. `mvcc.ReportEventReceived` is mvcc's
 # (D19j, 2026-10-18: until then the package fact `reportEventOk`, for every count). Not linked: `sendFragments` and the prevKV branch of

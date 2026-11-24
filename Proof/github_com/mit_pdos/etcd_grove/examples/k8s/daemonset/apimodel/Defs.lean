@@ -316,7 +316,7 @@ instance tableOf_persistent (s : Loc) (r : Res) (t : Loc) : Persistent (tableOf 
   unfold tableOf; infer_instance
 
 /-- **The model API server** `s` with failure configuration `cfg` (persistent): its fixed fields,
-its tables', its lock with `lockInv` and its condition variable; the receipts' bound under which
+its tables', its lock with `lockInv` and its condition variable; `math/rand`'s package fact (for `chance`'s `rand.Int63n`, whose spec needs it since 2026-11-24); the receipts' bound under which
 its version counter does not wrap (`receiptBound GF ≤ 2 ^ 63`). -/
 def srvFixed (s : Loc) (γ : ApiNames) (L : SrvLocs) (cfg : apimodel.Config) : IProp GF :=
   iprop("#Hchanged" ∷ s.[apimodel.Server, go!"changed"] ↦□ L.cond ∗
@@ -329,6 +329,7 @@ def srvFixed (s : Loc) (γ : ApiNames) (L : SrvLocs) (cfg : apimodel.Config) : I
     "#Hmu" ∷ sync.isMutex (s.[apimodel.Server, go!"mu"]) (lockInv s γ L) ∗
     "#Hcond" ∷ sync.isCond L.cond (interface.mk (go.GoType.PointerType sync.Mutex.ty)
       #(s.[apimodel.Server, go!"mu"])) ∗
+    "#Hrand" ∷ isPkgInit (PROP := IProp GF) pkg_id.math.rand ∗
     "%Hbound" ∷ ⌜receiptBound GF ≤ 2 ^ 63⌝)
 
 instance srvFixed_persistent (s : Loc) (γ : ApiNames) (L : SrvLocs) (cfg : apimodel.Config) :
