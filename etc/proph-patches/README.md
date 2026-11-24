@@ -7,7 +7,7 @@ it (and `etc/verified-code.py` reads the same copy); the proofs are of the patch
 
 A patch is a unified diff relative to the project's source root (the checkout's root, or the
 example's directory for a project in this repository), such as `git diff` output. In Go files it
-may only add prophecy-only code (the rule as widened by Upamanyu, #24; the exact checks:
+may only add prophecy-only code (the rule as widened on #24; the exact checks:
 `notes/proph-patch-rule.md`):
 - prophecy-only declarations, with names the package does not use: a `primitive.ProphId` field (unexported, of a
   struct the program never compares with `==`, uses in a map key or reflects on) or package

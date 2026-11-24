@@ -55,8 +55,6 @@ axiom bridge.bridge.Blackhole.wp_proof
 axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
-axiom bytes.Buffer.Write.wp_proof
-axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof

@@ -2,17 +2,23 @@
 
 ## What the goal may rest on
 
-Lean's three axioms and the statement's declared premises (`CHALLENGE.md`), nothing else. The
+Lean's three axioms and the statement's premise `KitLibs`, the libraries' behavior as you state it
+(`CHALLENGE.md`, "The premise rules"), nothing else. The
 environment's trusted definitions (the net extension's semantics, `DistDeploy`, Goose's translation
 and Perennial's models) are the challenge's trust base, given: you add to none of them. So:
 
-- **no `axiom`** in your files, and none that a generator writes on your behalf (`gen-init`'s
+- **no `axiom`** in your files but the non-vacuity module `KitLibsLinked.lean` (each a library
+  premise, listed by kitlibs-check for the lab's review), and none that a generator writes on your behalf (`gen-init`'s
   `opaqueInitsOk`/`initFuncsOk` for an untranslated initializer your closure reaches: translate
   the package with bodies, or avoid the call; `SETUP.md`);
 - **no `TrustedCode/` model** of your own, and no `trusted` entry in a Goose configuration;
 - **no `sorry`** on the goal's path at the end.
 
 ## Hypotheses while you work
+
+Two kinds. A library function's behavior that the challenge does not prove and you cannot (a
+names-only library, an untranslated initializer) belongs in **`KitLibs`**: it is a premise of the
+goal, stays in the result, and is reviewed as such. Everything else is a working hypothesis:
 
 A library function the proof calls that has no spec yet, and that you will prove later (a codec
 helper, a standard-library function with a body), may be a **named hypothesis** in the meantime:
@@ -25,14 +31,14 @@ like a `sorry` that the trust-base report can count. Rules, the premise rules of
   tokens where the code is not thread-safe, the arguments it really accepts, a call made once where
   a second panics). Read the code, and cite it in the docstring.
 - **One canonical spec**: if the function already has a spec anywhere in the tree, use it.
-- **Discharged before done**: each hypothesis is proved (an instance built in a linking module
+- **Discharged before done**: each working hypothesis (not a `KitLibs` field) is proved (an instance built in a linking module
   from the function's proved spec, passed to the goal's proof), or the goal is not done. Keep a list
   of the open ones in `notes/STATUS.md`; they count like `sorry`s.
 
 ## Attacking a hypothesis (before every freeze)
 
-For each hypothesis a stage adds or restates, and for each declared premise the proof leans on in a
-way you did not expect, try to **refute it**: write a concrete Go program using the library that
+For each hypothesis a stage adds or restates, each `KitLibs` field, and each premise the proof leans
+on in a way you did not expect, try to **refute it**: write a concrete Go program using the library that
 panics (or misbehaves) when really run, yet whose "no panic" triple is provable from the hypothesis.
 Run the program. Typical successes:
 
@@ -42,9 +48,9 @@ Run the program. Typical successes:
 - an antecedent that is satisfiable trivially (instantiate a predicate parameter with `False`);
 - a fact that depends on configuration the spec does not mention.
 
-A refuted hypothesis of yours is restated (narrower, or with the missing premise) and attacked
-again. A refuted **declared** premise is a finding about the challenge: report it, with the program;
-do not prove over it. Record each attack and its result in the stage's notes. Reviews against the Go
+A refuted hypothesis or `KitLibs` field of yours is restated (narrower, or with the missing
+precondition) and attacked again. A refuted `InitHyp` (the challenge's) is a finding about the
+challenge: report it, with the program; do not prove over it. Record each attack and its result in the stage's notes. Reviews against the Go
 code do not find these: they judge the statement true of the code and miss that the logic lets a
 client use it unsoundly.
 

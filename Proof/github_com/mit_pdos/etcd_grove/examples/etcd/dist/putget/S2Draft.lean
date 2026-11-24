@@ -2,9 +2,9 @@
 
 # PLACEHOLDER: phase 7 S2's draft names, for `putget_safe`'s skeleton (`notes/putget-dist-plan.md`, section 8)
 
-**Not upamanyus's definitions.** His draft signatures (`notes/phase7-plan.md`, "S2 draft signatures
+**Not the S2 design's definitions.** Its draft signatures (`notes/phase7-plan.md`, "S2 draft signatures
 (2026-11-23)", branch `phase7-s2-design` `0606f68248`, not landed, nothing built) name what `putget_safe`'s
-start and client need. Until his branch lands, this module carries **the same names and statements** in a
+start and client need. Until that branch lands, this module carries **the same names and statements** in a
 form that adds no axiom and no `opaque`: the pure types (`ProtoWire`, `GrpcEntry`, `GrpcSvc`) as he writes
 them, and the rest as the fields of one structure, `S2Draft`, which the skeleton takes as a hypothesis (a
 proof of it is S2 itself). When S2 lands, each field is replaced by his definition or theorem of the same
@@ -86,7 +86,7 @@ structure S2Draft (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInt
   etcdEnvOf : EnvView → apply.AEnv GF
   /-- §1.3 (named in `etcdSvc`): the read names of a view. -/
   viewRd : EnvView → ReadNames
-  /-- The cluster id of a view (upamanyus, #24 05:09Z: `cid` moves into the view, since the table is fixed
+  /-- The cluster id of a view (#24 05:09Z: `cid` moves into the view, since the table is fixed
   at the start and the cluster id is bootstrap's). -/
   viewCid : EnvView → w64
   /-- §1.3: not published yet (exclusive). -/

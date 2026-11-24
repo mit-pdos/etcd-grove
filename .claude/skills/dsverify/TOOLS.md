@@ -1,6 +1,6 @@
 # Tools: the ones the challenge has, and the ones worth building
 
-The challenge comes with etcd-grove's scripts (`etc/`); the ones below are those a kit's proof uses.
+The challenge comes with the tree's scripts (`etc/`); the ones below are those a kit's proof uses.
 Each prints its usage with `--help` (or in its docstring). Use them before writing your own; build a
 tool only for what none of them does, keep it generic (no kit names inside), and record it
 (`REPORT.md`).
