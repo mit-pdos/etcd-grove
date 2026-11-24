@@ -91,7 +91,11 @@ newline, the newline then truncated), which cannot fail for an `int`. The de-dup
 truncates and rewrites bytes `FormatKVs` wrote. So Go returns, having appended some bytes to `b`
 and changed nothing else translated code reads; the model's arbitrary string includes them. Go's
 `Write`s grow `b` as the model's one `Write` does (`bytes.Buffer`'s `ErrTooLarge` panic is
-unreachable, as `grow`'s spec shows). The model is stuck everywhere else, less defined than Go. -/
+unreachable, as `grow`'s spec shows). The model is stuck everywhere else, less defined than Go.
+**Stuck** means an error state: `Panic`, the primitive that takes no step (`model.checkKVs`), so a
+WP of a call that reaches it is unprovable; never a blocking loop (whose WP holds trivially under
+partial correctness). `fmt.arbitraryString` may loop, but only after every key and value has passed
+the check, where Go returns: the loop adds executions, it hides no stuck case. -/
 noncomputable def FormatKVs.impl : val :=
   λ: "b" "kvs",
     model.checkAll "kvs" ;;
