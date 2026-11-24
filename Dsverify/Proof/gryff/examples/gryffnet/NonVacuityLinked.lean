@@ -57,7 +57,7 @@ variable [net.FieldAssumptions] [go.BasicIntoValInj] [net.rpc.Assumptions]
 axiom (the file header), in the statement's own form (at `remoteGF` and every machine's heap). -/
 theorem nonvacuous_premises :
     (∀ G L, letI := heapAt G L; lib.MathPowHyp remoteGF) :=
-  ⟨fun G L => mathPow_holds (hG := heapAt G L)⟩
+  fun G L => mathPow_holds (hG := heapAt G L)
 
 end statement
 
