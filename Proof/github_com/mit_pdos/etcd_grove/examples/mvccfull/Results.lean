@@ -42,7 +42,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
-variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Every check of mvcc's full tester passes** (`Link.lean`'s `mvccfull.wp_Main`; see the file
@@ -62,7 +61,6 @@ variable [go_gctx : GoGlobalContext]
 header and `Adequacy.lean`). -/
 theorem mvccfull_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
-    [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
