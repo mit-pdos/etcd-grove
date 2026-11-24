@@ -19,10 +19,13 @@ public import Net.Code.net
 public import Net.Code.mime.multipart
 public import Net.Code.net.textproto
 public import Perennial.Code.strconv
+public import Perennial.Code.math
 public import Code.path
+public import Perennial.Code.sort
 public import Code.bufio
 public import Perennial.Code.runtime
 public import Perennial.Golang.Defn
+public import Net.TrustedCode.net.http
 
 @[expose] public section
 
@@ -842,15 +845,25 @@ opaque defaultMaxContentRanges [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def MethodTrace [GooseExts] [GoGlobalContext] : val :=
   #(go!"TRACE")
 
-opaque equivalent [GooseExts] [GoGlobalContext] : val
+/-- both match the same requests -/
+@[reducible] noncomputable def equivalent [GooseExts] [GoGlobalContext] : val :=
+  #(go!"equivalent")
 
-opaque moreGeneral [GooseExts] [GoGlobalContext] : val
+/-- p1 matches everything p2 does & more -/
+@[reducible] noncomputable def moreGeneral [GooseExts] [GoGlobalContext] : val :=
+  #(go!"moreGeneral")
 
-opaque moreSpecific [GooseExts] [GoGlobalContext] : val
+/-- p2 matches everything p1 does & more -/
+@[reducible] noncomputable def moreSpecific [GooseExts] [GoGlobalContext] : val :=
+  #(go!"moreSpecific")
 
-opaque disjoint [GooseExts] [GoGlobalContext] : val
+/-- there is no request that both match -/
+@[reducible] noncomputable def disjoint [GooseExts] [GoGlobalContext] : val :=
+  #(go!"disjoint")
 
-opaque overlaps [GooseExts] [GoGlobalContext] : val
+/-- there is a request that both match, but neither is more specific -/
+@[reducible] noncomputable def overlaps [GooseExts] [GoGlobalContext] : val :=
+  #(go!"overlaps")
 
 opaque defaultMaxMemory [GooseExts] [GoGlobalContext] : val
 
@@ -1318,8 +1331,6 @@ opaque NoBody.init [GooseExts] [GoGlobalContext] : val
 noncomputable def maxSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.maxSlice"
 
-opaque maxSlice.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrMissingFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrMissingFile"
 
@@ -1395,8 +1406,6 @@ opaque ErrNoLocation.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def httpmuxgo121 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.httpmuxgo121"
-
-opaque httpmuxgo121.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def use121 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.use121"
@@ -2809,6 +2818,1223 @@ noncomputable def isToken.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
+/-- add adds a key-value pair to the mapping.
+
+    go: mapping.go:25:25 -/
+noncomputable def mapping.add.impl [GooseExts] [GoGlobalContext] (K V : go.GoType) : val :=
+  (LamV "h"
+  (Lam "k"
+  (Lam "v"
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc V))) (Var "v"))
+  (Let "k" (App (Val (GoInstruction (GoAlloc K))) (Var "k"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType K V)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType K V)))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType K V)))) (Val UntypedNil)))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty K V))))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (entry.ty K V))]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (GlobalVarAddr maxSlice))) (Val #()))))) (Val #false)))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty K V))))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad K))) (Var "k"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad V))) (Var "v"))
+  (App (Val (GoInstruction (CompositeLiteral (entry.ty K V)))) (LiteralValue [(KeyedElement none (ElementExpression K (Var "$v0"))), (KeyedElement none (ElementExpression V (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (entry.ty K V))))) (LiteralValue [(KeyedElement none (ElementExpression (entry.ty K V) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (entry.ty K V))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (entry.ty K V))))) (Pair (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))) (Var "$r0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad V))) (Var "v"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert K)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType K V)))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))))) (App (Val (GoInstruction (GoLoad K))) (Var "k"))) (Var "$r0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType K V)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType K V)))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType K V)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType K V)))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (entry.ty K V))))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (entry.ty K V))))) (Pair (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))) (Var "$r0")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty K V))))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))))
+  (Let "e" (App (Val (GoInstruction (GoAlloc (entry.ty K V)))) (App (Val (GoInstruction (GoZeroVal (entry.ty K V)))) (Val #())))
+  (App (App (Val (slice.forRange (entry.ty K V))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad V))) (App (Val (GoInstruction (StructFieldRef (entry.ty K V) go!"value"))) (Var "e")))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert K)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType K V)))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))))) (App (Val (GoInstruction (GoLoad K))) (App (Val (GoInstruction (StructFieldRef (entry.ty K V) go!"key"))) (Var "e")))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (entry.ty K V)))) (Pair (Var "e") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType K V)))) (Pair (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (Val #())))))
+
+/-- find returns the value corresponding to the given key.
+    The second return value is false if there is no value
+    with that key.
+
+    go: mapping.go:43:25 -/
+noncomputable def mapping.find.impl [GooseExts] [GoGlobalContext] (K V : go.GoType) : val :=
+  (LamV "h"
+  (Lam "k"
+  (Let "v" (App (Val (GoInstruction (GoAlloc V))) (App (Val (GoInstruction (GoZeroVal V))) (Val #())))
+  (Let "$res0" (Var "v")
+  (Let "found" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (Var "found")
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))
+  (Let "k" (App (Val (GoInstruction (GoAlloc K))) (Var "k"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad V))) (Var "v"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore V))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty K V))))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))))
+  (Let "e" (App (Val (GoInstruction (GoAlloc (entry.ty K V)))) (App (Val (GoInstruction (GoZeroVal (entry.ty K V)))) (Val #())))
+  (App (App (Val (slice.forRange (entry.ty K V))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals K))) (Pair (App (Val (GoInstruction (GoLoad K))) (App (Val (GoInstruction (StructFieldRef (entry.ty K V) go!"key"))) (Var "e"))) (App (Val (GoInstruction (GoLoad K))) (Var "k")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad V))) (App (Val (GoInstruction (StructFieldRef (entry.ty K V) go!"value"))) (Var "e")))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore V))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (entry.ty K V)))) (Pair (Var "e") (Var "$value")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType K V)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType K V)))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType K V)))) (Val UntypedNil))))))
+  (Let "__p" (App (App (Val (map.lookup2 K V)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType K V)))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))))) (App (Val (GoInstruction (GoLoad K))) (Var "k")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad V))) (Var "v"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore V))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "found") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore V))) (Pair (Var "v") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (mapping.ty K V))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (mapping.ty K V))))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad V))) (Var "v"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore V))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad V))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
+
+/-- eachPair calls f for each pair in the mapping.
+    If f returns false, pairs returns immediately.
+
+    go: mapping.go:61:25 -/
+noncomputable def mapping.eachPair.impl [GooseExts] [GoGlobalContext] (K V : go.GoType) : val :=
+  (LamV "h"
+  (Lam "f"
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [K, V] false [go.bool]))))) (Var "f"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType K V)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType K V)))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType K V)))) (Val UntypedNil))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType K V)))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))))
+  (Let "v" (App (Val (GoInstruction (GoAlloc V))) (App (Val (GoInstruction (GoZeroVal V))) (Val #())))
+  (Let "k" (App (Val (GoInstruction (GoAlloc K))) (App (Val (GoInstruction (GoZeroVal K))) (Val #())))
+  (App (App (Val (map.forRange K V)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad K))) (Var "k"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad V))) (Var "v"))
+  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [K, V] false [go.bool]))))) (Var "f")) (Var "$a0")) (Var "$a1")))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore K))) (Pair (Var "k") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore V))) (Pair (Var "v") (Var "$value")))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (entry.ty K V))))) (App (Val (GoInstruction (StructFieldRef (mapping.ty K V) go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h"))))
+  (Let "e" (App (Val (GoInstruction (GoAlloc (entry.ty K V)))) (App (Val (GoInstruction (GoZeroVal (entry.ty K V)))) (Val #())))
+  (App (App (Val (slice.forRange (entry.ty K V))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad K))) (App (Val (GoInstruction (StructFieldRef (entry.ty K V) go!"key"))) (Var "e")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad V))) (App (Val (GoInstruction (StructFieldRef (entry.ty K V) go!"value"))) (Var "e")))
+  (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [K, V] false [go.bool]))))) (Var "f")) (Var "$a0")) (Var "$a1")))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (entry.ty K V)))) (Pair (Var "e") (Var "$value")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (mapping.ty K V))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (mapping.ty K V))))) (Var "h")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (mapping.ty K V))))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #()))))
+
+/-- go: pattern.go:37:19 -/
+noncomputable def pattern.String.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: pattern.go:39:19 -/
+noncomputable def pattern.lastSegment.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc segment.ty))) (App (Val (GoInstruction (GoZeroVal segment.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad segment.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType segment.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore segment.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad segment.ty))) (Var "$res0"))))))
+
+/-- parsePattern parses a string into a Pattern.
+    The string's syntax is
+
+    	[METHOD] [HOST]/[PATH]
+
+    where:
+      - METHOD is an HTTP method
+      - HOST is a hostname
+      - PATH consists of slash-separated segments, where each segment is either
+        a literal or a wildcard of the form "{name}", "{name...}", or "{$}".
+
+    METHOD, HOST and PATH are all optional; that is, the string can be "/".
+    If METHOD is present, it must be followed by at least one space or tab.
+    Wildcard names must be valid Go identifiers.
+    The "{$}" and "{name...}" wildcard must occur at the end of PATH.
+    PATH may end with a '/'.
+    Wildcard names in a path must be distinct.
+
+    go: pattern.go:84:6 -/
+noncomputable def parsePattern.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType pattern.ty)))) (Val #())))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res1" (Var "err")
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "off" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (Let "$r1" (Val #(go!""))
+  (Let "$r2" (Val #false)
+  (Let "found" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "rest" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "method" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc pattern.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (App (Val (GoInstruction (CompositeLiteral pattern.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"str")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"method")) (ElementExpression go.string (Var "$v1")))])))))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType pattern.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (Let "$a1" (Val #(W8 47))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.IndexByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.bool)))) (LiteralValue []))
+  (Let "seenNames" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.bool)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (Let "$a1" (Val #(W8 47))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.IndexByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "seg" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$r1" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "seg"))
+  (Let "$a1" (Val #(W8 123))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.IndexByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "seg"))
+  (App (App (Val (GoInstruction (FuncResolve pathUnescape []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "seg"))
+  (App (Val (GoInstruction (CompositeLiteral segment.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"s")) (ElementExpression go.string (Var "$v0")))])))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType segment.ty)))) (LiteralValue [(KeyedElement none (ElementExpression segment.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType segment.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "seg") (Var "$r0"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "seg"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "seg"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (Val #(go!"..."))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.CutSuffix []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "multi" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$v1" (Val #true)
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.bool))) (Var "multi"))
+  (App (Val (GoInstruction (CompositeLiteral segment.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"s")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"wild")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"multi")) (ElementExpression go.bool (Var "$v2")))])))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType segment.ty)))) (LiteralValue [(KeyedElement none (ElementExpression segment.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType segment.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "seenNames"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))) (Var "$r0")))))))
+  (If (App (App (Val (map.lookup1 go.string go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "seenNames"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"duplicate wildcard name %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (App (Val (GoInstruction (FuncResolve isValidWildcardName []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"bad wildcard name %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!"")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"empty wildcard"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "multi")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"{...} wildcard not at end"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "multi") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!"$")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (Val #(go!"/"))
+  (App (Val (GoInstruction (CompositeLiteral segment.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"s")) (ElementExpression go.string (Var "$v0")))])))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType segment.ty)))) (LiteralValue [(KeyedElement none (ElementExpression segment.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doBreak) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType segment.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"{$} not at end"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "seg")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "seg"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))) (Val #(W8 125))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"bad wildcard segment (must end with '}')"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"bad wildcard segment (must start with '{')"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "rest") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "seg") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (Val #true)
+  (Let "$v1" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral segment.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"wild")) (ElementExpression go.bool (Var "$v0"))), (KeyedElement (some (KeyField go!"multi")) (ElementExpression go.bool (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType segment.ty)))) (LiteralValue [(KeyedElement none (ElementExpression segment.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doBreak) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType segment.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "off") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "rest") (Var "$r0"))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.bool)))) (Pair (Var "seenNames") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "method")) (Val #(go!""))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "method")) (Val #(go!"CONNECT"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "rest")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (App (App (Val (GoInstruction (FuncResolve cleanPath []))) (Val #())) (Var "$a0")))))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"non-CONNECT pattern with unclean path can never match"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "off") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "off")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"host"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (Let "$a1" (Val #(W8 123))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.IndexByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"host contains '{' (missing initial '/'?)"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "off") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "off")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "rest") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef pattern.ty go!"host"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"host/path missing /"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "off") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "p") (Var "$r0")))))))))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "method")) (Val #(go!""))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (App (App (Val (GoInstruction (FuncResolve validMethod []))) (Val #())) (Var "$a0")))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"invalid method %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "method")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "found")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!""))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "method") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "rest") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (Let "$a1" (Val #(go!" \t"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.IndexAny []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$r1" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (Val #(go!" \t"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.TrimLeft []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r2" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "found") (Var "$r2"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "rest") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "method") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "found") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "rest") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "method") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"at offset %d: %w"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (Var "off")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (Val #())))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "off") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"empty pattern"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- go: pattern.go:199:6 -/
+noncomputable def pathUnescape.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "path"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.url.PathUnescape []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "u" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "u"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "u") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
+
+/-- conflictsWith reports whether p1 conflicts with p2, that is, whether
+    there is a request that both match but where neither is higher precedence
+    than the other.
+
+    	Precedence is defined by two rules:
+    	1. Patterns with a host win over patterns without a host.
+    	2. Patterns whose method and path is more specific win. One pattern is more
+    	   specific than another if the second matches all the (method, path) pairs
+    	   of the first and more.
+
+    If rule 1 doesn't apply, then two patterns conflict if their relationship
+    is either equivalence (they match the same set of requests) or overlap
+    (they both match some requests, but neither is more specific than the other).
+
+    go: pattern.go:232:20 -/
+noncomputable def pattern.conflictsWith.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p1"
+  (Lam "p2"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p1"))
+  (Let "p2" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p2"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"comparePathsAndMethods"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1"))) (Var "$a0")))
+  (Let "rel" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "rel")) (Val equivalent))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "rel")) (Val overlaps))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "rel") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"host"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"host"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2"))))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: pattern.go:243:20 -/
+noncomputable def pattern.comparePathsAndMethods.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p1"
+  (Lam "p2"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p1"))
+  (Let "p2" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p2"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"compareMethods"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1"))) (Var "$a0")))
+  (Let "mrel" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"comparePaths"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1"))) (Var "$a0")))
+  (Let "prel" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "mrel"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "prel"))
+  (App (App (App (Val (GoInstruction (FuncResolve combineRelationships []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "prel") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "mrel")) (Val disjoint))))
+  (Let "$r0" (Val disjoint)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "mrel") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "$res0"))))))
+
+/-- compareMethods determines the relationship between the method
+    part of patterns p1 and p2.
+
+    A method can either be empty, "GET", or something else.
+    The empty string matches any method, so it is the most general.
+    "GET" matches both GET and HEAD.
+    Anything else matches only itself.
+
+    go: pattern.go:260:20 -/
+noncomputable def pattern.compareMethods.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p1"
+  (Lam "p2"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p1"))
+  (Let "p2" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p2"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val disjoint)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2")))) (Val #(go!"GET")))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1")))) (Val #(go!"HEAD")))) (Val #false)))
+  (Let "$r0" (Val moreSpecific)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1")))) (Val #(go!"GET")))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2")))) (Val #(go!"HEAD")))) (Val #false)))
+  (Let "$r0" (Val moreGeneral)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2")))) (Val #(go!"")))))
+  (Let "$r0" (Val moreSpecific)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1")))) (Val #(go!"")))))
+  (Let "$r0" (Val moreGeneral)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2")))))))
+  (Let "$r0" (Val equivalent)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "$res0"))))))
+
+/-- comparePaths determines the relationship between the path
+    part of two patterns.
+
+    go: pattern.go:283:20 -/
+noncomputable def pattern.comparePaths.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p1"
+  (Lam "p2"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p1"))
+  (Let "p2" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p2"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "segs2" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType segment.ty)))) (Val #())))
+  (Let "segs1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType segment.ty)))) (Val #())))
+  (Let "$r0" (Val equivalent)
+  (Let "rel" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val disjoint)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs2"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs1"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (StructFieldGet segment.ty go!"multi"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"lastSegment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2"))) (Val #()))) (Val #false))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "rel"))
+  (Let "$a1" (Val moreSpecific)
+  (App (App (App (Val (GoInstruction (FuncResolve combineRelationships []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs1"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs2"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (StructFieldGet segment.ty go!"multi"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"lastSegment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1"))) (Val #()))) (Val #false))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "rel"))
+  (Let "$a1" (Val moreGeneral)
+  (App (App (App (Val (GoInstruction (FuncResolve combineRelationships []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs1"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs2"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "rel"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1"))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs1"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs2"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "rel"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad segment.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType segment.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs1")) (Val #(W64 0)))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad segment.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType segment.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs2")) (Val #(W64 0)))))
+  (App (App (App (Val (GoInstruction (FuncResolve compareSegments []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve combineRelationships []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "rel")) (Val disjoint))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "rel"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "rel") (Var "$r0"))))))))
+  (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs1"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType segment.ty)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$s")))))
+  (Let "$r1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs2"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType segment.ty)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType segment.ty)))) (Pair (Var "segs2") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType segment.ty)))) (Pair (Var "segs1") (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType segment.ty)))) (Pair (Var "segs2") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType segment.ty)))) (Pair (Var "segs1") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "rel") (Var "$r0")))))))))))
+  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0")))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (StructFieldGet segment.ty go!"multi"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"lastSegment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p1"))) (Val #())))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (StructFieldGet segment.ty go!"multi"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"lastSegment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p2"))) (Val #())))) (Val #false))
+  (Let "$r0" (Val disjoint)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "$res0"))))))
+
+/-- compareSegments determines the relationship between two segments.
+
+    go: pattern.go:318:6 -/
+noncomputable def compareSegments.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s1"
+  (Lam "s2"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s2" (App (Val (GoInstruction (GoAlloc segment.ty))) (Var "s2"))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc segment.ty))) (Var "s1"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val disjoint)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"s"))) (Var "s1"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"s"))) (Var "s2"))))))
+  (Let "$r0" (Val equivalent)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"wild"))) (Var "s2")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val moreSpecific)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"s"))) (Var "s1"))) (Val #(go!"/")))))
+  (Let "$r0" (Val disjoint)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"wild"))) (Var "s1")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val moreGeneral)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"s"))) (Var "s2"))) (Val #(go!"/")))))
+  (Let "$r0" (Val disjoint)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"wild"))) (Var "s1"))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"wild"))) (Var "s2"))) (Val #false))
+  (Let "$r0" (Val equivalent)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"multi"))) (Var "s2")))
+  (Let "$r0" (Val moreSpecific)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"multi"))) (Var "s1")))
+  (Let "$r0" (Val moreGeneral)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"multi"))) (Var "s1"))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"multi"))) (Var "s2"))) (Val #false))
+  (Let "$r0" (Val equivalent)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "$res0"))))))
+
+/-- combineRelationships determines the overall relationship of two patterns
+    given the relationships of a partition of the patterns into two parts.
+
+    For example, if p1 is more general than p2 in one way but equivalent
+    in the other, then it is more general overall.
+
+    Or if p1 is more general in one way and more specific in the other, then
+    they overlap.
+
+    go: pattern.go:359:6 -/
+noncomputable def combineRelationships.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r1"
+  (Lam "r2"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r2" (App (Val (GoInstruction (GoAlloc relationship.ty))) (Var "r2"))
+  (Let "r1" (App (Val (GoInstruction (GoAlloc relationship.ty))) (Var "r1"))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r1"))
+  (If (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (Var "$sw") (Val equivalent)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r2"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (Var "$sw") (Val disjoint)))
+  (Let "$r0" (Val disjoint)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (Var "$sw") (Val overlaps)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val overlaps)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r2")) (Val disjoint))))
+  (Let "$r0" (Val disjoint)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (Var "$sw") (Val moreSpecific))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (Var "$sw") (Val moreGeneral))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r2"))
+  (If (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (Var "$sw") (Val equivalent)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r1"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (Var "$sw") (Let "$a0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r1"))
+  (App (App (Val (GoInstruction (FuncResolve inverseRelationship []))) (Val #())) (Var "$a0")))))
+  (Let "$r0" (Val overlaps)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r2"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"unknown relationship %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert relationship.ty go.any))) (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r1")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))
+  (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "$res0"))))))
+
 /-- go: request.go:97:6 -/
 noncomputable def badStringError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "what"
@@ -3953,6 +5179,1696 @@ noncomputable def fixPragmaCacheControl.impl [GooseExts] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "hp") (Var "$r0"))))))))))))))
   (Val #())))
+
+/-- go: routing_index.go:31:26 -/
+noncomputable def routingIndex.addPattern.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "idx"
+  (Lam "pat"
+  (Seq (App (Val exceptionDo)
+  (Let "idx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))
+  (Let "pat" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "pat"))
+  (If (App (Val (GoInstruction (StructFieldGet segment.ty go!"multi"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"lastSegment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "pat"))) (Val #())))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"multis"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "pat"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType pattern.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"multis"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))) (Var "$r0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "pat"))))
+  (Let "seg" (App (Val (GoInstruction (GoAlloc segment.ty))) (App (Val (GoInstruction (GoZeroVal segment.ty))) (Val #())))
+  (Let "pos" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange segment.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "pos"))
+  (Let "$v1" (Val #(go!""))
+  (App (Val (GoInstruction (CompositeLiteral routingIndexKey.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"pos")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"s")) (ElementExpression go.string (Var "$v1")))]))))
+  (Let "key" (App (Val (GoInstruction (GoAlloc routingIndexKey.ty))) (App (Val (GoInstruction (GoZeroVal routingIndexKey.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (App (Val (map.lookup1 routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))))) (App (Val (GoInstruction (GoLoad routingIndexKey.ty))) (Var "key")))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "pat"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType pattern.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert routingIndexKey.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))))) (App (Val (GoInstruction (GoLoad routingIndexKey.ty))) (Var "key"))) (Var "$r0"))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"wild"))) (Var "seg"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"s"))) (Var "seg")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef routingIndexKey.ty go!"s"))) (Var "key")) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore routingIndexKey.ty))) (Pair (Var "key") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "pos") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore segment.ty))) (Pair (Var "seg") (Var "$value")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (Pair (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Val #()))))
+
+/-- possiblyConflictingPatterns calls f on all patterns that might conflict with
+    pat. If f returns a non-nil error, possiblyConflictingPatterns returns immediately
+    with that error.
+
+    To be correct, possiblyConflictingPatterns must include all patterns that
+    might conflict. But it may also include patterns that cannot conflict.
+    For instance, an implementation that returns all registered patterns is correct.
+    We use this fact throughout, simplifying the implementation by returning more
+    patterns that we might need to.
+
+    go: routing_index.go:57:26 -/
+noncomputable def routingIndex.possiblyConflictingPatterns.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "idx"
+  (Lam "pat"
+  (Lam "f"
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res0" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "idx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [go.error]))))) (Var "f"))
+  (Let "pat" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "pat"))
+  (Let "$r0" (Lam "pats"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "pats" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Var "pats"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Var "pats"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType pattern.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType pattern.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [go.error]))))) (Var "f")) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (Var "p") (Var "$value")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+  (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))] false [go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))] false [go.error]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "wmin" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Val #())))
+  (Let "lmin" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Val #())))
+  (Let "$r0" (Val #(W64 9223372036854775807))
+  (Let "min" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (Let "hasLit" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))))
+  (Let "pats" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Val #())))
+  (App (App (Val (map.forRange routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Var "pats"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))] false [go.error]))))) (Var "apply")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Pair (Var "pats") (Var "$value")))))))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "hasLit"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Var "wmin"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))] false [go.error]))))) (Var "apply")) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Var "lmin"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))] false [go.error]))))) (Var "apply")) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "pat"))))
+  (Let "seg" (App (Val (GoInstruction (GoAlloc segment.ty))) (App (Val (GoInstruction (GoZeroVal segment.ty))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange segment.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"wild"))) (Var "seg"))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"s"))) (Var "seg")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (Val (GoInstruction (CompositeLiteral routingIndexKey.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"s")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"pos")) (ElementExpression go.int (Var "$v1")))])))))
+  (Let "lpats" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))))) (Let "$v0" (Val #(go!""))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (Val (GoInstruction (CompositeLiteral routingIndexKey.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"s")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"pos")) (ElementExpression go.int (Var "$v1")))])))))
+  (Let "wpats" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Var "lpats"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Var "wpats"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))]))) (Val #())) (Var "$a0")))))
+  (Let "sum" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "sum")) (App (Val (GoInstruction (GoLoad go.int))) (Var "min")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Var "lpats"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Var "wpats"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "sum"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "min") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Pair (Var "wmin") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Pair (Var "lmin") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "sum") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Pair (Var "wpats") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (Pair (Var "lpats") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "hasLit") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"multi"))) (Var "seg")))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore segment.ty))) (Pair (Var "seg") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "hasLit") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "min") (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (StructFieldGet segment.ty go!"s"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"lastSegment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "pat"))) (Val #()))) (Val #(go!"/")))))
+  (Let "$r0" (Let "$a0" (App (App (Val (map.lookup1 routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType routingIndexKey.ty (go.GoType.SliceType (go.GoType.PointerType pattern.ty)))))) (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))))) (Let "$v0" (Val #(go!"/"))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "pat"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))
+  (App (Val (GoInstruction (CompositeLiteral routingIndexKey.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"s")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"pos")) (ElementExpression go.int (Var "$v1")))])))))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))] false [go.error]))))) (Var "apply")) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType pattern.ty))))) (App (Val (GoInstruction (StructFieldRef routingIndex.ty go!"multis"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingIndex.ty)))) (Var "idx"))))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))] false [go.error]))))) (Var "apply")) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType pattern.ty))] false [go.error]))))) (Pair (Var "apply") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
+
+/-- addPattern adds a pattern and its associated Handler to the tree
+    at root.
+
+    go: routing_tree.go:44:26 -/
+noncomputable def routingNode.addPattern.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "root"
+  (Lam "p"
+  (Lam "h"
+  (Seq (App (Val exceptionDo)
+  (Let "root" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "root"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc Handler.ty))) (Var "h"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"host"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"addChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "root"))) (Var "$a0")))
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"addChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "h"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"addSegments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "n") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "n") (Var "$r0")))))))))))
+  (Val #())))))
+
+/-- addSegments adds the given segments to the tree rooted at n.
+    If there are no segments, then n is a leaf node that holds
+    the given pattern and handler.
+
+    go: routing_tree.go:56:23 -/
+noncomputable def routingNode.addSegments.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "segs"
+  (Lam "p"
+  (Lam "h"
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc Handler.ty))) (Var "h"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "segs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType segment.ty)))) (Var "segs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad segment.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType segment.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs")) (Val #(W64 0)))))
+  (Let "seg" (App (Val (GoInstruction (GoAlloc segment.ty))) (App (Val (GoInstruction (GoZeroVal segment.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"multi"))) (Var "seg")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc routingNode.ty))) (App (Val (GoInstruction (CompositeLiteral routingNode.ty))) (LiteralValue [])))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "h"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"set"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"multiChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "c") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"multi wildcard not last")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"wild"))) (Var "seg")))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType segment.ty)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "h"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"addSegments"))) (Let "$a0" (Val #(go!""))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"addChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$a0")))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType segment.ty)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "h"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"addSegments"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef segment.ty go!"s"))) (Var "seg")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"addChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$a0")))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore segment.ty))) (Pair (Var "seg") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (Var "segs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "h"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"set"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (Val #()))))))
+
+/-- set sets the pattern and handler for n, which
+    must be a leaf node.
+
+    go: routing_tree.go:78:23 -/
+noncomputable def routingNode.set.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "p"
+  (Lam "h"
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "h" (App (Val (GoInstruction (GoAlloc Handler.ty))) (Var "h"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "h"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType pattern.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"pattern"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType pattern.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"pattern"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Handler.ty))) (Pair (App (Val (GoInstruction (GoLoad Handler.ty))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")))) (App (Val (GoInstruction (Convert go.untypedNil Handler.ty))) (Val UntypedNil)))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"non-nil leaf fields")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Val #())))))
+
+/-- addChild adds a child node with the given key to n
+    if one does not exist, and returns the child.
+
+    go: routing_tree.go:88:23 -/
+noncomputable def routingNode.addChild.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "key"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc routingNode.ty))) (App (Val (GoInstruction (CompositeLiteral routingNode.ty))) (LiteralValue [])))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (mapping.ty go.string (go.GoType.PointerType routingNode.ty))) go!"add"))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "c") (Var "$r0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"findChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$a0")))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "c") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "key")) (Val #(go!"")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"emptyChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"emptyChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc routingNode.ty))) (App (Val (GoInstruction (CompositeLiteral routingNode.ty))) (LiteralValue [])))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"emptyChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "$res0"))))))
+
+/-- findChild returns the child of n with the given key, or nil
+    if there is no child with that key.
+
+    go: routing_tree.go:105:23 -/
+noncomputable def routingNode.findChild.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "key"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (mapping.ty go.string (go.GoType.PointerType routingNode.ty))) go!"find"))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "r") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "key")) (Val #(go!"")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"emptyChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "$res0"))))))
+
+/-- match returns the leaf node under root that matches the arguments, and a list
+    of values for pattern wildcards in the order that the wildcards appear.
+    For example, if the request path is "/a/b/c" and the pattern is "/{x}/b/{y}",
+    then the second return value will be []string{"a", "c"}.
+
+    go: routing_tree.go:117:26 -/
+noncomputable def routingNode.«match».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "root"
+  (Lam "host"
+  (Lam "method"
+  (Lam "path"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "root" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "root"))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "method" (App (Val (GoInstruction (GoAlloc go.string))) (Var "method"))
+  (Let "host" (App (Val (GoInstruction (GoAlloc go.string))) (Var "host"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchMethodAndPath"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"emptyChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "root"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "host")) (Val #(go!""))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchMethodAndPath"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "host"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"findChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "root"))) (Var "$a0")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "l")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "l"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "m") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "l") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res1"))))))))))
+
+/-- matchMethodAndPath matches the method and path.
+    Its return values are the same as [routingNode.match].
+    The receiver should be a child of the root.
+
+    go: routing_tree.go:132:23 -/
+noncomputable def routingNode.matchMethodAndPath.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "method"
+  (Lam "path"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "method" (App (Val (GoInstruction (GoAlloc go.string))) (Var "method"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchPath"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"emptyChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "method")) (Val #(go!"HEAD")))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchPath"))) (Let "$a0" (Val #(go!"GET"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"findChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$a0")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "l")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "l"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "m") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "l") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchPath"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"findChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$a0")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "l")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "l"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "m") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "l") (Var "$r0")))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res1")))))))))
+
+/-- matchPath matches a path.
+    Its return values are the same as [routingNode.match].
+    matchPath calls itself recursively. The matches argument holds the wildcard matches
+    found so far.
+
+    go: routing_tree.go:154:23 -/
+noncomputable def routingNode.matchPath.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "path"
+  (Lam "matches"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "matches" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "matches"))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve firstSegment []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "rest" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "seg" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"multiChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "matches"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (StructFieldGet segment.ty go!"s"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"lastSegment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"pattern"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c"))))) (Val #()))) (Val #(go!""))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "matches"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val (GoInstruction (FuncResolve pathUnescape []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "matches") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "c") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "seg")) (Val #(go!"/"))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "matches"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "seg"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchPath"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"emptyChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "m") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "n") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rest"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "matches"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchPath"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "seg"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"findChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))) (Var "$a0")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "m") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "n") (Var "$r0")))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "rest") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "seg") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(go!"")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "matches"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType pattern.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"pattern"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType pattern.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res1")))))))))
+
+/-- firstSegment splits path into its first segment, and the rest.
+    The path must begin with "/".
+    If path consists of only a slash, firstSegment returns ("/", "").
+    The segment is returned unescaped, if possible.
+
+    go: routing_tree.go:205:6 -/
+noncomputable def firstSegment.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "path"
+  (Let "seg" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res0" (Var "seg")
+  (Let "rest" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (Var "rest")
+  (Seq (App (Val exceptionDo)
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a1" (Val #(W8 47))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.IndexByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (Val (GoInstruction (FuncResolve pathUnescape []))) (Val #())) (Var "$a0")))
+  (Let "$r1" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "path") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(go!"/")))))
+  (Let "$r0" (Val #(go!"/"))
+  (Let "$r1" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1")))))))))
+
+/-- matchingMethods adds to methodSet all the methods that would result in a
+    match if passed to routingNode.match with the given host and path.
+
+    go: routing_tree.go:219:26 -/
+noncomputable def routingNode.matchingMethods.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "root"
+  (Lam "host"
+  (Lam "path"
+  (Lam "methodSet"
+  (Seq (App (Val exceptionDo)
+  (Let "root" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "root"))
+  (Let "methodSet" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.bool)))) (Var "methodSet"))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "host" (App (Val (GoInstruction (GoAlloc go.string))) (Var "host"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (App (Val (map.lookup1 go.string go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "methodSet"))) (Val #(go!"GET")))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "methodSet"))) (Val #(go!"HEAD"))) (Var "$r0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "methodSet"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchingMethodsPath"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"emptyChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "root"))))) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "host")) (Val #(go!""))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "methodSet"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchingMethodsPath"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "host"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"findChild"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "root"))) (Var "$a0")))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (Val #()))))))
+
+/-- go: routing_tree.go:229:23 -/
+noncomputable def routingNode.matchingMethodsPath.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "path"
+  (Lam "set"
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (Let "set" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.bool)))) (Var "set"))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Lam "method"
+  (Lam "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "c"))
+  (Let "method" (App (Val (GoInstruction (GoAlloc go.string))) (Var "method"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType routingNode.ty) go!"matchPath"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType routingNode.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "set"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))) (Var "$r0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType routingNode.ty)))) (Pair (Var "p") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (mapping.ty go.string (go.GoType.PointerType routingNode.ty))) go!"eachPair"))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"children"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Val #())))))
+
+/-- Formerly ServeMux.Handle.
+
+    go: servemux121.go:52:25 -/
+noncomputable def serveMux121.handle.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "mux"
+  (Lam "pattern"
+  (Lam "handler"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "mux" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))
+  (Let "handler" (App (Val (GoInstruction (GoAlloc Handler.ty))) (Var "handler"))
+  (Let "pattern" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pattern"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "handler"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern"))
+  (App (Val (GoInstruction (CompositeLiteral muxEntry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"h")) (ElementExpression Handler.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"pattern")) (ElementExpression go.string (Var "$v1")))]))))
+  (Let "e" (App (Val (GoInstruction (GoAlloc muxEntry.ty))) (App (Val (GoInstruction (GoZeroVal muxEntry.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad muxEntry.ty))) (Var "e"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern")) (Val #(W64 0)))) (Val #(W8 47))))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"hosts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))) (Val #(W8 47)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"es"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad muxEntry.ty))) (Var "e"))
+  (App (App (App (Val (GoInstruction (FuncResolve appendSorted []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType muxEntry.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"es"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string muxEntry.ty)))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore muxEntry.ty))) (Pair (Var "e") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType go.string muxEntry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string muxEntry.ty)))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string muxEntry.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string muxEntry.ty)]))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string muxEntry.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.string muxEntry.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string muxEntry.ty)))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exist" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exist"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"http: multiple registrations for ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exist") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Handler.ty))) (Pair (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "handler")) (App (Val (GoInstruction (Convert go.untypedNil Handler.ty))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"http: nil handler")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern")) (Val #(go!"")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"http: invalid pattern")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux")))) (Val #())))))))))
+  (Val #())))))
+
+/-- go: servemux121.go:80:6 -/
+noncomputable def appendSorted.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "es"
+  (Lam "e"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType muxEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType muxEntry.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc muxEntry.ty))) (Var "e"))
+  (Let "es" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType muxEntry.ty)))) (Var "es"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (Var "es"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType muxEntry.ty)]))) (Val #())) (Var "$a0")))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$a1" (Lam "i"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef muxEntry.ty go!"pattern"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType muxEntry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (Var "es")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef muxEntry.ty go!"pattern"))) (Var "e")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Search []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (Var "es"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (CompositeLiteral muxEntry.ty))) (LiteralValue []))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType muxEntry.ty)))) (LiteralValue [(KeyedElement none (ElementExpression muxEntry.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType muxEntry.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad muxEntry.ty))) (Var "e"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (Var "es"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType muxEntry.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore muxEntry.ty))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType muxEntry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (Var "es")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (Var "es"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType muxEntry.ty)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType muxEntry.ty)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (Var "es"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType muxEntry.ty)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType muxEntry.ty)]))) (Val #())) (Var "$s")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType muxEntry.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType muxEntry.ty)))) (Pair (Var "es") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (Var "es"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad muxEntry.ty))) (Var "e"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType muxEntry.ty)))) (LiteralValue [(KeyedElement none (ElementExpression muxEntry.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType muxEntry.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType muxEntry.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (Var "$res0"))))))
+
+/-- Formerly ServeMux.HandleFunc.
+
+    go: servemux121.go:96:25 -/
+noncomputable def serveMux121.handleFunc.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "mux"
+  (Lam "pattern"
+  (Lam "handler"
+  (Seq (App (Val exceptionDo)
+  (Let "mux" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))
+  (Let "handler" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))))) (Var "handler"))
+  (Let "pattern" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pattern"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern"))
+  (Let "$a1" (App (Val (GoInstruction (Convert HandlerFunc.ty Handler.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))))) (Var "handler")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"handle"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$a0")) (Var "$a1")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))))) (Var "handler")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"http: nil handler")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Val #())))))
+
+/-- Formerly ServeMux.Handler.
+
+    go: servemux121.go:104:25 -/
+noncomputable def serveMux121.findHandler.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "mux"
+  (Lam "r"
+  (Let "h" (App (Val (GoInstruction (GoAlloc Handler.ty))) (App (Val (GoInstruction (GoZeroVal Handler.ty))) (Val #())))
+  (Let "$res0" (Var "h")
+  (Let "pattern" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (Var "pattern")
+  (Seq (App (Val exceptionDo)
+  (Let "mux" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Request.ty)))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"Host"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve stripHostPort []))) (Val #())) (Var "$a0")))
+  (Let "host" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"Path"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))))
+  (App (App (Val (GoInstruction (FuncResolve cleanPath []))) (Val #())) (Var "$a0")))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "host"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"Path"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"Path"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "host"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.url.URL.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"RawQuery"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.net.url.URL.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Path")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"RawQuery")) (ElementExpression go.string (Var "$v1")))])))))
+  (Let "u" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.url.URL.ty) go!"String"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "u"))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val StatusMovedPermanently))
+  (App (App (App (Val (GoInstruction (FuncResolve RedirectHandler []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Pair (Var "u") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "pattern") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "host"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"redirectToPathSlash"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "u" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.url.URL.ty) go!"String"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "u"))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val StatusMovedPermanently))
+  (App (App (App (Val (GoInstruction (FuncResolve RedirectHandler []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"Path"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "u"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Pair (Var "u") (Var "$r0")))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "path") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "host") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"Method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r")))) (Val #(go!"CONNECT")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"Host"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"Path"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"Host"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"Path"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"redirectToPathSlash"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "u" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.url.URL.ty) go!"String"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "u"))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val StatusMovedPermanently))
+  (App (App (App (Val (GoInstruction (FuncResolve RedirectHandler []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"Path"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "u"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Pair (Var "u") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1"))))))))))
+
+/-- handler is the main implementation of findHandler.
+    The path is known to be in canonical form, except for CONNECT methods.
+
+    go: servemux121.go:140:25 -/
+noncomputable def serveMux121.handler.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "mux"
+  (Lam "host"
+  (Lam "path"
+  (Let "h" (App (Val (GoInstruction (GoAlloc Handler.ty))) (App (Val (GoInstruction (GoZeroVal Handler.ty))) (Val #())))
+  (Let "$res0" (Var "h")
+  (Let "pattern" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (Var "pattern")
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "mux" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "host" (App (Val (GoInstruction (GoAlloc go.string))) (Var "host"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Handler.ty))) (Pair (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "h")) (App (Val (GoInstruction (Convert go.untypedNil Handler.ty))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve NotFoundHandler []))) (Val #())) (Val #()))
+  (Let "$r1" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "pattern") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "h") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Handler.ty))) (Pair (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "h")) (App (Val (GoInstruction (Convert go.untypedNil Handler.ty))) (Val UntypedNil)))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "pattern") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "h") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"hosts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "host")) (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "pattern") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "h") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux")))) (Val #())))))))))
+  (Pair (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1")))))))))))
+
+/-- Find a handler on a handler map given a path string.
+    Most-specific (longest) pattern wins.
+
+    go: servemux121.go:159:25 -/
+noncomputable def serveMux121.«match».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "mux"
+  (Lam "path"
+  (Let "h" (App (Val (GoInstruction (GoAlloc Handler.ty))) (App (Val (GoInstruction (GoZeroVal Handler.ty))) (Val #())))
+  (Let "$res0" (Var "h")
+  (Let "pattern" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (Var "pattern")
+  (Seq (App (Val exceptionDo)
+  (Let "mux" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "__p" (App (App (Val (map.lookup2 go.string muxEntry.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string muxEntry.ty)))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "path")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "v" (App (Val (GoInstruction (GoAlloc muxEntry.ty))) (App (Val (GoInstruction (GoZeroVal muxEntry.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Handler.ty))) (Val UntypedNil))
+  (Let "$r1" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType muxEntry.ty)))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"es"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))
+  (Let "e" (App (Val (GoInstruction (GoAlloc muxEntry.ty))) (App (Val (GoInstruction (GoZeroVal muxEntry.ty))) (Val #())))
+  (App (App (Val (slice.forRange muxEntry.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef muxEntry.ty go!"pattern"))) (Var "e")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.HasPrefix []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Handler.ty))) (App (Val (GoInstruction (StructFieldRef muxEntry.ty go!"h"))) (Var "e")))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef muxEntry.ty go!"pattern"))) (Var "e")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore muxEntry.ty))) (Pair (Var "e") (Var "$value")))))))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Handler.ty))) (App (Val (GoInstruction (StructFieldRef muxEntry.ty go!"h"))) (Var "v")))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef muxEntry.ty go!"pattern"))) (Var "v")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Handler.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore muxEntry.ty))) (Pair (Var "v") (Var "$r0")))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1"))))))))))
+
+/-- redirectToPathSlash determines if the given path needs appending "/" to it.
+    This occurs when a handler for path + "/" was already registered, but
+    not for path itself. If the path needs appending to, it creates a new
+    URL, setting the path to u.Path + "/" and returning true to indicate so.
+
+    go: servemux121.go:180:25 -/
+noncomputable def serveMux121.redirectToPathSlash.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "mux"
+  (Lam "host"
+  (Lam "path"
+  (Lam "u"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "mux" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))
+  (Let "u" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "u"))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "host" (App (Val (GoInstruction (GoAlloc go.string))) (Var "host"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "host"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"shouldRedirectRLocked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))) (Var "$a0")) (Var "$a1"))))
+  (Let "shouldRedirect" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(go!"/"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.url.URL.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.url.URL.ty go!"RawQuery"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "u"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.net.url.URL.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Path")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"RawQuery")) (ElementExpression go.string (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "u"))
+  (Let "$r1" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Pair (Var "u") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "path") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "shouldRedirect")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "u"))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "shouldRedirect") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux")))) (Val #())))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))))
+
+/-- shouldRedirectRLocked reports whether the given path and host should be redirected to
+    path+"/". This should happen if a handler is registered for path+"/" but
+    not path -- see comments at ServeMux.
+
+    go: servemux121.go:195:25 -/
+noncomputable def serveMux121.shouldRedirectRLocked.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "mux"
+  (Lam "host"
+  (Lam "path"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "mux" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "host" (App (Val (GoInstruction (GoAlloc go.string))) (Var "host"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "host")) (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "p"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 go.string muxEntry.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string muxEntry.ty)))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "c")) (Val #(go!"/")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exist" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exist"))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1)))))) (Val #(W8 47)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exist") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "c") (Var "$value")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0)))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "p"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 go.string muxEntry.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string muxEntry.ty)))) (App (Val (GoInstruction (StructFieldRef serveMux121.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serveMux121.ty)))) (Var "mux"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "c")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exist" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exist"))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exist") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "c") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "p") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
 /-- go: server.go:311:16 -/
 noncomputable def conn.hijacked.impl [GooseExts] [GoGlobalContext] : val :=
@@ -7016,6 +9932,134 @@ noncomputable def ServeMux.matchOrRedirect.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef ServeMux.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServeMux.ty)))) (Var "mux")))) (Val #())))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "$res2"))))))))))))))
+
+/-- urlFromEscaped returns a url.URL constructed from an escaped path and a raw
+    query.
+
+    It ensures that the Path and RawPath fields are in sync by unescaping the
+    escaped path. Populating only the Path field and leaving RawPath empty (or
+    failing to keep them in sync) can cause url.URL.String to produce a URL with
+    either unexpected escaping (e.g., double-escaping "%" into "%25" in an
+    already escaped path) or a lack thereof (e.g., losing the escaping of "%2f"
+    and turning it into a literal path separator "/").
+
+    go: server.go:2778:6 -/
+noncomputable def urlFromEscaped.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "escaped"
+  (Lam "rawQuery"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "rawQuery" (App (Val (GoInstruction (GoAlloc go.string))) (Var "rawQuery"))
+  (Let "escaped" (App (Val (GoInstruction (GoAlloc go.string))) (Var "escaped"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "escaped"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.url.PathUnescape []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "unescaped" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.url.URL.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "unescaped"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "escaped"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "rawQuery"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.net.url.URL.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Path")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"RawPath")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"RawQuery")) (ElementExpression go.string (Var "$v2")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "escaped"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "unescaped") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "unescaped") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "$res0"))))))
+
+/-- exactMatch reports whether the node's pattern exactly matches the path.
+    As a special case, if the node is nil, exactMatch return false.
+
+    Before wildcards were introduced, it was clear that an exact match meant
+    that the pattern and path were the same string. The only other possibility
+    was that a trailing-slash pattern, like "/", matched a path longer than
+    it, like "/a".
+
+    With wildcards, we define an inexact match as any one where a multi wildcard
+    matches a non-empty string. All other matches are exact.
+    For example, these are all exact matches:
+
+    	pattern   path
+    	/a        /a
+    	/{x}      /a
+    	/a/{$}    /a/
+    	/a/       /a/
+
+    The last case has a multi wildcard (implicitly), but the match is exact because
+    the wildcard matches the empty string.
+
+    Examples of matches that are not exact:
+
+    	pattern   path
+    	/         /a
+    	/a/{x...} /a/b
+
+    go: server.go:2818:6 -/
+noncomputable def exactMatch.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "path"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType routingNode.ty)))) (Var "n"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType segment.ty)))) (App (Val (GoInstruction (StructFieldRef pattern.ty go!"segments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"pattern"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType segment.ty)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "$a1" (Val #(go!"/"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Count []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))) (Val #(W8 47))))) (Val #false)))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (StructFieldGet segment.ty go!"multi"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pattern.ty) go!"lastSegment"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pattern.ty)))) (App (Val (GoInstruction (StructFieldRef routingNode.ty go!"pattern"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n"))))) (Val #()))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType routingNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType routingNode.ty)))) (Var "n")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType routingNode.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- ServeHTTP dispatches the request to the handler whose
     pattern most closely matches the request URL.
@@ -10123,7 +13167,7 @@ noncomputable def body.registerOnHitEOF.impl [GooseExts] [GoGlobalContext] : val
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.net.http where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.crypto.tls, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.log, pkg_id.net.http.internal.ascii, pkg_id.net.url, pkg_id.slices, pkg_id.strings, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.vendor.golang_org.x.net.http.httpguts, pkg_id.net, pkg_id.mime.multipart, pkg_id.net.textproto, pkg_id.strconv, pkg_id.path, pkg_id.bufio, pkg_id.runtime]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.crypto.tls, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.log, pkg_id.net.http.internal.ascii, pkg_id.net.url, pkg_id.slices, pkg_id.strings, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.vendor.golang_org.x.net.http.httpguts, pkg_id.net, pkg_id.mime.multipart, pkg_id.net.textproto, pkg_id.strconv, pkg_id.math, pkg_id.path, pkg_id.sort, pkg_id.bufio, pkg_id.runtime]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -10186,6 +13230,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 8))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -10451,7 +13500,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrMissingFile.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val maxSlice.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr maxSlice))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
@@ -10551,11 +13600,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.strconv.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.math.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.path.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sort.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.bufio.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.runtime.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc maxSlice go.int)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc use121 go.bool)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc DefaultServeMux (go.GoType.PointerType ServeMux.ty))) (Val #()))))))
   (App (Val doExecute)

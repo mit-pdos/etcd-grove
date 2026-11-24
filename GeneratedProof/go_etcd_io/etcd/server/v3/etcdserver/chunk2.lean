@@ -35,6 +35,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.cindex
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
@@ -61,6 +62,7 @@ public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
 public import GeneratedProof.net.http
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync

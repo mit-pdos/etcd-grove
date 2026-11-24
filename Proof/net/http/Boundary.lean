@@ -24,14 +24,20 @@ The model (the note's points 1-6):
   for every address, but a spec stated for any `H` would let a client and a server of one
   address use different ones. So the protocol a client sends with and the one a server serves
   with are tied to the address: `http.register` turns the address's listener (`netListenerAt l
-  a`, one per address in a run: `net.Listen` consumes `netAddrFree a`) into `httpListenerAt l a P`,
+  a`, which carries the claim on `a`'s requests, `addrClaim a`, held once in a run: `net.Listen` consumes it; the
+  address itself may be listened on again after a `Close`, without the claim) into `httpListenerAt l a P`,
   which `Serve` takes, and `httpProtoAt a P` (persistent), which `RoundTrip` needs of a request's
   host. Two `httpProtoAt a P` of one address are of the one registration: the facts' model is a
   global ghost map from addresses to saved protocols, an entry set once. (D39a, 2026-10-23,
   stage 6a) The entry is set before the listener exists: `http.reserve` turns the address's
   protocol right (`httpProtoFree a`, from program start) into `httpProtoAt a P` and the right to
   serve it (`httpProtoOwn a P`), which `register` takes with the listener; a member sends to its
-  peers before they listen.
+  peers before they listen. (2026-11-24) Only of an address whose net protocols are net/http's
+  (`httpAddrNet a`, `AddrNet.lean`, set from `netAddrFree a`): from the reservation on raw net code writes
+  nothing at `a` (no raw net server answers a client of `a`, no raw net client writes to `a`'s server; it may
+  still listen, accept and read), and the address's listener is made from `httpAddrFree a`
+  (`net.Listen.specHttp`): `netListenerAt l a`, the Go listener `l` tied to the extension's listener open at
+  `a` (`lisAt`).
 * (2026-10-23, D38b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
   fresh exclusive ghost ticket (`reqTicket γk`) and the handler of the request receives it; the
   protocols are indexed by the ticket's name. Go's client never replays a `POST` without an
