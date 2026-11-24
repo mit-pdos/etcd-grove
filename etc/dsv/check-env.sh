@@ -49,7 +49,22 @@ if ls /root 2>/dev/null | grep -q .; then bad "/root not empty"; else ok "/root 
 # outputs, which a continued run inherits, are searched too
 # (the check-only scripts, mounted in check views alone, name it; a challenge's work tree and
 # skill are etcd-grove's by design: checked apart, below)
-hits=$(grep -rIl -i -P "$NAMES" /etc /opt /home/agent --exclude-dir=mirrors --exclude-dir=tmp --exclude-dir=.lake --exclude=check-env.sh --exclude=verify.sh --exclude=goal-check.sh --exclude=comparator-check.sh --exclude=leak-names.txt ${CHALLENGE:+--exclude-dir=work --exclude-dir=goal --exclude-dir=skills} 2>/dev/null | head -5)
+# A match inside one of leak-names.txt's allow-list patterns that hold for every file (an empty
+# PATH-RE: the public forks' Go module paths, which the module cache at /opt/goproxy holds) is not a
+# leak, as in kitgen's leak check
+hits=$(grep -rIlZ -i -P "$NAMES" /etc /opt /home/agent --exclude-dir=mirrors --exclude-dir=tmp --exclude-dir=.lake --exclude=check-env.sh --exclude=verify.sh --exclude=goal-check.sh --exclude=comparator-check.sh --exclude=leak-names.txt ${CHALLENGE:+--exclude-dir=work --exclude-dir=goal --exclude-dir=skills} 2>/dev/null |
+    python3 -I -c '
+import re, sys
+names = re.compile(sys.argv[1], re.I)
+allow = [re.compile(l.rstrip("\n").split("\t")[2]) for l in open(sys.argv[2])
+         if l.startswith("allow\t") and l.split("\t")[1] == ""] if sys.argv[2] else []
+for f in sys.stdin.buffer.read().split(b"\0"):
+    if not f: continue
+    for line in open(f, errors="replace"):
+        spans = [a.span() for r in allow for a in r.finditer(line)]
+        if any(not any(s <= m.start() and m.end() <= e for s, e in spans) for m in names.finditer(line)):
+            print(f.decode(errors="replace")); break
+' "$NAMES" "$([ -r /opt/lab/leak-names.txt ] && echo /opt/lab/leak-names.txt)" | head -5)
 [ -z "$hits" ] && ok "no etcd-grove or user names in /etc, /opt, /home/agent${CHALLENGE:+ (outside the work tree of the challenge)}" || bad "names found: $hits"
 # proofs kept for reference and marked DSV-LAB-EXAMPLES-NOT-FOR-RUNS (in a README or SOURCE.md):
 # never in a run's view (.lake included: a continued run's inherited packages)
