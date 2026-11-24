@@ -641,7 +641,7 @@ theorem wp_tailWriteAt (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
-          · iexists inner; iframe; isplitl [] <;> iassumption
+          · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
           ileft
           iframe Hosfd Hk Hv
           isplitr
@@ -657,7 +657,7 @@ theorem wp_tailWriteAt (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
-          · iexists inner; iframe; isplitl [] <;> iassumption
+          · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
           iright
           isplitr
           · ipureintro; intro h; cases h
@@ -690,7 +690,7 @@ theorem wp_tailWriteAt (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
-          · iexists inner; iframe; isplitl [] <;> iassumption
+          · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
           iright
           isplitr
           · ipureintro; intro h; cases h
@@ -743,7 +743,7 @@ theorem wp_tailWrite [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (j
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
   wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
   wp_auto

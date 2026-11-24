@@ -64,7 +64,7 @@ private theorem os.File.Close.wp_oldLe : os.File.Close.tripleOldLe (GF := GF) (h
   · rw [decide_eq_true he]
     wp_auto
     iapply HΦ
-    isplitr
+    isplitl
     · iexists inner
       iframe
       (repeat' isplitl []) <;> iassumption
@@ -74,7 +74,7 @@ private theorem os.File.Close.wp_oldLe : os.File.Close.tripleOldLe (GF := GF) (h
     wp_auto
     wp_apply os.wp_wrapErrno_okLe _ inner name e he $$ Hn Hsys as %pe #Hok
     iapply HΦ
-    isplitr
+    isplitl
     · iexists inner
       iframe
       (repeat' isplitl []) <;> iassumption

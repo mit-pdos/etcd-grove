@@ -164,7 +164,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
           fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
           isplitl
           · fmt_arg_method; iright; ileft; isplitr
-            · iapply HeS; iempintro
+            · iapply HeS
             · ipureintro; fmt_method_facts
           · itrivial
         try wp_auto
