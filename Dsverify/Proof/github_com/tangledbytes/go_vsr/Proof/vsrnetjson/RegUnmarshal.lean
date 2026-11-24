@@ -80,13 +80,16 @@ theorem vsrnet.registeredUnmarshalOk :
         encoding.json.codecPart (vsrnet.jsonCodec (GF := GF))
        models_lab.jsoncodec.unmarshalOk (GF := GF) vsrnet.scanF
          (encoding.json.kitFn go!"jsonUnmarshal")) := by
+  have hdec : ∀ (bs : List w8) (ptr : GoInterface) (Ψ : Bool → IProp GF),
+      @models_lab.jsoncodec.JsonCodec.dec _ GF (encoding.json.codecPart (vsrnet.jsonCodec (GF := GF)))
+        bs ptr Ψ = iprop(⌜encoding.json.unmarshalsByCodec ptr⌝ ∗ vsrnet.decP bs ptr Ψ) :=
+    fun _ _ _ => rfl
   unfold models_lab.jsoncodec.unmarshalOk
+  simp only [hdec]
   rw [show encoding.json.kitFn go!"jsonUnmarshal" = functions vsrnet.jsonUnmarshal [] from rfl]
   imodintro
   iintro %data %dq %bs %ptr %Ψ %Φ %hv Hs Hdec HΦ
-  try simp only [encoding.json.codecPart]
   icases Hdec with ⟨%hby, Hdec⟩
-  rw [vsrnet.dec_eq]
   unfold vsrnet.decP
   icases Hdec with (⟨%_, %ws, %m, %p, %fr, %hb, %hws, %hm, %hfr, %hptr, Hp, Hk⟩ |
     ⟨%_, %_, %_, %m, %p, %hb, %hm, %hmb, %hptr, Hpkg, Hset, Hz, Hk⟩ |
