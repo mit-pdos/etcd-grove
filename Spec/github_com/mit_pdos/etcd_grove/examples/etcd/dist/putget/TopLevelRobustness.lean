@@ -23,7 +23,8 @@ in-process `putget` (`Spec/.../examples/etcd/putget/Main.lean`) until discharged
 the gRPC service values and `errors.As`'s target, the member's named Iris premises (`Hprem`: the
 trust-boundary contracts `bootstrapContract`, `bootMarshal`, the raft wrapper's, at every ghost-state
 instance, as the retired single-process `etcd_safe`'s `Hprem`), `context`'s two classes (`Hctx`,
-`Hcec`), and the programs' metric names (`HNs`). `ETCD_VERIFY` (etcd's runtime checks, which panic outside
+`Hcec`) (no premise on the programs' metric names, `HNs`, since prom-registry, 2026-11-23: each
+machine's boot proof allocates its registration rights itself). `ETCD_VERIFY` (etcd's runtime checks, which panic outside
 the apply loop) is off on every machine's run, as in the single-process theorems (`HEnv`: `verifyEnvOff`
 of each machine's program, `Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`), and `HEnvTok` is that
 fact's token in the logic (`envVerifyOff`): in one process the start axiom `goose_adequacy_start` hands it
@@ -73,8 +74,7 @@ the client's `Get` after an acknowledged `Put` returns the `Put`'s value. -/
 def putget_safe.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
-    [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
@@ -91,11 +91,6 @@ def putget_safe.spec : Prop :=
     (Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
           boot)
-    -- the programs' metric names
-    (HNs : prometheus.namesUnclaimed (bootMember peer client)
-        github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames ∧
-      prometheus.namesUnclaimed (bootClient client)
-        github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames)
     -- the machines' start states
     (σm σc : state) (g : GlobalState) (Hm : MemberFiles σm) (Hc : ClientFiles σc)
     (Hd : Net.DistDeploy (addrs peer client) (system peer client σm σc) g)

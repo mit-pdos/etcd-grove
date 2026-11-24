@@ -504,7 +504,7 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   wp_apply h16 $$ []
   · iframe Hgvf Hfg; ipureintro; exact Hfgp
-  ihave #Hppkg : isPkgInit (PROP := IProp GF)
+  ihave #Hppkg : isPkgInitSome (PROP := IProp GF)
       pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   (try wp_auto)

@@ -156,7 +156,7 @@ namespace go_etcd_io.etcd.server.v3.storage.wal
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal :=
   define_is_pkg_init EtcdGrove.wal.walInit
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal :=
   build_get_is_pkg_init_wf
 

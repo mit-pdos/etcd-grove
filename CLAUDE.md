@@ -33,8 +33,10 @@ without them merges the two files as git always does.
 
 Land a branch on `lean` with `etc/land.sh` from its worktree (notes-only branches too): it takes the
 landing lock, checks `lean` is merged, runs `etc/gates.sh` and fast-forwards `lean`, so no other
-landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). Record your
-session in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
+landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). A session that
+posts on GitHub has a row in `etc/sessions.txt` and posts by `notes/coordination.md` (`to:`/`from:`
+lines, asks and their open/acked/closed state; `etc/gh-inbox.py watch`/`open`); record a worktree's
+stage in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
 
 Delete a branch once its work is merged into `lean` (or wherever it was merged): the
 local branch (`git branch -d <branch>`, which refuses one that is not merged), its remote

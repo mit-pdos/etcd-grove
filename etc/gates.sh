@@ -196,6 +196,14 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# the dsverify kits' generated plumbing (etc/dsv/kitgen.py, from each kit file's KITGEN: the
+# commands' mains, the statements, TopLevelDefs, the proofs' skeletons, Mains, the boot tables; and
+# the kits' codecs through their generators): after gen-init, whose PkgTables the boot tables read
+if python3 etc/dsv/kitgen.py --check > "$tmp/kitgen.log" 2>&1; then
+  echo "$(tail -1 "$tmp/kitgen.log")"
+else
+  echo "kitgen: FAILED"; tail -10 "$tmp/kitgen.log"; fail=1
+fi
 # SpecPlan's generated package-init specs (SpecPlan/Spec/PkgInit/, etc/gen-specs-pkginit.py): a
 # stale one can still build, so only this check sees it (putget-dist, 2026-11-23)
 if python3 etc/gen-specs-pkginit.py --check > "$tmp/specpkginit.log" 2>&1; then
@@ -358,6 +366,13 @@ fi
 # the notes' merge drivers (etc/merge-status.py; .gitattributes): replays this week's real merges of
 # notes/STATUS.md and notes/status-history.md, and synthetic cases (reads git only; ~15s)
 python3 etc/merge-status.py --selftest || fail=1
+# the GitHub coordination tool reads the convention as notes/coordination.md says (etc/gh-inbox.py;
+# recorded JSON, no network; under a second)
+if python3 -m unittest discover -s etc/gh-inbox-test > "$tmp/ghinbox.log" 2>&1; then
+  echo "gh-inbox: ok"
+else
+  echo "gh-inbox: FAILED"; tail -20 "$tmp/ghinbox.log"; fail=1
+fi
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
 # the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs
