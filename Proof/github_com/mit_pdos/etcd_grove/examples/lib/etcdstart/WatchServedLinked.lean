@@ -47,7 +47,7 @@ theorem kvWatch_served_tbl (Hp : mvcc.api.persistent.law (GF := GF))
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
         kvServeStocks s E γr ∗ grpcUp s E ρ γr gs lis addr cid mid R ⊢
       |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗
-        tableAt addr (fun a => etcdKVAt a E ρ γr cid mid ∗ watchRegAt a s E γr R) := by
+        tableAt addr (fun a => iprop(etcdKVAt a E ρ γr cid mid ∗ watchRegAt a s E γr R)) := by
   iintro ⟨#Pv3, #Psrv, #Ppb, #Hreq, #Hrd, #Hsf, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
@@ -75,10 +75,12 @@ theorem kvWatch_served_tbl (Hp : mvcc.api.persistent.law (GF := GF))
       Hrf Hnd hρ HL) $$ [Hgsn Hleft]
       with ⟨Hserv, -, -, -, -, -, -, #Hsat, #Htab⟩
   · iframe; iframe #
-    iintro !>
-    imodintro
-    iunfold idCred
-    ipureintro; exact Hrb
+    isplitl []
+    · iintro !>
+      imodintro
+      iunfold idCred
+      ipureintro; exact Hrb
+    iexact Hwr
   ihave #Hwl := client.srvWLaws_of_ok (srvWOf R.E γr false) R.wsl v3rpc.wsN $$ HWok
   imodintro
   isplitl [Hserv]

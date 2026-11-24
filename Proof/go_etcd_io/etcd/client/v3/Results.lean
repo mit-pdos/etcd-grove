@@ -3481,16 +3481,10 @@ theorem kvServerAt_of_is (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) :
   iframe #
   ipureintro; exact ⟨Hp, Hmx⟩
 
-/-- **The server built and the listener, or both bound by a no-refusal certificate**
-(phase 7's switch, SW1, 2026-11-24): what the single-process start takes, `grpc.start'` the former
-(`grpcSrvNew` and the listener `Listen` returned), `grpc.startBound` the latter (`grpcSrvBound`, from
-`etcd_noRefusal`/`etcd_noOtherRefusal`). -/
-def grpcSrvAtLis (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
-    (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF :=
-  iprop((grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr) ∨
-    grpcSrvBound gs lis addr ics sics svcs regs sregs)
-
-/-- The single-process start (`grpc.start'`, `grpc.startBound`) from either form. -/
+/-- **The single-process start from either form of the server at its listener** (phase 7's switch,
+SW1, 2026-11-24): the server built and the listener `Listen` returned (`grpc.start'`), or both bound
+by a no-refusal certificate (`grpcSrvBound`, from `etcd_noRefusal`/`etcd_noOtherRefusal`;
+`grpc.startBound`). -/
 theorem grpcStartAtLis (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
     (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface))
     (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF))
@@ -3499,14 +3493,14 @@ theorem grpcStartAtLis (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sic
     (sms : List (GrpcStreamMethod GF)) (hsms : ∀ m ∈ sms, (m.name, m.handler, m.srv) ∈ sregs)
     (hsnd : (sms.map (·.name)).Nodup)
     (hfit : grpcRepliesFit) (hnd : ((regs ++ sregs).map Prod.fst).Nodup) :
-    grpcSrvAtLis gs lis addr ics sics svcs regs sregs ∗ netAddrLeft addr ∗
+    ((grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr) ∨
+        grpcSrvBound gs lis addr ics sics svcs regs sregs) ∗ netAddrLeft addr ∗
       □ ([∗list] m ∈ sms, grpcStreamRunOk #m.handler m.srv sics m.Up m.spec ∗
           □ ∀ md γ, m.spec md γ (m.dn md γ)) ⊢
     |={⊤}=> grpcServerAt addr ics regs tys sms ∗
       ([∗list] m ∈ sms, isGrpcStreamMd addr m.name m.Up m.spec) ∗
       grpcServeTok gs lis addr (grpcStartSvc ics regs tys sms) := by
   iintro ⟨Hn, Hleft, #Hms⟩
-  iunfold grpcSrvAtLis at Hn
   icases Hn with (⟨Hn, Hl⟩ | Hn)
   · iapply (grpc.start' gs lis addr ics sics svcs regs sregs tys htys sms hsms hsnd hfit hnd)
     iframe Hn Hl Hleft Hms
@@ -3547,7 +3541,7 @@ theorem grpcServerAt_streams (a : GoString) (ics sics : List GoFunc)
 methods `ms`, each meeting grpc's run contract, served by the same `grpc.serve`: `etcd_kv_served_with`;
 the closed lease example, 2026-11-02; since phase 7's switch, SW1, 2026-11-24, with the server's
 streams `sms`, each meeting grpc's stream run contract at its content, registered by the start, and
-the server at its listener in either form, `grpcSrvAtLis`). -/
+the server at its listener in either form). -/
 theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
     (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64)
     (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -3568,7 +3562,8 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcSrvAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ netAddrLeft addr ∗
+        ((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
+          grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs) ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         (□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv [il, im, iu] m.spec) ∗
         (□ [∗list] m ∈ sms, grpcStreamRunOk #m.handler m.srv [ims, is] m.Up m.spec ∗
@@ -3624,7 +3619,7 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
 /-- **etcd's KV service, started** (see the file header): the server `v3rpc.Server` built
 (`grpcSrvNew` with its chains and registrations, the KV methods `kvRegs q` among them, the quota
 wrapper `q` over `p`, the interceptors' contracts) and a listener at `addr` (or both bound by a
-no-refusal certificate, `grpcSrvAtLis`) become, in a ghost step, a server listening at `addr`: the
+no-refusal certificate, `grpcSrvBound`) become, in a ghost step, a server listening at `addr`: the
 right to serve `gs` on `lis` (at its table, `grpcStartSvc`), its streams `sms` registered (each
 meeting grpc's stream run contract at its content: since phase 7's switch, SW1, the start registers
 the streams), and etcd's specs of `Put`, `Range`, `DeleteRange` and `Txn` registered at `addr`
@@ -3650,7 +3645,8 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcSrvAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ netAddrLeft addr ∗
+        ((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
+          grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs) ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         (□ [∗list] m ∈ sms, grpcStreamRunOk #m.handler m.srv [ims, is] m.Up m.spec ∗
           □ ∀ md γ, m.spec md γ (m.dn md γ)) ⊢

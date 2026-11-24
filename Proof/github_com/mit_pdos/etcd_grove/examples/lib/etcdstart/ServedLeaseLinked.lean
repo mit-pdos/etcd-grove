@@ -59,9 +59,9 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
       |={⊤}=> ∃ (Svc : GrpcSvc GF), grpcServeTok gs lis addr Svc ∗ srvGoRes s ∗
         (∃ pw : Loc, ⌜R.s = s ∧ R.E = E⌝ ∗ v3rpc.isWatchServer pw R ∗
-          tableAt addr (fun a => client.etcdLeaseReadAt a ∗ etcdLeaseServedAt m a s E ρ γr cid mid ∗
+          tableAt addr (fun a => iprop(client.etcdLeaseReadAt a ∗ etcdLeaseServedAt m a s E ρ γr cid mid ∗
             [∗list] x ∈ Wo.toList.map (fun W => v3rpc.watchMethod pw R W),
-              isGrpcStreamMd a x.name x.Up x.spec)) ∗
+              isGrpcStreamMd a x.name x.Up x.spec))) ∗
         client.etcdLeaseReadAt addr ∗ etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro ⟨HWo, #Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Hstk, Hup⟩
   iunfold grpcUp at Hup
@@ -79,10 +79,12 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
     $$ [HWo]
   · cases Wo with
     | none =>
+      simp only [Option.toList_none, Option.toList_some, List.map_nil, List.map_cons]
       iintro !>
       iapply BigSepL.bigSepL_nil.2
       itrivial
     | some W =>
+      simp only [Option.toList_none, Option.toList_some, List.map_nil, List.map_cons]
       ihave HW := BigSepL.bigSepL_singleton.1 $$ HWo
       iapply (v3rpc.etcd_watch_served_chain pw R W ims is γr (by rw [hRE]; exact hWo W rfl)
         (Htb rfl) HL (hset rfl))
@@ -170,10 +172,12 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         (by cases Wo <;> simp)
         Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, -, -, -, -, -, -, -, #Hsat, #Htab⟩
     · iframe; iframe #
-      iintro !>
-      imodintro
-      iunfold idCred
-      ipureintro; exact Hrb
+      isplitl []
+      · iintro !>
+        imodintro
+        iunfold idCred
+        ipureintro; exact Hrb
+      iexact Hwr
     -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
     ihave #Htab' : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys
         (Wo.toList.map (fun W => v3rpc.watchMethod pw R W)) ={⊤}=∗
@@ -248,10 +252,12 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         (by cases Wo <;> simp)
         Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, -, -, -, -, -, -, -, #Hsat, #Htab⟩
     · iframe; iframe #
-      iintro !>
-      imodintro
-      iunfold idCred
-      ipureintro; exact Hrb
+      isplitl []
+      · iintro !>
+        imodintro
+        iunfold idCred
+        ipureintro; exact Hrb
+      iexact Hwr
     -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
     ihave #Htab' : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys
         (Wo.toList.map (fun W => v3rpc.watchMethod pw R W)) ={⊤}=∗
@@ -329,10 +335,12 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         (by cases Wo <;> simp)
         Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, -, -, -, -, -, -, -, #Hsat, #Htab⟩
     · iframe; iframe #
-      iintro !>
-      imodintro
-      iunfold idCred
-      ipureintro; exact Hrb
+      isplitl []
+      · iintro !>
+        imodintro
+        iunfold idCred
+        ipureintro; exact Hrb
+      iexact Hwr
     -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
     ihave #Htab' : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys
         (Wo.toList.map (fun W => v3rpc.watchMethod pw R W)) ={⊤}=∗
@@ -393,7 +401,8 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (by simp) (fun h => by simp at h) (fun h => by simp at h)) $$ [H]
     with ⟨%Svc, Ht, -, -, Hr, Hl⟩
   · isplitl []
-    · iapply BigSepL.bigSepL_nil.2; itrivial
+    · simp only [Option.toList_none, Option.toList_some, List.map_nil, List.map_cons]
+      iapply BigSepL.bigSepL_nil.2; itrivial
     iexact H
   imodintro
   iframe Hr Hl
@@ -420,7 +429,8 @@ theorem kv_lease_served_go (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (by simp) (fun h => by simp at h) (fun h => by simp at h)) $$ [H]
     with ⟨%Svc, Ht, Hgo, -, Hr, Hl⟩
   · isplitl []
-    · iapply BigSepL.bigSepL_nil.2; itrivial
+    · simp only [Option.toList_none, Option.toList_some, List.map_nil, List.map_cons]
+      iapply BigSepL.bigSepL_nil.2; itrivial
     iexact H
   imodintro
   iframe Hgo Hr Hl
@@ -461,10 +471,10 @@ theorem kv_lease_served_watch (s : Loc)
           go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
           (fun md γs Dn => v3rpc.watchStreamSpec γs R W (auth.mdTokenOf md) Dn) ∗
         ⌜noRefusalAt addr⌝ ∗
-        tableAt addr (fun a => client.etcdLeaseReadAt a ∗ etcdLeaseServedAt m a s E ρ γr cid mid ∗
+        tableAt addr (fun a => iprop(client.etcdLeaseReadAt a ∗ etcdLeaseServedAt m a s E ρ γr cid mid ∗
           isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) a
             go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
-            (fun md γs Dn => v3rpc.watchStreamSpec γs R W (auth.mdTokenOf md) Dn)) := by
+            (fun md γs Dn => v3rpc.watchStreamSpec γs R W (auth.mdTokenOf md) Dn))) := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hlr, Hst, Hup, HW⟩
   ihave %Hoff := isServerReq_authOff s E ρ $$ Hreq
   ihave ⟨Hup, %Hnr⟩ := grpcUp_noRefusal s E ρ γr gs lis addr cid mid R Hoff $$ [Hup]
@@ -473,20 +483,21 @@ theorem kv_lease_served_watch (s : Loc)
     (by intro W' hW'; cases hW'; exact hW) (fun _ => hset) (fun _ => Htb))
     $$ [Hlr Hst Hup HW] with ⟨%Svc, Hserv, Hgo, ⟨%pw, %HRW, #Hws, #Hss⟩, Hr, Hl⟩
   · iframe; iframe #
+    simp only [Option.toList_none, Option.toList_some, List.map_nil, List.map_cons]
     iapply BigSepL.bigSepL_singleton.2
     iexact HW
   obtain ⟨hRs, hRE⟩ := HRW
   -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
-  ihave #Htb : tableAt addr (fun a => client.etcdLeaseReadAt a ∗ etcdLeaseServedAt m a s E ρ γr cid mid ∗
+  ihave #Htb : tableAt addr (fun a => iprop(client.etcdLeaseReadAt a ∗ etcdLeaseServedAt m a s E ρ γr cid mid ∗
       isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) a
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
-        (fun md γs Dn => v3rpc.watchStreamSpec γs R W (auth.mdTokenOf md) Dn)) $$ []
+        (fun md γs Dn => v3rpc.watchStreamSpec γs R W (auth.mdTokenOf md) Dn))) $$ []
   · iapply tableAt_mono
     iframe Hss
     iintro !> %a ⟨#HRd, #HSv, #HL⟩
+    simp only [Option.toList_none, Option.toList_some, List.map_nil, List.map_cons]
     ihave #Hw := BigSepL.bigSepL_singleton.1 $$ HL
-    try simp only [Option.toList, List.map, v3rpc.watchMethod, v3rpc.pbWatchRequestT,
-      v3rpc.pbWatchResponseT]
+    try simp only [v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
     imodintro
     iframe #
   imod (tableAt_self addr _) $$ Htb with ⟨-, -, #Hwst⟩

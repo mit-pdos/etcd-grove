@@ -285,8 +285,8 @@ theorem startCluster.wp_proof
     · rw [HElg]; iexact Hlgz
     wp_apply (wp_Serve sj xj.1.Client' E { xj.2.ρ with wait := γw } xj.2.ρ.rd cfg
         (fun cid mid R => iprop(etcdstart.tableAt xj.1.Client' (fun a =>
-          etcdstart.etcdKVAt a E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid ∗
-            etcdstart.watchRegAt a sj E xj.2.ρ.rd R) ∗ ⌜noRefusalAt xj.1.Client'⌝)))
+          iprop(etcdstart.etcdKVAt a E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid ∗
+            etcdstart.watchRegAt a sj E xj.2.ρ.rd R)) ∗ ⌜noRefusalAt xj.1.Client'⌝)))
       $$ [Hcj Hlg3 Hbemu Hgo Hstk] as %serr Hsv
     · iframe; iframe #
       isplitr
@@ -328,8 +328,8 @@ theorem startCluster.wp_proof
     simp only [Hbm, _root_.and_self, ↓reduceIte]
     (try wp_auto)
     wp_apply (wp_StartBridge (bridgeAt j) xj.1.Client' (fun a =>
-        etcdstart.etcdKVAt a E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid ∗
-          etcdstart.watchRegAt a sj E xj.2.ρ.rd R)) $$ [Hbj] as %br %berr Hbr
+        iprop(etcdstart.etcdKVAt a E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid ∗
+          etcdstart.watchRegAt a sj E xj.2.ρ.rd R))) $$ [Hbj] as %br %berr Hbr
     · iframe; iframe #
     icases Hbr with (⟨%Hberr, Hob, ⟨#Hkv, #Hwr⟩, %Hfw⟩ | %Hberr)
     rotate_left
