@@ -1,6 +1,8 @@
 # zap's generic `sync.Pool` wrapper (prove-misc, 2026-11-20): `New` with its body (zapcore's package
 # variables `_cePool`, `_jsonPool`, ... call it); `Get` and `Put` names only.
-translate = ["!*", "New"]
+# (zap-z2, 2026-11-23) `Get` and `Put` with their bodies (zapcore's `getCheckedEntry`/`putCheckedEntry`;
+# Perennial's goose converts their type-parameter values to `any` since `6215ce3f2`).
+translate = ["!*", "New", "Pool.Get", "Pool.Put"]
 imports = ["!*", "sync"]
 
 # translate the definitions of all type declarations goose supports

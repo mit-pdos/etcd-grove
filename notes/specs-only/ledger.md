@@ -70,6 +70,48 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Accepted (the owner, 2026-11-24: interim axioms for `putget_safe`, F1's option (a)); applied on
   `dist-putget-interim/2026-11-24`, not landed (the owner reviews the trusted delta: the five axioms and
   `grpc.NewClient`'s axiom now covering dials with `WithNoProxy`).
+## 2026-11-23: zap's `nopLogger` holds its `name` and `clock`, `zapEntry` owns its slices; zap's `pool.New` returns its pool (zap Z2, #40)
+
+- **Spec.** `Spec/go_uber_org/zap/Defs.lean`: `zap.nopLogger` (what `zapLoggerOk` holds), `zapcore.zapEntry` and
+  `zap.nopLoggerVal`; `Spec/go_uber_org/zap/internal/pool/New.lean`, `zap.internal.pool.New.spec`. No
+  SpecPlan counterpart (zap's internals are below the plan).
+- **Defect.** Too weak for the proofs of `Logger.Panic` and `Logger.Fatal` over zap's code: at
+  `PanicLevel`/`FatalLevel`, `check` skips the level test and builds the entry, reading `log.name` and
+  `log.clock` (`log.clock.Now()`), which `nopLogger` did not own; and `pool.New`'s post (`True`) gave no
+  handle on the pool, so `getCheckedEntry`/`putCheckedEntry` (`_cePool.Get`/`Put`) had nothing to stand on.
+- **Evidence.** `zap/logger.go:337-343` (`check`'s entry), `zapcore/entry.go:42-53` (the pool);
+  `zap.NewNop` sets `clock: zapcore.DefaultClock` (a `systemClock`) and leaves `name` empty.
+- **Proposed change.** `nopLogger l` adds `∃ n, l.name ↦□ n` and `∃ c : systemClock, l.clock ↦□
+  interface.mkOk systemClock.ty #c` (and `nopLoggerVal` the clock), which `NewNop` gives (its proof persists
+  the two fields); no caller's statement changes. `pool.New[T](fn)` (now also `[go.NotInterface T]`)
+  returns `ownPool T p fn` (`Spec/go_uber_org/zap/internal/pool/Defs.lean`: the pool's `sync.Pool`, not
+  used yet, whose `New` meets `sync.newSpec` for any `Q` that `fn`'s results satisfy), which
+  `ownPool_init` turns into `isPool T p Q`; `Pool.Get`/`Pool.Put` get specs over it. zapcore's package fact
+  gains `_cePool` as an `isPool` of owned entries (`zapcore.pooledEntry`: the entry with its `before` and
+  `cores` slices owned). `zapcore.zapEntry` (no producer: `check` returns `nil` below `DPanicLevel`) owns its
+  two slices, empty (`↦* []`), where it said their lengths were 0: `Write` returns the entry to `_cePool`,
+  whose elements `reset` (in `getCheckedEntry`) writes through. `pool.Pool[T].Get`/`Put` are specified for
+  `T = *E` (each of zap's pools holds pointers; the conversion of a generic `T` to `any` steps only once its
+  underlying type is known).
+- **Decision.** Applied (branch `zap-z2`), within #40's Z2 (the coordinator's go-ahead, 2026-11-23).
+## 2026-11-24: `bootMarshal`/`peersCtx` (raft's `Bootstrap` vocabulary) -- empty contexts excluded, which made the trace check's premise false
+
+- **Spec.** `Proof/go_etcd_io/raft/v3/ApiVocab.lean` (`bootMarshal`, `bootConfChange`, `peersCtx`), the
+  vocabulary of `RawNode.Bootstrap.spec`, `setupNode.spec` and `StartNode.spec` (`Spec/go_etcd_io/raft/v3/`)
+  and of the closed theorems' premise `bootMarshal`; no counterpart in `SpecPlan/`.
+- **Defect.** Vacuous at a real caller: `bootMarshal` required `⌜∀ c ∈ ctxs, c ≠ []⌝`, and the trace
+  check's peers have no context (`Peer{ID: i}`), so its premise `bootMarshal _ [[], [], []] _` was false and
+  `raft_tracecheck_safe`/`_robust` held vacuously (since `bcfa65fe6d`, 2026-11-12).
+- **Evidence.** `examples/raft/tracecheck/sim.go:163`, `concurrent.go:155`; `tracecheck.premises`
+  (`RaftTla/Proof/.../tracecheck/Defs.lean:52`). The conjunct's reason (`00e0cbcf74`): `Context` is a proto2
+  `bytes` field, so an empty context's bytes depend on whether the slice is `nil`.
+- **Proposed change.** State presence instead of excluding it: `peersCtx` says an empty context's slice is
+  `nil`, `bootConfChange` likewise, `bootMarshal` loses the conjunct. Callers: `Bootstrap`'s proof (the `nil`
+  fact from `peersCtx`), the trace check (`tcPeers_ctx`); the etcd side's `peersCtx` (in `bootOk`) only
+  passes through. Weaker premises for every etcd example (non-empty contexts), a true one for the trace check.
+- **Decision.** Applied (branch `tracecheck-nonvacuous/2026-11-24`, `notes/trace-check-design.md`,
+  "Non-vacuity").
+
 ## 2026-11-24: `roundTripperOk` (`SpecPlan/Spec/net/http/Api.lean`) -- a length-framed body's completion fact comes too late
 
 - **Spec.** `SpecPlan/Spec/net/http/Api.lean`, `roundTripperOk` (the body premise
@@ -5844,6 +5886,23 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
 
+## 2026-11-24: `mvcc.hashStorageOk` carries `hashMu`'s guard over the stored hashes (sortslice, claim #18)
+
+- **Spec.** `mvcc.hashStorageOk h` (`Proof/.../storage/mvcc/HashDefs.lean`), the persistent premise of
+  `hashStorage.Store.spec` and post of `NewHashStorage.spec`: besides the logger, now
+  `sync.isRWMutexGuard h.hashMu (mvcc.hashesR h)`, where `hashesR h q` is the `hashes` field at `q`, the
+  slice's elements and capacity at `q`, and at most `hashStorageMaxSize` (10) elements.
+- **Defect.** `Store`'s spec (an axiom until now) stated no ownership of `hashes`: it could not be proved
+  (it appends and sorts in place under `hashMu`), only assumed.
+- **Evidence.** `NewHashStorage` (the one producer; `NewStore` passes its result on, `InvStore` keeps it
+  persistently, `CommitApi` uses it abstractly) is re-proved: it allocates the struct, makes the lock over
+  the empty slice (`sync.init_RWMutex`, the reader slots dropped: nothing verified reads `hashes` under the
+  read lock), and returns the guard. `Store` is proved over it (fork `a336e97f9`'s `slices.SortFunc`).
+  No caller re-proved: the predicate is used only through its name.
+- **Proposed change.** As above (the approved exception: a persistent ownership premise every caller
+  discharges). `Hashes`/`HashByRev`, when verified, will need the reader slots `NewHashStorage` drops
+  (`SpecPlan`'s `hashStorageFresh`).
+- **Decision.** Applied (branch `prove-ps2-sortslice/2026-11-23`).
 ## 2026-11-24: phase 7 S2's interface switch (branch `s2-switch`; option (A); seven entries)
 
 The switch the user asked for ("do S2's interface switch now, with the unproved parts as axioms, so
@@ -5934,6 +5993,39 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `grpc.model.Serve` (its theorem), `grpcAccepted`, `grpcReplyTo`, `grpcConnsLink` deleted;
   `TrustedCode/google_golang_org/grpc.lean` keeps the model's code (no proof uses it).
 - **Decision.** Applied.
+## 2026-11-24: `monitorFileDescriptor.spec` takes `done`'s stop channel (#42)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/monitorFileDescriptor.lean`: the premise gains
+  `stopChan done`. Until now the spec was a names-only trust-boundary axiom whose only premises were the package
+  and `zapLoggerOk lg`.
+- **Defect.** The axiom said nothing about `done`. Proving the body needs it: the loop's `select` receives on
+  `done`, and a receive needs the channel's protocol. This is no defect of the Go code: `Start` passes
+  `s.stopping`, which the server's read view already holds as a `stopChan`.
+- **Evidence.** The proof `monitorFileDescriptor.wp_proof` (`Proof/.../etcdserver/monitorFileDescriptor.lean`)
+  over the body. The spec's one caller, `EtcdServer.Start.wp_proof`, discharges the premise from
+  `isServerReadM`'s `srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping`. No other caller; no top-level
+  statement changed.
+- **Proposed change.** As above. `SpecPlan`'s statement already takes the channel's predicate (`stoppingCh`).
+- **Decision.** Applied (branch `prove-ps2-srvgoroutines/2026-11-24`, Upamanyu's decision (b) on etcd-grove#42
+  for the leaves).
+
+## 2026-11-24: `publishV3`'s resources: `srvReadyCloser s E`, the read view, the request names' credential (#42)
+
+- **Spec.** `EtcdServer.publishV3.spec`: the premise takes `⌜E.authOn = on⌝`, `isServerReadM on s E γr`
+  and `□ (|==> idCred ρ.ids 1)`, and `srvReadyCloser s E` (the predicate gains `E`: the channel, now
+  `srvReadyCh s`, the server's attributes read-only, `srvAttrsRO s`, and one `srvLeadTimeReader s ∗ E.RD`).
+  `NewServer.spec`/`NewServerR.spec`'s posts and `Start.spec`'s premise name `srvReadyCloser srv E`;
+  `NewServer`/`NewServerR` carve the extra slots from the stocks they dropped after the revocation's pool.
+  `srvLeadCheckOk`'s `s.ctx` part gains `ctxValueFrom backgroundCtxVal ctx` (from
+  `traceutil.wp_WithCancelBackground_noTrace`, whose post gains it).
+- **Defect.** The axiom said nothing of what `raftRequest` needs (its reader slots, the context's facts, the
+  request's model), nor of `s.attributes`. No defect of the Go code.
+- **Evidence.** `EtcdServer.publishV3.wp_proof` over the body (the fork's bc2b5f4d0, `%+v` of the attributes
+  formatted field by field). Every caller discharges the new premises: `Start` from `start`'s read view and
+  `srvStarted`'s credential, and `NewServer`'s post; the examples pass `srvReadyCloser` through
+  (`etcdstart`'s `memberBuilt`, `Restart`). No top-level statement changed.
+- **Proposed change.** As above.
+- **Decision.** Applied (branch `prove-ps2-publishv3/2026-11-24`, #42 items 2 and 3, approved there).
 ## 2026-11-23: `json.Marshal` of a membership record names its bytes (#24 J2, batch 2)
 
 - **Spec.** `encoding.json.MarshalMember.spec` and `MarshalConfigChangeContext.spec`

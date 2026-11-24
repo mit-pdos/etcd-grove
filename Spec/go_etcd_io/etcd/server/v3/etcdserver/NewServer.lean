@@ -366,7 +366,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- `monitorDowngrade`'s `lgMu` reader slot
           srvMonitorCfg srv cfg ∗
           -- (2026-10-23) the right to close `readych`, for `publishV3`
-          srvReadyCloser srv ∗
+          srvReadyCloser srv E ∗
           -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
           -- started there: what `RaftHandler` takes, to serve the member's raft handler;
           -- (2026-10-24, rafthttp stage 6d) a reader's token of the transport (`CutPeer`,

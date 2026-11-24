@@ -11,7 +11,7 @@ commit, `s.alt`'s** (`v = s.cur ∨ s.alt = some v`: the WAL tester's `tOracleFi
 generation finds at the file's names (`durFound`, `durFoundTmp`, `Boot.lean`: the new file's start
 resources, its contents `v`; the temporary, if a file, whole), with `crashRest` back with those files
 taken (`D'`). The boot of the new generation (`durBoot`) takes them, with the whole claim on the
-directory from its `wp_osShare`.
+directory from its `osShared`.
 
 How: the crash keeps what the invariant's two claims allow (`crashRest_region`, the commit bound `nc`): the
 name holds what `DurOk.crash` allows (`OutOk`: no file, or a candidate's inode holding `cur`'s or `alt`'s

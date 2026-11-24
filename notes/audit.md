@@ -678,3 +678,10 @@ The remaining baseline and the two generated admissions have not been discharged
 | `etcd_dist.Client_Get_dist.wp_proof` (A5) | **false as first designed** (F1); **fixed** as A4 | A4's argument; the flag at `1` is the invariant's. |
 | A4, A5 with `bridge.New.wp_proof` (review 4, 2026-11-24) | **false, open** | `bridge.New` takes only `netListenerAt l a` (`addrClaim ∗ netListenerOpen`). Old form: listen at `a` with the net part's `Listen` (it lends the listening token), keep `addrUnset a`, `etcdAddr_set` at a fabricated view, bridge `a` to an unrelated etcd: A5 proves a `Get` returns a value the real store lacks (Go panics, 5/5 runs, `TestPgintCX`). New form: also `net.Listen`'s `netAddrLeft` (`addr_set_proto_tok`) or `listen_au` from `etcdAddrAt`'s `addrProto`. Proposed fix: `bridge.New` also consumes `netAddrLeft a` (a trusted change on `lean`; likely also closes the same route against the S2 switch's `Invoke` with a table the program picks). |
 | `grpc.NewClient.wp_proof` (domain widened: the descriptor `.noProxy`) | ok | `WithNoProxy` only sets `useProxy` false; the model reads no proxy variable, so the axiom's claim is unchanged for the model and true of grpc-go only with the option. |
+
+### `bridge.New` and `netAddrLeft` (2026-11-24; review `notes/axiom-review/bridge-addrleft.md`; Go: `examples/axiomcx/bridgeaddrleft/`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `bridge.New.wp_proof` (D26) | **false before 2026-11-24**, with `grpc.ClientConn.Invoke.wp_proof` alone (the proved `client_Get_own`, `examples/axiomcx/bridgeinvoke/`) and with etcd-dist's interim `Client_Get_dist`; **fixed**: its precondition also consumes `netAddrLeft a` | A program listened at `a`, set `a`'s grpc table from `net.Listen`'s `netAddrLeft a` (`addr_set_proto_tok`) and bridged `a` to a server meeting none of the table's specs (`TestMainPanics`). With the fix the bridging program has spent what sets `a`'s protocols. |
+

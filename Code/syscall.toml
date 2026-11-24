@@ -35,7 +35,11 @@ trusted = ["Fdatasync", "Flock",
   "runtime_envs", "init.0",
   # (2026-11-13, the WAL over fsExt; drafts pending the user's review) fileutil's calls
   # (preallocate_unix.go, lock_linux.go): as golang.org/x/sys/unix's models, plus F_OFD_GETLK
-  "Fallocate", "FcntlFlock"]
+  "Fallocate", "FcntlFlock",
+  # (zap-z2, 2026-11-23, as Perennial's syscall.toml since `ca6df841b`) `Exit` (`syscall.go`, a body-less
+  # declaration the runtime provides, `syscall_Exit`): the process exits, `AngelicExit`
+  # (TrustedCode/syscall.lean); what `os.Exit` calls
+  "Exit"]
 
 # (2026-11-07) every type declaration goose supports, as Perennial's: the initializers build
 # `mmapper` and `sync.Pool` literals

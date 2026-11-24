@@ -144,6 +144,166 @@ instance DirPhS.countable : Pos.Countable DirPhS :=
       have h : a.enc = b.enc := Pos.encode_inj h
       cases a <;> cases b <;> simp_all [DirPhS.enc])
 
+/-- The roots of the tree: each a path and its directory's inode. -/
+abbrev Roots := List (GoString × Ino)
+
+/-! ## What the claims know, as a function of the history, and the claims a generation starts with
+
+(Used by the tree's start resources, `treeStart`, in `Ghost.lean`.) -/
+
+/-- What a claim on no name knows. -/
+def NamesH.empty : NamesH := ⟨∅, [], ∅⟩
+
+open Classical in
+/-- The claim on the names `N` of the directory `j`, as the history `V` has them: their entries at
+boot, each entry writing one of them (with their entries right after), their entries now. -/
+def namesOf (V : Hist) (j : Ino) (N : NameSet) : NamesH where
+  boot := restrictN N (entsOf V.1 j)
+  ents := (List.range V.2.length).filterMap (fun x => match V.2[x]? with
+    | some e => if ∃ b, N.Mem b ∧ e.op.Writes j b then
+        some (x, e, restrictN N (entsOf (prefTree V.1 V.2 (x + 1)) j)) else none
+    | none => none)
+  cur := restrictN N (entsOf V.now j)
+
+/-- The claims' coherence with the shared history `V`: each claim's history is the history's; the
+claims of a directory are disjoint; every name of every directory of the tree is claimed; every
+claimed directory is one of the tree (so a fresh directory's key is free); and of the log alone, every
+entry's call began no later than it took effect (`Starts`, the state's `TreeCohS.starts`: a client
+reasons about crashes of the claims it holds with it, `osClaims_log`). -/
+structure NamesCoh (V : Hist) (Γn : GMap (Ino × NameSet) NamesH) : Prop where
+  hist : ∀ j N h, Γn !! (j, N) = some h → h = namesOf V j N
+  disj : ∀ j N N' h h' b, Γn !! (j, N) = some h → Γn !! (j, N') = some h' → N ≠ N' →
+    N.Mem b → ¬ N'.Mem b
+  cover : ∀ j b, j ∈ V.now → ∃ N h, Γn !! (j, N) = some h ∧ N.Mem b
+  dirs : ∀ j N h, Γn !! (j, N) = some h → j ∈ V.now
+  starts : Starts V.2
+
+/-- The log's entries, as a map. -/
+def logMap (log : List LogEntry) : GMap Nat LogEntry :=
+  (List.range log.length).foldl (fun m x => match log[x]? with
+    | some e => <[x := e]> m
+    | none => m) ∅
+
+
+theorem logMap_nil : logMap ([] : List LogEntry) = ∅ := rfl
+
+/-- The keys of the call permission on the roots `R`: each root, and `[]` (the paths under no
+root). -/
+def permMap (R : Roots) : GMap GoString Unit :=
+  GMap.ofList (([], ()) :: R.map (fun rj => (rj.1, ())))
+
+theorem permMap_lookup (R : Roots) (r : GoString) (h : r = [] ∨ ∃ j, (r, j) ∈ R) :
+    permMap R !! r = some () := by
+  unfold permMap
+  rcases h with rfl | ⟨j, hj⟩
+  · show GMap.lookup (GMap.insert _ _ _) _ = _; rw [GMap.lookup_insert]
+  · show GMap.lookup (GMap.insert _ _ _) _ = _
+    by_cases h0 : ([] : GoString) = r
+    · subst h0; rw [GMap.lookup_insert]
+    · rw [GMap.lookup_insert_ne _ _ h0]
+      clear h0
+      induction R with
+      | nil => simp at hj
+      | cons rj R ih =>
+        show GMap.lookup (GMap.insert _ _ _) _ = _
+        by_cases h1 : rj.1 = r
+        · rw [h1, GMap.lookup_insert]
+        · rw [GMap.lookup_insert_ne _ _ h1]
+          rcases List.mem_cons.1 hj with h2 | h2
+          · subst h2; exact absurd rfl h1
+          · exact ih h2
+
+/-- The log as a map has the log's entries. -/
+theorem logMap_lookup (log : List LogEntry) (x : Nat) : logMap log !! x = log[x]? := by
+  have key : ∀ n, ((List.range n).foldl (fun m x => match log[x]? with
+      | some e => <[x := e]> m
+      | none => m) (∅ : GMap Nat LogEntry)) !! x = if x < n then log[x]? else none := by
+    intro n
+    induction n with
+    | zero => simp
+    | succ n ih =>
+      rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
+      cases hn : log[n]? with
+      | none =>
+        simp only []
+        rw [ih]
+        by_cases hx : x < n
+        · simp [hx, Nat.lt_succ_of_lt hx]
+        · by_cases hxn : x = n
+          · subst hxn; simp [hn]
+          · have : ¬ x < n + 1 := by omega
+            simp [hx, this]
+      | some e =>
+        simp only []
+        by_cases hxn : n = x
+        · subst hxn; rw [GMap.lookup_insert]; simp [hn]
+        · rw [GMap.lookup_insert_ne _ _ hxn, ih]
+          by_cases hx : x < n
+          · simp [hx, Nat.lt_succ_of_lt hx]
+          · have : ¬ x < n + 1 := by omega
+            simp [hx, this]
+  unfold logMap
+  refine (key log.length).trans ?_
+  by_cases hx : x < log.length
+  · simp [hx]
+  · simp [hx, List.getElem?_eq_none (by omega : log.length ≤ x)]
+
+/-- The claims a switch allocates: one on all the names of each directory of `js`. -/
+def claimsInit (V : Hist) : List Ino → GMap (Ino × NameSet) NamesH
+  | [] => ∅
+  | j :: js => <[(j, .except []) := namesOf V j (.except [])]> (claimsInit V js)
+
+theorem claimsInit_lookup (V : Hist) (js : List Ino) (k : Ino × NameSet) :
+    claimsInit V js !! k = if k.2 = .except [] ∧ k.1 ∈ js then some (namesOf V k.1 k.2) else none := by
+  induction js with
+  | nil => simp [claimsInit]
+  | cons j js ih =>
+    unfold claimsInit
+    by_cases hk : (j, NameSet.except []) = k
+    · subst hk; rw [GMap.lookup_insert]; simp
+    · rw [GMap.lookup_insert_ne _ _ hk, ih]
+      obtain ⟨k1, k2⟩ := k
+      by_cases h2 : k2 = .except []
+      · subst h2
+        have : k1 ≠ j := fun h => hk (by rw [h])
+        simp [this]
+      · simp [h2]
+
+/-- The claims a switch allocates are coherent with the history. -/
+theorem namesCoh_init (V : Hist) (hs : Starts V.2) :
+    NamesCoh V (claimsInit V ((GMap.toList V.now).map (·.1))) := by
+  refine ⟨fun j N h hl => ?_, fun j N N' h h' b hl hl' hne _ => ?_, fun j b hj => ?_,
+    fun j N h hl => ?_, hs⟩
+  · rw [claimsInit_lookup] at hl
+    split at hl
+    · cases hl; rfl
+    · cases hl
+  · rw [claimsInit_lookup] at hl hl'
+    split at hl
+    · split at hl'
+      · rename_i h1 h2; exact absurd (h1.1.trans h2.1.symm) hne
+      · cases hl'
+    · cases hl
+  · refine ⟨.except [], namesOf V j (.except []), ?_, by simp [NameSet.Mem]⟩
+    rw [claimsInit_lookup]
+    have hm : j ∈ (GMap.toList V.now).map (·.1) := by
+      rw [GMap.mem_iff] at hj
+      cases hv : V.now !! j with
+      | none => rw [hv] at hj; exact absurd hj (by simp)
+      | some v => exact List.mem_map.2 ⟨(j, v), (GMap.mem_toList _ _ _).2 hv, rfl⟩
+    simp [hm]
+  · rw [claimsInit_lookup] at hl
+    split at hl
+    · rename_i hk
+      obtain ⟨⟨j1, v⟩, hv, hj1⟩ := List.mem_map.1 hk.2
+      simp only at hj1
+      subst hj1
+      rw [GMap.mem_iff, (GMap.mem_toList _ _ _).1 hv]; rfl
+    · cases hl
+
+/-- The directories of the tree, each once. -/
+abbrev dirsOf (V : Hist) : List Ino := (GMap.toList V.now).map (·.1)
+
 end Fs
 end Perennial
 

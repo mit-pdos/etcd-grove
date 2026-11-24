@@ -12,7 +12,7 @@ module
 
 public import GooseLang.Ext.Fs.NoErrSpecsOpenFile
 public import GooseLang.Ext.Fs.NoIoErrSpecs
-public import GooseLang.Ext.Fs.TreeSpecsMeta
+public import GooseLang.Ext.Fs.TreeStepLemmas
 
 @[expose] public section
 

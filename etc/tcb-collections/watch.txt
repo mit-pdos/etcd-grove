@@ -40,7 +40,6 @@ axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcSrvCfgRaw
 axiom metadata.FromIncomingContext.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom promSrvMetrics
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
@@ -57,7 +56,4 @@ axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

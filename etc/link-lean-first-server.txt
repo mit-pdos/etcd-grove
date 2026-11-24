@@ -231,7 +231,7 @@ errors_IsStatusErr:
 go_humanize_Bytes:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Uint64:
@@ -270,7 +270,7 @@ IsEmptySnap: @
 SetLogger: @
 zap_Duration:
 zap_Time:
-zap_Logger__Fatal:
+zap_Logger__Fatal: pool_Pool__Get os_Exit
 # (2026-10-31, #3) the raft loop's snapshot `Ready`: `CloneSnapshot`, `ApplySnapshot` (raft's; `Append` through
 # NodeApiLink's `srvApi_wp_MemAppend`)
 proto_CloneSnapshot: @
@@ -581,9 +581,14 @@ version_Cluster: v3_NewVersion v3_Version__Major v3_Version__Minor =_root_.Peren
 prometheus_GaugeVec__With:
 etcdserver_tickToDur:
 EtcdServer__adjustTicks: EtcdServer__Logger RaftCluster__Members EtcdServer__MemberID types_ID__String zap_String zap_Int etcdserver_tickToDur zap_Logger__Info raftNode__advanceTicks =_root_.Perennial.time.wp_After
-EtcdServer__publishV3:
+# (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42) the member's publication over its body
+EtcdServer__publishV3: EtcdServer__MemberID EtcdServer__Logger EtcdServer__raftRequest types_ID__String membership_RaftCluster__ID zap_String zap_Duration zap_Error zap_Logger__Info zap_Logger__Warn =_root_.Perennial.fmt.wp_Sprintf =_root_.Perennial.strings.wp_Join
 EtcdServer__purgeFile: EtcdServer__Logger
-monitorFileDescriptor:
+# (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42) the file descriptor monitor over its body: etcd's
+# `runtime.FDUsage`/`FDLimit` over their trusted models (TrustedCode/go_etcd_io/etcd/pkg/v3/runtime.lean)
+runtime_FDUsage:
+runtime_FDLimit:
+monitorFileDescriptor: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop runtime_FDUsage runtime_FDLimit zap_Logger__Warn zap_Error zap_Uint64
 EtcdServer__monitorClusterVersions:
 EtcdServer__monitorStorageVersion:
 EtcdServer__monitorKVHash:
@@ -1140,3 +1145,9 @@ path_lazybuf__string:
 # auth store's `WithRoot` its inner goroutines call
 auth_authStore__WithRoot:
 EtcdServer__revokeExpiredLeases: EtcdServer__GoAttach EtcdServer__Logger EtcdServer__ensureLeadership EtcdServer__MemberID EtcdServer__LeaseRevoke auth_authStore__WithRoot zap_Uint64 zap_String zap_Error zap_Logger__Warn
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:
+pool_Pool__Get:
+os_Exit: syscall_Exit
+syscall_Exit:

@@ -25,7 +25,7 @@ The main tree's `TInvBody`/`TInv`/`TBoot` (over `absDiskExt`'s `walDirIs`/`walAr
   other halves, the relations. A plain invariant, as the main tree's: the crash obligation opens it at
   `⊤` and closes it again with its contents, through the `_keep` lemmas (`WalFs.walDiskAt_crash_keep`,
   ...; durable's crash lemma likewise, U2), which keep the old generation's resources.
-* **The boot precondition of an incarnation** (`TBoot`), after the shared mode's switch (`wp_osShare`;
+* **The boot precondition of an incarnation** (`TBoot`), from the tree's shared view (`osShared`;
   how the program reaches it, U7): the invariant and the program's halves (no `Write` pending), the
   WAL's area (`walAreaOk`, `dirDurable` of the area, `walAreaRes`, the lock token), durable's (its
   invariant and handle), the whole call permission, and the two crash tokens the crash obligation takes
@@ -308,7 +308,7 @@ theorem tWalDir_key {R : Roots} {a : GoString} {jr : Ino} (hR : RootsOk R) (hr :
   rw [callKey_eq hR hr (.inr ⟨go!"wal", by rw [tWalDir_child]; simp⟩), callKey_eq hR hr (.inl rfl)]
 
 open Iris.ProofMode in
-/-- **The tester's whole permission, from the switch's** (`wp_osShare`'s `osCallPerms`): the wholes of
+/-- **The tester's whole permission, from the shared view's** (`osShared`'s `osCallPerms`): the wholes of
 the area's root and of the oracle directory's (distinct roots). -/
 theorem tPerm_of_osCallPerms (e : TEnv) {jr jo : Ino} (hR : RootsOk e.R) (hr : (e.area, jr) ∈ e.R)
     (ho : (e.orDir, jo) ∈ e.R) (hne : jo ≠ jr) :
