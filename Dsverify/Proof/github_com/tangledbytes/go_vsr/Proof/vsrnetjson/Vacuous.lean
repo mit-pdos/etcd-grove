@@ -190,10 +190,15 @@ theorem vsrnet.typeCodecOk_event
       (by vr_ty_ne))
 
 /-- **The kit's JSON facts, from the two premises** (`vsrnet.registeredCodecOk`,
-`vsrnet.TypeCodecs`) and the vacuous parts above. -/
+`vsrnet.TypeCodecs`), the proved `Frame` method (`hframe`: `vsrnet.frameUnmarshalOk`) and the
+vacuous parts above. -/
 theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
     (hs : ⊢ models_lab.jsoncodec.scanOk (GF := GF) vsrnet.scanF models_lab.jsoncodec.scanFn)
-    (ht : vsrnet.TypeCodecs (GF := GF)) : vsrnet.codecOk (GF := GF) := by
+    (ht : vsrnet.TypeCodecs (GF := GF))
+    (hframe : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+      #(methods (go.GoType.PointerType vsrwire.Frame.ty) go!"JSONModelUnmarshal" #l)
+      (interface.mkOk (go.GoType.PointerType vsrwire.Frame.ty) #l)) :
+    vsrnet.codecOk (GF := GF) := by
   unfold vsrnet.codecOk encoding.json.kitCodecOk
   unfold vsrnet.registeredCodecOk at hc
   ihave #⟨Hm, Hu⟩ := hc
@@ -221,7 +226,7 @@ theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
   · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.getState)
   · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.newState)
   · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.heartbeat)
-  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.frame)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) hframe)
   · iapply vsrnet.typeCodecOk_logs
 
 end proof

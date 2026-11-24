@@ -94,7 +94,8 @@ def vsrnet.registeredCodecOk : Prop :=
 /-- **Premise** (#24 J3): the substantive part of the main tree's `typeCodecOk vsrnet.jsonCodec
 scanF T` for the kit's types (`encoding.json.kitTypes`), one field per method/type pair where the
 kit's contract gives a deposit: `(*events.Event).JSONModelMarshalPtr`, and `JSONModelUnmarshal` of
-each payload type and of `vsrwire.Frame`. Every other part of `typeCodecOk` (a value type's
+each payload type (`vsrwire.Frame`'s is proved, round 9: `vsrnet.frameUnmarshalOk`,
+`Proof/vsrnetjson/FrameDec.lean`). Every other part of `typeCodecOk` (a value type's
 `JSONModelMarshal`, the other types' `JSONModelMarshalPtr`, `*Event`'s `JSONModelUnmarshal`, all of
 `log.Logs`) holds because `jsonCodec` gives no deposit there, and is proved
 (`Proof/vsrnetjson/Vacuous.lean`: `vsrnet.codecOk_of`).
@@ -106,9 +107,7 @@ writes `{"@type":N,"data":…}`, the payload by `jencAny`, a `Logs` by its `Mars
 `json.Marshal([]Log)` through the registered codec, which `encP`'s `codecSet` registers and
 `registeredCodecOk` covers; this is real encoding/json's output (jsongen's same-package tests,
 `json_model_gen_test.go`, run by `jsonmodel_forks.py`, compare the methods with it), which
-`encEvent` is. `frame`: on whitespace and a line's value `encEvent m` into a `Frame` with a nil
-`Data` (`decP`), `JSONModelUnmarshal` (valid, so it decodes) gives `Frame{typeOf m, data}`, `data`
-a fresh slice of the raw payload `encPayload m`. The payloads: on `encPayload m` into a zero
+`encEvent` is. The payloads: on `encPayload m` into a zero
 payload (`decP`; numbers below `2^64`, `MsgBound`), the payload `m`'s, a `Logs` through its
 `UnmarshalJSON`, i.e. the registered codec. -/
 structure vsrnet.TypeCodecs : Prop where
@@ -148,9 +147,6 @@ structure vsrnet.TypeCodecs : Prop where
   heartbeat : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
     #(methods (go.GoType.PointerType pkg.events.Heartbeat.ty) go!"JSONModelUnmarshal" #l)
     (interface.mkOk (go.GoType.PointerType pkg.events.Heartbeat.ty) #l)
-  frame : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
-    #(methods (go.GoType.PointerType vsrwire.Frame.ty) go!"JSONModelUnmarshal" #l)
-    (interface.mkOk (go.GoType.PointerType vsrwire.Frame.ty) #l)
 
 /-- The kit's JSON facts at the kit's codec and scanner (what the proofs take; the lab's theorem
 `codec_ok`), from the two premises: `vsrnet.codecOk_of` (`Proof/vsrnetjson/Vacuous.lean`). -/
