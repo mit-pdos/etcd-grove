@@ -200,7 +200,8 @@ and agreeing with it (`subSeq`'s domain, B 434, 600), recorded under a term it h
 (`RecordedIn`, B 109-112, at a win and a request's commit); `confirmed` a prefix of its term's leader
 log while that is kept; every ack of a node at its term within its `confirmed` or its commit (what
 `CommitBeyondConfirmed`, B 435, needs); `ledLog`'s terms led; a node in `leaders` at its current term
-only while it leads it. -/
+only while it leads it; the grants' and acks' senders and receivers and the votes' voters servers
+(`GC` looks them up, B 699-708: an evaluation error otherwise). -/
 def BindingOk (S : AntCheck.State) : Prop :=
   S.viol = [] ∧
   (∀ n : Fin 3, S.queue[n.val]! = [] ∧ S.reads[n.val]! = []) ∧
@@ -220,7 +221,10 @@ def BindingOk (S : AntCheck.State) : Prop :=
   (∀ p ∈ S.ledLog, ∃ l ∈ S.leaders, l.term = p.1) ∧
   (∀ n : Fin 3, ∀ l ∈ S.leaders, l.server = nameOf (nodeId n) →
     l.term < S.currentTerm[n.val]! ∨
-      (l.term = S.currentTerm[n.val]! ∧ S.role[n.val]! = AntCheck.leader))
+      (l.term = S.currentTerm[n.val]! ∧ S.role[n.val]! = AntCheck.leader)) ∧
+  (∀ f ∈ S.msgs, f.type ≠ go!"vote" →
+    (∃ i : Fin 3, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin 3, f.dst = nameOf (nodeId j)) ∧
+  (∀ v ∈ S.votes, ∃ i : Fin 3, v.voter = nameOf (nodeId i))
 
 /-! ## C4: the network -/
 

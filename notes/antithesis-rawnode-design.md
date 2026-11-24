@@ -839,6 +839,20 @@ mutant rejected; a real harness run's stream has the same shapes). Where the ske
 - `cfg3` is `setOf (namesL 3)` as `Main` builds it (`cfg3_server : cfg3.server = namesL 3`);
   `evBoot` reports `names(3)`; a proposal is `RawNode.Propose`'s message (`propMsg`).
 
+### 3.6 Changes in the invariant phase (S4 session 2)
+
+Proved so far (`Sim/`, one file per lemma): `antSim_gc` (`GC.lean`, with the shared laws: `filterM`/
+`anyM` evaluation, `nameOf_inj`, `State.idx` of a node's name, `violated_nil`, `Prefix.snoc`),
+`antSim_init` (`Init.lean`). Changes to the relation and the statements, each with its reason:
+
+- **C3 (`BindingOk`) gains two conjuncts: every grant's and ack's `src`/`dst` and every vote's
+  `voter` is a server's name** (`nameOf (nodeId i)`). `GC`'s `Garbage` and `OldVotes` look them up
+  (`s.idx m.dst`, `s.idx a.src`, `s.idx v.voter`, B 699-708), an evaluation error for any other
+  name, so `antSim_gc`'s `gcLoop … = .ok` is false without it. The harness supplies it: every fact
+  is made from a report of a node among `1, 2, 3` about a message between them (C4).
+- `violated` is empty under `GlobalOk` and `RaftLaws` (`violated_nil`): `OneVotePerTerm` needs
+  `nameOf` injective (`nameOf_inj`, from `parseUint_fmtUint10`); no change.
+
 ---
 
 ## 4. Where the refinement could be false, and the evidence
