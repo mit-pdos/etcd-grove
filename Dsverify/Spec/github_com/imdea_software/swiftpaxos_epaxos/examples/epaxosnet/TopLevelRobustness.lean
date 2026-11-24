@@ -8,9 +8,9 @@ ten client machines (each `remote.ServeClient`, an operation a `Propose` to a re
 `epaxos.New` and its net/rpc service over HTTP) -- deployed at `epAddrs` (`DistDeploy`: the
 addresses distinct and valid, no connection, no listener). In every execution of fewer than
 `2 ^ 63` steps along which every machine keeps fewer than `2 ^ 31` live threads, no thread of any
-machine is stuck and none has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since the orchestrator panics unless
-porcupine accepts the history, this says porcupine accepts every history, under every fault the
-net extension allows.
+machine is stuck and none has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since
+the orchestrator panics unless porcupine accepts the history, this says porcupine accepts every
+history, under every fault the net extension allows.
 
 The bounds: `2 ^ 63` steps (remote's clock, `receiptBound ≤ 2 ^ 63`) and fewer than `2 ^ 31` live
 threads per machine: Net's net/rpc server (`Server.ServeCodec.spec`) needs the machine's thread bound
