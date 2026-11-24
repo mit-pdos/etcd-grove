@@ -17,7 +17,7 @@ when a Lean run fails.
 
 `--raw` keeps the Lean runs' output; `--reuse-raw` judges a kept output without running Lean.
 `--selftest` elaborates `etc/axiom-tok-selftest/Selftest.lean` over a small import and checks each
-toy axiom's verdict against its name (`st_refuse_*` refused, `st_pass_*` passed), the pairs of
+toy axiom's verdict against its name (`st_refuse_*` refused, `st_pass_*` passed without truncation, `st_unknown_*` truncated), the pairs of
 `etc/axiom-tok-selftest/allow.txt`, `--check`'s failure on a stale entry, and (with `--reuse-raw`
 of a main run) its `real-pass` lines; it exits 1 on any failure.
 
@@ -523,16 +523,20 @@ def selftest(a, extra):
     for n, o in sorted(axs.items()):
         s = n.split(".")[-1]
         refused = bool(o["left"]) or n in unf
+        trunc = bool(o["trunc_left"])
         if s.startswith("st_refuse_"):
             ok = refused
         elif s.startswith("st_pass_"):
-            ok = not refused
+            ok = not refused and not trunc
+        elif s.startswith("st_unknown_"):
+            ok = not refused and trunc
         else:
             continue
         why = "; ".join(f"[{f['rule']}] {f['why'][:100]}" for f in o["left"]) or \
-            ("modelUnfold" if n in unf else "")
+            ("modelUnfold" if n in unf else "") or "; ".join(o["trunc_left"])[:100]
         res = " (pair resolved)" if o.get("resolved") else ""
-        print(f"  {'ok  ' if ok else 'FAIL'} {s:28} {'refused' if refused else 'passed'}{res}  {why}")
+        verdict = "refused" if refused else "unknown" if trunc else "passed"
+        print(f"  {'ok  ' if ok else 'FAIL'} {s:28} {verdict}{res}  {why}")
         fails += not ok
     # an entry naming an axiom that does not exist is reported stale: `st_gone` must be, and only it
     gone = stale_axioms(allow, axs)

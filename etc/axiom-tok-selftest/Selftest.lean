@@ -2,7 +2,8 @@
 Selftests of `etc/AxiomTokCheck.lean` (the `axiom-tok` gate, the Scope's §5.1 "Selftests"). Not a
 module of the build (`etc/` is outside every `lean_lib` glob) and has no header: the checker
 elaborates it over the modules `etc/axiom-tok-check.py --selftest` imports, then judges the axioms
-it declares. An axiom named `st_refuse_*` must get a finding, one named `st_pass_*` none; the other
+it declares. An axiom named `st_refuse_*` must get a finding, one named `st_pass_*` none and no
+truncation, one named `st_unknown_*` no finding but a truncation (an unknown walk); the other
 axioms are the toys' vocabulary (opaque predicates). Rule 7's pair cases use
 `etc/axiom-tok-selftest/allow.txt`; real axioms of today's trust base the main run must pass are the
 `real-pass` lines of that file.
@@ -133,9 +134,16 @@ axiom st_pass_frame : ∀ (R : IProp GF) (f : val),
 /-- A typed points-to quantified together with its laws (`reflNew`'s shape): the user-picked
 `TypedPointsto` instance is no atom (`lawBoundTP`), so the walk neither refuses nor truncates. -/
 axiom st_pass_typedpt : ∀ (f : val) (p : Loc),
-  {{ True }} (App (Val f) (Val #())) {{ RET #();
-    ∀ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V)
-      (_ : IntoValTyped (GF := GF) V go.int), p ↦ zero_val V }}
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #();
+    iprop(∀ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V)
+      (_ : IntoValTyped (GF := GF) V go.int), p ↦ (zero_val V)) }}
+
+/-- The control of `st_pass_typedpt`: a user-picked `TypedPointsto` with no `IntoValTyped` law
+over it stays a user atom (`lawBoundTP` does not make it plain), and the walk of its points-to
+truncates (unknown, which `--check` fails without a `trunc` line). -/
+axiom st_unknown_typedpt_nolaw : ∀ (f : val) (p : Loc),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #();
+    iprop(∀ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V), p ↦ (zero_val V)) }}
 
 /-- A token split into its levels. -/
 axiom st_pass_split : threadTok (GF := GF) ⊢ |==> levelTok 0 ∗ threadTokFrom 1
