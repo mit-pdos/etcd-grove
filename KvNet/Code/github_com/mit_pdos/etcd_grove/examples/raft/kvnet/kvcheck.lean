@@ -688,9 +688,9 @@ noncomputable def checker.reconfigure.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))))
   (Val #()))))
 
-/-- disrupt moves leadership at random times until stop: a transfer to a random replica, a
-    campaign, or a leader forgotten, asked of a random replica; or, one time in eight, a replica's
-    restart in its process (its node stopped, raft's Node.Stop, and restarted from its file).
+/-- disrupt disrupts a random replica at random times until stop: a leadership transfer to a random
+    replica, a campaign, a leader forgotten, or the replica's restart in its process (its node
+    stopped, raft's Node.Stop, and restarted from its file).
 
     go: kvcheck.go:219:19 -/
 noncomputable def checker.disrupt.impl [GooseExts] [GoGlobalContext] : val :=
@@ -703,27 +703,14 @@ noncomputable def checker.disrupt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Val disruptPause)
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "stop"))
   (App (App (App (Val (GoInstruction (FuncResolve sleep []))) (Val #())) (Var "$a0")) (Var "$a1"))))))) (Lam BAnon
-  (Let "$r0" (Let "$a0" (Val #(W64 3))
-  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))
-  (Let "what" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType checker.ty) go!"randomID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType checker.ty)))) (Var "c"))) (Val #()))
   (Let "$a1" (Val #(W8 4))
-  (Let "$a2" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "what"))
+  (Let "$a2" (Let "$a0" (Let "$a0" (Val #(W64 4))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))
   (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType checker.ty) go!"randomID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType checker.ty)))) (Var "c"))) (Val #()))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.EncodeDisrupt []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType checker.ty) go!"request"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType checker.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
-  (If (Let "$a0" (Val #(W64 8))
-  (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
-  (Let "$r0" (Val #(W64 3))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "what") (Var "$r0")))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "what") (Var "$r0")))))))))
   (Lam BAnon
   (Val #()))))))
   (Val #()))))
@@ -734,7 +721,7 @@ noncomputable def checker.disrupt.impl [GooseExts] [GoGlobalContext] : val :=
     (kvnet.ValidAddrs), and unless porcupine accepts the history of the operations it ran (the
     package's comment); otherwise it returns once they are done.
 
-    go: kvcheck.go:234:6 -/
+    go: kvcheck.go:230:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "voters"
