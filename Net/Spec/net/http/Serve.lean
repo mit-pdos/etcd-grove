@@ -13,10 +13,23 @@ calling goroutine's thread token, given back when it returns (`go http.Serve(...
 with it).
 The shared rpc-over-HTTP design (L2) and its amendment 4 (agreed with phase 7's S5): S5's one
 `Serve.spec`, over both an HTTP address and an rpc address, will imply it. Lean-first.
+
+`http.Serve(l, h)` over a handler (`Serve.spec`; httpdriver, 2026-11-24): it serves the connections
+`l` accepts, each on its own goroutine, until `Accept` fails, then returns its error; it never
+panics. What it needs: the listener `l` at `la` (`isListener`, `netLisOn`, `lisInv`), whose every
+address serves HTTP with the protocol `P` (`protoLis la P`, `ProtoDefs.lean`: what a dialer writes,
+`httpReqP P`, and what an acceptor writes, `httpRespP P`, and the registry of connections); a handler
+of every request under `/` with `P` (`handlerOk h P "/"`; a handler run gets its connection
+goroutine's thread token); net/http's server variables (`httpSrvEnv`); and the calling goroutine's
+thread token, given back when it returns. What it guarantees is what it writes: on each connection,
+for the `i`-th request the dialer wrote (the `i`-th slot), the handler's complete response, the head
+of a chunked one, or net/http's `400` answer (`httpRespP P`). S5's draft `Serve.spec` with C1 (no
+handler pool) and the departures listed in `ProtoDefs.lean`.
 -/
 module
 
 public import Net.Proof.net.http.MuxDefs
+public import Net.Proof.net.http.ProtoDefs
 public import Net.Proof.net.http.PkgInit
 public import Net.Proof.net.Base
 
@@ -50,6 +63,21 @@ abbrev Serve.spec_rpc : Prop :=
     (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #(interface.nil : GoInterface)))
   {{ (err : GoInterface), RET #err; threadTok }}
 
+section spec
+variable [hπ : HttpProtoGS]
+
+/-- See the file header. -/
+abbrev Serve.spec : Prop :=
+  ∀ (P : HProto GF) (la : GoString) (lis h : GoInterface) (l : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ httpSrvEnv (GF := GF) ∗
+      protoLis (Gg := hG.goose_globalGS) la P ∗ handlerOk h P go!"/" ∗
+      net.isListener (GF := GF) lis l ∗ netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
+      lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
+      threadTok }}
+    (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #h))
+  {{ (err : GoInterface), RET #err; threadTok }}
+
+end spec
 end spec
 end net.http
 end Perennial

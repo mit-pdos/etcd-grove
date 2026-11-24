@@ -459,5 +459,19 @@ theorem ReadResponse.wp_proof
 
 end proof
 
+
+section resp
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+
+/-- **Trust-boundary axiom, interim**: `http.ReadResponse` meets `ReadResponse.spec_resp` (a stream of
+responses; httpdriver). Interim, retired by phase 7's S5 (the client half: the model's head parser on
+general heads, `readTransfer`, the body reader). -/
+axiom ReadResponse.wp_proof_resp : ReadResponse.spec_resp (GF := GF) (hG := hG)
+
+end resp
+
 end net.http
 end Perennial

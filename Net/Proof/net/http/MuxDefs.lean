@@ -13,6 +13,8 @@ ghost state.
   `Ps` (the patterns' owner: one goroutine at a time; net/rpc's `HandleHTTP` and the program's own
   `Handle`s, at the boot). From net/http's first initialization at `DefaultServeMux` (`muxOwn (globalAddr defaultServeMux) []`,
   `Net/Proof/net/http/InitFirst.lean`).
+* `muxAt m Ps` (persistent): `m` frozen with the patterns `Ps` (`muxOwn m Ps` given up into an
+  invariant; httpdriver's `ServeMux.ServeHTTP.spec`).
 * `muxRoute m p h` (persistent): `m` sends a request for the literal path `p` to the handler `h`.
 * `litPattern p`: a literal path pattern: `/`-initial, every byte one the model's request parser
   leaves alone in a path (`pathByte`, the model's `modelPathByte`: letters, digits and
@@ -59,6 +61,8 @@ structure MuxNames where
 
 def muxN (m : Loc) : Namespace := (nroot.@"net.http.mux").@m
 
+def muxFrozenN (m : Loc) : Namespace := (nroot.@"net.http.muxfrozen").@m
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -78,6 +82,16 @@ def muxI (m : Loc) (γ : MuxNames) : IProp GF :=
 /-- The right to register on `m`, its patterns `Ps` (exclusive; see the file header). -/
 def muxOwn (m : Loc) (Ps : List GoString) : IProp GF :=
   iprop(∃ γ : MuxNames, inv (muxN m) (muxI m γ) ∗ ghostVar γ.pats (1 : Qp).half Ps)
+
+/-- The mux `m` frozen with the patterns `Ps` (persistent: the right to register, `muxOwn m Ps`,
+given up for good into an invariant; httpdriver, 2026-11-24, S5's `muxAt`): its patterns are
+exactly `Ps` from now on, what `ServeMux.ServeHTTP.spec` needs to answer `404` for the others. -/
+def muxAt (m : Loc) (Ps : List GoString) : IProp GF :=
+  iprop(∃ γ : MuxNames, inv (muxN m) (muxI m γ) ∗
+    inv (muxFrozenN m) (ghostVar γ.pats (1 : Qp).half Ps))
+
+instance muxAt_persistent (m : Loc) (Ps : List GoString) : Persistent (muxAt (GF := GF) m Ps) := by
+  unfold muxAt; infer_instance
 
 /-- `m` routes `p` to `h` (persistent). -/
 def muxRoute (m : Loc) (p : GoString) (h : GoInterface) : IProp GF :=
