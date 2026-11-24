@@ -100,6 +100,13 @@ theorem strlen_le (n k : Nat) (hn : n < 2 ^ 63) (hk : k < 2 ^ 63)
     (h : ¬ sint.Z (W64 (n : Int)) > sint.Z (W64 (k : Int))) : n ≤ k := by
   word
 
+theorem kind_known (k : w64) (s : GoSlice) (h1 : ¬ sint.Z k < sint.Z (W64 0))
+    (h2 : ¬ sint.Z s.len ≤ sint.Z k) (hl : kindNameList.length = sint.nat s.len) (h0 : 0 ≤ sint.Z s.len) :
+    kindKnown k := by
+  have h11 : kindNameList.length = 11 := rfl
+  unfold kindKnown
+  constructor <;> word
+
 theorem deployment.WellFormed.wp_proof
     (hNameOk : etcd_dist.deployment.nameOk.spec (GF := GF) (hG := hG))
     (hNames : etcd_dist.deployment.kindNames.spec (GF := GF) (hG := hG))
@@ -198,7 +205,57 @@ theorem deployment.WellFormed.wp_proof
       rw [hn]
       simp only [Bool.not_false]
       err_exit
-  · skip
+  · have hjl := idx_end _ _ _ Hlm.1 Hlm.2 Hif Hj1
+    subst hjl
+    rw [List.take_length] at Hj3 Hj4
+    ihave %Hlw := ownSlice_len _ _ _ $$ Hw
+    rw [List.length_map] at Hlw
+    ihave HW : (∃ (j : Nat) (wv : deployment.Workload),
+        "i" ∷ i_ptr ↦ W64 j ∗ "w" ∷ w_ptr ↦ wv ∗
+        "%Hj" ∷ ⌜j ≤ d.workloads.length ∧ ∀ w ∈ d.workloads.take j, kindKnown w.kind ∧ w.goBoundsOk⌝ :
+        IProp GF) $$ [i w]
+    · iexists 0, _
+      iframe
+      ipureintro
+      exact ⟨by omega, fun w hw => by simp at hw⟩
+    wp_for HW
+    obtain ⟨Hk1, Hk2⟩ := Hj
+    wp_if_destruct
+    · obtain ⟨hj, h0, hsj, hw⟩ := idx_facts _ _ _ Hlw.1 Hlw.2 Hif Hk1
+      simp only [h0, Hif, and_self, ↓reduceIte]
+      obtain ⟨ww, hww⟩ : ∃ ww, d.workloads[j]? = some ww := ⟨_, List.getElem?_eq_getElem hj⟩
+      wp_apply (wp_load_slice_index v.Workloads' (sint.Z (W64 (j : Int))) (d.workloads.map Workload.val) DFrac.discard ww.val h0) $$ [] as -
+      · iframe #; ipureintro; rw [hsj, List.getElem?_map, hww]; rfl
+      have htake : d.workloads.take (j + 1) = d.workloads.take j ++ [ww] := by
+        rw [List.take_add_one, hww]; rfl
+      wp_if_destruct
+      · err_exit
+      · have hk0 := Hif
+        wp_apply hNames as %knl Hknl
+        ihave %Hkl := ownSlice_len _ _ _ $$ Hknl
+        wp_if_destruct
+        · err_exit
+        · have hkk := kind_known _ _ hk0 Hif Hkl.1 Hkl.2
+          wp_apply hBounds
+          by_cases hb : ww.goBoundsOk
+          · rw [decide_eq_true hb]
+            simp only [Bool.not_true]
+            wp_auto
+            wp_for_post
+            iframe
+            iexists (j + 1), _
+            rw [hw]
+            iframe
+            ipureintro
+            refine ⟨by omega, fun w hw' => ?_⟩
+            rw [htake, List.mem_append, List.mem_singleton] at hw'
+            rcases hw' with hw' | rfl
+            · exact Hk2 w hw'
+            · exact ⟨hkk, hb⟩
+          · rw [decide_eq_false hb]
+            simp only [Bool.not_false]
+            err_exit
+    · skip
 
 end proof
 
