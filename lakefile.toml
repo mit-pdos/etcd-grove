@@ -79,6 +79,16 @@ globs = ["PorcupineDag.+"]
 name = "SpecPlan"
 globs = ["SpecPlan.+"]
 
+# kitlibs-check's validation (notes/dsv-kitlibs-check.md, etc/kitlibs-check.py): dsverify challenge statements
+# over an agent-declared `KitLibs` class, generated from paxos's and rabia's statements, with
+# `KitLibs` classes and non-vacuity instances (rabia's equal to its landed premises; `rabiabad`, two
+# fields kitlibs-check must refuse). Not a default target, and nothing imports it: its modules declare
+# the kits' statement names. Under etc/ (etc/kitlibs-check-test/lean/), out of the import tiers' tree.
+[[lean_lib]]
+name = "KitLibsCheckTest"
+srcDir = "etc/kitlibs-check-test/lean"
+globs = ["KitLibsCheckTest.+"]
+
 # bbolt's top-level test (examples/bbolt/bank) and bbolt itself with its bodies (the fork
 # upamanyus/bbolt, branch goose-lean), translated by etc/goose.py's projects bbolt and bbolttest
 # into a parallel tree with the same layout (Bbolt/{Code,GeneratedProof,Spec,Proof}/): the main

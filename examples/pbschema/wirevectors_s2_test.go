@@ -268,7 +268,7 @@ func buildMessageVectors(t *testing.T) string {
 		out = append(out, msgDecGuard(b, lh(b)))
 	}
 
-	// D2 (kaashoek, #37): a message decoded from records with unknown fields interleaved at every
+	// D2 (#37): a message decoded from records with unknown fields interleaved at every
 	// level, re-encoded: protobuf-go writes the known fields in field-number order and the unknown
 	// fields, kept in arrival order, after them; the Lean encoder of the decoded content agrees.
 	out = append(out, "", "/-! ## `Message`: `proto.Marshal` of decoded messages (unknown fields interleaved) -/", "")

@@ -3,7 +3,7 @@
 # `etcd/dist`: the distributed etcd theorem, stated (DRAFT)
 
 **Draft for review** (`notes/etcd-dist-plan.md`): not built, not proved, nothing imports it. It takes the
-names `etcd_safe`/`etcd_robust` (2026-11-22, Upamanyu's naming on #24: the distributed theorems take the
+names `etcd_safe`/`etcd_robust` (2026-11-22, the naming decided on #24: the distributed theorems take the
 plain names) of the single-process theorem it replaces (`examples/etcd/all`: eleven drivers in one
 process, each on a cluster of its own; retired with leaseexpiryN's at the net swap, tag
 `single-process-final`). Placeholders are marked in `TopLevelDefs.lean`.

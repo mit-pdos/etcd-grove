@@ -14,7 +14,6 @@ axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
-axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom conversion.EnforcePtr.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof

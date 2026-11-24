@@ -1,7 +1,7 @@
 /-
 `b.Write(p)` on the buffer at `b`: it appends `p`'s bytes and answers their number and no error.
 
-The trust boundary: an axiom, `Proof/bytes/Buffer__Write.lean` (`bytes.Buffer`'s methods are not translated; `Proof/bytes/Buffer.lean`). Lean-first (no Rocq counterpart).
+Proved in `Proof/bytes/Buffer__Write.lean` over Perennial's `bytes.Buffer.Write` (mit-pdos/perennial#670; `Proof/bytes/Buffer.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
