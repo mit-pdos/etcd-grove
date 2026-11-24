@@ -1,5 +1,10 @@
 # swiftpaxos's prophecy code as a prophecy patch, one `Resolve(any)` per event
 
+**Current (2026-11-24 ~04:00Z): the patch uses Perennial's `github.com/mit-pdos/perennial/proph`**
+(Perennial `lean` 0ab015afd; it supersedes Perennial `resolve-any` and the goose-lang/primitive commit
+5d8e69df2f96, neither of which will land). The "Dependencies" section below is history; see the
+newest log entry at the end for the pin and what landing needs.
+
 Branch `proph-swiftpaxos` (2026-11-23), stacked on `proph-resolve-any` (the rule and prophcheck admitting
 `Resolve(any)`) and merged with `lean`. Upamanyu chose option (a) on #24: a `Resolve(any)` primitive, so each
 event resolves as one value, atomic by construction, with no prophecy-only mutex.
@@ -257,3 +262,38 @@ must be empty. Builds: `/shared/tmp/fklean1-check.sh /shared/etcd-grove-prophswi
   body `pr-resolve-any.md` in the coordinator's scratchpad) must land, updated for lean's pin 47ec64a9d (the merge
   e5f3e2f37 is clean, local only). (3) Then replace the TEMPORARY pin e5f3e2f37 by the Perennial commit lean pins,
   rerun gen-init/kitgen and the build. Optional follow-up: `γ.pred` over `List val` (design (II)).
+
+### 2026-11-24 ~04:00Z: moved onto `github.com/mit-pdos/perennial/proph` (fourth agent)
+- **proph-resolve-any** (now 2c0edbb139, merged with lean d9e76d0721): prophcheck recognizes both prophecy
+  packages (`prophPkgs`: goose's primitive and Perennial's proph; `Resolve` is proph's only),
+  proph_patch.py admits both packages' go.mod/go.sum lines; CLAUDE.md, etc/proph-patches/README.md and
+  notes/proph-patch-rule.md name the new package; `TestProphPackage` added.
+- **Patch**: `client/buffer.go` and `swift/recovery.go` import `github.com/mit-pdos/perennial/proph`
+  (`proph.ProphId`, `proph.NewProph`; no name clash), and the patch adds the go.mod require
+  `github.com/mit-pdos/perennial/proph v0.0.0-20261124034649-0ab015afd508` and its two go.sum lines
+  (from proxy.golang.org; checked in a scratch module). The fork's go.mod/go.sum equal lean's
+  (primitive back at lean's version: kit.go's `RandomUint64`; the resolve-any pseudo-version gone).
+- **TEMPORARY pin**: Perennial `0ab015afd508fe90fa3d8db86ae9104610274982` (on GitHub, Perennial `lean`;
+  a descendant of lean's pin 580868e54, so no merge needed). It also brings Perennial lean's other
+  commits since 580868e54 (strconv Quote: strconv now imports unicode/utf8, so gen-init regenerated
+  every PkgTable and kitgen swiftnet's BootTable; unary `+`). Local worktree /shared/perennial-0ab015afd;
+  fk-lean1 /home/ubuntu/eg/perennial-0ab015afd (branch `proph-0ab015afd` of its perennial.git, built).
+- **Translation**: `etc/goose.py --project dsv-swiftpaxos` (client and swift now import
+  `Perennial.Code.github_com.mit_pdos.perennial.proph`; client's init runs proph's after bufio,
+  before state). **Proofs**: client Base/Ghost/GhostDefs and Spec client/Ghost import
+  `Perennial.Proof.github_com.mit_pdos.perennial.proph.Link`; BootLinked allocates
+  `github_com.mit_pdos.perennial.proph.ProphId`, runs `proph.wp_initialize'` in client's and swift's
+  inits and `proph.wp_NewProph`. The resolvers' proofs are unchanged (they step the trusted
+  `Resolve.impl`, `λ p v, ResolveProph p v`, as resolve-any's).
+- **Landing needs**: lean's Perennial pin bumped to a commit containing 0ab015afd (then this
+  branch takes lean's pin; rerun gen-init/kitgen if it differs from 0ab015afd).
+
+- **Axioms** (scratch commit eb99ee9ee1, then dropped; fk-lean1 on pin 0ab015afd, exit 0, 5031 jobs,
+  1113 s): all six landed top-level theorems (rabia, quepaxa, epaxos, paxos, swiftpaxos, remote counter):
+  `[propext, Classical.choice, Quot.sound]`; no `sorryAx`.
+- **Checks** (PERENNIAL_DIR=/shared/perennial-0ab015afd, after merging lean d9e76d0721): tier-check ok (227
+  known, unchanged); goose --check ok (all projects); gen-init --check ok (273 files); kitgen --check ok
+  (3 kits, 33 files); copy-part --check ok (0 differ); proph_patch.py ok (etcd 2, prophkv 1,
+  dsv-swiftpaxos 1); prophcheck `go test` ok; `proof_roots.namespace()` = `Perennial.EtcdGrove.`; dups
+  (Perennial 0ab015afd): the same 4 parse artifacts as on lean. etc/goose.py and etc/gen-init.py equal
+  lean's. Statement: no `Spec/**/TopLevelRobustness.lean` differs from origin/lean.
