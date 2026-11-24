@@ -3032,7 +3032,7 @@ theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AE
     iframe Hopts HR Hsn
     ipureintro; exact Hg
   inext
-  iintro %resp %err ⟨HR, Hout, -⟩
+  iintro %resp %err ⟨Hlt, HR, Hout, -⟩
   icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hq⟩ | ⟨%Herr, -⟩)
   · imod rangeRespMsgO_persist _ _ $$ Hm with #Hm
     imodintro
