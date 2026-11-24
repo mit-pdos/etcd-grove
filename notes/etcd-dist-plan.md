@@ -1325,3 +1325,41 @@ unexported model and checks; the distributed workloads call only the copies' `ex
 initializers; no bridge axiom is reached unless called). They should not: split each driver's model and
 checks into a package of their own that both the in-process driver and k8s-dist import, and drop the
 copies. (A k8s-dist change, its owner's; recorded here.)
+
+## 14. The bounds audit: `Robust`'s separate thread bound (2026-11-24, branch `etcd-safe-lit/2026-11-24`)
+
+The review's rule: a top-level statement takes `Robust`'s separate thread bound (`4e3c90e848`) as a named
+constant and the highest step bound the proofs allow, over Perennial's `goose_dist_adequacy_below`
+(`DistCrashNstepsBelow [] T n`: the thread bound is on the execution at hand, independent of `N`). Until
+now the etcd dist statements said `threads := 2 ^ 28, bound := 2 ^ 28 - 1` and went through
+`Net.robust_of_distBootIL`, whose boot form `DistBootWpSL lo bound` fixes `threadBound GF = receiptBound GF
++ 1` and `lo ≤ receiptBound GF ≤ bound`: the receipt bound doubled as the thread bound, so the thread cap
+`2 ^ 28` capped the steps too.
+
+**Every use in the etcd dist stack** (the skeleton, `BootBad`, `EtcdBootNC`'s eventual discharge through
+the member's boot, and the putget dist pieces it is modelled on):
+
+| Where | Fact | Kind | After |
+|---|---|---|---|
+| `TopLevelRobustness` (`EtcdBootNC`, `EtcdBootNCBad`, `etcd_safe_nocrash_of_boot`) | `srvLevelK ≤ receiptBound`, `receiptBound ≤ 2^28 - 1`, `DistBootWpSL srvLevelK (2^28-1)` | the floor `srvLevelK` was only there to give `srvLevels` (`srvLevelK ≤ threadBound`) through `threadBound = receiptBound + 1`: a **thread** fact; the cap `2^28 - 1` was the thread cap below | thread bound fixed at `etcdThreads`; receipts `≤ 2^48` |
+| `BootBad` (`serverBootBad`, `clientBootBad`, `nodeBootBad`) | `DistBootWpSL srvLevelK (2^28-1)` | uses neither bound (the programs return after the check) | the new boot form, unchanged proofs |
+| `etcdstart.StartServer.spec`, `S2Draft.Serve_s2`, `putget.Member.spec` (`ThreadBoundLe 2^28`) | `threadBound GF ≤ 2^28` | **thread** (reader-slot pools `threadBound ≤ rdPoolN`, RWMutex readers `≤ 2^30 - 1`, `raftPool`, the revocation pools: `threadBound ≤ n + 1` with `n` slots fixed) | `etcdThreads = 2^28` meets it |
+| `RevokeCtx.srvLevels` (`Serve_s2`, `Member`) | `srvLevelK ≤ threadBound GF` (5 levels of a thread token) | **thread** | `5 ≤ etcdThreads` |
+| `StartServer.spec`, `EtcdServer.Start/apply/applyAll/applyEntries`, `mvcc` (`isStore`, `NewStore`, `evLog`), `auth.Fuel`, `lease.Revoke` | `receiptBound GF ≤ 2^48` | **lifetime counter** (receipt cap): `idutil.Generator.Next` issues ids `prefix | lowbit(suffix, 48)`, distinct only for fewer than `2^48` calls (`idutil/Defs.lean`); the store's changes `logCh < 2^48` (revisions, compaction counts); the auth revision's fuel; the no-snapshot catch-up `NoSnapCatchUp = 2^48` (`notes/auth-lease-s4-freeze.md`) | **the binding cap**: `N ≤ 2^48` |
+| `StartServer.spec`, `bootstrapContract` | `receiptBound ≤ N + 1`, `N + 7 + bootWB ≤ backend.wbInit = 2^62 - 1` | **lifetime counter** (the backend's write-back tokens) | `N = receiptBound - 1 ≤ 2^48 - 1` meets it |
+| `lease` (`|M| < receiptBound ≤ 2^62`), raft/`etcdserver` `≤ 2^61`/`2^62`/`2^64 - 2` | receipt caps | lifetime counters | above `2^48`, not binding |
+| `putget` dist (`AdequacyMember`, its `TopLevelRobustness`) | `DistBootWpSL srvLevelK (2^28-1)`, `ReceiptBoundLe 2^28`, `Hprem : n + 12 ≤ 2^40` | as above (thread / receipt); `2^40` is the old `wbInit`, a hypothesis of that skeleton | not ported here (its own statement, `putget_safe`): the same port applies |
+
+No receipt floor exists anywhere in reach (every `… < receiptBound` is a derived fact, not a premise), so
+the new bridge needs none; it keeps the floor `lo` for generality and the etcd skeleton uses `lo = 0`.
+
+**The largest step bound the proofs allow is `2^48`** (an execution of `n < 2^48` steps runs at `N = n + 1
+≤ 2^48` receipts), not `2^63 - 1`: the cap is `receiptBound GF ≤ 2^48`, a property of the Go code
+(`idutil`'s 48-bit suffix wraps after `2^48` ids from one generator) and of the mvcc store's and server's
+specs built on it. It needs no premise or axiom: it only caps the step bound. Raising it means re-proving
+the server's specs over a larger cap, and `idutil` cannot go past `2^48` ids per generator (a process
+restart under D4b's incarnation-keyed issue record would be the way, per generator), so `2^48` stands.
+
+**The thread constant**: `etcdThreads := 2 ^ 28` (`TopLevelDefs.lean`): at least `srvLevelK = 5`, at most
+the `2^28` every server and client spec caps `threadBound` by. The client machines fork few goroutines
+(one per workload helper, `await.go`; one watcher per watch machine), far below it.
