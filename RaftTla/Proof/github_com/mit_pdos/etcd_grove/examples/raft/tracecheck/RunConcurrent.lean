@@ -51,8 +51,7 @@ theorem tcPeers_length [GooseExts] (m : Nat) : (tcPeers m).length = m := by
 theorem tcVoters_cons [GooseExts] (nv : Nat) (h : 1 ≤ nv) :
     tcVoters nv = W64 1 :: (tcVoters nv).drop 1 := by
   have h0 : (tcVoters nv)[0]? = some (W64 1) := by
-    simp [tcVoters, tracecheck.bootVoters, List.getElem?_map, List.getElem?_range,
-      show 0 < nv by omega]
+    simp [tcVoters, tracecheck.bootVoters, show 0 < nv by omega]
   cases hl : tcVoters nv with
   | nil => rw [hl] at h0; simp at h0
   | cons a t => rw [hl] at h0; simp at h0; subst h0; rfl
@@ -380,8 +379,9 @@ theorem njAdder_join_all (N : Namespace) (wg : Loc) (γ : NetJoinNames) (nv : Na
     iintro H
     icases (BigSepL.bigSepL_cons).1 $$ H with ⟨H1, H2⟩
     ihave H2 := ih (k + 1) (by omega) $$ H2
-    rw [← halves_succ_add]
-    iapply njAdder_join N wg γ _ _
+    have Hj := njAdder_join (GF := GF) N wg γ (halves (k + 1)) (halves (k + 1))
+    rw [halves_succ_add] at Hj
+    iapply Hj
     isplitl [H1]
     · simp only [tcQ, show k + 1 < nv by omega, ite_true]; iexact H1
     iexact H2
@@ -398,6 +398,13 @@ theorem njAdder_join_one (N : Namespace) (wg : Loc) (γ : NetJoinNames) (nv : Na
   rw [Nat.sub_zero] at this
   rw [List.range_eq_range']
   exact this
+
+/-- The first voter's part, and the others'. -/
+theorem tcVoters_head (Φ : w64 → IProp GF) (nv : Nat) (h : 1 ≤ nv) :
+    ([∗list] i ∈ tcVoters nv, Φ i) ⊣⊢ Φ (W64 1) ∗ [∗list] i ∈ (tcVoters nv).drop 1, Φ i := by
+  obtain ⟨rest, hr⟩ : ∃ rest, tcVoters nv = W64 1 :: rest := ⟨_, tcVoters_cons nv h⟩
+  rw [hr, List.drop_one, List.tail_cons]
+  exact BigSepL.bigSepL_cons
 
 end apps
 
@@ -521,21 +528,15 @@ theorem RunConcurrent.wp_proof
       with ⟨%γ, %γd, %tn, %Hγ, #Hdir, #Hsim, #Hcl, #Hops, #Hpol, #Hsn, #Hca0, #Hboot, Hvs⟩
     obtain ⟨Htr, Htn, Hvoters, Hsl0, Hdup, Hbl, Hmd⟩ := Hγ
     ihave #Hlog := tcLogger_isLogger (GF := GF)
-    ihave Hvs : [∗list] i ∈ W64 1 :: (tcVoters nv).drop 1,
-        voterStart (GF := GF) γ tcRaftN (tcVoters nv) (tcCtxs nv) tn i $$ [Hvs]
-    · rw [← tcVoters_cons nv H1]; iexact Hvs
-    icases (BigSepL.bigSepL_cons (Φ := fun _ i =>
-        voterStart (GF := GF) γ tcRaftN (tcVoters nv) (tcCtxs nv) tn i)).1 $$ Hvs with ⟨Hv1, Hvs⟩
+    icases (tcVoters_head (fun i => voterStart (GF := GF) γ tcRaftN (tcVoters nv) (tcCtxs nv) tn i)
+        nv H1).1 $$ Hvs with ⟨Hv1, Hvs⟩
     iunfold voterStart at Hv1
     icases Hv1 with ⟨#Hnb1, Hv1⟩
-    ihave Hvs := (BigSepL.bigSepL_cons (Φ := fun _ i =>
-        voterStart (GF := GF) γ tcRaftN (tcVoters nv) (tcCtxs nv) tn i)).2 $$ [Hv1 Hvs]
+    ihave Hvs := (tcVoters_head (fun i =>
+        voterStart (GF := GF) γ tcRaftN (tcVoters nv) (tcCtxs nv) tn i) nv H1).2 $$ [Hv1 Hvs]
     · iframe Hvs
       iunfold voterStart
       iframe Hnb1 Hv1
-    ihave Hvs : [∗list] i ∈ tcVoters nv,
-        voterStart (GF := GF) γ tcRaftN (tcVoters nv) (tcCtxs nv) tn i $$ [Hvs]
-    · rw [tcVoters_cons nv H1]; iexact Hvs
     -- the replicas
     ihave IHr : iprop(∃ (k : w64) (rsl : GoSlice) (ds : List (Loc × Loc))
         (M : GMap Loc MemStorNamesRec),
@@ -577,7 +578,9 @@ theorem RunConcurrent.wp_proof
       | none =>
       imod memStorReg_register M ms γs HM $$ Hreg with ⟨Hreg, #Hrg⟩
       try wp_auto
-      have Hk3 : sint.Z k ≤ nv := tc_rep_le nv H5' k cfg.Nodes' cfg.ExtraNodes' HN3 HX0 Hif
+      have Hif' : sint.Z k ≤ sint.Z (cfg.Nodes' + cfg.ExtraNodes') := by
+        first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
+      have Hk3 : sint.Z k ≤ nv := tc_rep_le nv H5' k cfg.Nodes' cfg.ExtraNodes' HN3 HX0 Hif'
       obtain ⟨Hdrop, Hk1, Hs1, Hs4, HkW, Hkk⟩ := tc_rep_step nv H5' k Hk.1 Hk3
       rw [Hdrop]
       icases Htodo with ⟨Hvk, Htodo⟩
@@ -687,7 +690,9 @@ theorem RunConcurrent.wp_proof
         · left; rw [GMap.lookup_insert_ne _ _ (Ne.symm hlm)] at hl; exact Hk.2.2.2 l hl
       · exfalso; apply Hif; rw [HN3, (tc_sZ nv H5').1]; exact Hk3
     · -- the replicas made: the world the goroutines share
-      have Hk4 : sint.nat k - 1 = nv := tc_reps_end nv H5' k _ _ HN3 HX0 Hk.2.1 Hif
+      have Hif' : ¬ sint.Z k ≤ sint.Z (cfg.Nodes' + cfg.ExtraNodes') := by
+        first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
+      have Hk4 : sint.nat k - 1 = nv := tc_reps_end nv H5' k _ _ HN3 HX0 Hk.2.1 Hif'
       have Hdl : ds.length = nv := by rw [Hk.2.2.1, Hk4]
       imod ownSlice_persist rsl _ _ $$ Hrsl with #Hrsl
       imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Freps with #Freps

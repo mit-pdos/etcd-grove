@@ -81,6 +81,9 @@ abbrev tcCtxs (n : Nat) : List (List w8) := List.replicate n []
 /-- `tracecheck.BootLogFacts` (§1.1). -/
 abbrev BootLogFacts (n : Nat) (boot : List LogEntry) : Prop := tracecheck.BootLogFacts n boot
 
+theorem tcVoters_length (n : Nat) : (tcVoters n).length = n := by
+  simp [tcVoters, tracecheck.bootVoters]
+
 theorem w32_2_ne_0 : W32 2 ≠ W32 0 := by decide
 theorem w32_2_ne_1 : W32 2 ≠ W32 1 := by decide
 theorem w32_1_ne_0 : W32 1 ≠ W32 0 := by decide
@@ -123,9 +126,6 @@ instance tcSnapsInv_persistent (γ : Cluster) : Persistent (tcSnapsInv (GF := GF
   unfold tcSnapsInv; infer_instance
 
 /-! ## 1. Allocation (§2.2's first rows): `harness_alloc`, then the harness's invariants -/
-
-theorem tcVoters_length (n : Nat) : (tcVoters n).length = n := by
-  simp [tcVoters, tracecheck.bootVoters]
 
 theorem tcVoters_facts (n : Nat) (h1 : 1 ≤ n) (h5 : n ≤ tracecheck.maxNodes) :
     tcVoters n ≠ [] ∧ (tcVoters n).Nodup ∧ W64 0 ∉ tcVoters n ∧ ((tcVoters n).length : Int) < 2 ^ 62 ∧
