@@ -28,13 +28,14 @@ open Iris Iris.BI Iris.ProofMode
 /-- SHA-1's digest has 20 bytes. -/
 theorem membership.sha1_length (m : List w8) : (crypto.sha1.sha1 m).length = 20 := by
   unfold crypto.sha1.sha1
+  dsimp only
   split
   simp [crypto.sha1.bytes32]
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 

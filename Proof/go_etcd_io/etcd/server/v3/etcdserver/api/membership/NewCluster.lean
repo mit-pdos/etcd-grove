@@ -29,7 +29,7 @@ theorem membership.NewCluster.wp_proof
     (hOpts : membership.newClusterOpts.spec (GF := GF) (hG := hG)) :
     membership.NewCluster.spec (GF := GF) (hG := hG) := by
   intro lg opts f ml
-  wp_start as ⟨#Hpkg, #Hlg, #Hopts, #Hf⟩
+  wp_start as ⟨#Hlg, #Hopts, #Hf⟩
   ihave %Hlgnn := zapLoggerOk_ne_null lg $$ Hlg
   wp_auto
   wp_apply hOpts opts f ml $$ [] as %co Hml

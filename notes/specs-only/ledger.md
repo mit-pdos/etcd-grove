@@ -57,7 +57,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** Both specs take `crypto.fips140.GodebugFips140Off` (the owner's decision on SHA-1, plan
   §7.7: an environment premise visible in the top-level statements) and `bootGo.initMapOk U token` (new,
   `BootValues.lean`: the entries' `memberOf` ids distinct and not `0` (Go errors on `0`; excluded so that the
-  construction's loop has no return path), at most `2^58` entries; a fact of the configuration,
+  construction's loop has no return path), at most `2^58` entries and `2^62` URLs in all (`sort.Strings`' bound); a fact of the configuration,
   decided by evaluation). `bootstrap.wp_proof` passes them on. The final stage's `bootPremise` bridge takes the
   two facts per example.
 - **Decision.** Applied (claim #34 stage 2, branch `bootstrap-stage2/2026-11-25`; the owner's SHA-1 decision

@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem membership.ClusterOptions.applyOpts.wp_proof :
     membership.ClusterOptions.applyOpts.spec (GF := GF) (hG := hG) := by
   intro co opts f ml ml0
-  wp_start as ⟨#Hpkg, #Hopts, #Hf, Hml⟩
+  wp_start as ⟨#Hopts, #Hf, Hml⟩
   wp_auto
   wp_func_lits
   wp_apply (membership.wp_slice_for_range_ro (V := GoFunc) _ opts [f] DFrac.discard _

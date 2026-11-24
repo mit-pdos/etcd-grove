@@ -163,7 +163,8 @@ of the configuration too). The size: `genID`'s `make([]byte, 8*len(ids))` and
 `sort.Sort` need it. -/
 def initMapOk [GooseExts] (U : BootURLs) (token : GoString) : Prop :=
   (U.initMap.domList.map (fun k => (memberOf U token k).id)).Nodup ∧
-    W64 0 ∉ U.initMap.domList.map (fun k => (memberOf U token k).id) ∧ GMap.size U.initMap ≤ 2 ^ 58
+    W64 0 ∉ U.initMap.domList.map (fun k => (memberOf U token k).id) ∧ GMap.size U.initMap ≤ 2 ^ 58 ∧
+    (U.initMap.domList.map (fun k => (U.initURLs k).length)).sum ≤ 2 ^ 62
 
 /-- **The cluster's id** (`genID()`). -/
 noncomputable def cid [GooseExts] (U : BootURLs) (token : GoString) : w64 :=

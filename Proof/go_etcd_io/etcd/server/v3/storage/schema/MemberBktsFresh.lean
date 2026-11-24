@@ -74,16 +74,16 @@ theorem create_any (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF :=
     iapply (rbPart_congr γ _ (rbData P st.S) r (fun n hn => Hag n hn)).2 $$ Hn
   wp_apply (hCB γ P W Pk b t st bk bi hhas hn0 hn1 hpend false false (_hkc := by decide))
     $$ [$Hpkg $HB $Ht $Hl $Hbk $Hn] as ⟨Hl, Hn⟩
-  have hlk : ∀ n, n = bi.name → (rbData P (st.create bi).S).lookup n =
+  have hlk : ∀ n, n = bi.name →
+      (rbData P (if st.S.lookup bi.name = none then st.S.insert bi.name ∅ else st.S)).lookup n =
       (r.insert bi.name (bktOf r bi.name)).lookup n := by
     intro n hn
     subst hn
     rw [rbData_lookup, if_pos hRB, GMap.lookup_insert]
-    show (if st.S.lookup bi.name = none then st.S.insert bi.name ∅ else st.S).lookup bi.name =
-      some ((r.lookup bi.name).getD ∅)
+    show _ = some ((r.lookup bi.name).getD ∅)
     rw [← hSr]
     rcases hc : st.S.lookup bi.name with _ | x
-    · simp [GMap.lookup_insert]
+    · simp
     · simp [hc]
   rw [rbPut_tracked γ P bi.name _ hRB]
   ihave Hn := (rbPart_congr γ _ _ _ hlk).1 $$ Hn

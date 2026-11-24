@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.config.Assumptions]
 theorem config.ServerConfig.BootstrapTimeoutEffective.wp_proof :
     config.ServerConfig.BootstrapTimeoutEffective.spec (GF := GF) (hG := hG) := by
   intro p cfg
-  wp_start as ⟨#Hpkg, #Hbt⟩
+  wp_start as #Hbt
   wp_auto
   wp_if_destruct
   · wp_auto

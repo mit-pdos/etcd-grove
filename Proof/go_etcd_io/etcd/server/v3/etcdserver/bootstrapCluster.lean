@@ -31,13 +31,13 @@ theorem bootstrapCluster.wp_proof
     bootstrapCluster.spec (GF := GF) (hG := hG) := by
   intro cfg U H prt Hfresh HU Hfips HiOk
   have hnc : cfg.NewCluster' = true := Hfresh.1
-  wp_start as ⟨#Hpkg, #Hzlg, #Hro, #Hrt⟩
+  wp_start as ⟨#Hzlg, #Hro, Hrt⟩
   wp_auto
   simp only [hnc, Bool.not_true, decide_true, Bool.true_and, Bool.and_false,
     Bool.false_eq_true, ↓reduceIte]
   wp_auto
-  wp_apply (hNew cfg U H prt Hfresh HU Hfips HiOk) $$ [] as %c %err Hres
-  · iframe #
+  wp_apply (hNew cfg U H prt Hfresh HU Hfips HiOk) $$ [Hrt] as %c %err Hres
+  · iframe #; iframe Hrt
   wp_auto
   icases Hres with (%Hne | ⟨%Heq, Hok⟩)
   · obtain ⟨ei, rfl⟩ : ∃ ei, err = GoInterface.ok ei := by

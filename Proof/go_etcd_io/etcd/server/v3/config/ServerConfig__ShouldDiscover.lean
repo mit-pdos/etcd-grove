@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.config.Assumptions]
 theorem config.ServerConfig.ShouldDiscover.wp_proof :
     config.ServerConfig.ShouldDiscover.spec (GF := GF) (hG := hG) := by
   intro p cfg
-  wp_start as ⟨#Hpkg, #Hdc⟩
+  wp_start as #Hdc
   iStructNamedPrefix Hdc "dc"
   iStructNamedPrefix dcConfigSpec "cs"
   wp_auto

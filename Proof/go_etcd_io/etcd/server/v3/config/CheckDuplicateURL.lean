@@ -24,7 +24,7 @@ attribute [-instance] pure_wp_slice_for_range
 section loop
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A range loop over a slice the loop only reads** (`for i, x := range s { body }`): `P i` holds
@@ -89,7 +89,7 @@ end loop
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.config.Assumptions]
 
@@ -97,7 +97,7 @@ theorem config.CheckDuplicateURL.wp_proof
     (hURL : http.URLStringAny_spec (GF := GF)) :
     config.CheckDuplicateURL.spec (GF := GF) (hG := hG) := by
   intro mp m urls
-  wp_start as ⟨#Hpkg, #Hm, #Hurls⟩
+  wp_start as ⟨#Hm, #Hurls⟩
   ihave HΦ' : (∀ b : Bool, Φ #b) $$ [HΦ]
   · iintro %b; iapply HΦ; itrivial
   wp_auto

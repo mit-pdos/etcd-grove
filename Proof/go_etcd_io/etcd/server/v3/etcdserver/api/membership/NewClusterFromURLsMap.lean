@@ -35,11 +35,11 @@ theorem membership.NewClusterFromURLsMap.wp_proof
     (hNM : membership.NewMember.spec (GF := GF) (hG := hG))
     (hGen : membership.RaftCluster.genID.spec (GF := GF) (hG := hG)) :
     membership.NewClusterFromURLsMap.spec (GF := GF) (hG := hG) := by
-  intro lg token mp m urls opts f ml Hfips Hplain Hnd Hnz Hsz
+  intro lg token mp m urls opts f ml Hfips Hplain Hnd Hnz Hsz Hulen
   -- the entries' members
   let fm : GoString → apply.MemberM := fun k => membership.memberOfURLs k (urls k) token
   have hfm : ∀ k, (fm k).id = (membership.memberOfURLs k (urls k) token).id := fun _ => rfl
-  wp_start as ⟨#Hpkg, #Hlg, #Hm, #Hurls, #Hopts, #Hf⟩
+  wp_start as ⟨#Hlg, #Hm, #Hurls, #Hopts, #Hf⟩
   wp_auto
   wp_apply hNC lg opts f ml $$ [] as %c ⟨%Hcnn, Hcl⟩
   · iframe #
@@ -74,7 +74,8 @@ theorem membership.NewClusterFromURLsMap.wp_proof
     ihave #Hvu : (vv ↦*□ urls key : IProp GF) $$ [Hurls]
     · iapply (BigSepM.bigSepM_lookup (Φ := fun k sl => (sl ↦*□ urls k : IProp GF)) Hvv) $$ Hurls
     (try wp_auto)
-    wp_apply hNM key vv (urls key) token Hfips (Hplain key (by rw [Hvv]; rfl)) $$ [] as %mm Hmm
+    wp_apply hNM key vv (urls key) token Hfips (Hplain key (by rw [Hvv]; rfl))
+      (Hulen key (by rw [Hvv]; rfl)) $$ [] as %mm Hmm
     · iframe #
     (try wp_auto)
     iunfold membership.memAt at Hmem

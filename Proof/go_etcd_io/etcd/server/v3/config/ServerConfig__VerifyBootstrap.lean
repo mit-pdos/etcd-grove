@@ -40,7 +40,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     config.ServerConfig.VerifyBootstrap.spec (GF := GF) (hG := hG) := by
   intro p cfg m urls peer Hsum
-  wp_start as ⟨#Hpkg, #Hname, #Hmapf, #Hpeerf, #Hlgf, #Hdcf, #Hm, #Hurls, #Hpeer, #Hzlg⟩
+  wp_start as ⟨#Hname, #Hmapf, #Hpeerf, #Hlgf, #Hdcf, #Hm, #Hurls, #Hpeer, #Hzlg⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   ihave #Htypes : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []

@@ -54,14 +54,15 @@ theorem membership.RaftCluster.buildMembershipMetric.wp_proof
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (K := w64) (V := Loc) (fun (_keys : List w64) (_i : Int) => iprop(
-      ∃ x : w64, "p" ∷ p_ptr ↦ x ∗ "Hlid" ∷ membership.rcLocalIDAddr c ↦{dq1} lid)) $$ Hmp
+      ∃ x : w64, "p" ∷ p_ptr ↦ x ∗ "Hlid" ∷ membership.rcLocalIDAddr c ↦{dq1} lid ∗
+        "Hcp" ∷ c_ptr ↦ c)) $$ Hmp
   iintro %keys -
-  isplitl [p Hlid]
-  · iexists _; iframe p Hlid
+  isplitl [p Hlid c]
+  · iexists _; iframe p Hlid c
   isplitr
   · imodintro
     iintro %i %key %vv - HP
-    icases HP with ⟨%x, p, Hlid⟩
+    icases HP with ⟨%x, p, Hlid, Hcp⟩
     (try wp_auto)
     wp_apply hIDStringPtr _ dq1 lid $$ [$Hlid] as %ls ⟨Hlid, %Hls⟩
     wp_apply hIDStringPtr $$ [$p] as %ps ⟨p, %Hps⟩
@@ -89,21 +90,22 @@ theorem membership.RaftCluster.buildMembershipMetric.wp_proof
     iright; ileft
     isplitr
     · ipureintro; rfl
-    iexists _; iframe p Hlid
+    iexists _; iframe p Hlid Hcp
   iintro HP Hmp
-  icases HP with ⟨%x, p, Hlid⟩
+  icases HP with ⟨%x, -, Hlid, Hcp⟩
   (try wp_auto)
   -- `for p := range c.removed { knownPeers.WithLabelValues(...).Set(0) }`
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (K := w64) (V := Bool) (fun (_keys : List w64) (_i : Int) => iprop(
-      ∃ x : w64, "p" ∷ p_ptr_1 ↦ x ∗ "Hlid" ∷ membership.rcLocalIDAddr c ↦{dq1} lid)) $$ Hrp
+      ∃ x : w64, "p" ∷ p_ptr ↦ x ∗ "Hlid" ∷ membership.rcLocalIDAddr c ↦{dq1} lid ∗
+        "Hcp" ∷ c_ptr ↦ c)) $$ Hrp
   iintro %keys -
-  isplitl [p_1 Hlid]
-  · iexists _; iframe p_1 Hlid
+  isplitl [p Hlid Hcp]
+  · iexists _; iframe p Hlid Hcp
   isplitr
   · imodintro
     iintro %i %key %vv - HP
-    icases HP with ⟨%x, p, Hlid⟩
+    icases HP with ⟨%x, p, Hlid, Hcp⟩
     (try wp_auto)
     wp_apply hIDStringPtr _ dq1 lid $$ [$Hlid] as %ls ⟨Hlid, %Hls⟩
     wp_apply hIDStringPtr $$ [$p] as %ps ⟨p, %Hps⟩
@@ -131,9 +133,9 @@ theorem membership.RaftCluster.buildMembershipMetric.wp_proof
     iright; ileft
     isplitr
     · ipureintro; rfl
-    iexists _; iframe p Hlid
+    iexists _; iframe p Hlid Hcp
   iintro HP Hrp
-  icases HP with ⟨%x, -, Hlid⟩
+  icases HP with ⟨%x, -, Hlid, Hcp⟩
   (try wp_auto)
   iapply HΦ
   iframe

@@ -38,7 +38,7 @@ abbrev membership.NewClusterFromURLsMap.spec : Prop :=
   crypto.fips140.GodebugFips140Off → (∀ k, (m.lookup k).isSome → ∀ u ∈ urls k, http.urlRootPlain u) →
   (m.domList.map (fun k => (membership.memberOfURLs k (urls k) token).id)).Nodup →
   W64 0 ∉ m.domList.map (fun k => (membership.memberOfURLs k (urls k) token).id) →
-  GMap.size m ≤ 2 ^ 58 →
+  GMap.size m ≤ 2 ^ 58 → (∀ k, (m.lookup k).isSome → (urls k).length ≤ 2 ^ 62) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
       zapLoggerOk lg ∗ mp ↦$□ m ∗ ([∗map] k ↦ sl ∈ m, sl ↦*□ urls k) ∗
       opts ↦*□ [f] ∗ membership.clusterOptMax f ml }}

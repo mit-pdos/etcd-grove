@@ -54,7 +54,7 @@ theorem membership.memOfList_lookup_some (L : List apply.MemberM) (hnd : (L.map 
   rw [membership.memOfList_lookup L hnd k]
   constructor
   · intro h
-    exact ⟨List.mem_of_find?_eq_some h, of_decide_eq_true (List.find?_some h)⟩
+    exact ⟨List.mem_of_find?_eq_some h, by simpa using List.find?_some h⟩
   · rintro ⟨hm, rfl⟩
     cases hf : L.find? (fun x => decide (x.id = m.id)) with
     | none =>
@@ -62,7 +62,7 @@ theorem membership.memOfList_lookup_some (L : List apply.MemberM) (hnd : (L.map 
       exact absurd (decide_eq_true rfl) (hf m hm)
     | some m' =>
       have hm' := List.mem_of_find?_eq_some hf
-      have hid : m'.id = m.id := of_decide_eq_true (List.find?_some hf)
+      have hid : m'.id = m.id := by simpa using List.find?_some hf
       -- two members of one id are one member (distinct ids)
       have : m' = m := by
         obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hm'
@@ -106,7 +106,7 @@ theorem membership.memOfList_isSome (L : List apply.MemberM) (hnd : (L.map (·.i
   constructor
   · intro h
     obtain ⟨m, hm⟩ := Option.isSome_iff_exists.1 h
-    exact List.mem_map.2 ⟨m, List.mem_of_find?_eq_some hm, of_decide_eq_true (List.find?_some hm)⟩
+    exact List.mem_map.2 ⟨m, List.mem_of_find?_eq_some hm, by simpa using List.find?_some hm⟩
   · intro h
     obtain ⟨m, hm, rfl⟩ := List.mem_map.1 h
     cases hf : L.find? (fun x => decide (x.id = m.id)) with
@@ -133,14 +133,25 @@ theorem membership.memNamesUniq_memOfList (ks : List GoString) (f : GoString →
   subst hn
   rw [← hid1, ← hid2]
 
+/-- Inserting the members of `L` adds at most `L.length` keys. -/
+theorem membership.foldl_insert_size (L : List apply.MemberM) (m0 : GMap w64 apply.MemberM) :
+    GMap.size (L.foldl (fun mem m => mem.insert m.id m) m0) ≤ GMap.size m0 + L.length := by
+  induction L generalizing m0 with
+  | nil => simp
+  | cons a L ih =>
+    simp only [List.foldl_cons, List.length_cons]
+    have h1 := ih (m0.insert a.id a)
+    have h2 : GMap.size (m0.insert a.id a) ≤ GMap.size m0 + 1 := by
+      show GMap.size (GMap.insert a.id a m0) ≤ _
+      rw [GMap.map_size_insert]; split <;> omega
+    omega
+
 /-- The size of `memOfList` is at most the list's length. -/
 theorem membership.memOfList_size (L : List apply.MemberM) :
     GMap.size (membership.memOfList L) ≤ L.length := by
-  induction L using List.reverseRecOn with
-  | nil => simp [membership.memOfList, GMap.map_size_empty]
-  | append_singleton L m ih =>
-    rw [membership.memOfList_append, GMap.map_size_insert, List.length_append]
-    split <;> simp <;> omega
+  have := membership.foldl_insert_size L ∅
+  rw [GMap.map_size_empty] at this
+  unfold membership.memOfList; omega
 
 /-- A map range's keys are a permutation of the map's `domList`. -/
 theorem membership.keys_perm_domList {V : Type} (m : GMap GoString V) (keys : List GoString)
@@ -155,7 +166,7 @@ theorem membership.loop_fresh (keys : List GoString) (g : GoString → w64) (i :
   have hsub : ((keys.take (i + 1)).map g).Sublist (keys.map g) :=
     (List.take_sublist _ _).map g
   have hnd' := hnd.sublist hsub
-  rw [List.take_succ, hk] at hnd'
+  rw [List.take_add_one, hk] at hnd'
   simp only [Option.toList_some, List.map_append, List.map_cons, List.map_nil] at hnd'
   intro hmem
   exact (List.nodup_append.1 hnd').2.2 _ hmem _ (List.mem_singleton_self _) rfl
@@ -163,7 +174,7 @@ theorem membership.loop_fresh (keys : List GoString) (g : GoString → w64) (i :
 /-- The loop's prefix grows by its next key. -/
 theorem membership.take_succ_map {α β : Type} (keys : List α) (f : α → β) (i : Nat) (key : α)
     (hk : keys[i]? = some key) : (keys.take (i + 1)).map f = (keys.take i).map f ++ [f key] := by
-  rw [List.take_succ, hk]; simp
+  rw [List.take_add_one, hk]; simp
 
 end EtcdGrove
 end Perennial

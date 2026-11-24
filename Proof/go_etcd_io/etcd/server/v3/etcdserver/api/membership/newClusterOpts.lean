@@ -28,7 +28,7 @@ theorem membership.newClusterOpts.wp_proof
     (hApply : membership.ClusterOptions.applyOpts.spec (GF := GF) (hG := hG)) :
     membership.newClusterOpts.spec (GF := GF) (hG := hG) := by
   intro opts f ml
-  wp_start as ⟨#Hpkg, #Hopts, #Hf⟩
+  wp_start as ⟨#Hopts, #Hf⟩
   wp_auto
   irename «$r0» => Hco
   generalize «$r0_ptr» = co at *

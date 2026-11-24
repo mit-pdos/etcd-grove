@@ -26,17 +26,30 @@ open go_etcd_io.etcd.server.v3.etcdserver.api
 /-- `bootGo.sha1` is Perennial's `crypto.sha1.sha1` (the same text). -/
 theorem sha1_eq (m : List w8) : sha1 m = crypto.sha1.sha1 m := rfl
 
+theorem combine_append_single (xs : List w8) (b : w8) :
+    LittleEndian.combine (xs ++ [b]) = LittleEndian.combine xs + 256 ^ xs.length * b.toNat := by
+  induction xs with
+  | nil => simp [LittleEndian.combine]
+  | cons x xs ih =>
+    simp only [List.cons_append, LittleEndian.combine_unfold, ih, List.length_cons, Nat.pow_succ]
+    rw [Nat.mul_add, ← Nat.mul_assoc, Nat.mul_comm 256 (256 ^ xs.length)]
+    omega
+
+theorem foldl_be (l : List w8) (acc : Nat) :
+    l.foldl (fun acc b => acc * 256 + b.toNat) acc =
+      acc * 256 ^ l.length + LittleEndian.combine l.reverse := by
+  induction l generalizing acc with
+  | nil => simp [LittleEndian.combine]
+  | cons b l ih =>
+    simp only [List.foldl_cons, ih, List.reverse_cons, combine_append_single, List.length_reverse,
+      List.length_cons, Nat.pow_succ]
+    rw [Nat.add_mul, Nat.mul_assoc, Nat.mul_comm 256 (256 ^ l.length), Nat.mul_comm b.toNat]
+    omega
+
 /-- Little-endian combination of a reversed list is the big-endian fold. -/
 theorem combine_reverse (l : List w8) :
     LittleEndian.combine l.reverse = l.foldl (fun acc b => acc * 256 + b.toNat) 0 := by
-  induction l using List.reverseRecOn with
-  | nil => rfl
-  | append_singleton l b ih =>
-    rw [List.reverse_append, List.foldl_append]
-    simp only [List.reverse_cons, List.reverse_nil, List.nil_append, List.cons_append,
-      List.foldl_cons, List.foldl_nil]
-    rw [LittleEndian.combine_unfold, ih]
-    omega
+  rw [foldl_be]; simp
 
 /-- `be64` is `beToU64` of the first eight bytes. -/
 theorem be64_eq (l : List w8) : be64 l = beToU64 (l.take 8) := by

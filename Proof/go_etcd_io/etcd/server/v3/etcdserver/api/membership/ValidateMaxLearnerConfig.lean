@@ -85,6 +85,8 @@ theorem membership.ValidateMaxLearnerConfig.wp_proof :
       iframe
       iexists k + W64 1, _, _
       iframe
+      isplitl [Hown]
+      · iexact Hown
       ipureintro
       exact ⟨by word, by word⟩
   · (try wp_auto)

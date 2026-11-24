@@ -64,7 +64,8 @@ theorem bootstrapNewClusterNoWAL.wp_proof
     bootstrapNewClusterNoWAL.spec (GF := GF) (hG := hG) := by
   intro cfg U H prt Hfresh HU Hfips HiOk
   obtain ⟨hnc, hend, hutf, hfits⟩ := Hfresh
-  obtain ⟨hnd, hnz, hsz⟩ := HiOk
+  have HiOk' := HiOk
+  obtain ⟨hnd, hnz, hsz, hsum⟩ := HiOk
   -- the entries' members, as the membership package names them
   let tok := cfg.InitialClusterToken'
   let fm : GoString → apply.MemberM := fun k => membership.memberOfURLs k (U.initURLs k) tok
@@ -75,7 +76,13 @@ theorem bootstrapNewClusterNoWAL.wp_proof
     simpa [hfm] using hnz
   have hndE : ((U.initMap.domList.map fm).map (·.id)).Nodup := by
     rw [List.map_map]; exact hnd'
-  wp_start as ⟨#Hpkg, #Hzlg, #Hro, #Hrt⟩
+  have hlen : ∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length ≤ 2 ^ 62 := by
+    intro k hk
+    have hkd : k ∈ U.initMap.domList := (GMap.mem_dom_list _ _).2 hk
+    have : (U.initURLs k).length ≤ (U.initMap.domList.map (fun k => (U.initURLs k).length)).sum :=
+      List.le_sum_of_mem (List.mem_map_of_mem hkd)
+    omega
+  wp_start as ⟨#Hzlg, #Hro, Hrt⟩
   iunfold bootCfgRO at Hro
   icases Hro with ⟨#Hpeer, #Hcli, #Hmap, #Hurls⟩
   ihave #Hcfgpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config $$ []
@@ -89,10 +96,12 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   · iPkgInit
   wp_auto
   ipersist cfg
+  ihave #Hcf := cfg
+  iStructNamedSuffix Hcf "F"
   -- `cfg.VerifyBootstrap()`
-  wp_apply (hVB cfg_ptr DFrac.discard cfg U.initMap U.initURLs U.peer) $$ [] as %verr ⟨-, Hverr⟩
+  wp_apply (hVB cfg_ptr cfg U.initMap U.initURLs U.peer hsum) $$ [] as %verr %Hverr
   · iframe #
-  icases Hverr with (%Hne | %Hok)
+  rcases Hverr with Hne | Hok
   · obtain ⟨ve, rfl⟩ : ∃ ve, verr = GoInterface.ok ve := by
       cases verr with
       | nil => exact absurd rfl Hne
@@ -111,11 +120,11 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   iintro %osl ⟨Hosl, -⟩
   imod ownSlice_persist $$ Hosl with #Hosl
   wp_apply (hNCU cfg.Logger' tok cfg.InitialPeerURLsMap' U.initMap U.initURLs osl f
-      cfg.MaxLearners' Hfips HU hnd' hnz' hsz) $$ [] as %c ⟨%Hcnn, %ms, %ids, %Hids, Hcl⟩
+      cfg.MaxLearners' Hfips HU hnd' hnz' hsz hlen) $$ [] as %c ⟨%Hcnn, %ms, %ids, %Hids, Hcl⟩
   · iframe #
   wp_auto
   have hmem : membership.memOfList (U.initMap.domList.map fm) = bootGo.memMap U tok :=
-    (bootGo.memMap_eq U tok ⟨hnd, hnz, hsz⟩).symm
+    (bootGo.memMap_eq U tok HiOk').symm
   -- this member's entry
   have hdomname : cfg.Name' ∈ U.initMap.domList := (GMap.mem_dom_list _ _).2 hname
   have hlk : membership.memOfList (U.initMap.domList.map fm) !! (fm cfg.Name').id =
@@ -132,10 +141,10 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   · iframe #; iframe
   wp_auto
   -- `isMemberBootstrapped(cfg.Logger, cl, cfg.Name, prt, cfg.BootstrapTimeoutEffective())`
-  wp_apply (hBTE cfg_ptr DFrac.discard cfg) $$ [] as %tmo -
+  wp_apply (hBTE cfg_ptr cfg) $$ [] as %tmo -
   · iframe #
   wp_apply (hIMB cfg.Logger' c cfg.Name' H prt tmo 1 ms _ huniq
-      ⟨(fm cfg.Name').id, fm cfg.Name', hlk, rfl⟩) $$ [Hmu Hmem] as %bt ⟨Hmu, Hmem⟩
+      ⟨(fm cfg.Name').id, fm cfg.Name', hlk, rfl⟩) $$ [Hmu Hmem Hrt] as %bt ⟨Hmu, Hmem⟩
   · iframe #; iframe
   iunfold membership.memberIs at Hmc
   icases Hmc with ⟨%Hmcnn, %pu, %cu, %il, %nm, %pus, %cus, Hmid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
@@ -160,11 +169,13 @@ theorem bootstrapNewClusterNoWAL.wp_proof
     ileft; ipureintro; simp
   wp_auto
   -- `cfg.ShouldDiscover()`: no discovery endpoints
-  wp_apply (hSD cfg_ptr DFrac.discard cfg) $$ [] as -
+  wp_apply (hSD cfg_ptr cfg) $$ [] as %sd %Hsd
   · iframe #
-  have hsd : decide (0 < sint.Z cfg.DiscoveryCfg'.ConfigSpec'.Endpoints'.len) = false := by
-    rw [hend]; decide
-  rw [hsd]
+  have hsd : sd = false := by
+    cases sd
+    · rfl
+    · exact absurd hend (Hsd rfl)
+  subst hsd
   wp_auto
   irename «$r0» => Hbc
   generalize «$r0_ptr» = bcl at *
@@ -174,7 +185,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   · ipureintro; rfl
   iexists _
   iframe Hbc
-  have hids_eq := bootGo.ps_eq U tok ⟨hnd, hnz, hsz⟩ ids Hids
+  have hids_eq := bootGo.ps_eq U tok HiOk' ids Hids
   isplitr
   · ipureintro
     refine ⟨?_, rfl, ?_⟩
@@ -192,7 +203,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
         exact (membership.memOfList_isSome _ hndE _).2
           (List.mem_map.2 ⟨fm cfg.Name', List.mem_map_of_mem hdomname, rfl⟩)
   iunfold clusterBuilt
-  rw [← hmem, bootGo.cid_eq U tok ⟨hnd, hnz, hsz⟩ ids Hids]
+  rw [← hmem, bootGo.cid_eq U tok HiOk' ids Hids]
   iexists ms, lgc, rp, dp
   iframe
 

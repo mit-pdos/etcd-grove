@@ -26,7 +26,7 @@ attribute [-instance] pure_wp_slice_for_range
 section loop
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A range loop over a slice the loop only reads** (`for i, x := range s { body }`): `P i` holds
@@ -85,7 +85,7 @@ end loop
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
 
@@ -96,7 +96,7 @@ theorem types.URLsMap.String.wp_proof
     (hJoin : strings.Join.spec (GF := GF) (hG := hG)) :
     types.URLsMap.String.spec (GF := GF) (hG := hG) := by
   intro mp m urls Hsum
-  wp_start as ⟨#Hpkg, #Hm, #Hurls⟩
+  wp_start as ⟨#Hm, #Hurls⟩
   have hSp := fmt.Sprintf.argsWf hSprintf
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit

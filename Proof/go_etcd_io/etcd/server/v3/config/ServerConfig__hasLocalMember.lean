@@ -29,7 +29,7 @@ theorem config.ServerConfig.hasLocalMember.wp_proof
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     config.ServerConfig.hasLocalMember.spec (GF := GF) (hG := hG) := by
   intro p cfg m
-  wp_start as ⟨#Hpkg, #Hname, #Hmapf, #Hm⟩
+  wp_start as ⟨#Hname, #Hmapf, #Hm⟩
   wp_auto
   wp_apply (wp_map_lookup1 (K := GoString) (V := GoSlice) _ _ cfg.InitialPeerURLsMap' m cfg.Name'
     DFrac.discard) $$ [Hm] as -

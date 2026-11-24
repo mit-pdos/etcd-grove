@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem membership.WithMaxLearners.wp_proof :
     membership.WithMaxLearners.spec (GF := GF) (hG := hG) := by
   intro ml
-  wp_start as #Hpkg
+  wp_start
   wp_auto
   ipersist max
   iapply HΦ

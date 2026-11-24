@@ -22,7 +22,7 @@ open Iris Iris.BI Iris.ProofMode
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -33,7 +33,7 @@ theorem membership.NewMember.wp_proof
   intro name sl us token Hfips Hplain Hlen
   wp_start as #Hus
   wp_auto
-  wp_apply (hCID sl us token Hfips Hplain Hlen) $$ [] as -
+  wp_apply (hCID sl us token Hfips Hplain Hlen) $$ []
   · iframe #
   (try wp_auto)
   wp_apply (hNM name sl us _ false Hplain) $$ [] as %m Hm

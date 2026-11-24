@@ -149,20 +149,9 @@ theorem membership.wp_RaftCluster_Lock_owned (c : Loc) :
   wp_start as Hm
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  icases (access_strict (A := typedPointsto (GF := GF)
-      (structFieldRef _root_.Perennial.sync.Mutex go!"mu" (membership.rcMutexAddr c))
-      (zero_val _root_.Perennial.sync.Mutex).mu' (DFrac.own 1))
-      (A' := typedPointsto (GF := GF)
-        (structFieldRef _root_.Perennial.sync.Mutex go!"mu" (membership.rcMutexAddr c))
-        (true : _root_.Perennial.internal.sync.Mutex) (DFrac.own 1))) $$ Hm with ⟨Hmu, Hback⟩
-  rw [sync.zeroMutex_mu]
-  (try wp_auto)
-  wp_apply internal.sync.Mutex.wp_Lock_owned $$ Hmu as Hmu
-  (try wp_auto)
+  wp_apply sync.Mutex.wp_Lock_owned $$ [$Hm] as Hm
   iapply HΦ
-  unfold sync.lockedMutex
-  iapply Hback
-  iexact Hmu
+  iexact Hm
 
 /-- **`c.Unlock()` of a cluster not yet shared**: its mutex unlocked, the zero value again. -/
 theorem membership.wp_RaftCluster_Unlock_owned (c : Loc) :
@@ -174,20 +163,9 @@ theorem membership.wp_RaftCluster_Unlock_owned (c : Loc) :
   wp_start as Hm
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  icases (access_strict (A := typedPointsto (GF := GF)
-      (structFieldRef _root_.Perennial.sync.Mutex go!"mu" (membership.rcMutexAddr c))
-      sync.lockedMutex.mu' (DFrac.own 1))
-      (A' := typedPointsto (GF := GF)
-        (structFieldRef _root_.Perennial.sync.Mutex go!"mu" (membership.rcMutexAddr c))
-        (false : _root_.Perennial.internal.sync.Mutex) (DFrac.own 1))) $$ Hm with ⟨Hmu, Hback⟩
-  rw [sync.lockedMutex_mu]
-  (try wp_auto)
-  wp_apply internal.sync.Mutex.wp_Unlock_owned $$ Hmu as Hmu
-  (try wp_auto)
+  wp_apply sync.Mutex.wp_Unlock_owned $$ [$Hm] as Hm
   iapply HΦ
-  rw [← sync.lockedMutex_unlock]
-  iapply Hback
-  iexact Hmu
+  iexact Hm
 
 end proof
 
