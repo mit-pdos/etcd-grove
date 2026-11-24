@@ -141,6 +141,12 @@ from fresh machines has at most `2^31 - 1` threads per machine, so it is covered
 - quepaxa, paxos, rabia: unchanged (already `2 ^ 63` with any `threads`; quepaxa uses
   `robust_of_distProtoLisRB`, whose signature is unchanged).
 
+**Checked** (fk-lean1, ccfbb8c201, with a scratch module dropped after): `lake build` green (4980
+jobs) of the six closed theorems' modules (epaxos, swiftpaxos, quepaxa, paxos, rabia, Net's remote
+counter); `#print axioms` of each: `propext`, `Classical.choice`, `Quot.sound`. tier-check
+--check, gen-init --check, goose --check, kitgen --check, copy-part --check pass; `proof_roots`'
+namespace `Perennial.EtcdGrove.`; dups: the four lean has (doc-comment false positives).
+
 **Unlanded kits (not edited here):** gryff (`dsv-gryff`) and craq (`dsv-craq`) call
 `epaxosnet.robust_of_distProtoLisRBT … g threads (2 ^ 31 - 1)`. After they merge lean with this
 change, that call no longer proves their goal (the obligation's `threadBound ≤ threads` gives no
