@@ -6,7 +6,9 @@ read aborted (`abortPendingRead`), `hijackedv` set, both deadlines cleared, the 
 (a byte past the head gives `Z cn`, which `zLaw` refutes with nothing written), the writer reset to
 the connection, a `bufio.ReadWriter` made, the connection untracked (`setState(StateHijacked)`);
 it returns the connection (`*TCPConn` `t`) and `nil`, with the reader's token at exactly `hs` and
-the reader's fields with the main thread. Proved in `Net/Proof/net/http/conn__hijackLocked.lean`.
+the reader's fields with the main thread, and the end's read deadline cleared (`rdlTok` at `false`)
+or, if clearing it failed (the end was closed), the end's reading dead (`readDead`). Proved in
+`Net/Proof/net/http/conn__hijackLocked.lean`.
 -/
 module
 
@@ -56,7 +58,8 @@ abbrev conn.hijackLocked.spec : Prop :=
       (∃ v : w64, sync.atomic.ownUint64 (structFieldRef net.http.conn go!"curState" c)
         (DFrac.own 1) v) ∗
       recvTok (Gg := hG.goose_globalGS) cn true P hs ∗ sendTok (Gg := hG.goose_globalGS) cn true Q [] ∗
-      crLeft cr γ hs ∗ ∃ b' : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b' }}
+      crLeft cr γ hs ∗ ∃ b' : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b' ∗
+        (⌜b' = false⌝ ∨ readDead (Gg := hG.goose_globalGS) cn true) }}
 
 end spec
 

@@ -4,8 +4,12 @@
 # through this module's public import.
 # (#23, 2026-11-22) `PanicOnCacheInconsistency = false`, which the translated snapshotter reads,
 # translated (goose cannot skip it; until then untranslated, `opaqueInitsOk`)
-translate = ["!*", "PanicOnCacheInconsistency"]
-imports = ["k8s.io/apiserver/pkg/storage/cacher/metrics"]
+# (k8s-inits-2, 2026-11-24, #32) its `init` (`checker.go:50`, `PanicOnCacheInconsistency, _ =
+# strconv.ParseBool(os.Getenv("KUBE_WATCHCACHE_CONSISTENCY_CHECKER"))`), translated: the translated
+# readers load the variable it sets, so a trusted no-op would not be faithful (until then names-only,
+# `initFuncsOk`)
+translate = ["!*", "PanicOnCacheInconsistency", "init.0"]
+imports = ["k8s.io/apiserver/pkg/storage/cacher/metrics", "os", "strconv"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

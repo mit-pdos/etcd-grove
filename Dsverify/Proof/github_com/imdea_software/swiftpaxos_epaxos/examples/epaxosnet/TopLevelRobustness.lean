@@ -130,8 +130,8 @@ theorem clientAddrs_eq : clientAddrs = epClientAddrs := rfl
 
 /-- **The EPaxos kit, closed** (see the statement's file). -/
 theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 fsem bvi hri hhi ra rh hb1 hb2 hb3 hb4 hb5 hb6 σ g threads
-  refine robust_of_distProtoLisRBT (GF := remoteGF) epAddrs epLas (system σ) g threads (2 ^ 31 - 1)
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 fsem bvi hri hhi ra rh hb1 hb2 hb3 hb4 hb5 hb6 σ g
+  refine robust_of_distProtoLisRBT (GF := remoteGF) epAddrs epLas (system σ) g (2 ^ 31) (2 ^ 63)
     epLas_pairwise epLas_disj ?_
   intro G π hrb
   letI := ra G π

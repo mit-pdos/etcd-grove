@@ -22,7 +22,7 @@ keeps fewer than `threads` threads, **no thread of any machine is stuck or has a
 Each client panics if its check fails, so no check fails.
 
 **The deployment is not a premise.** Every machine's program receives the whole deployment and checks
-it first (Go's `dist.WellFormed`, mirrored by Lean's `Deployment.WellFormed`: names, `addrOk` addresses,
+it first (Go's `deployment.WellFormed`, mirrored by Lean's `Deployment.WellFormed`: names, `addrOk` addresses,
 distinct, the members' ids apart in their low bits, the server configuration in its supported set, the
 workloads compatible and within their bounds), returning at once if it fails; `TestWellFormed` and
 `TestDist` show the check passes on random deployments and the real path runs.
@@ -40,6 +40,8 @@ workloads compatible and within their bounds), returning at once if it fails; `T
   `peerRequests` field is `True`, a PLACEHOLDER until phase 7 S5);
 - *`ETCD_VERIFY` off*, `HEnv` on every machine (approved 2026-11-23) and its token `HEnvTok` (the
   single-process start gives it by its start axiom; premises-to-axioms item G, an adequacy decision).
+- *`GODEBUG` `fips140` off*, `Hfips` (Perennial's `GodebugFips140Off`, approved: `crypto/sha1` panics in
+  `fips140=only` mode; every program's check of the deployment computes the member ids with it).
 - the instance binders: the Goose translations' `Assumptions` classes and models, as the single-process
   theorems' (and, after D2, the `dist` packages' own).
 
@@ -81,6 +83,7 @@ public import GooseLang.Ext.Net.Ghost
 public import GooseLang.Ext.Fs.Ghost
 public import GooseLang.Ext.IdIssue.Specs
 public import Robustness.Statement
+public import Perennial.TrustedCode.crypto.fips140
 
 @[expose] public section
 
@@ -100,11 +103,12 @@ crash and restart, and of its checking clients on machines that never crash (eac
 orchestrator machine and its client machines, D8), is robust: no thread of any machine is stuck or has
 an unrecovered panic.
 
-PLACEHOLDER binders: the `dist` packages' `Assumptions` (stage D2) join the instance binders. The bound is
+The bound is
 `etcd_safe_nocrash`'s until the crash proof fixes its own (kvnet's crash theorem has `2 ^ 61`). -/
 def etcd_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     -- carried over from the single-process theorems (review F7); each to go when its model is proved
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
@@ -120,7 +124,10 @@ def etcd_robust.spec : Prop :=
     (Hσn : σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ)
     -- `ETCD_VERIFY` off on every machine's run, and its token in the logic (`putget_safe`'s)
     (HEnv : ∀ m ∈ machines d σs σc σn, verifyEnvOff m.1)
-    (HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF)),
+    (HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF))
+    -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
+    -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
+    (Hfips : crypto.fips140.GodebugFips140Off),
     Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := 2 ^ 28)
       (bound := 2 ^ 28 - 1)
 
@@ -131,6 +138,7 @@ theorem `etcd_safe` implies it; the weaker variant takes the longer name. Over P
 def etcd_robust_nocrash.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment)
@@ -141,7 +149,10 @@ def etcd_robust_nocrash.spec : Prop :=
     (Hσc : σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ)
     (Hσn : σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ)
     (HEnv : ∀ m ∈ machines d σs σc σn, verifyEnvOff m.1)
-    (HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF)),
+    (HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF))
+    -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
+    -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
+    (Hfips : crypto.fips140.GodebugFips140Off),
     Robust [] (machines d σs σc σn) g (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)
 
 end etcd_dist

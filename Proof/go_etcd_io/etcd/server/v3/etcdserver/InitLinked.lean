@@ -527,6 +527,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HlearnerPromoteFailed
   ipersist HfdUsed
   ipersist HfdLimit
+  ipersist HrecommendedMaxRequestBytesString
   imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM
   · inext
     iexists _
