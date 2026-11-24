@@ -6,6 +6,7 @@ module
 
 public import GeneratedProof.go_uber_org.zap.internal.pool
 public import Proof.go_uber_org.zap.PkgInit
+public import Spec.go_uber_org.zap.internal.pool.Defs
 
 @[expose] public section
 
@@ -24,13 +25,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_uber_org.zap.internal.pool.Assumptions]
 
 /-- `pool.New[T](fn)` returns a pointer to a fresh `Pool[T]` (its `sync.Pool`'s `New` wrapping
-`fn`, which it does not call). -/
+`fn`, which it does not call): `ownPool` (zap-z2, 2026-11-23: until then `True`), which becomes an
+`isPool` of the elements of any `Q` that `fn`'s results satisfy (`ownPool_init`). Stated for a
+pointer type `T = *E` (each of zap's pools holds pointers; `New`'s closure boxes `fn()` as
+`interface.mkOk T`, which needs `T`'s underlying type to be known). -/
 abbrev zap.internal.pool.New.spec : Prop :=
-  ∀ {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] {T : go.GoType}
-    [IntoValTyped (GF := GF) V T] (fn : GoFunc),
+  ∀ (E : go.GoType) (fn : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.internal.pool }}
-    (App (Val #(functions go_uber_org.zap.internal.pool.New [T])) (Val #fn))
-  {{ (p : Loc), RET #p; True }}
+    (App (Val #(functions go_uber_org.zap.internal.pool.New [go.GoType.PointerType E])) (Val #fn))
+  {{ (p : Loc), RET #p; zap.internal.pool.ownPool (V := Loc) (go.GoType.PointerType E) p fn }}
 
 end spec
 

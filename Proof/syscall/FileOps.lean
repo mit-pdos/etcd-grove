@@ -10,7 +10,7 @@ module
 
 public import GeneratedProof.syscall
 public import Proof.syscall.Base
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 public import GooseLang.Ext.Fs.Falloc
 public import GooseLang.Ext.Fs.Locks
 public import GooseLang.Ext.Fs.NoMapLockErrSpecs
@@ -130,20 +130,20 @@ theorem syscall.FcntlFlock.wp_getlk (fd : w64) (lk : Loc) (v : syscall.Flock_t) 
         ⌜v'.Pad_cgo_0' = v.Pad_cgo_0' ∧ v'.Pad_cgo_1' = v.Pad_cgo_1' ∧ (e ≠ 0 → v' = v)⌝ }} := by
   wp_start as Hlk
   try wp_auto
-  wp_apply internal.gomodel.ChooseUint64.wp_local as %e -
+  wp_apply internal.gomodel.wp_ChooseUint64 as %e -
   try wp_auto
   by_cases he : e = 0
   · subst he
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %a1 -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a1 -
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %a2 -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a2 -
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %a3 -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a3 -
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %a4 -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a4 -
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %a5 -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a5 -
     try wp_auto
     have h0 : errnoErr (W64 0) = interface.nil := by unfold errnoErr; simp
     rw [← h0]

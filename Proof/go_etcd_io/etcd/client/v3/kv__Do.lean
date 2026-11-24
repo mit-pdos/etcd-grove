@@ -157,7 +157,7 @@ theorem kv.Do.wp_generic
           IgnoreLease' := opv.ignoreLease', unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.val) Qp) $$ [Hrun]
     · simp only [putReqOp, putWireOf, hlease, hpk, hiv, hil]
-      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Put" ⟨go!"Put", rfl⟩ addr vs _ Hsc $$ [Hrun]
+      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Put" kvMethod_put addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
     wp_apply wp_retry_Put rkv conn addr Sp Qp ci om cd _ _ o.key o.val sl vs $$ [«$r0» Hrun']
       as %resp %err ⟨-, Hres⟩
@@ -215,7 +215,7 @@ theorem kv.Do.wp_generic
           unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.base.rangeEnd) Qd) $$ [Hrun]
     · simp only [deleteReqOp, deleteWireOf, hpk]
-      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/DeleteRange" ⟨go!"DeleteRange", rfl⟩ addr vs _ Hsc $$ [Hrun]
+      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/DeleteRange" kvMethod_deleteRange addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
     wp_apply wp_retry_DeleteRange rkv conn addr Sd Qd ci om cd _ _ o.key o.base.rangeEnd sl vs
       $$ [«$r0» Hrun'] as %resp %err ⟨-, Hres⟩

@@ -1,5 +1,10 @@
 # Phase 7: etcd's gRPC, net and net/http axioms as theorems over the models (plan, Draft)
 
+**Superseded where they differ by `notes/phase7-endstate.md`** (2026-11-24): the end state (one call
+protocol for unary calls and streams, heap-free stream entries, `grpcServeTok` in one form, bridges
+serving their target's table), the interim switch, the overnight decisions and the work plan. This note
+keeps the history and the S2 and S5 drafts.
+
 2026-11-21, claim #24. Phase 7 of `notes/dsverify-net-port-plan.md`, planned on its own as that section
 says. Coordination: #10's `grpc3` (grpc's resolver, `resolver/manual`, `attributes`, `serviceconfig`,
 etcd's `client/v3/internal/resolver`) and `http3` (`Proof/net/http/{Axioms,Boundary}.lean`,

@@ -74,7 +74,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
   (try wp_auto)
   wp_apply wp_Join _ [dir, pipeTmp n] _ (by
       have : (pipeTmp n).length = 5 := by unfold pipeTmp; split <;> rfl
-      simp [this]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
+      simp [this, _root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
   rw [join_child hclean (pipeTmp_nameOk n)] at hpth
   subst hpth
   (try wp_auto)

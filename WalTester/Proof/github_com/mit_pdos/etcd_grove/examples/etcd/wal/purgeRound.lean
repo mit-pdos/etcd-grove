@@ -505,6 +505,7 @@ theorem purgeRound.wp_proof
     $$ [Hp Hn Hc] as %lf %err ⟨Hpost, Herr⟩
   · isplitl []; · iexact Hos
     isplitl []; · iexact Hfu
+    isplitl []; · iPkgInit
     isplitl []; · iexact Hos
     isplitl []; · iexact Hsh
     iframe

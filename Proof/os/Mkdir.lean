@@ -12,7 +12,9 @@ the caller's fraction and a retry fails (`wp_osMkdirS_some`).
 module
 
 public import Spec.os.Mkdir
+public import Proof.os.PkgInit
 public import Proof.os.ErrorOk
+public import Proof.os.ErrnoPathErr
 public import Proof.os.SharedExt
 public import Proof.os.MkdirParts
 
@@ -37,6 +39,9 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
   intro d b perm R j dq h q r Q hb hn hq
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   wp_start_folded as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases osPathS_pathIn_keep R d dq j $$ Hp with ⟨%hpd, Hp⟩
   have hpin : PathIn R (child d b) := pathIn_child hpd.2 hb
   have htn : RootsTreeName R (child d b) := os.treeName_child hpd.2 hb
@@ -48,7 +53,7 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
         (∃ xs, Q (some xs) ∗ mkOut j b h (DFrac.own q) (some xs) ∗ mkNew (some xs))))
     (fun e => iprop(osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
       ∃ o, ⌜e = 0 → o.isSome⌝ ∗ Q o ∗ mkOut j b h (DFrac.own q) o ∗ mkNew o))
-    hpin htn) $$ [Hp Hperm Hn Hau] as %err ⟨%e, ⟨Hp, Hperm, %o, %ho, HQ, Hout, Hnew⟩, %he⟩
+    hpin htn) $$ [Hp Hperm Hn Hau] as %err ⟨#Hok, %e, ⟨Hp, Hperm, %o, %ho, HQ, Hout, Hnew⟩, %he⟩
   · iframe; iframe #
     isplitl [Hn Hau]
     · ileft; iframe
@@ -147,6 +152,7 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
         (try iframe)
         ipureintro; intro _; rfl
   iapply HΦ
+  iframe Hok
   iframe
   (try iexists o)
   (try iframe)
@@ -155,9 +161,9 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
 /-- `specS` from `specSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Mkdir.wp_proofS : os.Mkdir.specS (GF := GF) (hG := hG) := by
   intro d b perm R j dq h q r Q hb hn hq
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iintro %Φ ⟨#Hpk, #Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
   iapply os.Mkdir.wp_proofSnc d b perm R j dq h q r Q hb hn hq $$ [Hp Hperm Hn Hau] HΦ
-  iframe Hos Hsi Hp Hperm Hn
+  iframe Hpk Hos Hsi Hp Hperm Hn
   iapply osAU_osAUnc $$ Hau
 
 end proof

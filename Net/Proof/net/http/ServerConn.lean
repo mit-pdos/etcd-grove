@@ -145,14 +145,13 @@ def hjPre (N : HjNames) (P Q : Proto GF) (hs : List w8) (Z : Nat → IProp GF) :
     ∃ b : Bool, rdlTok (Gg := hG.goose_globalGS) N.cn true b)
 
 /-- What a hijack gives back to the serving thread (`hijackOk`'s `D`): the hijacked flag, the
-reader's fields, the connection's state word, the response's `handlerDone`, the end's read deadline
-token. -/
+reader's fields, the connection's state word, the response's `handlerDone` (the end's read deadline
+token goes to the handler, with the connection). -/
 def hjDone (N : HjNames) (hs : List w8) : IProp GF :=
   iprop(ghostVar N.γh (1 : Qp).half true ∗ crLeft N.cr N.γ hs ∗
     (∃ v : w64, sync.atomic.ownUint64 (structFieldRef net.http.conn go!"curState" N.c)
       (DFrac.own 1) v) ∗
-    sync.atomic.ownBool (structFieldRef net.http.response go!"handlerDone" N.w) (DFrac.own 1) false ∗
-    ∃ b : Bool, rdlTok (Gg := hG.goose_globalGS) N.cn true b)
+    sync.atomic.ownBool (structFieldRef net.http.response go!"handlerDone" N.w) (DFrac.own 1) false)
 
 end defs
 

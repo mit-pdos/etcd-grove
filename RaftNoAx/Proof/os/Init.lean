@@ -21,12 +21,13 @@ module
 
 public import Proof.os.PkgInit
 public import Perennial.Proof.errors.Link
+public import Perennial.Proof.internal.gomodel.Link
+public import Perennial.Proof.internal.testlog.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.internal.filepathlite.Init
-public import Proof.internal.gomodel.Init
 public import RaftNoAx.Proof.internal.poll.Init
 public import RaftNoAx.Proof.io.fs.Init
 public import Proof.runtime.Init
@@ -96,12 +97,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _) ErrInvalid _ as HErrInvalid
   wp_apply wp_GlobalAlloc (V := _) dirBufPool _ as HdirBufPool
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
-      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
-      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (_root_.Perennial.internal.poll.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (_root_.Perennial.internal.poll.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.testlog _root_.Perennial.internal.testlog.initialize'
+      EtcdGrove.ExternalInit.internal_testlog _root_.Perennial.internal.testlog.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
   wp_apply (_root_.Perennial.syscall.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
@@ -110,13 +113,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.internal.filepathlite.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (_root_.Perennial.internal.gomodel.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.gomodel _root_.Perennial.internal.gomodel.initialize'
+      EtcdGrove.ExternalInit.internal_gomodel _root_.Perennial.internal.gomodel.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of dirBufPool))
   ihave #FS : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrInvalid) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrPermission) e DFrac.discard) ∗ (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard ∗ typedPointsto (globalAddr _root_.Perennial.internal.oserror.ErrNotExist) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗ (∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗ typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)) : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd4
   icases FS with ⟨⟨%fe1, #F1⟩, ⟨%fe2, #F2⟩, ⟨%fe3, %hfe3, #F3⟩, ⟨%fe4, #F4, #F4o⟩, ⟨%fe5, #F5ok, #F5⟩⟩
   ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrFileClosing) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hd8
+  · iapply isPkgInit_access $$ Hd9
   icases PL with ⟨⟨%pe1, #P1⟩, ⟨%pe2, #P2⟩, ⟨%pe3, #P3⟩⟩
   repeat (first
     | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ ⟨#_, #_⟩

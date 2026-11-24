@@ -29,6 +29,9 @@ variable [os.Assumptions]
 theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := hG) := by
   intro d bs bt j J N R qd h q r lb Q hbs hbt hN hN' hne hsrc hq
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, #Hlb0, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb1⟩
   ihave #Hlb : osLogLb (max h.next lb) $$ []
   · rcases Nat.le_total h.next lb with hle | hle

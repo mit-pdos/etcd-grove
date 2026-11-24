@@ -43,9 +43,7 @@ axiom context.madeCancelCtx_of_isCancelCtx
 axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
 axiom envVerifyOffTok
-axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom hsEncC_ok
@@ -85,7 +83,6 @@ axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
 axiom metadata.FromIncomingContext.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
 axiom pbHsC_reg
@@ -150,7 +147,4 @@ axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.wp_WithTimeout_weak
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

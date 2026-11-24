@@ -19,7 +19,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance pkgInit_go_uber_org_zap_internal_pool : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.internal.pool :=
+instance : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.internal.pool :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.go_uber_org.zap.internal.pool)
 end
 

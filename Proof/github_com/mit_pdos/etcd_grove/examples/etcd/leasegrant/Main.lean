@@ -117,7 +117,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leasegrant" go!"127.0.0.1:23966" go!"127.0.0.1:23956" lg
       (LogEntry.toEntries boot 0) ctxs (leasegrantDir id) id γ ρ E₀ Φs γn .mono Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasegrantDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [leasegrantDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)

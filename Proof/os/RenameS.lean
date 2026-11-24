@@ -43,7 +43,8 @@ macro "wp_linkError" : tactic => `(tactic| (
 
 set_option hygiene false in
 /-- `wp_linkError_ok he`: `wp_linkError` for a nonzero errno (`he : e ≠ 0`), the fresh `*LinkError`
-at `le` one `fmt` formats (`#Hle : fmtErrorOk`, `os.linkError_fmtErrorOk`). Needs a `wp_fupd`
+at `le` one `fmt` formats (`#Hle : fmtErrorOk`, `os.linkError_fmtErrorOk`), given `#Hsys : syscall.errnoOk`
+in context (unhygienic). Needs a `wp_fupd`
 goal's update: run it where the goal is a `WP` (it applies `wp_fupd` itself). -/
 macro "wp_linkError_ok" he:term : tactic => `(tactic| (
   iapply wp_fupd
@@ -56,7 +57,7 @@ macro "wp_linkError_ok" he:term : tactic => `(tactic| (
   ipersist New
   ipersist Err
   ihave #Hle := os.linkError_fmtErrorOk le _ _ _ _ $$ Op Old New Err []
-  · iapply (errnoErr_fmtErrorOk _ $he)
+  · iapply (errnoErr_fmtErrorOk _ $he) $$ Hsys
   iclear Op Old New Err
   (try wp_auto)
   imodintro))

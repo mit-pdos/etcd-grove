@@ -42,6 +42,9 @@ local macro "rm_fin" qc:term:max fin:tacticSeq : tactic => `(tactic| (
 theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG := hG) := by
   intro d b j R qd dqn h qc hb hn
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases os.osPathS_facts R d _ j b hb $$ Hp with %hpf
   obtain ⟨hd, hp⟩ := hpf
   rw [decide_eq_false (show child d b ≠ [] by simp [child])]
@@ -94,7 +97,7 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
       try wp_auto
       simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
       try wp_auto
-      wp_apply os.wp_pathError_ok _ _ eo heo as %pe #Hok
+      wp_apply os.wp_pathError_ok _ _ eo heo $$ Hsys as %pe #Hok
       rm_fin qc
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
     · rw [decide_eq_false (show eo ≠ W64 2 by rw [heo]; decide)]
@@ -122,6 +125,9 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
 theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) := by
   intro d b j J R qd h hJ hb hbJ hfo
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, HJ, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases os.osPathS_facts R d _ j b hb $$ Hp with %hpf
   obtain ⟨hd, hp⟩ := hpf
   ihave Hst : rmAllOut j b J h hJ $$ [Hn HJ]
@@ -176,7 +182,7 @@ theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) 
       try wp_auto
       simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
       try wp_auto
-      wp_apply os.wp_pathError_ok _ _ eo heo as %pe #Hok
+      wp_apply os.wp_pathError_ok _ _ eo heo $$ Hsys as %pe #Hok
       rm_fin (1 : Qp)
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
     · rw [decide_eq_false (show eo ≠ W64 2 by rw [heo]; decide)]

@@ -19,13 +19,15 @@ generation's `osSharedInv` (`crashRest_treeS'`).
 The boot program and its precondition are in `SegLogResults.lean`; the proofs of `os`'s
 functions are passed to the specs' hypotheses here.
 
-**What is assumed**, as for `segdir` (`Results.lean`): the package initializer (`Hinit_wp`), the
+**What is assumed**, as for `segdir` (`Results.lean`): the
 hand-written `os.file` field facts, and the program's Goose-generated package facts (`package_sem`,
 which gives those of `os` and `golang.org/x/sys/unix`, `os.Assumptions` and
 `golang_org.x.sys.unix.Assumptions`).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.PkgTable
+public import Proof.runtime.InitEmpty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogResults
 public import Proof.os.File__WriteAt
 public import Proof.os.OpenFileS
@@ -60,10 +62,6 @@ threads are live. -/
 theorem seglog_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.Assumptions]
     [golang_org.x.sys.unix.Assumptions] [hPre : GooseGpreS GF]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC GF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (N T : Nat) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -107,7 +105,10 @@ theorem seglog_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     isplitl [Hgs Hh Hsub]
     · -- the boot program
       unfold bootLog
-      wp_apply Hinit_wp $$ Hgs
+      ihave Hown0 := ownInitializing_of_empty (github_com.mit_pdos.etcd_grove.examples.osfs.walfs.getIsPkgInit (GF := GF)) $$ Hgs
+      wp_apply (github_com.mit_pdos.etcd_grove.examples.osfs.walfs.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.osfs.walfs.getIsPkgInit_wf) $$ Hown0 as ⟨-, #Hpkg⟩
+      ihave #Hospkg : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+      · iPkgInit
       wp_pures
       wp_apply wp_Run os.OpenFile.wp_proofCreateS os.File.Truncate.wp_proof os.File.Close.wp_proof
           os.File.WriteAt.wp_proof os.File.Fd.wp_proof
@@ -137,13 +138,9 @@ the Go semantics and the packages' assumptions, with no package initialized, the
 only, the Linux file extension's state as on disk (`FsInit`), `dir` one of its roots: the boot
 program's result is `#()`, no thread is stuck and no thread has an unrecovered panic, so every
 call of the segment's life is one the trusted models cover, however many times the node crashes.
-It assumes that the package's initializer runs (`Hinit_wp`). (`seglog_crash_safety_bounded` with
+(`seglog_crash_safety_bounded` with
 the ghost state `fsGF`.) -/
 theorem seglog_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -154,7 +151,7 @@ theorem seglog_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [packag
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  seglog_crash_safety_bounded (GF := fsGF) Hinit_wp (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir
+  seglog_crash_safety_bounded (GF := fsGF) (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir
     n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
 
 end adequacy

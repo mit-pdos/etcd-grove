@@ -46,8 +46,8 @@ theorem io.CopyFiles.wp_proof (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
   intro bf fdd nd dd lf f fds ns ds o qm qb m bs hwr hrd hfdd hfds ho0 hob hbs hm
   wp_start as ⟨#Hinv, #Hos, Hbf, Hfdd, Hbo, Htr, #Hlf, Hf, Hfds, Hfo, Hm, Hbs⟩
   iunfold os.ownFile at Hbf Hf
-  icases Hbf with ⟨%ind, #Hbfp, Hdfd, #Hdn⟩
-  icases Hf with ⟨%ins, #Hfp, Hsfd, #Hsn⟩
+  icases Hbf with ⟨%ind, #Hbfp, Hdfd, #Hdn, #Hdsys⟩
+  icases Hf with ⟨%ins, #Hfp, Hsfd, #Hsn, #Hssys⟩
   ihave %hbfn := typedPointsto_not_null bf _ _ $$ Hbfp
   ihave %hfn := typedPointsto_not_null f _ _ $$ Hfp
   iunfold fileutil.lockedFile at Hlf

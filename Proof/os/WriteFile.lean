@@ -41,30 +41,33 @@ theorem os.WriteFile.wp_proofEmptyS (wp_Open : os.OpenFile.specCreateTruncS (GF 
       (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) (by decide)
       hb hnone (Qp.half_add_half 1) $$ [Hp Hperm Hq Hau]
     as %f %err ⟨Hp, Hperm, %o, HQ, Hout, Htr, Hr⟩
-  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   ihave Hout := os.crOut_join j b h o $$ [HQ Hout]
   · iframe
   ihave Htr := os.crTr_false _ o $$ Htr
-  icases Hr with (⟨%fd, %i, ⟨%herr, %hfd, %hio⟩, Hf, Ho, Hfd⟩ | ⟨%herr, -⟩)
+  icases Hr with (⟨%fd, %i, ⟨%herr, %hfd, %hio⟩, Hf, Ho, Hfd⟩ | ⟨%herr, #Hfe, -⟩)
   · subst herr
     wp_auto
     wp_apply os.File.Write.wp_empty f fd (child d b) (DFrac.own 1) sl dqs (W64 0) hfd
-      $$ [Hf Ho Hsl] as %n %e ⟨-, Hf, Ho, Hsl, -⟩
+      $$ [Hf Ho Hsl] as %n %e ⟨-, Hf, Ho, Hsl, #He⟩
     · iframe
     have hsome : o.isSome = true := by
       rcases o with _ | ⟨x, s, i'⟩
       · simp only [crIno] at hio; rw [hnone] at hio; cases hio
       · rfl
-    wp_apply wp_Close f fd (child d b) _ $$ [Hf Hfd] as %e1 ⟨-, -⟩
+    wp_apply wp_Close f fd (child d b) _ $$ [Hf Hfd] as %e1 ⟨-, -, #He1⟩
     · iframe; isplitr; iassumption; iapply lockToks_unlocked <;> rfl
     cases e1 <;> cases e <;> wp_auto <;>
-      (iapply HΦ; iframe; ipureintro; intro _; exact hsome)
+      (iapply HΦ; isplitr; (· first | iexact He | iexact He1 | iapply fmtErrorOkOrNil_nil);
+        iframe; ipureintro; intro _; exact hsome)
   · obtain ⟨herr, rfl⟩ := herr
     cases err with
     | nil => exact absurd rfl herr
     | ok i =>
       wp_auto
       iapply HΦ
+      isplitr
+      · iexact Hfe
       iframe
       ipureintro; intro hc; cases hc
 

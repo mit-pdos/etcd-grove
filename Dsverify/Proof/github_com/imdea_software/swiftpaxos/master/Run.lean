@@ -18,6 +18,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetLab
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.master.Master__Run
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunVocab
+public import Proof.fmt.SprintfPure
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -169,8 +171,10 @@ theorem master.Master.Run.wp_proof_full
   · ipureintro; rfl
   iintro %s3 ⟨Hs3, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001)) ArgsWf.nil)
-    $$ [$Hs3] as %str ⟨-, %Hstr⟩
+  wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
+      [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int (W64 7001)) .nil)
+      $$ [$Hs3] as %str ⟨-, %Hstr⟩
   rw [master.sprintf_colon_d _ _ Hstr, hport]
   wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv %lerr Hl
   · iapply RpcHttpAddr.rpcLisP_lis W go!":7001" _ _ $$ Hlp
@@ -229,8 +233,10 @@ theorem master.Master.Run.wp_proof_full
       · ipureintro; rfl
       iintro %s5 ⟨Hs5, -⟩
       wp_auto
-      wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001))
-        ArgsWf.nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
+      wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
+          [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+          _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int (W64 7001))
+          .nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
       rw [master.sprintf_colon_d _ _ Hstr', hport]
       wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv2 %lerr2 Hl
       · iapply RpcHttpAddr.rpcLisP_lis W go!":7001" _ _ $$ Hlp

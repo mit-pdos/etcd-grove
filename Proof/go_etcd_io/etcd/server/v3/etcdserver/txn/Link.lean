@@ -49,6 +49,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort__Swap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.mkGteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.newTxnResp
+public import Proof.go_uber_org.zap.internal.pool.Pool__Get
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.pruneKVs
@@ -251,9 +253,13 @@ theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Error :
     EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
@@ -303,6 +309,10 @@ theorem wp_WarnOfExpensiveReadOnlyTxnRequest :
     EtcdGrove.txn.WarnOfExpensiveReadOnlyTxnRequest.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof wp_NewLoggableTxnRequest wp_isNil ResponseOp.wp_GetResponseRange RangeResponse.wp_GetKvs wp_warnOfExpensiveGenericRequest
 
+theorem zap.internal.pool.Pool.wp_Get :
+    EtcdGrove.zap.internal.pool.Pool.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Get.wp_proof
+
 theorem prometheus.HistogramVec.wp_WithLabelValues :
     EtcdGrove.prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
   EtcdGrove.prometheus.HistogramVec.WithLabelValues.wp_proof
@@ -325,7 +335,7 @@ theorem zap.wp_Int32 :
 
 theorem zap.Logger.wp_Panic :
     EtcdGrove.zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Panic.wp_proof
+  EtcdGrove.zap.Logger.Panic.wp_proof zap.internal.pool.Pool.wp_Get
 
 end links
 

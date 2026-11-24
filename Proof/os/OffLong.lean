@@ -8,7 +8,7 @@ WAL W6 (2026-11-13, `wal-bridge`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 public import Proof.os.Off
 public import Spec.os.WriteLong
 public import Proof.os.ErrorOk
@@ -53,7 +53,7 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
   iStructNamed Hf2
   icases ownSlice_len sl _ ([] : List w8) $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   try wp_auto
@@ -64,9 +64,9 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
   try wp_auto
   rw [hsl, decide_eq_true (rfl : W64 0 = W64 0)]
   try wp_auto
-  wp_apply internal.gomodel.ChooseUint64.wp_local as %e -
+  wp_apply internal.gomodel.wp_ChooseUint64 as %e -
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   by_cases he : e = W64 0
   · subst he
     rw [decide_eq_true (rfl : W64 0 = W64 0)]
@@ -80,7 +80,7 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     iapply fmtErrorOkOrNil_nil
   · rw [decide_eq_false he]
     try wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn0 as %pe #Hpe
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn0 Hsys0 as %pe #Hpe
     iapply HΦ
     iframe Hf Hsl
     isplitr
@@ -125,7 +125,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   try wp_auto
@@ -138,7 +138,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
   try wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
   try wp_auto
@@ -175,7 +175,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     iexists inner; iframe; iassumption
   | ok ie =>
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %x -
     iapply HΦ
     iframe Hf Hsl Hosfd Hmc Hek
     iright

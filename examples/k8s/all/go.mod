@@ -2,15 +2,15 @@ module github.com/mit-pdos/etcd-grove/examples/k8s/all
 
 go 1.27.1
 
-replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124013037-bc2b5f4d04cd
+replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124070122-df6af0c36a6b
 
-replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124013037-bc2b5f4d04cd
+replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124070122-df6af0c36a6b
 
-replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124013037-bc2b5f4d04cd
+replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124070122-df6af0c36a6b
 
-replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124013037-bc2b5f4d04cd
+replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124070122-df6af0c36a6b
 
-replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124013037-bc2b5f4d04cd
+replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124070122-df6af0c36a6b
 
 replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 
@@ -123,3 +123,10 @@ replace github.com/mit-pdos/etcd-grove/examples => ../..
 replace github.com/mit-pdos/etcd-grove/examples/k8s/etcd3 => ../etcd3
 
 replace github.com/mit-pdos/etcd-grove/examples/k8s/compactor => ../compactor
+
+// k8s.io/apimachinery and k8s.io/apiserver at the pins above, from the fork upamanyus/kubernetes,
+// branch goose-lean-fmt1 (on Kubernetes 878cfa6c4c): their go.mod/go.sum as published, and
+// Preconditions.Check formatting its UIDs as strings (real fmt stage 1, mit-pdos/etcd-grove#9)
+replace k8s.io/apimachinery => github.com/upamanyus/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20261124053658-ef23adaea1b3
+
+replace k8s.io/apiserver => github.com/upamanyus/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20261124053658-ef23adaea1b3

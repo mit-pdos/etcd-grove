@@ -14,7 +14,7 @@ public import Proof.os.ErrorOk
 public import Proof.os.SharedExt
 public import Proof.os.PathKindS
 public import Proof.os.IgnoringEINTR
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 
 @[expose] public section
 
@@ -49,14 +49,37 @@ def os.mkdirAttempt (p : GoString) (I : IProp GF) (Ψ : w64 → IProp GF) : IPro
     (∀ e : w64, ((⌜e = W64 4⌝ ∗ I) ∨ (⌜e ≠ W64 4⌝ ∗ Ψ e)) -∗ Φ #e) -∗
     WP (App (App (Val (@! syscall.fsMkdir)) (Val #p)) (Val #m)) {{ Φ }})
 
+set_option hygiene false in
+/-- `wp_pathErrorAlloc_ok he`: Go's inline `&PathError{op, path, err}` whose `err` is the nonzero
+errno `e` (`he : e ≠ 0`, the `error` `interface.mkOk syscall.Errno.ty #e`), given
+`#Hsys : syscall.errnoOk` in context (unhygienic): the fresh `*PathError` at `pe`, its fields made
+persistent, and `#Hok`, that it is `fmtErrorOk`. Run it where the goal is the `WP` that allocates it
+(it applies `wp_fupd` itself, and leaves the goal after the function's return). -/
+macro "wp_pathErrorAlloc_ok" he:term : tactic => `(tactic| (
+  ihave #HeOk := errnoErr_fmtErrorOk _ $he $$ Hsys
+  isimp only [errnoErr, $he:term, ↓reduceIte] at HeOk
+  iapply wp_fupd
+  (try wp_auto)
+  wp_alloc pe as Hpe
+  iStructNamed Hpe
+  ipersist Op
+  ipersist Path
+  ipersist Err
+  ihave #Hok := os.pathError_fmtErrorOk pe _ _ _ $$ Op Path Err HeOk
+  iclear Op Path Err HeOk
+  (try wp_auto)
+  imodintro))
+
 /-- **`os.Mkdir(p)` below a root** (`PathKind` is `1`): attempts (`os.mkdirAttempt`) until one does
-not return `EINTR`; its errno `e` gives the result: `nil` for 0, else a `*PathError`. -/
+not return `EINTR`; its errno `e` gives the result: `nil` for 0, else a `*PathError` (one `fmt`
+formats, given `syscall`'s package fact `syscall.errnoOk`: `fmtErrorOkOrNil`). -/
 theorem os.Mkdir.wp_tree (R : Roots) (p : GoString) (perm : w32) (I : IProp GF) (Ψ : w64 → IProp GF)
     (hpin : PathIn R p) (htn : RootsTreeName R p) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ I ∗ □ os.mkdirAttempt p I Ψ }}
+    {{ syscall.errnoOk (GF := GF) ∗ osInv (GF := GF) ∗ osSharedInv R ∗ I ∗ □ os.mkdirAttempt p I Ψ }}
       (App (App (Val (@! os.Mkdir)) (Val #p)) (Val #perm))
-    {{ (err : GoInterface), RET #err; ∃ e : w64, Ψ e ∗ ⌜e ≠ W64 4 ∧ (err = interface.nil ↔ e = 0)⌝ }} := by
-  wp_start as ⟨#Hos, #Hsi, HI, #Hat⟩
+    {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗
+        ∃ e : w64, Ψ e ∗ ⌜e ≠ W64 4 ∧ (err = interface.nil ↔ e = 0)⌝ }} := by
+  wp_start as ⟨#Hsys, #Hos, #Hsi, HI, #Hat⟩
   try wp_auto
   wp_apply os.wp_fixLongPath
   try wp_auto
@@ -92,14 +115,17 @@ theorem os.Mkdir.wp_tree (R : Roots) (p : GoString) (perm : w32) (I : IProp GF) 
     simp only [errnoErr, ↓reduceIte]
     try wp_auto
     iapply HΦ
+    isplitl []
+    · iapply fmtErrorOkOrNil_nil
     iexists W64 0
     iframe
     ipureintro; exact ⟨he4, by simp⟩
   · simp only [errnoErr, h0, ↓reduceIte]
-    try wp_auto
-    try wp_alloc pe as Hpe
-    try wp_auto
+    -- `&PathError{"mkdir", name, e}`: `fmtErrorOk`
+    wp_pathErrorAlloc_ok h0
     iapply HΦ
+    isplitl []
+    · iapply (fmtErrorOkOrNil_of _) $$ Hok
     iexists e
     iframe
     ipureintro
@@ -108,14 +134,14 @@ theorem os.Mkdir.wp_tree (R : Roots) (p : GoString) (perm : w32) (I : IProp GF) 
     first | exact h0 | simpa using h0 | (intro h; apply h0; rw [h]; rfl)
 
 /-- **`os.Mkdir(p)` at a root or an ancestor of one** (`PathKind` is not `1`): any errno but 0,
-no step of the extension (each `EINTR` retried): an error. -/
+no step of the extension (each `EINTR` retried): an error (one `fmt` formats). -/
 theorem os.Mkdir.wp_notTree (R : Roots) (p : GoString) (perm : w32)
     (hk : ∀ Φ : val → IProp GF, osInv (GF := GF) ∗ osSharedInv R ∗ (∀ k : w64, ⌜k ≠ W64 1⌝ -∗ Φ #k) ⊢
       WP (App (Val (@! syscall.fsPathKind)) (Val #p)) {{ Φ }}) :
-    {{ osInv (GF := GF) ∗ osSharedInv R }}
+    {{ syscall.errnoOk (GF := GF) ∗ osInv (GF := GF) ∗ osSharedInv R }}
       (App (App (Val (@! os.Mkdir)) (Val #p)) (Val #perm))
-    {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil⌝ }} := by
-  wp_start as ⟨#Hos, #Hsi⟩
+    {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err }} := by
+  wp_start as ⟨#Hsys, #Hos, #Hsi⟩
   try wp_auto
   wp_apply os.wp_fixLongPath
   try wp_auto
@@ -140,7 +166,7 @@ theorem os.Mkdir.wp_notTree (R : Roots) (p : GoString) (perm : w32)
     try wp_auto
     rw [decide_eq_false hk1]
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %x _
+    wp_apply internal.gomodel.wp_ChooseUint64 as %x _
     try wp_auto
     have hpost : ∀ y : w64, y ≠ 0 → (interface.mkOk syscall.Errno.ty #y : GoInterface) = errnoErr y := by
       intro y hy; unfold errnoErr; rw [if_neg hy]
@@ -161,22 +187,22 @@ theorem os.Mkdir.wp_notTree (R : Roots) (p : GoString) (perm : w32)
       · iright; (try dsimp only); iframe; ipureintro; exact ⟨hx4, hx⟩
   have he0' : ¬ e = 0 := he0
   simp only [errnoErr, he0', ↓reduceIte]
-  try wp_auto
-  try wp_alloc pe as Hpe
-  try wp_auto
+  wp_pathErrorAlloc_ok he0'
   iapply HΦ
+  iframe Hok
   ipureintro; intro hc; cases hc
 
 /-- `os.Mkdir(d/b)` of a name holding something (a fraction of a claim on names containing `b`), with
-a fraction of the call permission: an error, no effect. -/
+a fraction of the call permission: an error (one `fmt` formats), no effect. -/
 theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (N : NameSet)
     (dq dqn : DFrac) (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
     (hi : (h.cur !! b).isSome) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
+    {{ syscall.errnoOk (GF := GF) ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗
+        osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
     {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
-        ⌜err ≠ interface.nil⌝ }} := by
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩ HΦ
+        ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err }} := by
+  iintro %Φ ⟨#Hsys, #Hos, #Hsi, Hp, Hn, Hperm⟩ HΦ
   icases osPathS_pathIn_keep R d dq j $$ Hp with ⟨%hpd, Hp⟩
   have hpin : PathIn R (child d b) := pathIn_child hpd.2 hb
   have htn : RootsTreeName R (child d b) := os.treeName_child hpd.2 hb
@@ -184,7 +210,7 @@ theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (
   wp_apply (os.Mkdir.wp_tree R (child d b) perm
     iprop(osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc)
     (fun e => iprop(⌜e ≠ 0⌝ ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
-    hpin htn) $$ [Hp Hn Hperm] as %err ⟨%e, ⟨%he0, Hp, Hn, Hperm⟩, %he⟩
+    hpin htn) $$ [Hp Hn Hperm] as %err ⟨#Hok, %e, ⟨%he0, Hp, Hn, Hperm⟩, %he⟩
   · iframe; iframe #
     iintro !>
     unfold os.mkdirAttempt
@@ -200,9 +226,12 @@ theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (
     by_cases he4 : e = W64 4
     · ileft; iframe; ipureintro; exact he4
     · iright; (try dsimp only); iframe; ipureintro; exact ⟨he4, he⟩
+  have hne : err ≠ interface.nil := fun hc => he0 (he.2.1 hc)
   iapply HΦ
   iframe
-  ipureintro; intro hc; exact he0 (he.2.1 hc)
+  isplitr
+  · ipureintro; exact hne
+  iapply (fmtErrorOkOrNil_ne err hne) $$ Hok
 
 end proof
 

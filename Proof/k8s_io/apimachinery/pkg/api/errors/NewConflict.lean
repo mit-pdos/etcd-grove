@@ -8,6 +8,7 @@ module
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewConflict
 public import Spec.k8s_io.apimachinery.pkg.runtime.schema.GroupResource__String_ptr
 public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -56,45 +57,50 @@ theorem NewConflict.wp_proof
     rw [h1, h2]
     rfl
   rw [hset]
-  have hds : _root_.Perennial.fmt.fmtDirectives
-      go!"Operation cannot be fulfilled on %s %q: %v" =
-      some [⟨W8 115, false⟩, ⟨W8 113, false⟩, ⟨W8 118, false⟩] := by
-    decide
-  ihave Hargs : _root_.Perennial.fmt.argsOkAt (GF := GF) _root_.Perennial.fmt.methodVerbs
-      [⟨W8 115, false⟩, ⟨W8 113, false⟩, ⟨W8 118, false⟩]
-      [interface.mkOk go.string #str, interface.mkOk go.string #name, err] $$ [Herr]
-  · simp only [_root_.Perennial.fmt.argsOkAt]
-    isplitl []
-    · unfold _root_.Perennial.fmt.argOkAt; ileft; ipureintro; exact argWf_string str
-    isplitl []
-    · unfold _root_.Perennial.fmt.argOkAt; ileft; ipureintro; exact argWf_string name
-    isplitl [Herr]
-    · cases err with
-      | nil => unfold _root_.Perennial.fmt.argOkAt; itrivial
-      | ok ii =>
-        unfold _root_.Perennial.fmt.argOkAt
-        iright; iright; ileft
-        isplitr
-        · ipureintro
-          refine ⟨by decide, rfl, fun h => ?_⟩
-          exact absurd h (by decide)
-        · iexact Herr
-    · itrivial
-  ihave Hok := _root_.Perennial.fmt.argsOk_intro (GF := GF) (mv := _root_.Perennial.fmt.methodVerbs) hds $$ Hargs
   iapply wp_fupd
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf go!"Operation cannot be fulfilled on %s %q: %v" _
-      [interface.mkOk go.string #str, interface.mkOk go.string #name, err] (DFrac.own 1))
-    $$ [$Pf $Hasl $Hok] as %s -
-  ipersist «$v3»
-  imodintro
-  iapply HΦ
-  iexists _
-  iframe
-  isplitr
-  · unfold statusDetailsAt; iright; iexists _; iframe «$v3»
-    iapply (ownSlice_nil (V := k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) DFrac.discard)
-  ipureintro
-  exact ⟨rfl, rfl, rfl⟩
+  -- the message: two strings and `err` (nil, or by its `Error()`); `%q` of the name (`fmt-stage15`)
+  cases err with
+  | nil =>
+    wp_apply (_root_.Perennial.fmt.wp_Sprintf go!"Operation cannot be fulfilled on %s %q: %v" [.lit go!"Operation cannot be fulfilled on ", .dir none _root_.Perennial.fmt.verb_s, .lit go!" ", .dir none _root_.Perennial.fmt.verb_q, .lit go!": ", .dir none _root_.Perennial.fmt.verb_v] _ _
+        [.str _, .str _, .nil] (DFrac.own 1) (by fmt_encode) ?fits)
+      $$ [$Pf $Hasl] as %s -
+    case fits => fmt_fits
+    · iapply (_root_.Perennial.fmt.PureArgs.isArgs (.str _ _ _ (.str _ _ _ (.nil_ _ _ .nil))))
+    ipersist «$v3»
+    imodintro
+    iapply HΦ
+    iexists _
+    iframe
+    isplitr
+    · unfold statusDetailsAt; iright; iexists _; iframe «$v3»
+      iapply (ownSlice_nil (V := k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) DFrac.discard)
+    ipureintro
+    exact ⟨rfl, rfl, rfl⟩
+  | ok ii =>
+    unfold fmtErrorOkOrNil fmtErrorOk
+    icases Herr with ⟨%hms, #Hs⟩
+    wp_apply (_root_.Perennial.fmt.wp_Sprintf go!"Operation cannot be fulfilled on %s %q: %v" [.lit go!"Operation cannot be fulfilled on ", .dir none _root_.Perennial.fmt.verb_s, .lit go!" ", .dir none _root_.Perennial.fmt.verb_q, .lit go!": ", .dir none _root_.Perennial.fmt.verb_v] _ _
+        [.str _, .str _, .method fun _ => True] (DFrac.own 1) (by fmt_encode) ?fits)
+      $$ [$Pf $Hasl] as %s -
+    case fits => fmt_fits
+    · iapply BigSepL2.bigSepL2_cons.2
+      isplitr; · simp only [_root_.Perennial.fmt.isArg]; ipureintro; rfl
+      iapply BigSepL2.bigSepL2_cons.2
+      isplitr; · simp only [_root_.Perennial.fmt.isArg]; ipureintro; rfl
+      iapply BigSepL2.bigSepL2_cons.2
+      isplitl
+      · iapply (fmt.isArg_error ii hms.1 hms.2); iexact Hs
+      · iapply BigSepL2.bigSepL2_nil.2; itrivial
+    ipersist «$v3»
+    imodintro
+    iapply HΦ
+    iexists _
+    iframe
+    isplitr
+    · unfold statusDetailsAt; iright; iexists _; iframe «$v3»
+      iapply (ownSlice_nil (V := k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) DFrac.discard)
+    ipureintro
+    exact ⟨rfl, rfl, rfl⟩
 
 end proof
 

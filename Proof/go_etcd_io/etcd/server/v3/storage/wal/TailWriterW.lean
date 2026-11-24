@@ -470,7 +470,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
                 off.toNat + data.length ≤ max m.size maxBytes ∧ LoWr m' (off.toNat + data.length)⌝) ∨
          (⌜err ≠ interface.nil⌝ ∗ osFd fd dq d ∗ errOkOrNil err)) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
+  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl dqs data $$ Hsl with %Hlen
@@ -657,7 +657,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
-          · iexists inner; iframe; isplitl [] <;> iassumption
+          · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
           ileft
           iframe Hosfd Hk Hv
           isplitr
@@ -671,11 +671,11 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
           try wp_auto
           simp only [decide_eq_false he0, Bool.not_false]
           try wp_auto
-          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hpe
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hpe
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
-          · iexists inner; iframe; isplitl [] <;> iassumption
+          · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
           iright
           iframe Hosfd
           isplitr
@@ -707,11 +707,11 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
         · rw [decide_eq_false he0]
           simp only [Bool.not_false]
           try wp_auto
-          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hpe
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hpe
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
-          · iexists inner; iframe; isplitl [] <;> iassumption
+          · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
           iright
           iframe Hosfd
           isplitr
@@ -751,7 +751,7 @@ theorem wp_tailWriteW (Mr : WalMarshal) (R : Roots) (jr : Ino)
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   try wp_auto
@@ -764,7 +764,7 @@ theorem wp_tailWriteW (Mr : WalMarshal) (R : Roots) (jr : Ino)
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
   try wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
   try wp_auto

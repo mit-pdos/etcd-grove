@@ -101,8 +101,8 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
         osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗ io.cpFin bf f dd.ino o bs err }} := by
   wp_start as ⟨#Hinv, #Hos, Hbf, Hfdd, Hf, Hfds, Hm, Hbs, HS⟩
   iunfold os.ownFile at Hbf Hf
-  icases Hbf with ⟨%ind, #Hbfp, Hdfd, #Hdn⟩
-  icases Hf with ⟨%ins, #Hfp, Hsfd, #Hsn⟩
+  icases Hbf with ⟨%ind, #Hbfp, Hdfd, #Hdn, #Hdsys⟩
+  icases Hf with ⟨%ins, #Hfp, Hsfd, #Hsn, #Hssys⟩
   ihave %hbfn := typedPointsto_not_null bf _ _ $$ Hbfp
   ihave %hfn := typedPointsto_not_null f _ _ $$ Hfp
   try wp_auto

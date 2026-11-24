@@ -56,10 +56,16 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   "rawConn.Control", "rawConn.Read", "rawConn.Write",
   "MkdirAll", "Mkdir", "Remove", "fixLongPath", "ignoringEINTR", "syscallMode",
   "supportsCreateWithStickyBit",
-  "ModeDir", "ModeSymlink", "ModeSetuid", "ModeSetgid", "ModeSticky"]
+  "ModeDir", "ModeSymlink", "ModeSetuid", "ModeSetgid", "ModeSticky",
+  # (zap-z2, 2026-11-23, as Perennial's os.toml since `ca6df841b`) `Exit` (zap's `internal/exit`,
+  # `zap.Logger.Fatal`), over the trusted `syscall.Exit` (`AngelicExit`) and `runtime_beforeExit`
+  # (below); it reads `internal/testlog`'s flag (Perennial's translation)
+  "Exit"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
 imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll", "sync/atomic", "time",
-  "runtime", "internal/filepathlite", "internal/gomodel"]
+  "runtime", "internal/filepathlite", "internal/gomodel",
+  # (zap-z2) what `Exit` calls (`testlog.PanicOnExit0`)
+  "internal/testlog"]
 # (2026-11-24, Go-model overlays S5, perennial#692) The functions and methods minibolt, the WAL and
 # fileutil call are Go: Go's own code where it translates (above and below), and elsewhere the Go
 # model of the [model] table (models/os/model.go, each declaration's MODEL: comment says why it has at
@@ -80,7 +86,10 @@ trusted = ["fsOpen", "fsPRead", "fsPWrite", "fsFdKind", "fsClose", "fsDirClose",
   # allocates its variable and stores an arbitrary in-range address with no cell, not reserved
   # (`GoPrealloc`). Translated code (raft's default logger, dsverify's dlog) loads them, so they
   # cannot be skipped, and an address with no cell has no Go expression.
-  "Stdin", "Stdout", "Stderr"]
+  "Stdin", "Stdout", "Stderr",
+  # (zap-z2, 2026-11-23, as Perennial's os.toml) `runtime_beforeExit` (a `go:linkname` into the
+  # runtime's `os_beforeExit`, which `Exit` calls): nothing (TrustedCode/os.lean)
+  "runtime_beforeExit"]
 
 # (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`
 # assertions convert to interface types

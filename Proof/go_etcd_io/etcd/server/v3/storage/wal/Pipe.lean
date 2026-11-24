@@ -221,7 +221,7 @@ def isFilePipe (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DF
     (∃ (C : WalEnc.WalCodec) (Mr : WalEnc.WalMarshal) (jr : Ino) (r : GoString) (X : List GoString),
       walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-    ⌜0 ≤ sz.toInt ∧ sz.toInt ≤ 0xffffffff000 ∧ dir.length < 2 ^ 61 ∧ sz.toInt % 8 = 0⌝)
+    ⌜0 ≤ sz.toInt ∧ sz.toInt ≤ 0xffffffff000 ∧ dir.length < 2 ^ 60 ∧ sz.toInt % 8 = 0⌝)
 
 instance isFilePipe_persistent (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac)
     (j : Ino) (sz : w64) : Persistent (isFilePipe (GF := GF) (W := W) fp γ R dir dq j sz) := by

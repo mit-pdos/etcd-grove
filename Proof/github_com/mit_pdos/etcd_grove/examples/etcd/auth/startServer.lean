@@ -105,6 +105,8 @@ theorem startServer.wp_proof
       (fun h => absurd h (by decide)) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (etcdstart.peerURLsDir_httpURL dir id _ Hdirok Hdir)
+      (etcdstart.etcdURLsFit_httpURL go!"127.0.0.1:23926" (by decide))
+      (etcdstart.etcdURLsFit_httpURL go!"127.0.0.1:23916" (by decide))
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)

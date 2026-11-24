@@ -3,9 +3,12 @@ module
 
 public import Perennial.Code.sync
 public import Perennial.Code.time
+public import Code.go_uber_org.multierr
 public import Perennial.Code.fmt
 public import Code.go_uber_org.zap.internal.pool
 public import Perennial.Code.io
+public import Perennial.Code.runtime
+public import Code.go_uber_org.zap.internal.exit
 public import Perennial.Code.errors
 public import Code.go_uber_org.zap.internal.color
 public import Perennial.Golang.Defn
@@ -308,13 +311,17 @@ opaque DefaultLineEnding [GooseExts] [GoGlobalContext] : val
 
 opaque OmitKey [GooseExts] [GoGlobalContext] : val
 
-opaque WriteThenNoop [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def WriteThenNoop [GooseExts] [GoGlobalContext] : val :=
+  #(W8 0)
 
-opaque WriteThenGoexit [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def WriteThenGoexit [GooseExts] [GoGlobalContext] : val :=
+  #(W8 1)
 
-opaque WriteThenPanic [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def WriteThenPanic [GooseExts] [GoGlobalContext] : val :=
+  #(W8 2)
 
-opaque WriteThenFatal [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def WriteThenFatal [GooseExts] [GoGlobalContext] : val :=
+  #(W8 3)
 
 opaque UnknownType [GooseExts] [GoGlobalContext] : val
 
@@ -718,6 +725,298 @@ noncomputable def nopCore.Sync.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
+/-- go: entry.go:42:6 -/
+noncomputable def getCheckedEntry.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType CheckedEntry.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType CheckedEntry.ty))) go!"Get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType CheckedEntry.ty)))))) (App (Val (GoInstruction (GlobalVarAddr _cePool))) (Val #())))) (Val #()))
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType CheckedEntry.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType CheckedEntry.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType CheckedEntry.ty) go!"reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType CheckedEntry.ty)))) (Pair (Var "ce") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "$res0")))))
+
+/-- go: entry.go:48:6 -/
+noncomputable def putCheckedEntry.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ce"
+  (Seq (App (Val exceptionDo)
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType CheckedEntry.ty))) go!"Put"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.ty (go.GoType.PointerType CheckedEntry.ty)))))) (App (Val (GoInstruction (GlobalVarAddr _cePool))) (Val #())))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType CheckedEntry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType CheckedEntry.ty)))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
+
+/-- OnWrite implements the OnWrite method to keep CheckWriteAction compatible
+    with the new CheckWriteHook interface which deprecates CheckWriteAction.
+
+    go: entry.go:191:27 -/
+noncomputable def CheckWriteAction.OnWrite.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam "ce"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "a" (App (Val (GoInstruction (GoAlloc CheckWriteAction.ty))) (Var "a"))
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad CheckWriteAction.ty))) (Var "a"))
+  (If (App (Val (GoInstruction (GoOp GoEquals CheckWriteAction.ty))) (Pair (Var "$sw") (Val WriteThenGoexit)))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.runtime.Goexit []))) (Val #())) (Val #())))
+  (If (App (Val (GoInstruction (GoOp GoEquals CheckWriteAction.ty))) (Pair (Var "$sw") (Val WriteThenPanic)))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Message"))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"Entry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoOp GoEquals CheckWriteAction.ty))) (Pair (Var "$sw") (Val WriteThenFatal)))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.internal.exit.With []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (Val #())))))
+
+/-- go: entry.go:227:25 -/
+noncomputable def CheckedEntry.reset.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ce"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral Entry.ty))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil WriteSyncer.ty))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil CheckWriteHook.ty))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Core.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"cores"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType Core.ty)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType CheckPreWriteHook.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"before"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType CheckPreWriteHook.ty)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType CheckPreWriteHook.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"before"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Var "$r0")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType CheckPreWriteHook.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"before"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange CheckPreWriteHook.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil CheckPreWriteHook.ty))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CheckPreWriteHook.ty))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType CheckPreWriteHook.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType CheckPreWriteHook.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"before"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Core.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"cores"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Core.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"cores"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange Core.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Core.ty))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Core.ty))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Core.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Core.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"cores"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CheckWriteHook.ty))) (Pair (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"after"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore WriteSyncer.ty))) (Pair (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"ErrorOutput"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Entry.ty))) (Pair (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"Entry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- Write writes the entry to the stored Cores, returns any errors, and returns
+    the CheckedEntry reference to a pool for immediate re-use. Finally, it
+    executes any required CheckWriteAction.
+
+    go: entry.go:246:25 -/
+noncomputable def CheckedEntry.Write.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ce"
+  (Lam "fields"
+  (Seq (App (Val exceptionDo)
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (Let "fields" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Entry.ty))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"Entry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))
+  (Let "ent" (App (Val (GoInstruction (GoAlloc Entry.ty))) (App (Val (GoInstruction (GoZeroVal Entry.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad CheckWriteHook.ty))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"after"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))
+  (Let "hook" (App (Val (GoInstruction (GoAlloc CheckWriteHook.ty))) (App (Val (GoInstruction (GoZeroVal CheckWriteHook.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (App (App (Val (GoInstruction (FuncResolve putCheckedEntry []))) (Val #())) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals CheckWriteHook.ty))) (Pair (App (Val (GoInstruction (GoLoad CheckWriteHook.ty))) (Var "hook")) (App (Val (GoInstruction (Convert go.untypedNil CheckWriteHook.ty))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (App (App (App (Val (GoInstruction (MethodResolve CheckWriteHook.ty go!"OnWrite"))) (App (Val (GoInstruction (GoLoad CheckWriteHook.ty))) (Var "hook"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CheckWriteHook.ty))) (Pair (Var "hook") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals WriteSyncer.ty))) (Pair (App (Val (GoInstruction (GoLoad WriteSyncer.ty))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"ErrorOutput"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")))) (App (Val (GoInstruction (Convert go.untypedNil WriteSyncer.ty))) (Val UntypedNil))))) (Val #false)))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert WriteSyncer.ty _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad WriteSyncer.ty))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"ErrorOutput"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")))))
+  (Let "$a1" (Val #(go!"%v write error: %v\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.time.Time.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Time"))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"Entry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve WriteSyncer.ty go!"Sync"))) (App (Val (GoInstruction (GoLoad WriteSyncer.ty))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"ErrorOutput"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))) (Val #()))
+  (App (Val doExecute)
+  (Var "$r0")))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Core.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"cores"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange Core.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad Entry.ty))) (Var "ent"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (App (App (App (Val (GoInstruction (MethodResolve Core.ty go!"Write"))) (App (Val (GoInstruction (GoLoad Core.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Core.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Core.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"cores"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.multierr.Append []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key"))))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType CheckPreWriteHook.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"before"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange CheckPreWriteHook.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad Entry.ty))) (Var "ent"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (App (App (App (Val (GoInstruction (GoLoad CheckPreWriteHook.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType CheckPreWriteHook.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType CheckPreWriteHook.ty)))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"before"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Field.ty)))) (Pair (Var "fields") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Entry.ty))) (Pair (Var "ent") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Entry.ty))) (Pair (Var "ent") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals WriteSyncer.ty))) (Pair (App (Val (GoInstruction (GoLoad WriteSyncer.ty))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"ErrorOutput"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")))) (App (Val (GoInstruction (Convert go.untypedNil WriteSyncer.ty))) (Val UntypedNil))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert WriteSyncer.ty _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad WriteSyncer.ty))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"ErrorOutput"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")))))
+  (Let "$a1" (Val #(go!"%v Unsafe CheckedEntry re-use near Entry %+v.\n"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.time.Time.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Time"))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"Entry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert Entry.ty go.any))) (App (Val (GoInstruction (GoLoad Entry.ty))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"Entry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve WriteSyncer.ty go!"Sync"))) (App (Val (GoInstruction (GoLoad WriteSyncer.ty))) (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"ErrorOutput"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))))) (Val #()))
+  (App (Val doExecute)
+  (Var "$r0")))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType CheckedEntry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType CheckedEntry.ty)))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #()))))
+
+/-- After sets this CheckEntry's CheckWriteHook, which will be called after this
+    log entry has been written. It's safe to call this on nil CheckedEntry
+    references.
+
+    go: entry.go:331:25 -/
+noncomputable def CheckedEntry.After.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ce"
+  (Lam "ent"
+  (Lam "hook"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType CheckedEntry.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (Let "hook" (App (Val (GoInstruction (GoAlloc CheckWriteHook.ty))) (Var "hook"))
+  (Let "ent" (App (Val (GoInstruction (GoAlloc Entry.ty))) (Var "ent"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad CheckWriteHook.ty))) (Var "hook"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType CheckedEntry.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CheckWriteHook.ty))) (Pair (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"after"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType CheckedEntry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType CheckedEntry.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve getCheckedEntry []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Entry.ty))) (Var "ent"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Entry.ty))) (Pair (App (Val (GoInstruction (StructFieldRef CheckedEntry.ty go!"Entry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType CheckedEntry.ty)))) (Pair (Var "ce") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "$res0")))))))
+
 /-- String returns a lower-case ASCII representation of the log level.
 
     go: level.go:113:16 -/
@@ -935,12 +1234,15 @@ noncomputable def AddSync.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad WriteSyncer.ty))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap.zapcore where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.fmt, pkg_id.go_uber_org.zap.internal.pool, pkg_id.io, pkg_id.errors, pkg_id.go_uber_org.zap.internal.color]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.multierr, pkg_id.fmt, pkg_id.go_uber_org.zap.internal.pool, pkg_id.io, pkg_id.runtime, pkg_id.go_uber_org.zap.internal.exit, pkg_id.errors, pkg_id.go_uber_org.zap.internal.color]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_uber_org.zap.zapcore)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1080,11 +1382,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.multierr.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.internal.pool.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.runtime.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.internal.exit.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1791,10 +2099,15 @@ class CheckWriteAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq CheckWriteAction.ty CheckWriteAction.underlying
   method_set : go.MethodSetIs CheckWriteAction.ty [(go!"OnWrite", (some (go.signature.Signature [(go.GoType.PointerType CheckedEntry.ty), (go.GoType.SliceType Field.ty)] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckWriteAction.ty) [(go!"OnWrite", (some (go.signature.Signature [(go.GoType.PointerType CheckedEntry.ty), (go.GoType.SliceType Field.ty)] false [])))]
+  OnWrite_unfold : MethodUnfold CheckWriteAction.ty go!"OnWrite" CheckWriteAction.OnWrite.impl
+  ptr_OnWrite_unfold : MethodUnfold (go.GoType.PointerType CheckWriteAction.ty) go!"OnWrite" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve CheckWriteAction.ty go!"OnWrite"))) (App (Val (GoInstruction (GoLoad CheckWriteAction.ty))) (Var "$r"))))
 
 attribute [instance] CheckWriteAction.TypeAssumptions.underlying
   CheckWriteAction.TypeAssumptions.method_set
   CheckWriteAction.TypeAssumptions.ptr_method_set
+  CheckWriteAction.TypeAssumptions.OnWrite_unfold
+  CheckWriteAction.TypeAssumptions.ptr_OnWrite_unfold
 
 abbrev CheckPreWriteHook [GooseExts] : Type := GoFunc
 
@@ -1857,6 +2170,9 @@ class CheckedEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_before : ∀ (x : CheckedEntry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CheckedEntry.underlying go!"before") (PairV #x #y) (Val #(({ x with before' := y } : CheckedEntry)))
   method_set : go.MethodSetIs CheckedEntry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckedEntry.ty) [(go!"AddCore", (some (go.signature.Signature [Entry.ty, Core.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"After", (some (go.signature.Signature [Entry.ty, CheckWriteHook.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Before", (some (go.signature.Signature [Entry.ty, CheckPreWriteHook.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Should", (some (go.signature.Signature [Entry.ty, CheckWriteAction.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"go.uber.org/zap/zapcore.reset", (some (go.signature.Signature [] false [])))]
+  ptr_After_unfold : MethodUnfold (go.GoType.PointerType CheckedEntry.ty) go!"After" CheckedEntry.After.impl
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType CheckedEntry.ty) go!"Write" CheckedEntry.Write.impl
+  ptr_reset_unfold : MethodUnfold (go.GoType.PointerType CheckedEntry.ty) go!"reset" CheckedEntry.reset.impl
 
 attribute [instance] CheckedEntry.TypeAssumptions.type_repr
   CheckedEntry.TypeAssumptions.underlying
@@ -1874,6 +2190,9 @@ attribute [instance] CheckedEntry.TypeAssumptions.type_repr
   CheckedEntry.TypeAssumptions.set_before
   CheckedEntry.TypeAssumptions.method_set
   CheckedEntry.TypeAssumptions.ptr_method_set
+  CheckedEntry.TypeAssumptions.ptr_After_unfold
+  CheckedEntry.TypeAssumptions.ptr_Write_unfold
+  CheckedEntry.TypeAssumptions.ptr_reset_unfold
 
 abbrev errorGroup [GooseExts] : Type := GoInterface
 
@@ -2624,13 +2943,18 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   writerWrapper_instance : writerWrapper.TypeAssumptions
   multiWriteSyncer_instance : multiWriteSyncer.TypeAssumptions
   NewNopCore_unfold : FuncUnfold NewNopCore [] NewNopCore.impl
+  getCheckedEntry_unfold : FuncUnfold getCheckedEntry [] getCheckedEntry.impl
+  putCheckedEntry_unfold : FuncUnfold putCheckedEntry [] putCheckedEntry.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   AddSync_unfold : FuncUnfold AddSync [] AddSync.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
+  import_multierr_Assumption : _root_.Perennial.go_uber_org.multierr.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_pool_Assumption : _root_.Perennial.go_uber_org.zap.internal.pool.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
+  import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
+  import_exit_Assumption : _root_.Perennial.go_uber_org.zap.internal.exit.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_color_Assumption : _root_.Perennial.go_uber_org.zap.internal.color.Assumptions
 
@@ -2688,13 +3012,18 @@ attribute [instance] Assumptions.BufferedWriteSyncer_instance
   Assumptions.writerWrapper_instance
   Assumptions.multiWriteSyncer_instance
   Assumptions.NewNopCore_unfold
+  Assumptions.getCheckedEntry_unfold
+  Assumptions.putCheckedEntry_unfold
   Assumptions.«init.0_unfold»
   Assumptions.AddSync_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
+  Assumptions.import_multierr_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_pool_Assumption
   Assumptions.import_io_Assumption
+  Assumptions.import_runtime_Assumption
+  Assumptions.import_exit_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_color_Assumption
 

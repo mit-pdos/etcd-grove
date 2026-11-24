@@ -136,7 +136,7 @@ theorem DurFs.durTmpOpen (wp_OpenCT : os.OpenFile.specCreateTruncSnc (GF := GF) 
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (hcr : (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 1) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ durInv γ f ∗ durPhys γ p ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ durInv γ f ∗ durPhys γ p ∗
         osNames f.J (.only [f.tb]) (DFrac.own (1 : Qp).half) p.ht ∗ tmpRes f p.ht ∗
         osPathS R f.d (DFrac.own qd) f.J ∗ osCallPerm (callKey R f.d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #f.tmp)) (Val #flag)) (Val #perm))
@@ -148,7 +148,7 @@ theorem DurFs.durTmpOpen (wp_OpenCT : os.OpenFile.specCreateTruncSnc (GF := GF) 
            (∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ ht'.cur !! f.tb = some (.file i)⌝ ∗
               trFile i True ∗ os.ownFile fl fd f.tmp (DFrac.own 1) ∗ os.ownOff fl (W64 0) ∗
               osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000)))) }} := by
-  iintro %Φ ⟨#Hinv, #Hsi, #Hdi, Hp, Hnt, Htmp, Hpath, Hperm⟩ HΦ
+  iintro %Φ ⟨#Hospkg, #Hinv, #Hsi, #Hdi, Hp, Hnt, Htmp, Hpath, Hperm⟩ HΦ
   have hNt : (NameSet.only [f.tb]).Mem f.tb := by simp [NameSet.Mem]
   have htbn : NameOk f.tb := hf.2.2.2.2.1
   unfold DFile.tmp

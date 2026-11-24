@@ -33,7 +33,6 @@ axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom httpProtoFree
 axiom lease.Lease.expired.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom prometheus.NewCounter.wp_proof
@@ -52,7 +51,4 @@ axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom strings.ToLower.wp_proof
 axiom verifyEnvOff
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

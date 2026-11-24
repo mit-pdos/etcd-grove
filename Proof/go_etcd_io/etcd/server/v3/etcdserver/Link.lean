@@ -386,6 +386,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newCorruptionChecker
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.numConnectedSince
+public import Proof.os.Exit
 public import Proof.os.Rename
 public import Proof.path.Base
 public import Proof.path.Clean
@@ -603,6 +604,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__CloseWithError
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__GetTo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__fields
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.NewMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter__DBFilePath
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter__SaveDBFrom
@@ -617,6 +619,7 @@ public import Proof.strconv.FormatBool
 public import Proof.strconv.FormatUint
 public import Proof.strings.Contains
 public import Proof.strings.TrimSuffix
+public import Proof.syscall.Exit
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
 public import Proof.time.Duration__String_ptr
@@ -1524,9 +1527,17 @@ theorem snap.Message.wp_CloseNotify :
     snap.Message.CloseNotify.spec (GF := GF) (hG := hG) :=
   snap.Message.CloseNotify.wp_proof
 
+theorem syscall.wp_Exit :
+    syscall.Exit.spec (GF := GF) (hG := hG) :=
+  syscall.Exit.wp_proof
+
+theorem os.wp_Exit :
+    os.Exit.spec (GF := GF) (hG := hG) :=
+  os.Exit.wp_proof syscall.wp_Exit
+
 theorem zap.Logger.wp_Fatal :
     zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Fatal.wp_proof
+  zap.Logger.Fatal.wp_proof zap.internal.pool.Pool.wp_Get os.wp_Exit
 
 theorem wp_tickToDur :
     tickToDur.spec (GF := GF) (hG := hG) :=
@@ -1911,6 +1922,10 @@ theorem schema.authReadTx.wp_UnsafeReadAuthEnabled :
 theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
     schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
   schema.authReadTx.UnsafeReadAuthRevision.wp_proof schema.wp_unsafeReadAuthRevision
+
+theorem snap.wp_New :
+    snap.New.spec (GF := GF) (hG := hG) :=
+  snap.New.wp_proof zap.wp_NewNop
 
 theorem storage.wp_NewBackendHooks :
     storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=

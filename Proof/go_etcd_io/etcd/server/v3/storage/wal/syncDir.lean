@@ -35,7 +35,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.syncDir.wp_proof
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm, #Hlb⟩
   wp_auto
   wp_apply wp_OpenDir p R j dq qc $$ [Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
   icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%herr, -⟩)
   · subst herr
     wp_auto

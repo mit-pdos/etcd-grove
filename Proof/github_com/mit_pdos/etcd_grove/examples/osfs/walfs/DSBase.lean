@@ -100,7 +100,7 @@ and of a claim on names `N` of `j`: every name returned is valid, a name of `N` 
 there, at most once; or `ok = false`. -/
 theorem wp_readNamesS (d : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (N : NameSet)
     (dqn : DFrac) (h : NamesH) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
         osNames j N dqn h }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.readNames)) (Val #d))
     {{ (sl : GoSlice) (ok : Bool), RET (PairV #sl #ok); osPathS R d dq j ∗

@@ -77,6 +77,9 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   intro d b perm R j qd h q r Q hb hn hq
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases (os.osPathS_unfold R d _ j).1 $$ Hp with ⟨%r0, %j0, %cs, %hp, Hs⟩
   obtain ⟨hR, hm, hcs, rfl⟩ := hp
   have hkr : callKey R (joinPath r0 cs) = callKey R r0 := callKey_joinPath hR hm cs
@@ -126,7 +129,7 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
         sint.Z (W64 ((joinPath r0 cs).length : Int)) by simp only [List.length_nil]; word)]
     try wp_auto
     ihave Hs := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).1 $$ Hp
-    wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ 1 hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm⟩
+    wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ 1 hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm, #He⟩
     · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
     (try rw [hkr]); (try rw [hkb])
     ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
@@ -136,6 +139,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
       imod os.osAU_commit_none _ _ Q (by dsimp only [mkOut]; exact .rfl) $$ Hau with HQ
       try wp_auto
       iapply HΦ
+      isplitr
+      · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
       iframe
       dsimp only [mkOut, mkNew]
       iframe
@@ -144,13 +149,15 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
     try wp_auto
     try rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
     wp_apply os.Mkdir.wp_proofS (joinPath r0 cs) b perm R j (DFrac.own qd) h q r Q hb hn hq
-      $$ [Hp Hperm Hn Hau] as %e ⟨Hp, Hperm, %o, %ho, HQ, Hout, Hnew⟩
+      $$ [Hp Hperm Hn Hau] as %e ⟨#Hfe, Hp, Hperm, %o, %ho, HQ, Hout, Hnew⟩
     · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
     (try rw [hkr]); (try rw [hkb])
     cases e with
     | nil =>
       try wp_auto
       iapply HΦ
+      isplitr
+      · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
       iframe
       ipureintro; exact ho
     | ok ie3 =>
@@ -169,6 +176,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
       | ok ie4 =>
       try wp_auto
       iapply HΦ
+      isplitr
+      · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
       iframe
       dsimp only [mkOut]
       iframe
@@ -204,6 +213,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
       wp_if_destruct
       all_goals
         iapply HΦ
+        isplitr
+        · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
         iframe
         isimp only [mkOut]
         iframe
@@ -214,6 +225,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
       try wp_auto
       subst hh
       iapply HΦ
+      isplitr
+      · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
       iframe
       isimp only [mkOut]
       iframe

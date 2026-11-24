@@ -31,6 +31,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent
     go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.specAbsent (GF := GF) (hG := hG) := by
   intro d b R j dq qc N dqn h hb hN hi
   wp_start as ⟨#Hos, #Hsi, #Hpkg, Hp, Hperm, Hn⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
@@ -42,7 +45,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent
   wp_for IH
   wp_apply os.Open.wp_absentErrS d b R j N dq dqn h qc hb hN hi $$ [Hp Hn Hperm]
     as %f %err ⟨Hp, Hn, Hperm, %e, %he, #Herr⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
   ihave %herr := os.errnoPathErr_ne err e $$ Herr
   ihave #Hosp : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
   · iPkgInit
@@ -55,7 +58,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent
   isplitr
   · ipureintro; exact herr
   isplitl []
-  · iapply (os.errnoPathErr_fmtErrorOkOrNil _ e he.1) $$ Herr
+  · iapply (os.errnoPathErr_fmtErrorOkOrNil _ e he.1) $$ Hsys Herr
   · iapply (wp_Term _ e he.1) $$ Hosp Herr
 
 end proof

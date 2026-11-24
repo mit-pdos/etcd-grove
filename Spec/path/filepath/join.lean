@@ -7,6 +7,7 @@ module
 
 public import Proof.path.Model
 public import Proof.path.filepath.PkgInit
+public import Perennial.Proof.strings.JoinBounded
 
 @[expose] public section
 
@@ -28,6 +29,7 @@ variable [package_sem : _root_.Perennial.path.filepath.Assumptions]
 all are empty (`path.joinModel`). -/
 abbrev filepath.join.spec : Prop :=
   ∀ (sl : GoSlice) (es : List GoString) (dq : DFrac),
+  (es.map List.length).sum + es.length ≤ _root_.Perennial.strings.joinMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.path.filepath ∗ sl ↦*{dq} es }}
     (App (Val (@! _root_.Perennial.path.filepath.join)) (Val #sl))
   {{ (r : GoString), RET #r; ⌜r = path.joinModel es⌝ ∗ sl ↦*{dq} es }}

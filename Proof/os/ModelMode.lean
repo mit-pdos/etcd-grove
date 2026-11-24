@@ -5,7 +5,7 @@ modelOtherBits`): some mode. A defs module; the `Stat` proofs use it.
 module
 
 public import Proof.os.Base
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 
 @[expose] public section
 
@@ -29,7 +29,7 @@ theorem os.wp_modelMode (ty : w32) (Φ : val → IProp GF) :
   iintro HΦ
   wp_func_call; wp_call
   try wp_auto
-  wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
+  wp_apply internal.gomodel.wp_ChooseUint64 as %x -
   try wp_auto
   iapply HΦ
 

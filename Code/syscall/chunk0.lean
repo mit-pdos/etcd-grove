@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.sync
 public import Perennial.Code.errors
+public import Perennial.Code.internal.strconv
 public import Perennial.Code.internal.gomodel
 public import Perennial.Code.internal.oserror
 public import Perennial.Golang.Defn
@@ -5437,9 +5438,6 @@ noncomputable def Utime [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def utimes [GooseExts] [GoGlobalContext] : GoString :=
   go!"syscall.utimes"
 
-noncomputable def modelString [GooseExts] [GoGlobalContext] : GoString :=
-  go!"syscall.modelString"
-
 noncomputable def modelGcErrno [GooseExts] [GoGlobalContext] : GoString :=
   go!"syscall.modelGcErrno"
 
@@ -5494,7 +5492,7 @@ noncomputable def fsPathKind [GooseExts] [GoGlobalContext] : GoString :=
     proof must exclude. On failure lk is unchanged. A nil lk is stuck (Linux: EFAULT). Any other
     command is not modelled. examples/osfs/semantics/model_syscall_fcntlflock.go.
 
-    go: model.go:111:6 -/
+    go: model.go:93:6 -/
 noncomputable def FcntlFlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "cmd"
@@ -5687,7 +5685,7 @@ noncomputable def FcntlFlock.impl [GooseExts] [GoGlobalContext] : val :=
     netpoller's epoll_create1 fails: a prefix of a model run, which a partial-correctness triple does
     not contradict.) The user's decision, Perennial fix-semantics Case 33, 2026-11-04.
 
-    go: model.go:51:6 -/
+    go: model.go:33:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -5705,7 +5703,7 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
     this.) The mode matters only to a created directory's, which the extension does not model.
     examples/osfs/semantics/model_os_mkdirall.go, model_os_mkdirall_above.go.
 
-    go: model.go:166:6 -/
+    go: model.go:148:6 -/
 noncomputable def Mkdir.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
   (Lam "mode"
@@ -5751,7 +5749,7 @@ noncomputable def Mkdir.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: Rmdir (syscall_linux.go: unlinkat(AT_FDCWD, path, AT_REMOVEDIR), one unlinkat(2), EINTR
     not retried here): the extension's Rmdir of path, after its own CallBegin (fsRmdir).
 
-    go: model.go:185:6 -/
+    go: model.go:167:6 -/
 noncomputable def Rmdir.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -5770,7 +5768,7 @@ noncomputable def Rmdir.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: Unlink (syscall_linux.go: unlinkat(AT_FDCWD, path, 0), one unlinkat(2), EINTR not
     retried here): the extension's Unlink of path, after its own CallBegin (fsUnlink).
 
-    go: model.go:179:6 -/
+    go: model.go:161:6 -/
 noncomputable def Unlink.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -5786,25 +5784,38 @@ noncomputable def Unlink.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
 
-/-- MODEL: (Errno).Error (syscall_unix.go): some string. Go's body reads the read-only table errors
-    (zerrors_linux_amd64.go) inside its bounds and calls strconv.Itoa: it returns a string, never
-    panics, and touches no memory a caller owns. The model returns an arbitrary string, so every result
-    of Go's is one of the model's. (Go's body translates; it reads a package variable, which needs
-    syscall's package fact, and Errno.Error's spec (fmtErrorOk) has none.)
-
-    go: model.go:37:16 -/
+/-- go: syscall_unix.go:110:16 -/
 noncomputable def Errno.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc Errno.ty))) (Var "e"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve modelString []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"errno ")) (Let "$a0" (App (Val (GoInstruction (Convert Errno.ty go.int))) (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.strconv.Itoa []))) (Val #())) (Var "$a0")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (Convert Errno.ty go.int))) (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e"))))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (Convert Errno.ty go.int))) (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e"))) (Val #(W64 133)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 133 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr errors))) (Val #())) (App (Val (GoInstruction (Convert Errno.ty go.int))) (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e"))))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(go!""))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 /-- go: syscall_unix.go:120:16 -/
@@ -5922,7 +5933,7 @@ noncomputable def errnoErr.impl [GooseExts] [GoGlobalContext] : val :=
     writable file's. Other modes (punching, zeroing, collapsing, inserting) are not modelled.
     examples/osfs/semantics/model_syscall_fallocate.go.
 
-    go: model.go:77:6 -/
+    go: model.go:59:6 -/
 noncomputable def Fallocate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "mode"
@@ -5978,7 +5989,7 @@ noncomputable def Fallocate.impl [GooseExts] [GoGlobalContext] : val :=
     apart from fsync(2) (Linux's fdatasync also flushes the size, all the metadata the extension has):
     its Fsync (stuck on an fd that is not open, else success or any nonzero errno).
 
-    go: model.go:57:6 -/
+    go: model.go:39:6 -/
 noncomputable def Fdatasync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -6002,7 +6013,7 @@ noncomputable def Fdatasync.impl [GooseExts] [GoGlobalContext] : val :=
     included). Stuck on an fd that is not a file's, on another how, and on re-locking a description.
     examples/osfs/semantics/locks_flock.go, locks_blocking.go, locks_spurious_eagain.go.
 
-    go: model.go:67:6 -/
+    go: model.go:49:6 -/
 noncomputable def Flock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "how"
@@ -6021,30 +6032,6 @@ noncomputable def Flock.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
-
-/-- modelString is an arbitrary string (it can return every string, and may also not terminate).
-
-    go: model.go:24:6 -/
-noncomputable def modelString.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.gomodel.ChooseUint64 []))) (Val #())) (Val #())) (Val #(W64 0))))))) (Lam BAnon
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$v0" (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.gomodel.ChooseUint64 []))) (Val #())) (Val #())))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))))))))))
-  (Lam BAnon
-  (Val #()))))))
-  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 /-- modelGcErrno is the errno of a system call's error, for the stubs' Go bodies.
 
@@ -6096,12 +6083,13 @@ noncomputable def modelGcErrno.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.syscall where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.errors, pkg_id.internal.gomodel, pkg_id.internal.oserror]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.errors, pkg_id.internal.strconv, pkg_id.internal.gomodel, pkg_id.internal.oserror]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.syscall)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6439,6 +6427,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.internal.strconv.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.internal.gomodel.initialize') (Val #()))))))
   (App (Val doExecute)

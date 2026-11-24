@@ -36,8 +36,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions]
 
-theorem os.Remove.wp_proofFileSncN : os.Remove.specFileSncN (GF := GF) (hG := hG) := by
-  intro d b j i N R dq h q r qc Q hb hbN hi hq
+/-- `specFileSncN` with, in the post, that the error is one `fmt` formats given `syscall`'s package
+fact (`□ (syscall.errnoOk -∗ fmtErrorOkOrNil err)`): `Spec/os/Remove.lean`'s `specFileSnc` (whose
+premise `isPkgInit os` gives the fact) states it; `specFileSncN`'s callers (no `isPkgInit`) drop it. -/
+theorem os.Remove.wp_fileSncNFmt (d b : GoString) (j i : Ino) (N : NameSet) (R : Roots) (dq : DFrac)
+    (h : NamesH) (q r qc : Qp) (Q : Option (Nat × Nat) → IProp GF)
+    (hb : NameOk b) (hbN : N.Mem b) (hi : h.cur !! b = some (.file i)) (hq : q + r = 1) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+        osNames j N (DFrac.own q) h ∗
+        osAUnc (osNames j N (DFrac.own r) h) (rmFileOutN j N b i h (DFrac.own r)) Q }}
+      (App (Val (@! os.Remove)) (Val #(child d b)))
+    {{ (err : GoInterface), RET #err; □ (syscall.errnoOk (GF := GF) -∗ fmtErrorOkOrNil err) ∗
+        osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+        ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ rmFileOutN j N b i h (DFrac.own q) o }} := by
   have habs : ∀ x s, (h.log x (⟨.remove j b (.file i), s⟩ : LogEntry)
       (restrictN N (GMap.delete b h.cur))).cur !! b = none := by
     intro x s; simp only [NamesH.log]
@@ -200,6 +211,10 @@ theorem os.Remove.wp_proofFileSncN : os.Remove.specFileSncN (GF := GF) (hG := hG
     simp only [errnoErr, ↓reduceIte]
     try wp_auto
     iapply HΦ
+    isplitr
+    · imodintro
+      iintro -
+      iapply fmtErrorOkOrNil_nil
     ihave Hout := Hback $$ Hn
     iframe
     (try iexists o)
@@ -254,25 +269,70 @@ theorem os.Remove.wp_proofFileSncN : os.Remove.specFileSncN (GF := GF) (hG := hG
   by_cases h20 : e1 = W64 20
   · subst h20
     try simp only [decide_true, Bool.not_true]
+    iapply wp_fupd
     try wp_auto
-    try wp_alloc pe as Hpe
+    wp_alloc pe as Hpe
+    iStructNamed Hpe
+    ipersist Op
+    ipersist Path
+    ipersist Err
     try wp_auto
+    imodintro
     iapply HΦ
+    isplitr
+    · -- `&PathError{"remove", name, e}` (`e` the unlink's errno or the rmdir's): `fmtErrorOk`
+      imodintro
+      iintro #Hsys
+      iapply (fmtErrorOkOrNil_of _)
+      iapply os.pathError_fmtErrorOk pe _ _ _ $$ Op Path Err
+      first
+        | (ihave #HeOk := errnoErr_fmtErrorOk e h0 $$ Hsys
+           isimp only [errnoErr, h0, ↓reduceIte] at HeOk
+           iexact HeOk)
+        | (ihave #HeOk := errnoErr_fmtErrorOk e1 he1' $$ Hsys
+           isimp only [errnoErr, he1', ↓reduceIte] at HeOk
+           iexact HeOk)
     ihave Hout := Hback $$ Hn
     iframe
     (try iexists o)
     (try iframe)
     ipureintro; intro hc; cases hc
   · try simp only [decide_eq_false h20, Bool.not_false]
+    iapply wp_fupd
     try wp_auto
-    try wp_alloc pe as Hpe
+    wp_alloc pe as Hpe
+    iStructNamed Hpe
+    ipersist Op
+    ipersist Path
+    ipersist Err
     try wp_auto
+    imodintro
     iapply HΦ
+    isplitr
+    · -- `&PathError{"remove", name, e}` (`e` the unlink's errno or the rmdir's): `fmtErrorOk`
+      imodintro
+      iintro #Hsys
+      iapply (fmtErrorOkOrNil_of _)
+      iapply os.pathError_fmtErrorOk pe _ _ _ $$ Op Path Err
+      first
+        | (ihave #HeOk := errnoErr_fmtErrorOk e h0 $$ Hsys
+           isimp only [errnoErr, h0, ↓reduceIte] at HeOk
+           iexact HeOk)
+        | (ihave #HeOk := errnoErr_fmtErrorOk e1 he1' $$ Hsys
+           isimp only [errnoErr, he1', ↓reduceIte] at HeOk
+           iexact HeOk)
     ihave Hout := Hback $$ Hn
     iframe
     (try iexists o)
     (try iframe)
     ipureintro; intro hc; cases hc
+
+theorem os.Remove.wp_proofFileSncN : os.Remove.specFileSncN (GF := GF) (hG := hG) := by
+  intro d b j i N R dq h q r qc Q hb hbN hi hq
+  iintro %Φ Hpre HΦ
+  iapply (os.Remove.wp_fileSncNFmt d b j i N R dq h q r qc Q hb hbN hi hq) $$ Hpre
+  iintro %err ⟨-, Hrest⟩
+  iapply HΦ $$ Hrest
 
 end proof
 

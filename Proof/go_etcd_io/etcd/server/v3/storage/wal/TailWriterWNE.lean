@@ -217,7 +217,7 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
                 m'.size = max m.size (off.toNat + data.length) ∧
                 off.toNat + data.length ≤ max m.size maxBytes ∧ LoWr m' (off.toNat + data.length)⌝ }} := by
   unfold os.ownFile
-  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
+  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl dqs data $$ Hsl with %Hlen
@@ -396,7 +396,7 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
-          · iexists inner; iframe; isplitl [] <;> iassumption
+          · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
           iframe Hosfd Hk Hv
           isplitr
           · ipureintro; exact ⟨rfl, rfl⟩
@@ -461,7 +461,7 @@ theorem wp_tailWriteWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : Ro
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   try wp_auto
@@ -474,7 +474,7 @@ theorem wp_tailWriteWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : Ro
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
   try wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
   try wp_auto

@@ -249,8 +249,6 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringLeaf",
     # (rafthttp stage 6f) a `*errorString` not a `writerToResponse` (`rafthttp/Pipe.lean`)
     "EtcdGrove.ErrorStringNotWriter",
-    # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
-    "EtcdGrove.MutexLitSemantics",
     # (net-swap, 2026-11-22) the net extension's `net`'s hand-stated field facts (`Net/TrustedCode/net.lean`),
     # which Net's `Listen` spec takes (`Proof/net/Listen.lean`)
     "_root_.Perennial.net.FieldAssumptions",
@@ -646,7 +644,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                            "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
-                 "--raft": ["Perennial.Proof.time.Link"],
+                 "--raft": ["Perennial.Proof.time.Link", "Perennial.Proof.strings.Link"],
+                 # (fmt stage 1, 2026-11-24) Perennial's `strings.Join` (raft's `strings.Join`, `=` callee)
+                 "--raft-tla": ["Perennial.Proof.strings.Link"],
+                 "--raft-witness": ["Perennial.Proof.strings.Link"],
                  # (prove-ps2-rqb, 2026-11-22) Perennial's `math.Float64bits` (zap's `Float64`, `=` callee)
                  "--client": ["Perennial.Proof.math.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)

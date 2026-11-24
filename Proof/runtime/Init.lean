@@ -24,6 +24,7 @@ packages that read `GOOS`/`GOARCH` state them in their own facts from these axio
 module
 
 public import Perennial.Proof.runtime.Base
+public import Perennial.Proof.internal.gomodel.Link
 public import Proof.internal.runtime.atomic.Init
 public import Proof.internal.runtime.sys.Init
 public import Proof.runtime.PkgInitExt
@@ -204,7 +205,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   -- buildVersion: its trusted initializer
-  wp_apply _root_.Perennial.runtime.wp_buildVersion_init as ⟨%bv, Hbv⟩
+  wp_apply _root_.Perennial.runtime.wp_buildVersion_init as Hbv
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.gomodel _root_.Perennial.internal.gomodel.initialize'
+      EtcdGrove.ExternalInit.internal_gomodel _root_.Perennial.internal.gomodel.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.internal.runtime.atomic.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.internal.runtime.sys.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk cgo_yield.init (by mem_tac))
@@ -317,8 +320,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · ipureintro
     exact isPanic_intoVal _
   is_pkg_init_finish
-  iexists _
-  iexact Hbv
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

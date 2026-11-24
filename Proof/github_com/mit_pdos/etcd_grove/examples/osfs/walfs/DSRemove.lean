@@ -664,8 +664,8 @@ theorem wp_rmNoDir (R : Roots) (d b c : GoString) (j : Ino) (dq dqn : DFrac) (h 
 empty directory there with its whole claim (the error then either). -/
 theorem wp_mkAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (perm : w32)
     (hb : NameOk b) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
-        osNames j (.only [b]) (DFrac.own 1) h }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗
+        osCallPerm (callKey R d) 1 ∗ osNames j (.only [b]) (DFrac.own 1) h }}
       (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
     {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
         ∃ h', osNames j (.only [b]) (DFrac.own 1) h' ∗
@@ -673,11 +673,14 @@ theorem wp_mkAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH
             osNames J (.except []) (DFrac.own 1) hJ) }} := by
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   wp_start_folded as ⟨#Hos, #Hsi, Hp, Hperm, Hn⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   cases hcb : h.cur !! b with
   | some n =>
     have hsome : (h.cur !! b).isSome := by rw [hcb]; rfl
     wp_apply os.Mkdir.wp_takenS d b perm R j (.only [b]) dq (DFrac.own 1) h 1 hb hbN hsome
-      $$ [Hp Hn Hperm] as %err ⟨Hp, Hn, Hperm, %hne⟩
+      $$ [Hp Hn Hperm] as %err ⟨Hp, Hn, Hperm, %hne, -⟩
     · iframe; iframe #
     iapply HΦ
     iframe Hp Hperm
@@ -698,8 +701,8 @@ theorem wp_mkAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH
       ∃ h', osNames j (.only [b]) (DFrac.own 1) h' ∗
         (⌜h' = h ∧ e ≠ 0⌝ ∨ ∃ J hJ, ⌜h'.cur !! b = some (.dir J) ∧ hJ.cur = ∅⌝ ∗
           osNames J (.except []) (DFrac.own 1) hJ)))
-    hpin htn) $$ [Hp Hperm Hn] as %err ⟨%e, ⟨Hp, Hperm, %h', Hn, Hr⟩, %he⟩
-  · iframe Hos Hsi Hp Hperm
+    hpin htn) $$ [Hp Hperm Hn] as %err ⟨-, %e, ⟨Hp, Hperm, %h', Hn, Hr⟩, %he⟩
+  · iframe Hsys Hos Hsi Hp Hperm
     isplitl [Hn]
     · ileft; iexact Hn
     iintro !>

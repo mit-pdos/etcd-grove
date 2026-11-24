@@ -63,6 +63,7 @@ module
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.Base
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Defs
 public import Proof.k8s_io.apimachinery.pkg.util.errors.Defs
+public import Perennial.Proof.strings.JoinBounded
 
 @[expose] public section
 
@@ -369,6 +370,179 @@ theorem Dec.tag_cmap (m : Dec) : decide (m.tag = W64 13) = m.isCMap := by
 theorem Dec.tag_union (m : Dec) : decide (m.tag = W64 14) = m.isUnion := by
   cases m <;> rfl
 
+/-! ## Sizes, for `strings.Join` (fmt stage 1, #9 7126397740 (3))
+
+`ToDecision` joins, for each leaf of its children whose decision is the one possible outcome, a
+string of the leaf's path of names and its reason (`collectReasonsAndErrors`); the union
+authorizer's `EvaluateConditions` joins one string per child. Go's `strings.Join` panics on an
+output too long for an `int`, so their outputs are bounded: a reason is read by `len` before it is
+joined, so it is at most `maxAddr` bytes long (the semantics' string bound), and the names are at
+most `N` bytes each (`decNames`); a decision of `size` nodes (`Dec.size`) and `depth` gives
+at most `size` strings of at most `(depth + 1) * (N + 2) + maxAddr + 4` bytes each
+(`Dec.foldBound`). -/
+
+mutual
+/-- The number of nodes of a decision (a leaf is one; a union one more than its children). -/
+def Dec.size : Dec → Nat
+  | .deny => 1
+  | .allow => 1
+  | .noOpinion => 1
+  | .cmap _ _ _ => 1
+  | .union ks => Dec.sizeL ks + 1
+/-- The number of nodes of a list of decisions. -/
+def Dec.sizeL : List Dec → Nat
+  | [] => 0
+  | k :: ks => Dec.size k + Dec.sizeL ks
+end
+
+theorem Dec.size_pos (m : Dec) : 1 ≤ m.size := by
+  cases m <;> simp only [Dec.size] <;> omega
+
+/-- A child is no larger than its siblings together. -/
+theorem Dec.size_le_sizeL : ∀ (ks : List Dec) (i : Nat) (k : Dec), ks[i]? = some k →
+    k.size ≤ Dec.sizeL ks
+  | [], _, _, h => by simp at h
+  | k' :: ks, 0, k, h => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h; subst h
+    simp only [Dec.sizeL]; omega
+  | k' :: ks, i + 1, k, h => by
+    simp only [List.getElem?_cons_succ] at h
+    have := Dec.size_le_sizeL ks i k h
+    simp only [Dec.sizeL]; omega
+
+/-- A list of decisions has no more elements than nodes. -/
+theorem Dec.length_le_sizeL : ∀ (ks : List Dec), ks.length ≤ Dec.sizeL ks
+  | [] => Nat.le_refl _
+  | k :: ks => by
+    have := Dec.length_le_sizeL ks
+    have := Dec.size_pos k
+    simp only [List.length_cons, Dec.sizeL]; omega
+
+theorem Dec.sizeL_append : ∀ (ks : List Dec) (m : Dec),
+    Dec.sizeL (ks ++ [m]) = Dec.sizeL ks + m.size
+  | [], m => by simp [Dec.sizeL]
+  | k :: ks, m => by
+    simp only [List.cons_append, Dec.sizeL, Dec.sizeL_append ks m]; omega
+
+/-- The size of a builder's children after `Add`. -/
+theorem Dec.sizeL_add_le (c : Bool) (ks : List Dec) (m : Dec) (n : Nat)
+    (h : Dec.sizeL ks + m.size ≤ n) : Dec.sizeL (if c then ks else ks ++ [m]) ≤ n := by
+  cases c
+  · simp only [Bool.false_eq_true, ↓reduceIte, Dec.sizeL_append]; omega
+  · simp only [↓reduceIte]; omega
+
+theorem Dec.sizeL_take_succ : ∀ (ks : List Dec) (i : Nat) (k : Dec), ks[i]? = some k →
+    Dec.sizeL (ks.take (i + 1)) = Dec.sizeL (ks.take i) + k.size
+  | [], _, _, h => by simp at h
+  | k' :: ks, 0, k, h => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h; subst h
+    simp [Dec.sizeL]
+  | k' :: ks, i + 1, k, h => by
+    simp only [List.getElem?_cons_succ] at h
+    simp only [List.take_succ_cons, Dec.sizeL, Dec.sizeL_take_succ ks i k h]; omega
+
+theorem Dec.sizeL_take_le : ∀ (ks : List Dec) (i : Nat), Dec.sizeL (ks.take i) ≤ Dec.sizeL ks
+  | [], _ => by simp [Dec.sizeL]
+  | k :: ks, 0 => by simp [Dec.sizeL]
+  | k :: ks, i + 1 => by
+    simp only [List.take_succ_cons, Dec.sizeL]
+    have := Dec.sizeL_take_le ks i; omega
+
+/-- A decision of depth zero is a leaf. -/
+theorem Dec.isUnion_of_depth_zero (m : Dec) (h : m.depth = 0) : m.isUnion = false := by
+  cases m <;> simp_all [Dec.depth, Dec.isUnion]
+
+theorem Dec.size_of_depth_zero (m : Dec) (h : m.depth = 0) : m.size = 1 := by
+  cases m <;> simp_all [Dec.depth, Dec.size]
+
+/-- The bound on what `ToDecision` and `EvaluateConditions` join for a decision of at most `S`
+nodes, `D` deep, with names of at most `N` bytes: at most `S` strings of a path of names (at
+most `D + 1` of them, with their separators) and a reason (at most `maxAddr` bytes) with their
+punctuation and separators. -/
+def Dec.foldBound (S D N : Nat) : Nat := S * ((D + 1) * (N + 2) + maxAddr.toNat + 6)
+
+theorem Dec.foldBound_mono {S S' D D' N : Nat} (hS : S ≤ S') (hD : D ≤ D') :
+    Dec.foldBound S D N ≤ Dec.foldBound S' D' N := by
+  unfold Dec.foldBound
+  apply Nat.mul_le_mul hS
+  have := Nat.mul_le_mul_right (N + 2) (Nat.add_le_add_right hD 1)
+  omega
+
+/-- **The decision `m` fits `strings.Join`** with names of at most `N` bytes. -/
+def Dec.foldFits (N : Nat) (m : Dec) : Prop :=
+  Dec.foldBound m.size m.depth N < _root_.Perennial.strings.joinMax
+
+theorem Dec.foldFits_of_le (N : Nat) (m : Dec) (S D : Nat) (hS : m.size ≤ S) (hD : m.depth ≤ D)
+    (h : Dec.foldBound S D N < _root_.Perennial.strings.joinMax) : Dec.foldFits N m :=
+  Nat.lt_of_le_of_lt (Dec.foldBound_mono hS hD) h
+
+/-- A union's child fits if the union does. -/
+theorem Dec.foldFits_child (N : Nat) (ks : List Dec) (i : Nat) (k : Dec) (hk : ks[i]? = some k)
+    (h : Dec.foldFits N (.union ks)) : Dec.foldFits N k := by
+  have h1 := Dec.size_le_sizeL ks i k hk
+  have h2 := Dec.depth_le_depthL ks i k hk
+  unfold Dec.foldFits at h ⊢
+  simp only [Dec.size, Dec.depth] at h
+  exact Dec.foldFits_of_le N k _ _ (by omega) (by omega) h
+
+/-- A path of names down a fitting union's child, joined, fits `strings.Join`. -/
+theorem Dec.foldFits_path (N : Nat) (ks : List Dec) (i : Nat) (k : Dec) (hk : ks[i]? = some k)
+    (h : Dec.foldFits N (.union ks)) : (1 + k.depth) * (N + 2) < _root_.Perennial.strings.joinMax := by
+  have h1 := Dec.depth_le_depthL ks i k hk
+  unfold Dec.foldFits Dec.foldBound at h
+  simp only [Dec.size, Dec.depth] at h
+  have h2 : (1 + k.depth) * (N + 2) ≤ (Dec.depthL ks + 1 + 1) * (N + 2) :=
+    Nat.mul_le_mul_right _ (by omega)
+  have h3 := Nat.le_mul_of_pos_left ((Dec.depthL ks + 1 + 1) * (N + 2) + maxAddr.toNat + 6)
+    (show 0 < Dec.sizeL ks + 1 by omega)
+  omega
+
+/-- At most `n ≤ sizeL ks` strings of a fitting union's paths and reasons, joined with a separator of
+at most two bytes, fit `strings.Join`. -/
+theorem Dec.foldFits_join (N : Nat) (ks : List Dec) (n c : Nat) (hn : n ≤ Dec.sizeL ks) (hc : c ≤ 2)
+    (h : Dec.foldFits N (.union ks)) :
+    n * ((1 + Dec.depthL ks) * (N + 2) + maxAddr.toNat + 4 + c) < _root_.Perennial.strings.joinMax := by
+  unfold Dec.foldFits Dec.foldBound at h
+  simp only [Dec.size, Dec.depth] at h
+  have h2 : (1 + Dec.depthL ks) * (N + 2) ≤ (Dec.depthL ks + 1 + 1) * (N + 2) :=
+    Nat.mul_le_mul_right _ (by omega)
+  have h3 : n * ((1 + Dec.depthL ks) * (N + 2) + maxAddr.toNat + 4 + c) ≤
+      (Dec.sizeL ks + 1) * ((Dec.depthL ks + 1 + 1) * (N + 2) + maxAddr.toNat + 6) :=
+    Nat.mul_le_mul (by omega) (by omega)
+  omega
+
+theorem Dec.ofWord_isUnion (k : w64) : (Dec.ofWord k).isUnion = false := by
+  unfold Dec.ofWord; split
+  · rfl
+  · split <;> rfl
+
+/-- A string whose `len` was taken is at most `maxAddr` bytes long, as a `Nat`. -/
+theorem length_le_maxAddr_toNat {α : Type _} (s : List α) (h : (s.length : Int) ≤ maxAddr) :
+    s.length ≤ maxAddr.toNat := by
+  have h0 : (0 : Int) ≤ maxAddr := by unfold maxAddr; decide
+  have := Int.toNat_of_nonneg h0
+  omega
+
+/-- The names' bound of the union authorizer's chain and of the decisions its authorizers
+return. -/
+def authzNameMax : Nat := 64
+/-- The depth bound of the decisions the union authorizer's authorizers return. -/
+def authzDepthMax : Nat := 16
+/-- The size bound (`Dec.size`) of the decisions the union authorizer's authorizers return. -/
+def authzSizeMax : Nat := 512
+/-- The bound on the length of the union authorizer's chain. -/
+def authzChainMax : Nat := 16
+
+/-- The union authorizer's decisions fit `strings.Join` (`Dec.foldFits`): its chain's
+decisions, under at most `authzChainMax` names, each at most `authzSizeMax` nodes and
+`authzDepthMax` deep. -/
+theorem authz_foldBound_lt :
+    Dec.foldBound (authzChainMax * authzSizeMax + 1) (authzDepthMax + 1) authzNameMax <
+      _root_.Perennial.strings.joinMax := by
+  unfold Dec.foldBound authzChainMax authzSizeMax authzDepthMax authzNameMax
+    _root_.Perennial.strings.joinMax maxAddr
+  simp
+
 end pure
 
 section defs
@@ -580,22 +754,255 @@ theorem isDecision_tag (d : ConditionsAwareDecision) (m : Dec) :
     | (iintro #H; iexact H)
     | (iintro #⟨%H, -⟩; ipureintro; exact H)
 
+mutual
+/-- The names of the unions in the decision value `d` (model `m`) are at most `N` bytes (without
+the persistence modality; see `decNames`). -/
+def decNamesRaw (N : Nat) (d : ConditionsAwareDecision) : Dec → IProp GF
+  | .deny => iprop(True)
+  | .allow => iprop(True)
+  | .noOpinion => iprop(True)
+  | .cmap _ _ _ => iprop(True)
+  | .union ks => iprop(∃ nds : List namedConditionsAwareDecision, d.union'.inner' ↦*□ nds ∗
+      ⌜∀ nd ∈ nds, nd.conditionalAuthorizerName'.length ≤ N⌝ ∗
+      decNamesRawL N (nds.map (·.d')) ks)
+/-- The names in the decision values `ds` (models `ks`) are at most `N` bytes, one by one. -/
+def decNamesRawL (N : Nat) : List ConditionsAwareDecision → List Dec → IProp GF
+  | [], [] => iprop(True)
+  | d :: ds, k :: ks => iprop(decNamesRaw N d k ∗ decNamesRawL N ds ks)
+  | _, _ => iprop(False)
+end
+
+/-- **The names in a decision** `d` of model `m` (its children's `conditionalAuthorizerName`s, all
+the way down) are at most `N` bytes, persistently (fmt stage 1: `ToDecision` joins them). Separate
+from `isDecision`, whose users do not need it. -/
+def decNames (N : Nat) (d : ConditionsAwareDecision) (m : Dec) : IProp GF :=
+  iprop(□ decNamesRaw N d m)
+
+instance decNames_persistent (N : Nat) (d : ConditionsAwareDecision) (m : Dec) :
+    Persistent (decNames (GF := GF) N d m) := by
+  unfold decNames; infer_instance
+
+/-- The names in decisions `ds` of models `ks`, persistently. -/
+def decNamesL (N : Nat) (ds : List ConditionsAwareDecision) (ks : List Dec) : IProp GF :=
+  iprop(□ decNamesRawL N ds ks)
+
+instance decNamesL_persistent (N : Nat) (ds : List ConditionsAwareDecision) (ks : List Dec) :
+    Persistent (decNamesL (GF := GF) N ds ks) := by
+  unfold decNamesL; infer_instance
+
+/-- A leaf has no names. -/
+theorem decNames_leaf (N : Nat) (d : ConditionsAwareDecision) (m : Dec) (h : m.isUnion = false) :
+    ⊢ decNames (GF := GF) N d m := by
+  unfold decNames
+  cases m
+  case union => simp only [Dec.isUnion] at h; exact absurd h (by decide)
+  all_goals (simp only [decNamesRaw]; imodintro; itrivial)
+
+theorem decNamesL_nil (N : Nat) : ⊢ decNamesL (GF := GF) N [] [] := by
+  unfold decNamesL; simp only [decNamesRawL]; imodintro; itrivial
+
+theorem decNamesRawL_snoc (N : Nat) : ∀ (ds : List ConditionsAwareDecision) (ks : List Dec)
+    (d : ConditionsAwareDecision) (m : Dec),
+    iprop(□ decNamesRawL N ds ks) ⊢ (□ decNamesRaw N d m -∗ □ decNamesRawL N (ds ++ [d]) (ks ++ [m]) : IProp GF)
+  | [], [], d, m => by
+    simp only [List.nil_append, decNamesRawL]
+    iintro #- #H
+    imodintro
+    isplitl
+    · iexact H
+    · itrivial
+  | [], _ :: _, _, _ => by
+    simp only [decNamesRawL]
+    iintro #H
+    iexfalso; iexact H
+  | _ :: _, [], _, _ => by
+    simp only [decNamesRawL]
+    iintro #H
+    iexfalso; iexact H
+  | d' :: ds, k :: ks, d, m => by
+    simp only [List.cons_append, decNamesRawL]
+    iintro #⟨#H1, #H2⟩ #H
+    imodintro
+    isplitl
+    · iexact H1
+    · iapply decNamesRawL_snoc N ds ks d m $$ H2 H
+
+/-- A builder's children's names with a new child's. -/
+theorem decNamesL_snoc (N : Nat) (ds : List ConditionsAwareDecision) (ks : List Dec)
+    (d : ConditionsAwareDecision) (m : Dec) :
+    decNamesL (GF := GF) N ds ks ⊢ decNames N d m -∗ decNamesL N (ds ++ [d]) (ks ++ [m]) := by
+  unfold decNamesL decNames
+  iintro #H1 #H2
+  iapply decNamesRawL_snoc N ds ks d m $$ H1 H2
+
+theorem decNamesRawL_lookup (N : Nat) : ∀ (ds : List ConditionsAwareDecision) (ks : List Dec)
+    (i : Nat) (d : ConditionsAwareDecision) (m : Dec), ds[i]? = some d → ks[i]? = some m →
+    iprop(□ decNamesRawL N ds ks) ⊢ (□ decNamesRaw N d m : IProp GF)
+  | [], _, _, _, _, h, _ => by simp at h
+  | _ :: _, [], _, _, _, _, h => by simp at h
+  | d' :: ds, k :: ks, 0, d, m, h1, h2 => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h1 h2
+    subst h1 h2
+    simp only [decNamesRawL]
+    iintro #⟨#H1, -⟩
+    iexact H1
+  | d' :: ds, k :: ks, i + 1, d, m, h1, h2 => by
+    simp only [List.getElem?_cons_succ] at h1 h2
+    simp only [decNamesRawL]
+    iintro #⟨-, #H2⟩
+    iapply decNamesRawL_lookup N ds ks i d m h1 h2 $$ H2
+
+/-- The names in the `i`-th child. -/
+theorem decNamesL_lookup (N : Nat) (ds : List ConditionsAwareDecision) (ks : List Dec) (i : Nat)
+    (d : ConditionsAwareDecision) (m : Dec) (h1 : ds[i]? = some d) (h2 : ks[i]? = some m) :
+    decNamesL (GF := GF) N ds ks ⊢ decNames N d m := by
+  unfold decNamesL decNames
+  iintro #H
+  iapply decNamesRawL_lookup N ds ks i d m h1 h2 $$ H
+
+/-- A union decision's children, with their names (`isDecision_union` and `decNames` agree on
+the children's slice). -/
+theorem isDecision_union_names (N : Nat) (d : ConditionsAwareDecision) (ks : List Dec) :
+    isDecision (GF := GF) d (.union ks) ⊢ decNames N d (.union ks) -∗
+      ∃ nds : List namedConditionsAwareDecision, d.union'.inner' ↦*□ nds ∗
+        isDecisionL (nds.map (·.d')) ks ∗
+        ⌜∀ nd ∈ nds, nd.conditionalAuthorizerName'.length ≤ N⌝ ∗
+        decNamesL N (nds.map (·.d')) ks := by
+  unfold isDecision isDecisionL decNames decNamesL
+  simp only [isDecisionRaw, decNamesRaw]
+  iintro #⟨-, -, ⟨%nds, #Hs, #HL⟩, -⟩ #⟨%nds', #Hs', %Hn, #HN⟩
+  icases ownSlice_agree _ _ _ _ _ $$ Hs Hs' with %Heq
+  subst Heq
+  iexists nds
+  isplitl
+  · iexact Hs
+  isplitl
+  · imodintro; iexact HL
+  isplitl
+  · ipureintro; exact Hn
+  · imodintro; iexact HN
+
+/-- The names of a union decision from its children's. -/
+theorem decNames_union (N : Nat) (d : ConditionsAwareDecision) (ks : List Dec)
+    (nds : List namedConditionsAwareDecision)
+    (hn : ∀ nd ∈ nds, nd.conditionalAuthorizerName'.length ≤ N) :
+    d.union'.inner' ↦*□ nds ∗ decNamesL (GF := GF) N (nds.map (·.d')) ks ⊢
+      decNames N d (.union ks) := by
+  unfold decNames decNamesL
+  iintro ⟨#Hs, #HN⟩
+  imodintro
+  simp only [decNamesRaw]
+  iexists nds
+  isplitl
+  · iexact Hs
+  isplitl
+  · ipureintro; exact hn
+  · iexact HN
+
+/-- **A well-formed decision of at most `D` depth and `S` nodes whose names are at most `N`
+bytes** (`ToDecision`, `PartiallyEvaluateConditionsAwareDecision` and the authorizers return
+these). -/
+def isWFDecisionBnd (D S N : Nat) (d : ConditionsAwareDecision) : IProp GF :=
+  iprop(∃ m : Dec, isDecision d m ∗ ⌜m.WF ∧ m.depth ≤ D ∧ m.size ≤ S⌝ ∗ decNames N d m)
+
+instance isWFDecisionBnd_persistent (D S N : Nat) (d : ConditionsAwareDecision) :
+    Persistent (isWFDecisionBnd (GF := GF) D S N d) := by
+  unfold isWFDecisionBnd; infer_instance
+
+theorem isWFDecisionBnd_isWFDecisionLe (D S N : Nat) (d : ConditionsAwareDecision) :
+    isWFDecisionBnd (GF := GF) D S N d ⊢ isWFDecisionLe D d := by
+  unfold isWFDecisionBnd isWFDecisionLe
+  iintro ⟨%m, #Hd, %Hm, -⟩
+  iexists m
+  iframe Hd
+  ipureintro; exact ⟨Hm.1, Hm.2.1⟩
+
+theorem isWFDecisionBnd_isWFDecision (D S N : Nat) (d : ConditionsAwareDecision) :
+    isWFDecisionBnd (GF := GF) D S N d ⊢ isWFDecision d := by
+  unfold isWFDecisionBnd isWFDecision
+  iintro ⟨%m, #Hd, %Hm, -⟩
+  iexists m
+  iframe Hd
+  ipureintro; exact Hm.1
+
+theorem isWFDecisionBnd_weaken (D S N D' S' : Nat) (d : ConditionsAwareDecision) :
+    isWFDecisionBnd (GF := GF) D S N d ∗ ⌜D ≤ D' ∧ S ≤ S'⌝ ⊢ isWFDecisionBnd D' S' N d := by
+  unfold isWFDecisionBnd
+  iintro ⟨⟨%m, #Hd, %Hm, #Hn⟩, %h⟩
+  iexists m
+  iframe Hd Hn
+  ipureintro; exact ⟨Hm.1, by omega, by omega⟩
+
+/-- A well-formed leaf. -/
+theorem isWFDecisionBnd_leaf (D S N : Nat) (d : ConditionsAwareDecision) (m : Dec) (hm : m.WF)
+    (hu : m.isUnion = false) (hS : 1 ≤ S) :
+    isDecision (GF := GF) d m ⊢ isWFDecisionBnd D S N d := by
+  have h0 : m.depth = 0 := by cases m <;> simp_all [Dec.isUnion, Dec.depth]
+  unfold isWFDecisionBnd
+  iintro #Hd
+  iexists m
+  isplitr
+  · iexact Hd
+  isplitr
+  · ipureintro; exact ⟨hm, by omega, by rw [Dec.size_of_depth_zero m h0]; exact hS⟩
+  · iapply (decNames_leaf N d m hu)
+
+/-- A well-formed leaf (the bounds as a premise). -/
+theorem isWFDecisionBnd_leaf' (D S N : Nat) (d : ConditionsAwareDecision) (m : Dec) :
+    isDecision (GF := GF) d m ∗ ⌜m.WF ∧ m.isUnion = false ∧ 1 ≤ S⌝ ⊢ isWFDecisionBnd D S N d := by
+  iintro ⟨#Hd, %h⟩
+  iapply (isWFDecisionBnd_leaf D S N d m h.1 h.2.1 h.2.2)
+  iexact Hd
+
+/-- A leaf (depth zero): one node, no names. -/
+theorem isWFDecisionLe_zero_bnd (N : Nat) (d : ConditionsAwareDecision) :
+    isWFDecisionLe (GF := GF) 0 d ⊢ isWFDecisionBnd 0 1 N d := by
+  unfold isWFDecisionLe isWFDecisionBnd
+  iintro ⟨%m, #Hd, %Hm⟩
+  have h0 : m.depth = 0 := by omega
+  iexists m
+  iframe Hd
+  isplitr
+  · ipureintro; exact ⟨Hm.1, Hm.2, Nat.le_of_eq (Dec.size_of_depth_zero m h0)⟩
+  · iapply decNames_leaf N d m (Dec.isUnion_of_depth_zero m h0)
+
+/-- **A well-formed decision that fits `strings.Join`** (`Dec.foldFits`) with names of at most
+`N` bytes: what the union authorizer's `EvaluateConditions` passes its authorizers. -/
+def isWFDecisionFit (N : Nat) (d : ConditionsAwareDecision) : IProp GF :=
+  iprop(∃ m : Dec, isDecision d m ∗ ⌜m.WF ∧ Dec.foldFits N m⌝ ∗ decNames N d m)
+
+instance isWFDecisionFit_persistent (N : Nat) (d : ConditionsAwareDecision) :
+    Persistent (isWFDecisionFit (GF := GF) N d) := by
+  unfold isWFDecisionFit; infer_instance
+
+theorem isWFDecisionFit_isWFDecision (N : Nat) (d : ConditionsAwareDecision) :
+    isWFDecisionFit (GF := GF) N d ⊢ isWFDecision d := by
+  unfold isWFDecisionFit isWFDecision
+  iintro ⟨%m, #Hd, %Hm, -⟩
+  iexists m
+  iframe Hd
+  ipureintro; exact Hm.1
+
 /-- `ConditionsAwareAuthorize(ctx, attrs)` of the authorizer `ai` returns a well-formed
-decision, less than `2 ^ 63 - 1` deep (the union authorizer adds it to a builder, `ownBuilder`). -/
+decision, at most `authzDepthMax` deep, of at most `authzSizeMax` nodes, with names of at most
+`authzNameMax` bytes (the union authorizer adds it to a builder, `ownBuilder`, whose `ToDecision`
+joins its leaves' paths and reasons: fmt stage 1). -/
 def caaOk (ai : GoInterfaceOk) (ctx attrs : GoInterface) : IProp GF :=
   iprop({{ (True : IProp GF) }}
     (App (App (Val #(methods ai.ty go!"ConditionsAwareAuthorize" ai.v)) (Val #ctx)) (Val #attrs))
-    {{ (d : ConditionsAwareDecision), RET #d; isWFDecisionLe (GF := GF) (2 ^ 63 - 2) d }})
+    {{ (d : ConditionsAwareDecision), RET #d;
+      isWFDecisionBnd (GF := GF) authzDepthMax authzSizeMax authzNameMax d }})
 
 instance caaOk_persistent (ai : GoInterfaceOk) (ctx attrs : GoInterface) :
     Persistent (caaOk (GF := GF) ai ctx attrs) := by
   unfold caaOk; infer_instance
 
-/-- `EvaluateConditions(ctx, d, data)` of the authorizer `ai` on a well-formed decision returns
-some decision word, reason and error. -/
+/-- `EvaluateConditions(ctx, d, data)` of the authorizer `ai` on a well-formed decision (that fits
+`strings.Join` with names of at most `authzNameMax` bytes, `isWFDecisionFit`: the union
+authorizer's are) returns some decision word, reason and error. -/
 def ecOk (ai : GoInterfaceOk) (ctx : GoInterface) (d : ConditionsAwareDecision)
     (data : GoInterface) : IProp GF :=
-  iprop({{ isWFDecision (GF := GF) d }}
+  iprop({{ isWFDecisionFit (GF := GF) authzNameMax d }}
     (App (App (App (Val #(methods ai.ty go!"EvaluateConditions" ai.v)) (Val #ctx)) (Val #d))
       (Val #data))
     {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e); True }})
@@ -761,25 +1168,26 @@ theorem isDecisionL_lookup (ds : List ConditionsAwareDecision) (ks : List Dec) (
 `ks`; its errors' slice is owned; its memoized fields agree with `ks` (the set is `nil` until the
 first child, then owned). The children are `WF` and less than `2 ^ 63 - 1` deep (`Add` takes
 only such decisions): `ToDecision`'s `collectReasonsAndErrors` starts each child's path of names
-at length one. -/
-def ownBuilder (p : Loc) (ks : List Dec) : IProp GF :=
+at length one. The children's names, and the names in them, are at most `N` bytes (`decNames`). -/
+def ownBuilder (p : Loc) (ks : List Dec) (N : Nat) : IProp GF :=
   iprop(∃ (u : ConditionsAwareDecisionUnion) (nds : List namedConditionsAwareDecision)
       (es : List GoInterface),
-    ⌜Dec.WFL ks ∧ Dec.depthL ks + 1 < 2 ^ 63⌝ ∗ p ↦ u ∗
+    ⌜(Dec.WFL ks ∧ Dec.depthL ks + 1 < 2 ^ 63) ∧
+      ∀ nd ∈ nds, nd.conditionalAuthorizerName'.length ≤ N⌝ ∗ p ↦ u ∗
     u.inner' ↦* nds ∗ ownSliceCap namedConditionsAwareDecision u.inner' (DFrac.own 1) ∗
     isDecisionL (nds.map (·.d')) ks ∗
     u.errs' ↦* es ∗ ownSliceCap GoInterface u.errs' (DFrac.own 1) ∗
     ([∗list] e ∈ es, utilerrors.errTree e) ∗
-    subOk u (DFrac.own 1) ks)
+    subOk u (DFrac.own 1) ks ∗ decNamesL N (nds.map (·.d')) ks)
 
 /-- The zero builder (`var u ConditionsAwareDecisionUnion`) has no children. -/
-theorem ownBuilder_zero (p : Loc) :
-    p ↦ (zero_val ConditionsAwareDecisionUnion) ⊢ ownBuilder (GF := GF) p [] := by
+theorem ownBuilder_zero (p : Loc) (N : Nat) :
+    p ↦ (zero_val ConditionsAwareDecisionUnion) ⊢ ownBuilder (GF := GF) p [] N := by
   unfold ownBuilder isDecisionL
   iintro Hp
   iexists (zero_val ConditionsAwareDecisionUnion), [], []
   isplitr
-  · ipureintro; exact ⟨trivial, by simp [Dec.depthL]⟩
+  · ipureintro; exact ⟨⟨trivial, by simp [Dec.depthL]⟩, by simp⟩
   iframe Hp
   isplitr
   · iapply ownSlice_nil
@@ -793,12 +1201,15 @@ theorem ownBuilder_zero (p : Loc) :
   · iapply ownSliceCap_nil
   isplitr
   · iapply BigSepL.bigSepL_nil.2; itrivial
-  unfold subOk
   isplitr
-  · ipureintro; rfl
-  ileft
-  ipureintro
-  exact ⟨rfl, rfl⟩
+  · unfold subOk
+    isplitr
+    · ipureintro; rfl
+    ileft
+    ipureintro
+    exact ⟨rfl, rfl⟩
+  simp only [List.map_nil]
+  iapply decNamesL_nil
 
 end defs
 

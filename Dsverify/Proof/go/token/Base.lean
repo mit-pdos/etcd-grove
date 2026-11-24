@@ -8,7 +8,7 @@ module
 public import Net.GeneratedProof.go.token
 public import Perennial.Proof.ProofPrelude
 -- (Go model overlays, 2026-11-24) the model's `internal/gomodel` import
-public import Proof.internal.gomodel.Base
+public import Perennial.Proof.internal.gomodel.Base
 
 @[expose] public section
 

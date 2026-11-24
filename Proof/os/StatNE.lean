@@ -8,7 +8,7 @@ can fail on the path (`FsNoErrAt`): so `fileutil.Exist` of a covered path holdin
 module
 
 public import Proof.os.IgnoringEINTR
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 public import Proof.os.StatS
 public import Proof.os.ForLoeb
 public import Proof.os.ModelMode
@@ -83,7 +83,7 @@ theorem os.model.wp_stat_dirSW (op p : GoString) (R : Roots) (J : Ino) (dq : DFr
     try wp_auto
     wp_stub os.fsFdKind.impl
     wp_apply wp_osFdKindDirS fd J .idle CoPset.subseteq_top $$ Hos Hfd as Hfd
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %sz -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %sz -
     iapply wp_fupd
     try wp_auto
     wp_stub os.fsDirClose.impl
