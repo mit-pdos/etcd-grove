@@ -680,3 +680,52 @@ current lifetime is > its restart term": it falls out of the same camps bound as
 (`↑N ⊆ E`), from `api_committed_cert` and, for the certificate's leader `ldr`, `isCamp γ ldr t F0`
 (`cq_base`, `leadFull_camp`) against `raftState`'s half of the camps authority (`durShares`):
 `ldr = id → t ≤ S0.term`.
+
+**2026-11-24, L1 and L2 proved (`Proof/go_etcd_io/raft/v3/LeaderCompleteLaw.lean`, exposed in `Api.lean`,
+listed in `etc/api/raft.txt`).** No axiom, no `sorry`, no spec or top-level statement changed.
+
+- `cmtBefore γ id T0 l` (sealed, persistent; body `cmtBeforeR` over raft's names): `l = []`, or
+  `l <+: strip γ.reBoot`, or `l <+: strip (G.take n)` for a commit certificate `cqAt γ t n G a c q`
+  (`0 < n`) whose leader `ldr` has `ldr = id → t ≤ T0`, and every quorum member's acknowledgement at `t`
+  has a recorded history (`ackBefore`: a sorted event list holding the ack, every vote event in it for
+  some `c`, with `c = id → T' ≤ T0`).
+- `confFixed γ E m0 := □ ∀ l, isCommittedLogLb γ l ={E}=∗ confAt γ l.length m0` (the fixed-membership
+  premise; the server discharges it with `srv_confAt_simple γ l l.length le_refl E ..`).
+- `durLogAgrees S l` (raft's copy of the server's `DurAgrees`, the same body).
+- **L1** `raftState_cmtBefore (γ N E) (HE : ↑N ⊆ E) id S0 l :
+  raftState γ id S0 ∗ isCluster γ N ∗ isCommittedLogLb γ l ⊢ |={E}=> raftState γ id S0 ∗ cmtBefore γ id S0.term l`
+  (from `api_committed_cert`; the leader's and the votes' timing from `durPers`'s camps bound against
+  `durShares`'s camps authority; the votes through the vote table, threaded with `bigSepM_fupd_thread`).
+- **L2** `raftState_cmtBefore_agree (γ N E) (HE : ↑N ⊆ E) m0 id T0 S l : uint.Z T0 < uint.Z S.term →
+  isCluster γ N ∗ confFixed γ E m0 ∗ cmtBefore γ id T0 l ∗ raftState γ id S ∗ snapshotLeader γ id S.term ⊢
+  |={E}=> raftState γ id S ∗ ⌜durLogAgrees S l⌝`. `campLink` gives `F0 <+: fp ++ S.ents` (`id`'s
+  campaign log at `S.term`); then `t < T` by `lc_core` + `full_match`, `t = T` by `isLeader_unique` and the
+  mark, `t > T` by a voter of both quorums (`quorums_meet`: static `CfgAt.overlap`; dynamic, both
+  configurations are `cfgOf m0` by `confFixed` + `confAt_agree`, then `D.adj` at one prefix), whose vote
+  at `T` for `id` is in the marked history (`ev_vote_mem`, sorting) against `T0 < T`. Re-checked against
+  the commit-before-save run: it needs `T0 = rt`, which the premise excludes.
+
+**The lifetime law (task 3): not written; it is not derivable over the current API.** Every leadership
+fact the API has (`snapshotLeader`, `sentMsg`, `isLeader`) is persistent and carries no lifetime: after a
+restart at `S0.term = T0` the node still has `snapshotLeader γ id T0` and its old `sentMsg` MsgSnaps at
+`T0`, and `raftState` does not hold the node's role. `durPers`'s camps bound and `campLink` say that a
+campaign the node *makes* after the mark is at a term `> T0`, but nothing the server receives tells a
+current-lifetime MsgSnap from an old one. What it needs is a raft-side fact on the messages a `Ready`
+hands out (e.g. with each MsgSnap at `rt`, a persistent `ledSince γ id T0 rt` with `T0 < rt`, where `T0`
+is the restart mark), i.e. a change to `node.Ready`/`isReadyChan_recvAu`'s post (and `RestartNode`'s, for
+the mark), which this task may not touch. Decision needed.
+
+**Left for the server:** (1) narrow `rnReplayJob` (`InvRaftNode.lean:2140`) to MsgSnaps with `T0 < rt`
+(given the lifetime fact above), then discharge `rnReplayJob_of_history`'s premise with L2 (L1 taken at
+`raftNode.start`'s restart with `l = a0`); (2) discharge `confFixed` by `srv_confAt_simple`
+(`srvRaftLogInv` is persistent: `iintro !> %l #Hl; iapply srv_confAt_simple γ l l.length (Nat.le_refl _) E hC hL $$ Hinv Hl`).
+
+*Built (VM, `25c7bb088e`):* `LeaderCompleteLaw`; raft's `Link`, `Linked`, `Results`, `Api`; the server's
+`ReplayJob`; and the `RaftTla`, `RaftNoAx` and `KvNet` copies of `LeaderCompleteLaw`, `Api` and `Link`:
+7626 jobs, green. `etc/gen-raft-tla.py --check`, `etc/copy-part.py --check`, `etc/tier-check.py --check`
+and `etc/api-check.py etc/api/raft.txt --check` pass. This branch has no `interface/` directory.
+Not rebuilt: the rest of `Api`'s 2675 importers. They gain one import, and none of the new names
+clashes with an existing one (checked by grep).
+
+Checkpoint 2026-11-24: L1 and L2 done. **Next statement:** the lifetime fact (above), which needs a
+decision on changing `node.Ready`'s post. Then the server's `rnReplayJob` narrowing.
