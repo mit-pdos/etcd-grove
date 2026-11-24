@@ -49,9 +49,13 @@ axiom reserve (a : GoString) (P : Proto GF) (hP : P.srvOk) :
 
 /-- **Registration** (D38c, D39a): the address's listener, with the right to serve it with the
 address's reserved protocol, serves it with that protocol (the model: the listener bound once,
-`net.Listen` consuming `netAddrFree a`; the protocol the ghost map's entry for `a`). -/
+`net.Listen` consuming `netAddrFree a`; the protocol the ghost map's entry for `a`). (Phase 7's switch,
+SW1, 2026-11-24, the review's finding 4) It also consumes `netAddrLeft a`, what sets the address's
+net-library protocols (as `bridge.New` did from `cf333b5be9`): an address served over HTTP is never
+given a grpc table (`grpc_addr_set`, `addr_set_proto_tok`), so no program both serves HTTP at `a` and
+claims grpc's protocols there, which the end state's defined protocols (W5) would make unsound. -/
 axiom register (l : GoInterface) (a : GoString) (P : Proto GF) :
-  ⊢ netListenerAt (GF := GF) l a -∗ httpProtoOwn a P ==∗ httpListenerAt l a P
+  ⊢ netListenerAt (GF := GF) l a -∗ netAddrLeft a -∗ httpProtoOwn a P ==∗ httpListenerAt l a P
 
 /-- (rafthttp stage 6d, 2026-10-24: the examples' members serving their raft handler) `http.Serve`
 of a registered listener with a handler of its address's protocol (`Serve_spec`): it serves each
