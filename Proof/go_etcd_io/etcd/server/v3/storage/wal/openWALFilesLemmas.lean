@@ -73,8 +73,8 @@ theorem walOpenedRc_rcFile (write : Bool) (dir b : GoString) (i : Ino) (fr : GoI
   ihave Hlks := fdLocksW_locks _ _ $$ Hlks
   iexists f, fd, child dir b, _
   iframe
-  isplitr
-  swap
+  isplitl
+  rotate_left
   · ipureintro; exact hb
   cases write
   · simp only [Bool.false_eq_true, ↓reduceIte]
@@ -168,6 +168,18 @@ theorem walOpenedRcs_close (write : Bool) (dir : GoString) (ns : List GoString) 
     walOpenedRc_rcFile (GF := GF) write dir _ x _ _ _ (hns m))).trans ?_
   exact rcFiles_take is j rcs hl hj
 
+/-- `closeAll`'s message bound on the paths `openWALFiles` opens: a directory shorter than 4096 bytes
+(`PathFits`) and names of at most 255 bytes (WAL segment names have 37). -/
+theorem walOpen_closeBound {d : GoString} {ns : List GoString} (hd : d.length < 4096)
+    (hns : ∀ (m : Nat) (b : GoString), ns[m]? = some b → b.length ≤ 255) :
+    ∀ m, os.closeErrMax (child d (ns.getD m [])) ≤ wal.closeMsgMax := by
+  intro m
+  refine wal.closeBound_of hd ?_
+  rw [List.getD_eq_getElem?_getD]
+  cases h : ns[m]? with
+  | none => simp
+  | some b => simpa using hns m b h
+
 /-- What the closer keeps of a file `openWALFiles` opened (persistent): the reader's `*fileReader` over
 the `*os.File` `f`, and the `io.ReadCloser` collected (`rc`): the lock (write mode) or the file. -/
 def walRcLink (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : GoInterface) : IProp GF :=
@@ -239,8 +251,8 @@ theorem walRcLink_rcFile (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : Go
   iunfold wal.rcFile
   iexists f', fd, nm, fl
   iframe Hf Hfd Hlks
-  isplitr
-  swap
+  isplitl
+  rotate_left
   · ipureintro; exact hnm
   cases write
   · simp only [Bool.false_eq_true, ↓reduceIte]

@@ -28,9 +28,17 @@ variable [sem : go.Semantics]
 /-- **The longest message `closeAll` collects** of a `Close` error (2026-11-24, fmt stage 1): what
 `strings.Join` of a fully owned slice of such messages with `", "` needs (`maxAddr * (B + 2) ≤
 joinMax`, `strings.Join_owned_bounded_of`). A file of a name of at most `wal.closeMsgMax - 72` bytes
-(`os.closeErrMax`) qualifies: a WAL segment's path, a directory that fits (`DirFits`) and a name of at
-most 255 bytes. -/
+(`os.closeErrMax`) qualifies: a WAL segment's path, a directory that fits (`PathFits`: below 4096
+bytes) and a name of at most 255 bytes (`wal.closeBound_of`). -/
 def wal.closeMsgMax : Nat := 2 ^ 14 - 2
+
+/-- A path `d/b` of a directory shorter than 4096 bytes and a name of at most 255 bytes is short
+enough for `closeAll`'s message bound. -/
+theorem wal.closeBound_of {d b : GoString} (hd : d.length < 4096) (hb : b.length ≤ 255) :
+    os.closeErrMax (Fs.child d b) ≤ wal.closeMsgMax := by
+  have hlen : (Fs.child d b).length = d.length + 1 + b.length := by simp [Fs.child]; omega
+  unfold os.closeErrMax wal.closeMsgMax syscall.errnoMsgMax
+  rw [hlen]; omega
 
 /-- See the file header. -/
 def wal.rcFile (rc : GoInterface) : IProp GF :=

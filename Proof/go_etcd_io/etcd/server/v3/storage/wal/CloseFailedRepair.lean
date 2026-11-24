@@ -31,9 +31,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
 /-- **`Repair` after `Close.spec` (state `failed`)'s error** (see the file header): with what the failed `Close`
 left (`walCloseLeft dir`) and the client's half of the call permission, `Repair(lg, dir)` returns
-`false`, and both are kept (`dir` shorter than `2^59`, `Open`'s premise, which the caller knows). -/
+`false`, and both are kept (`dir` fits, `PathFits`, `Open`'s premise, which the caller knows). -/
 theorem wal.Repair.wp_afterCloseFailed (wp_rep : wal.Repair.specHeld (GF := GF) (hG := hG))
-    (lg : Loc) (dir : GoString) (hdir : dir.length < 2 ^ 59) (Φ : val → IProp GF) :
+    (lg : Loc) (dir : GoString) (hdir : PathFits dir) (Φ : val → IProp GF) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗ zapLoggerOk lg -∗
       osInv (GF := GF) -∗ walCloseLeft (GF := GF) dir -∗ osCallPerm (GF := GF) (callKey W.roots dir) (1 : Qp).half -∗
       (∀ b : Bool, ⌜b = false⌝ -∗ walCloseLeft (GF := GF) dir -∗ osCallPerm (GF := GF) (callKey W.roots dir) (1 : Qp).half -∗

@@ -1268,9 +1268,9 @@ theorem Open.wp_proof [sync.Assumptions]
     (openFileDb_shared hCS R d b dq j qc h mode D hb) $$ [Hp Hperm Hn Hnh Hv1 Hv2 Hlgr]
   · iframe; iframe #
     isplitr
-    · iPkgInit
-    isplitr
     · ipureintro; exact HN
+    isplitr
+    · iPkgInit
     isplitl [Hv1]
     · iapply optsAt_intro' opts (dfHalf dqo) o v hv.1 $$ Hv1
     ipureintro; exact Hok

@@ -6199,9 +6199,14 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Evidence.** S/wal.go:1187-1199; `strings.Join_owned_bounded_of` (the slice is fully owned: count `< maxAddr`,
   so `maxAddr * (B + 2) ≤ 2^61` needs `B ≤ 2^14 - 2`).
 - **Proposed change.** As above; the producers of `rcFile`/`walClosable` (`openWALFiles`, the read path's
-  `walTie_closable`) prove the bound from the directory's `DirFits` and the segment names' length (37 bytes),
-  which needs `openWALFiles`' name premise `b.length < 2^60` → `≤ 255` (asked on #9 7127990964) and `DirFits` up
-  `openWALFiles`/`openAtIndex`/`Open`/`OpenForRead`/`openLast`/`Repair`/`ValidSnapshotEntries`/
-  `validSnapshotEntries`/`segmentContainsSnapshot` and the read-mode state (`ReadDefs.lean:113`).
-- **Decision.** In progress (branch `prove-ps2-fmt1-errno-wip/2026-11-24`): `closeAll` and the vocabulary done; the
-  producers' premises not yet.
+  `walTie_closable`) prove the bound (`wal.closeBound_of`: `|d| < 4096`, `|b| ≤ 255`) from the directory's
+  `PathFits` and the segment names' length (37 bytes). So `openWALFiles`' premises `d.length < 2^60` → `PathFits d`
+  and, on each name, `b.length < 2^60` → `≤ 255` (no objection, #9 7128911028); `dir.length < 2^59` → `PathFits dir`
+  on `openAtIndex`, `Open`, `OpenForRead`, `openLast(.specHeld)`, `Repair(.specHeld)`, `ValidSnapshotEntries`,
+  `validSnapshotEntries.specPinned`; `segmentContainsSnapshot`'s `dir.length < 2^60` → `PathFits dir` and
+  `g.name.length < 2^60` → `≤ 255`; the read-mode fallback state (`walReadFallback`) keeps `PathFits dir`. Not
+  `DirFits` (`< 3800`), as first planned: the WAL tester's top theorem (`etcd_wal_crash_safety_bounded`) has only
+  `PathFits (tWalDir area)` (its `hfit`), so `DirFits` would add a premise to it. The tester's `restartRead`,
+  `member.restart`, `member.step` specs take `PathFits (tWalDir e.area)`, discharged in `Boot` from `tWalFsOk`
+  (`Main.spec`'s premise); no top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-fmt1-errno-wip/2026-11-24`).

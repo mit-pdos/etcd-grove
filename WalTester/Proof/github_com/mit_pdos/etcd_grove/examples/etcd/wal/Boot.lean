@@ -57,6 +57,7 @@ theorem Boot.wp_proof
     (wp_close : member.close.spec (GF := GF) (hG := hG)) :
     Boot.spec (GF := GF) (hG := hG) := by
   intro W e γ o od seed nOps hf hpath hr hfs
+  have hpfW : PathFits (tWalDir e.area) := hfs.2.2
   obtain ⟨hia, hnm, hca, hdl⟩ := hpath
   wp_start as ⟨Hrun⟩
   iunfold TRun at Hrun
@@ -236,7 +237,7 @@ theorem Boot.wp_proof
   ihave Hperm : tPerm (GF := GF) e 1 $$ [Hperm Hor]
   · iunfold tPerm; rw [hkw]; iframe
   wp_apply (wp_restart W e γ «$r0_ptr» lg null v o cd od2 1 _ _ _ _ _ _ r rv hmn hf
-      ⟨hia, hnm, hca, hdl⟩ hcd hok hcwf)
+      ⟨hia, hnm, hca, hdl⟩ hpfW hcd hok hcwf)
     $$ [Hh Hperm Hpath Hres Htok Hlg Hwd Hop Hw Hov Ht Hv Hc Hb Hl Htm Hr Hrv Hrep Ho Hwo]
     as %ok Hpost
   · iframe; iframe #
@@ -264,7 +265,7 @@ theorem Boot.wp_proof
       ipureintro; exact hsm
     wp_for HI
     wp_if_destruct
-    · wp_apply (wp_step W e γ «$r0_ptr» lg o1 1 hmn hf ⟨hia, hnm, hca, hdl⟩) $$ [Hlive Hlg Hwd Hpath Hres]
+    · wp_apply (wp_step W e γ «$r0_ptr» lg o1 1 hmn hf ⟨hia, hnm, hca, hdl⟩ hpfW) $$ [Hlive Hlg Hwd Hpath Hres]
         as %b Hpost
       · iframe; iframe #
       icases Hpost with ⟨Hpath, Hres, Hlg, Hwd, Hpost⟩
