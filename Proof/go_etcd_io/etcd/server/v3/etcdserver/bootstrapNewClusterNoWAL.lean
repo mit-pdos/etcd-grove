@@ -220,6 +220,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   rw [← hmem, bootGo.cid_eq U tok HiOk' ids Hids]
   iexists ms, lgc, rp, dp
   iframe
+  iframe #
 
 end proof
 

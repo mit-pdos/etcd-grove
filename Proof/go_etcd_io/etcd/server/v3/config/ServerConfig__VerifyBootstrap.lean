@@ -133,7 +133,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
     cases b
     · -- no discovery either: the error
       try wp_auto
-      wp_apply hErrorf _ _ _ _ $$ [] as %e -
+      wp_apply hErrorf _ _ _ DFrac.discard $$ [] as %e -
       · iframe #
         isplitl
         · iapply ownSlice_nil

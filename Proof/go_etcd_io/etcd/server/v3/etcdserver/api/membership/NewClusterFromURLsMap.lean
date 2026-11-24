@@ -147,6 +147,7 @@ theorem membership.NewClusterFromURLsMap.wp_proof
     · ipureintro; exact Hmnn
     iexists pu, cu
     iframe
+    try iexact Hcus
   iintro HP Hmap
   iNamed HP
   obtain ⟨Hi0, Hil, Hszi⟩ := Hi
