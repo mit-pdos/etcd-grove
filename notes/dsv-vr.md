@@ -52,7 +52,58 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 
 ## State
 
-### Round 9: all of TypeCodecs proved; JsonHyps loses `types`; lean merged twice (2026-11-24; the current handoff)
+### Round 10: ready to land; connReaderOk discharged; reps per heap; non-vacuity (2026-11-24; the current handoff)
+
+Brief: merge lean (Perennial `b3f2fc485`), adopt kitgen, write `NonVacuityLinked.lean`, the landing
+lessons, all checks; builds on fk-lean1.
+
+**Merge.** `origin/lean` 5c7f7d2e59 (286 commits: JSON work, kitgen, kitlibs-check,
+dsv-export-leaks; Perennial `b3f2fc485`): `.lake/package-overrides.json` →
+`/shared/perennial-b3f2fc485`; `gen-init` run (with `PERENNIAL_DIR=/shared/perennial-b3f2fc485`):
+the twelve commands' `PkgTable.lean` gain `internal.testlog` (Perennial's `os`). Lean has **no**
+JSON batch 2b (`jsonQuote_plain`/`decNat_decN` bridges: vr's `QuoteBridge.lean` stays), no
+`NewDecoder`/`Decoder.Decode` spec, and no proof of `NewEncoder`/`Encode_conn` (`Results.lean`: "not
+yet proved"): so `JsonHyps` keeps its four fields.
+
+**kitgen adopted.** `etc/dsv/vr.py` has a `KITGEN` section (the boot tables, per notes/dsv-kitgen.md
+"Migration": `table='server1'`, the four owned packages, the docs, opens, variables, `q`, `post`;
+and the jsongen codec, `vsrnet/json.toml`, which `kitgen --check` now checks); `etc/dsv/_vr_boot.py`
+deleted. Output: `BootTable.lean`, `BootCmdsLinked.lean` byte-identical but the header line.
+
+**`connReaderOk` discharged (statement: `LibHyps` premise removed).** Perennial `b3f2fc485` has
+mit-pdos/perennial#688 (readatleast-prefix: `io.ReadFull` asks `Pre` only at `ys.length <
+xs.length`). `ConfDefs.lean`'s `wp_sendConf`/`wp_awaitConf` now read through Net's
+`net.conn_readerOk wp_Read` (`Pre = fun _ m => 0 < m`, at `net.connIface t`), `Conf.lean`/`Link.lean`
+pass `net.Conn.Read.wp_proof`; `LibHyps.lean` deleted.
+
+**Reps per heap (statement change, the non-vacuity finding).** The round-9 statement quantified
+`∀ [DecoderRep remoteGF] [EncoderRep remoteGF]` once, outside `∀ G L π`. Those classes are
+heap-free (`Loc → … → IProp GF`), so a representation over the model's fields (a points-to,
+which depends on the machine's heap `heapAt G L`) cannot be one instance for every heap, and a
+heap-free one cannot make `newDecoder`'s and `Decode_frame`'s triples true together (Decode reads
+`dec`'s fields in the heap of the WP; a resource that does not own them there makes it stuck;
+`newDecoder` must return the resource). So the premise, as stated, had **no true instance**.
+Now: `(∀ G L π, letI := heapAt G L; ∃ (_ : DecoderRep remoteGF) (_ : EncoderRep remoteGF),
+JsonHyps) →`; the proof `obtain`s them per machine. This implies the old statement (a constant
+family is an instance of the new premise). The main tree's classes have the same shape (heap-free):
+a future main-tree instance over the model's fields will need the heap (a class argument or a
+per-heap use, as here).
+
+**Non-vacuity.** `examples/vsrnet/NonVacuityLinked.lean` (test-only, imported by nothing):
+`encOkM`, `decOkM`, `decErrM` over the model's `Encoder`/`Decoder` fields (`encRep`, `decRep`);
+`wp_NewEncoder` **proved** from the model's translated `NewEncoder`; `Encode_conn`, `newDecoder`,
+`Decode_frame` **local axioms** (test-only; truth arguments in the file header); `jsonHyps_holds`,
+`nonvacuous_premises` (the statement's premise in its own form).
+
+**Statement diff (b297b05df9 → now)**: the `LibHyps` premise removed; the reps' binder moved
+inside the JSON premise as an `∃` per heap; docstring. Nothing else.
+
+**Remaining premise**: `∀ G L π, ∃ reps, JsonHyps` with `NewEncoder`, `Encode_conn`,
+`newDecoder`, `Decode_frame` (main tree's statements / `events`' over `DecoderRep`).
+
+**Checks (round 10)**: see "Round 10 checks" below (filled in at the final head).
+
+### Round 9: all of TypeCodecs proved; JsonHyps loses `types`; lean merged twice (2026-11-24; history)
 
 Brief: steps 4–6 of round 8 (prove `TypeCodecs`' fields, removing each from the statement), then
 check whether `JsonHyps`' `NewEncoder`/`Encode_conn`/`newDecoder`/`Decode_frame` can be
