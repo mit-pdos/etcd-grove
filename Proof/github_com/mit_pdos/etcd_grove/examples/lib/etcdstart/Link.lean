@@ -39,6 +39,7 @@ public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.maps.Copy
 public import Proof.net.Listen
+public import Proof.net.ListenHttp
 public import Proof.strconv.FormatUint
 public import Proof.go_uber_org.zap.NewNop
 public import Net.Proof.net.Listen
@@ -177,17 +178,21 @@ theorem wp_NewClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcdstart.NewClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.NewClient.wp_proof wp_NewClients
 
-theorem net.wp_Listen [_root_.Perennial.net.FieldAssumptions] :
-    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof _root_.Perennial.net.Listen.wp_proof
+theorem net.wp_ListenHttp [_root_.Perennial.net.FieldAssumptions] :
+    EtcdGrove.net.Listen.specHttp (GF := GF) (hG := hG) :=
+  EtcdGrove.net.Listen.wp_proofHttp _root_.Perennial.net.Listen.wp_proof
 
 theorem wp_NewMember [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.NewMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdstart.NewMember.wp_proof wp_newServer net.wp_Listen EtcdServer.wp_RaftHandler
+  EtcdGrove.etcdstart.NewMember.wp_proof wp_newServer net.wp_ListenHttp EtcdServer.wp_RaftHandler
 
 theorem grpc.wp_KeepaliveEnforcementPolicy :
     EtcdGrove.grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.KeepaliveEnforcementPolicy.wp_proof
+
+theorem net.wp_Listen [_root_.Perennial.net.FieldAssumptions] :
+    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.net.Listen.wp_proof _root_.Perennial.net.Listen.wp_proof
 
 theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=

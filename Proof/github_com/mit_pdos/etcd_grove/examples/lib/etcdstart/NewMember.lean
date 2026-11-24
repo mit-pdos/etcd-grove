@@ -12,6 +12,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMemb
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Spec.net.Listen
+public import Spec.net.ListenHttp
 public import Proof.net.http.Axioms
 
 @[expose] public section
@@ -37,7 +38,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 theorem NewMember.wp_proof
     (wp_newServer : newServer.spec (GF := GF) (hG := hG))
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
+    (wp_ListenHttp : net.Listen.specHttp (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG)) :
     NewMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
@@ -66,9 +67,9 @@ theorem NewMember.wp_proof
   subst Herr
   wp_auto
   -- `net.Listen("tcp", peerAddr)`
-  wp_apply (wp_Listen go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
+  wp_apply (wp_ListenHttp go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
-  icases Hlis with (⟨%Hlerr, Hlis, -⟩ | %Hlerr)
+  icases Hlis with (⟨%Hlerr, Hlis⟩ | %Hlerr)
   rotate_left
   · cases lerr with
     | nil => exact absurd rfl Hlerr
