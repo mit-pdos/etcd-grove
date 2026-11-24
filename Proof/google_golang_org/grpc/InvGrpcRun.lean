@@ -184,17 +184,20 @@ instance grpcServes_persistent (Svc : GrpcSvc GF) (ics sics : List GoFunc)
 2026-11-24; interim, retired by phase 7 decision B's W3, the codec's proof, which makes the bound the
 codec's own): for each entry, the reply model registered for its reply's Go type (`grpcRepModelOf`,
 `streamRepModelOf`: the one the entry's handler sends through, `grpcServes`) bounds the encoding of
-every reply it sends (`Rep.send l m`) below `grpcReplyMax`, so grpc's marshalling of it allocates no
-more than Go's `maxAlloc` (`InvGrpcServer.lean`, `grpcReplyMax`). The other way to the size premise
+every reply it sends (`Rep.send l m`) below `grpcMsgMax` (2 ^ 32), below `grpcReplyMax`, so grpc's
+marshalling of it allocates no more than Go's `maxAlloc` (`InvGrpcServer.lean`, `grpcReplyMax`). Below
+`grpcMsgMax`, not `grpcReplyMax`: a model's default `wireLen` is `grpcMsgMax`, "no bound known", which
+must not pass (the axiom review: below `grpcReplyMax` held of every default model, `RangeResponse`'s
+among them, whose shared `Kvs` encode past `maxAlloc`). The other way to the size premise
 of `Serve`'s trusted model than the workload premise `grpcRepliesFit`: a property of the registered
 models, which a program with bounded replies proves (the gRPC driver's `StringValue`). -/
 def grpcRepliesBounded (Svc : GrpcSvc GF) : IProp GF :=
   iprop(□ ∀ (name : GoString) (ent : GrpcSvcEntry GF), ⌜Svc name = some ent⌝ -∗
     match ent with
     | .unary e => ∀ Rep : ProtoMsgT GF, ⌜grpcRepModelOf GF e.Wp.ty = some Rep⌝ -∗
-        □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcReplyMax⌝
+        □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝
     | .stream e => ∀ Rep : StreamMsgT GF, ⌜streamRepModelOf GF e.Wp.ty = some Rep⌝ -∗
-        □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcReplyMax⌝)
+        □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝)
 
 instance grpcRepliesBounded_persistent (Svc : GrpcSvc GF) :
     Persistent (grpcRepliesBounded Svc) := by

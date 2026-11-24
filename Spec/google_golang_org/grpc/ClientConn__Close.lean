@@ -24,13 +24,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`conn.Close()`** on a dialed connection (`grpcConn`) returns, and the connection is closed for
-good (`grpcConnClosed conn`, persistent): a call `invoke` makes on it from then on fails at once with
-`codes.Canceled` (`grpcInvokerDone`, part of `ClientConn.Invoke`'s attempt contract). Calls and
+good (`grpcConnClosed conn`, persistent): a call `invoke` makes on it from then on with a context that is
+never done and carries no outgoing metadata fails at once with `codes.Canceled` (`grpcInvokerDone`, part
+of `ClientConn.Invoke`'s attempt contract). Calls and
 streams in flight may fail (their specs admit an error at every step). True of grpc-go v1.84 and the
 model (`models/grpc/clientconn.go:633-658`): `Close` cancels `cc.ctx`, sets `cc.streams` (grpc-go:
 `cc.conns`) to `nil`, closes the resolver wrapper (nil-safe, when idle) and the open streams, and
-returns `nil`, or `ErrClientConnClosing` if already closed; nothing sets `cc.streams` again
-(`NewClient` alone makes it), so `onCallBegin` fails every later call with `ErrClientConnClosing`,
+returns `nil`, or `ErrClientConnClosing` if already closed; nothing reopens it (`NewClient` alone makes
+`cc.streams`; grpc-go: `cc.conns`, and `cc.ctx` stays cancelled), so a later call's first attempt
+(`newAttemptLocked`, after its context's check) fails with `ErrClientConnClosing`,
 `status.Error(codes.Canceled, …)`. -/
 abbrev grpc.ClientConn.Close.spec : Prop :=
   ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (dopts : List GoInterface)

@@ -600,23 +600,28 @@ instance ctxCanceledIs_persistent (ctx : GoInterfaceOk) :
 /-- **A call grpc's `invoke` fails at once, with `codes.Canceled`** (persistent; grpc-trusted-T, T4,
 2026-11-24; interim, retired with `grpcInvokerOk` by S3's proof of `invoke` over the model; what
 `ClientConn.Invoke`'s axiom promises of its final invoker beside `grpcInvokerOk`): a call of `inv` on
-the connection `conn` when the connection is closed (`grpcConnClosed`), or when its context is
-canceled with `Canceled` (`ctxCanceledIs`) and carries no outgoing metadata (`metadata.outMD ctx
-none`), with a context grpc can use (`ctxOk`) and call options grpc can apply (as `grpcInvokerOk`'s),
-returns a non-nil status error of code `Canceled` (`statusCodeIs err 1`), the peer buffers back; the
-request and the reply are not touched. True of grpc-go v1.84 and the model (`models/grpc`):
-`newClientStream` first starts the call (`onCallBegin`, the idleness manager's `OnCallBegin`), which
-fails with `ErrClientConnClosing` (`status.Error(codes.Canceled, …)`, `clientconn.go:62`) on a closed
-connection; then it checks the outgoing metadata (an `Internal` status for an invalid one: none here)
-and the call options (`before`, which no `grpcOptOk` option fails), makes `cs.ctx := WithCancel(ctx)`,
-which is canceled at once with `ctx.Err()` (`propagateCancel`: `ctx`'s `Done()` channel is closed, its
-`Err()` is `Canceled`), and its first attempt (`newAttemptLocked`, `stream.go`) returns
-`toRPCErr(cs.ctx.Err())`, `errContextCanceled` (`Canceled`), or `ErrClientConnClosing`, before any
-transport is picked; `invoke` returns it. The gRPC driver's `ctx-canceled` and `close` sections. -/
+the connection `conn` whose context carries no outgoing metadata (`metadata.outMD ctx none`) and is
+canceled with `Canceled` (`ctxCanceledIs`), or never done (`ctxQuiet`) on a closed connection
+(`grpcConnClosed`), with a context grpc can use (`ctxOk`) and call options grpc can apply (as
+`grpcInvokerOk`'s), returns a non-nil status error of code `Canceled` (`statusCodeIs err 1`), the peer
+buffers back; the request and the reply are not touched. True of grpc-go v1.84 (`stream.go`,
+`newClientStream`, in this order): `cc.idlenessMgr.OnCallBegin()` (which fails nothing); the outgoing
+metadata's check (`Internal` for an invalid one: there is none); `waitForResolvedAddrs`, which returns at
+once once the resolver has reported, else selects on the context (`FromContextError`: `Canceled` for a
+canceled one) and on the connection's closing (`ErrClientConnClosing`, `status.Error(codes.Canceled,
+…)`, `clientconn.go:62`); the call options' `before` (no `grpcOptOk` option fails); `cs.ctx :=
+WithCancel(ctx)`, done at once with `ctx.Err()` when `ctx` is canceled (`propagateCancel`); the first
+attempt, `newAttemptLocked`, which checks the caller's context first (`toRPCErr(cs.ctx.Err())`,
+`errContextCanceled`) and then the connection's (`ErrClientConnClosing`) before any transport is picked;
+`invoke` returns its error. On a closed connection a context that may be done otherwise (a deadline: the
+axiom review's counterexample B) can give another code, hence `ctxQuiet` there. (The model,
+`models/grpc/model_clientconn.go`'s `onCallBegin`, fails a closed connection's call before the metadata
+check: fewer behaviors than grpc-go, within this contract.) The gRPC driver's `ctx-canceled` and `close`
+sections. Review: `notes/axiom-review/grpc-driver-interim.md`. -/
 def grpcInvokerDone (conn : Loc) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (method : GoString)
       (req reply : GoInterface) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
-    {{ (grpcConnClosed conn ∨ ctxCanceledIs ctx ∗ metadata.outMD ctx none) ∗ ctxOk ctx cd ∗
+    {{ metadata.outMD ctx none ∗ (ctxCanceledIs ctx ∨ grpcConnClosed conn ∗ ctxQuiet ctx) ∗ ctxOk ctx cd ∗
         opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method #req #reply #conn #opts)
     {{ (err : GoInterface), RET #err; ([∗list] p ∈ ps, grpcPeerBuf p) ∗

@@ -46,7 +46,10 @@ handler; a transparent retry happens only of an unprocessed first attempt, befor
 committed, and may re-pick the address and call the per-RPC credentials again
 (`stream.go:482-508,800-819`), so the dispatch is known only from the responses; the configurations
 `grpcResolverAt` and `dialPassthrough` admit have no retry policy. History: `notes/phase7-endstate.md`
-§2. (grpc-trusted-T, T6/T7, 2026-11-24) The metadata, the server-streaming descriptor and the error
+§2. On a server-streaming descriptor (`ClientStreams` false) grpc's `SendMsg` returns `nil` when the
+transport's write fails (`csAttempt.sendMsg`), so the send token's growth is not delivery there; the
+server then sees the stream reset, never a clean end (axiom review, grpc-driver-interim). (grpc-trusted-T,
+T6/T7, 2026-11-24) The metadata, the server-streaming descriptor and the error
 shape are stated from the connection's options (`grpcConnOpts`, `streamMdOk`, `streamErrShape`); until
 then the connection's stream interceptor had to be etcd's (`NewClient`'s `dialOk`) and the metadata was
 `clientAttemptMd conn om md`, etcd's, which is now `streamAttemptMd conn etcdVersionMd om md`. -/

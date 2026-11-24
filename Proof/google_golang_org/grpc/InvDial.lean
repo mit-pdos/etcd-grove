@@ -139,8 +139,9 @@ its relation, `client/v3/InvKVConn.lean`): called by `ClientConn.NewStream` with
 it calls the streamer at most once (or fails), synchronously, with the descriptor, method and options and a context whose outgoing metadata
 `om'` has `F om om'` (and the caller's other values and cancellation), and returns what the streamer
 returned, the stream possibly wrapped so that its operations are the streamer's stream's, their
-errors those `cliStreamErr` admits. What grpc's `ClientConn.NewStream` axiom assumes of a
-connection's stream interceptor. -/
+errors those `cliStreamErr` admits; it may first make the unary calls of a token fetch (etcd's
+`getToken`: an `Authenticate` on its client's connection), whose handler runs are not accounted for
+here. What grpc's `ClientConn.NewStream` axiom assumes of a connection's stream interceptor. -/
 axiom streamIcMdIs [GooseExts] (si : GoFunc) (F : GrpcMd → GrpcMd → Prop) : Prop
 
 /-- **The resolver builder `rb` resolves the scheme `scheme` to the addresses `addrs`** (exclusive; an
