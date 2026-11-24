@@ -226,7 +226,7 @@ PROJECTS = [
         repo="https://github.com/upamanyus/bbolt",
         # Split oversized leaves and admit all individually readable key/value pairs.
         rev="ca88bb6a8339da5d5c29eccf120e1b621021b4f9",
-        lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
+        lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash/crc32=", "hash/fnv=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
             "go.etcd.io/bbolt",
@@ -405,7 +405,7 @@ PROJECTS = [
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
                     "github.com/prometheus/client_model=",
                     "github.com/jonboulle/clockwork=",
-                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "hash=", "path=", "internal/nettrace=",
+                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "hash/crc32=", "hash/fnv=", "path=", "internal/nettrace=",
                     "encoding/hex=", "container/heap=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
@@ -422,10 +422,9 @@ PROJECTS = [
                     # `bufio`'s Reader and `path/filepath`'s lexical functions (over
                     # `internal/filepathlite`) with bodies, `hash/crc32` (`hash=` above) names only
                     "bufio=", "path/filepath=", "internal/filepathlite=",
-                    # (crc32-hooks2, 2026-11-22) `hash/crc32`'s `slicingUpdate` calls
-                    # `byteorder.LEUint32` (project k8s-apiserver's translation,
-                    # Code/internal/byteorder.toml)
-                    "internal/byteorder=",
+                    # (claim #34 stage 2, 2026-11-25) `hash` and `internal/byteorder` are Perennial's
+                    # (`crypto/sha1`, which membership calls, imports them): until then this project's
+                    # (`hash` types only) and project k8s-apiserver's, which clashed with Perennial's
                     # (the same) `fileutil`'s lock and preallocation calls: the per-byte file
                     # extension's `syscall` and `golang.org/x/sys/unix` (project bboltfs's), as `os=`
                     "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall=",
@@ -648,9 +647,6 @@ PROJECTS = [
             "google.golang.org/grpc/serviceconfig",
             "google.golang.org/grpc/attributes",
             "crypto/tls",
-            # types only (the interfaces `Hash`, `Hash32`, ...): the type of mvcc's
-            # `kvHasher.hash` field, so that Goose translates `kvHasher`
-            "hash",
             # types and names only: the FNV hash the DaemonSet controller's `controller.ComputeHash`
             # writes into (project k8s-daemonset; notes/k8s-daemonset-goose.md); here since this
             # project owns `hash`
@@ -1623,9 +1619,6 @@ PROJECTS = [
         local=os.path.join("examples", "k8s", "etcd3"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=", "os=", "io/fs=",
                     "go.opentelemetry.io=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "encoding/json=", "encoding/base64=",
-                    # (prove-authcrypto, 2026-11-21) base64's decoder's big-endian stores
-                    # (Code/internal/byteorder.toml), with their bodies
-                    "internal/byteorder=",
                     "path=", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine=",
                     # the etcd project's names-only translations, which client-go's workqueue
@@ -1787,7 +1780,6 @@ PROJECTS = [
             "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
-            "internal/byteorder",
             # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context key
             "runtime/trace",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
@@ -1842,7 +1834,7 @@ PROJECTS = [
                os.path.join("encoding", "json"),
                os.path.join("github_com", "go_logr"),
                os.path.join("github_com", "spf13"),
-               os.path.join("encoding", "base64"), os.path.join("internal", "byteorder"),
+               os.path.join("encoding", "base64"),
                os.path.join("runtime", "trace"),
                os.path.join("github_com", "google"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
@@ -1868,7 +1860,7 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "k8s", "daemonset"),
-        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash=", "encoding/json=", "os=", "io/fs=",
+        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash/crc32=", "hash/fnv=", "encoding/json=", "os=", "io/fs=",
                     "github.com/go-logr="],
         packages=[
             "./apimodel",
@@ -2154,7 +2146,7 @@ PROJECTS = [
         rev="2e1663644f604d5a2c4f040bc744e047cde8fd8e",
         root="Bbolt",
         lean_roots=["go.etcd.io/bbolt=Bbolt", "os=", "syscall=", "golang.org/x/sys=", "io/fs=",
-                    "hash=", "encoding/hex="],
+                    "hash/crc32=", "hash/fnv=", "encoding/hex="],
         # the database; not its tests, tools (cmd/) or test helpers (internal/btesting, ...)
         packages=[".", "./errors", "./internal/common", "./internal/freelist"],
         owned=[os.path.join("go_etcd_io", "bbolt")],
@@ -2176,7 +2168,7 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove/examples/bbolt/bank=Bbolt",
                     "go.etcd.io/bbolt=Bbolt", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine=", "os=", "syscall=", "golang.org/x/sys=",
-                    "io/fs=", "hash=", "encoding/hex="],
+                    "io/fs=", "hash/crc32=", "hash/fnv=", "encoding/hex="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "bbolt", "bank")],
     ),

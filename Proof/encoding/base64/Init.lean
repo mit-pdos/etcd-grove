@@ -18,8 +18,8 @@ of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString
 module
 
 public import Proof.encoding.base64.Base
+public import Perennial.Proof.internal.byteorder.Link
 public import Perennial.Proof.strconv.Link
-public import Proof.internal.byteorder.Init
 public import Proof.encoding.base64.InitFacts
 
 @[expose] public section
