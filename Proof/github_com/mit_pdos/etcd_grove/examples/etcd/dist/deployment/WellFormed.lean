@@ -575,7 +575,25 @@ theorem deployment.WellFormed.wp_proof
                     first | exact h | (simp only [hau] at h; exact h) | simpa [hau] using h
                   clear hNameOk hNames hBounds hString hAddr hNodeCount hIds hCompat hAuth hErrorf
                   refine ⟨fun h => ?_, fun h => ?_, fun h => ?_⟩ <;> simp_all)
-              · skip)
+              · have Hif' : ¬ sint.Z (W64 (j : Int)) < sint.Z v.Workloads'.len := by
+                  first | exact Hif | exact of_decide_eq_false (GoGlobalContext.intoVal_inj_bool Hif)
+                have hjl := idx_end _ _ _ Hlw.1 Hlw.2 Hif' Hf1
+                subst hjl
+                rw [List.take_length] at Hf2
+                iapply HΦ
+                ipureintro
+                intro _
+                clear hNameOk hNames hBounds hString hAddr hNodeCount hIds hCompat hAuth hErrorf
+                have hpeers : ∀ m ∈ d.members, Net.addrOk m.peer = true := fun m hm =>
+                  (Hok.2.2 m.peer (List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hm, by simp⟩))).1
+                apply goWellFormed_sound
+                refine ⟨hmem, Hj3, fun m hm => (Hj4 m hm).1, Hk2, hnl', fun a ha => (Hok.2.2 a ha).1,
+                  Hok.2.1, ?_, hbid hpeers rfl, htok0, hsnap, hcatch, hret, hbc rfl,
+                  fun w hw => (Hf2 w hw).1, fun w hw => (Hf2 w hw).2.1, fun w hw => (Hf2 w hw).2.2,
+                  hmax, fun m hm => (Hj4 m hm).2, fun a ha => (Hok.2.2 a ha).2, ?_⟩
+                · intro j' w ns hw hns
+                  exact Hn3 j' w ns (List.getElem?_eq_some_iff.1 hw).1 hw hns
+                · unfold etcd_dist.typed.maxLen; rw [← htok]; exact htokl)
       · rw [decide_eq_false hnl]
         (try simp only [Bool.not_false])
         err_exit
