@@ -17,14 +17,14 @@ import (
 // socket, WriteToUDP(b, a) returns (len(b), nil) (poll.FD.WriteToInet4 returns
 // len(p) after a sendto(2) without error: internal/poll/fd_unix.go), and the
 // socket bound to a receives b byte for byte, with the sender's address as
-// the *UDPAddr ReadFromUDP returns. Sizes 1, 100, 1472 (intactMax).
+// the *UDPAddr ReadFromUDP returns. Sizes 1, 100, 524 (intactMax) and 1472.
 //
 // Model: agrees (SendStep's success adds d with Intact b d, d = b for
-// |b| <= 1472; RecvStep returns it).
+// |b| <= 524, any d above, here b too; RecvStep returns it).
 func TestUDPSendDelivered(t *testing.T) {
 	t.Parallel()
 	s, r := udpListen(t, "127.0.0.1"), udpListen(t, "127.0.0.1")
-	for _, n := range []int{1, 100, 1472} {
+	for _, n := range []int{1, 100, 524, 1472} {
 		b := bytes.Repeat([]byte{byte(n)}, n)
 		b[0] = 'x'
 		k, err := s.WriteToUDP(b, laddr(r))

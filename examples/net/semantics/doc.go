@@ -272,8 +272,8 @@
 //	                                  0 (SO_BROADCAST 1); after Close it binds
 //	TestUDPListenNotLocal        U1   a non-local IP (192.0.2.1): EADDRNOTAVAIL, the same shape         measured   ListenStep (sys)
 //	TestUDPAndTCPSamePort        U1   a TCP listener and a UDP socket at one ip:port coexist, both work  measured   udpExt apart from netExt
-//	TestUDPSendDelivered         U2,U3 WriteToUDP (len, nil); received byte for byte (1, 100, 1472     measured   SendStep, Intact, RecvStep
-//	                                  bytes), the source the sender's address
+//	TestUDPSendDelivered         U2,U3 WriteToUDP (len, nil); received byte for byte (1, 100, 524,     measured   SendStep, Intact, RecvStep
+//	                                  1472 bytes), the source the sender's address
 //	TestUDPSendToUnbound         U2   10 sends to an unbound port: (len, nil) each; the unconnected     measured   SendStep (success)
 //	                                  sender's reads never ECONNREFUSED (__udp4_lib_err: no IP_RECVERR);
 //	                                  control: a DialUDP socket gets ECONNREFUSED (not modeled)
@@ -291,18 +291,28 @@
 //	TestUDPKilledProcess         U5,U7 a SIGKILLed child's socket with 3 datagrams queued: gone, the   measured   udp_semantics.crash, UdpLocal.init;
 //	                                  address binds again, none of the 3 is received (the model                      RecvStep (over-approximates)
 //	                                  allows it), a later one is
-//	TestUDPNetnsFragmentation    U2,U3 MTU 1500 (veth ends, router ports, a bridge with a veth port; lo measured   intactMax, Intact
-//	                                  65536): 1472 bytes one packet (Ip.FragCreates +0), intact; 1473
-//	                                  (1473, nil), fragmented (FragOKs +1, FragCreates +2), not EMSGSIZE
-//	                                  (IP_MTU_DISCOVER WANT, ip_no_pmtu_disc 0)
+//	TestUDPNetnsFragmentation    U2,U3 MTU 1500 (veth ends, router ports, a bridge with a veth port; lo measured   Intact (above intactMax: any
+//	                                  65536), no ICMP: 1472 bytes one packet (Ip.FragCreates +0), intact;            bytes), SendStep
+//	                                  1473 (1473, nil), fragmented (FragOKs +1, FragCreates +2), not
+//	                                  EMSGSIZE (IP_MTU_DISCOVER WANT, ip_no_pmtu_disc 0)
+//	TestUDPNetnsPmtuFloor        U3   the path MTU decides, and any ICMP "fragmentation needed" lowers   measured   intactMax = 524, Intact
+//	                                  it (forged from the peer's namespace, raw socket), never below
+//	                                  net.ipv4.route.min_pmtu = 552 (measured): a forged MTU 68 gives
+//	                                  "mtu lock 552", 524 bytes one packet (FragCreates +0), 525
+//	                                  fragmented (+2); from a flushed route, a forged MTU 552 fragments
+//	                                  1472 bytes (+3): refutes the earlier intactMax = 1472
 //	TestUDPNetnsFaults           U3,U5 netem loss 20%, duplicate 20%, delay 5ms 5ms, reorder 25%: of    measured   UdpGlobal.sent, RecvStep, Intact
 //	                                  2000 datagrams (48-1472 bytes) some lost, some received twice,
 //	                                  some out of order, every one received identical to one sent
+//	                                  (the model: intact up to 524 bytes, any bytes above)
 //	TestUDPNetnsSentBeforeBind   U5   a datagram sent before the bind is dropped (Udp.NoPorts +1) and   measured   UdpGlobal.sent, RecvStep
 //	                                  never received after it (the model allows it: over-approximation)
-//	(the interfaces' MTU)        U3   examples/lib/robust sets no MTU: its veth pairs and bridge br0    documented intactMax (target configuration)
-//	                                  have the default 1500 (as measured above), its local mode uses
-//	                                  127.x (lo, 65536)
+//	(the interfaces' MTU)        U3   examples/lib/robust sets no MTU: its veth pairs and bridge br0    documented (target configuration; not what
+//	                                  have the default 1500 (as measured above), its local mode uses                 intactMax rests on since the
+//	                                  127.x (lo, 65536); every interface's MTU is at least 552                       path-MTU review)
+//	(the path MTU's floor)       U3   min_pmtu is a sysctl: the target configuration keeps its default  assumed    intactMax (prose: the deployment,
+//	                                  552 (measured above); a lower setting would let an ICMP message               net.ipv4.route.min_pmtu = 552)
+//	                                  fragment a datagram of at most 524 bytes
 //	(no corruption)              U3   the target links (veth, loopback, bridge) copy memory, and no      assumed    Intact (prose: the deployment)
 //	                                  netem corrupt is used (robust's LinkFaults has none); a real
 //	                                  link's corruption would also have to pass the UDP checksum
