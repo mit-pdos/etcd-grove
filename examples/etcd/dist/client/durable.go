@@ -6,11 +6,9 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 
+	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
-
-// MaxDurable bounds the durable workload's Puts (restartN's keys: one byte after the prefix).
-const MaxDurable = 256
 
 // How many times, and how far apart, the durable workload tries its final Range (a liveness
 // bound: the members may be down or cut off for a while).
@@ -26,7 +24,7 @@ func durableValue(i int) string { return string([]byte{'v', byte(i)}) }
 
 // RunDurable is the durable workload (restartN's check, rewritten over gRPC: restartN's Puts and
 // Range go through a member's own API, in the process that runs it, and its check is exact; Lean:
-// Workload.durable, review F12): n <= MaxDurable Puts of distinct keys under durablePrefix, one
+// Workload.durable, review F12): n <= deployment.MaxDurable Puts of distinct keys under durablePrefix, one
 // after the other, while members crash and restart (the test's, not the program's); then a
 // linearizable Range of the prefix, tried until one returns. Panics unless every acknowledged
 // Put's key is in it with its value at version 1, and every key in it is one whose Put was
@@ -34,8 +32,8 @@ func durableValue(i int) string { return string([]byte{'v', byte(i)}) }
 // at version 1 (each key is put once; the client sends a Put at most once, so it is applied at
 // most once). No revision check: other workloads write.
 func RunDurable(eps []string, n int) Result {
-	if n > MaxDurable {
-		n = MaxDurable
+	if n > deployment.MaxDurable {
+		n = deployment.MaxDurable
 	}
 	cli, err := newClient(eps)
 	if err != nil {

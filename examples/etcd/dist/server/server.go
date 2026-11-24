@@ -38,6 +38,7 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
 	"go.etcd.io/etcd/server/v3/features"
 
+	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -47,13 +48,6 @@ type Peer struct {
 	Name string
 	Addr string
 }
-
-// The auto-compactor's modes (etcd's --auto-compaction-mode, v3compactor.ModeRevision and
-// ModePeriodic).
-const (
-	CompactorRevision = "revision"
-	CompactorPeriodic = "periodic"
-)
 
 // Config is a member's configuration: the deployment's (Lean: Deployment, Member, ServerCfg) as
 // one member sees it. Its data directory is etcdstart.DataBase/<Name>.etcd and its WAL area
@@ -65,7 +59,7 @@ type Config struct {
 	Cluster []Peer // the initial cluster, this member included
 	Token   string // the cluster's token (etcd's --initial-cluster-token)
 	// The server configuration (Lean: ServerCfg; the same at every member).
-	CompactorMode string // CompactorRevision or CompactorPeriodic (ignored when Retention is 0)
+	CompactorMode string // deployment.CompactorRevision or CompactorPeriodic (ignored when Retention is 0)
 	Retention     int64  // revisions (revision mode) or nanoseconds (periodic); 0: no auto-compactor
 	SnapCount     uint64 // a disk snapshot every SnapCount applied entries (etcd's --snapshot-count)
 	CatchUp       uint64 // raft's log kept CatchUp entries below a snapshot
@@ -77,6 +71,34 @@ func holdForever() {
 	for {
 		time.Sleep(time.Hour)
 	}
+}
+
+// ConfigOf is member i's configuration in the deployment d (0 <= i < len(d.Members)).
+func ConfigOf(d deployment.Deployment, i int) Config {
+	var cl []Peer
+	for _, m := range d.Members {
+		cl = append(cl, Peer{Name: m.Name, Addr: m.Peer})
+	}
+	m := d.Members[i]
+	return Config{Name: m.Name, Peer: m.Peer, Client: m.Client, Cluster: cl, Token: d.Token,
+		CompactorMode: d.Cfg.CompactorMode, Retention: d.Cfg.Retention, SnapCount: d.Cfg.SnapCount,
+		CatchUp: d.Cfg.CatchUp, Auth: d.Cfg.Auth}
+}
+
+// MainDeployment is member i's machine of the deployment d (Lean: serverProg d i), with no logging
+// (MainDeploymentLogger).
+func MainDeployment(d deployment.Deployment, i int) {
+	MainDeploymentLogger(d, i, zap.NewNop())
+}
+
+// MainDeploymentLogger is member i's machine of the deployment d, logging to lg: if d is well
+// formed (deployment.WellFormed) and has a member i, MainLogger of member i's configuration
+// (ConfigOf); otherwise it returns at once.
+func MainDeploymentLogger(d deployment.Deployment, i int, lg *zap.Logger) {
+	if deployment.WellFormed(d) != nil || i < 0 || i >= len(d.Members) {
+		return
+	}
+	MainLogger(ConfigOf(d, i), lg)
 }
 
 // serverConfig is the member's etcd configuration: c's, with the examples' fixed values for the

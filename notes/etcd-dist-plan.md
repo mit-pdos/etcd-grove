@@ -899,7 +899,7 @@ part is the `k`-member boot skeleton, which waits for S5 (the peers' transport) 
   `Deployment.nodes` (each workload's client machines' addresses), `nodeList`, `nodeProg`
   (`client.NodeMain`), `clientProg w eps nodes` (`client.MainReady`), `machines` (members, orchestrators,
   client machines); `WellFormed` gains the node counts and covers the node addresses (`addrs`). The Go
-  mirror `examples/etcd/dist`'s `WellFormed` does not check nodes yet (the harness assigns them).
+  mirror (`examples/etcd/dist/deployment`'s `WellFormed`) checks them since 2026-11-24 (§11.2).
 - **The skeleton** (`Proof/.../examples/etcd/dist/TopLevelRobustness.lean`): `etcd_safe_nocrash_of_boot`
   (from `EtcdBootNC`, by `robust_of_distBootIL`). Next: the reduction from S2's names (`S2Holds GF`, now
   generic in `putget/S2Draft.lean`, at `etcdDistGF`), S5's (`S5Holds`, `dist/S5Draft.lean`: `httpAddrAt`,
@@ -1231,8 +1231,12 @@ axioms hold.
 
 - **`WellFormed` moved into the programs** (no pure premise the program can check): each machine's program
   takes the whole deployment and its index (`serverProg d i`, `clientProg d j`, `nodeProg d n`), runs
-  Go's `dist.WellFormed` (exists, `deploy.go`, tested by `TestWellFormed`; needs to move from the test-side
-  `dist` package into a package the programs import) and returns if it fails. The skeleton case-splits:
+  Go's `deployment.WellFormed` (`examples/etcd/dist/deployment`, tested by `TestWellFormed`) and returns if it
+  fails. Done 2026-11-24 (branch `etcd-safe-go/2026-11-24`): `server.MainDeployment(d, i)`,
+  `client.MainDeployment(d, j, ready)`, `client.NodeDeployment(d, n)` (binaries `cmd/{server,client,node}`
+  read the deployment's JSON and an index; the harness writes one `deployment.json`), the Go check matched to
+  Lean's clause by clause (now with the client machines' addresses and counts, unknown kinds, and kv/watch/cache's
+  `clients * ops` bounds); `TestDist` runs through these entry points. The skeleton case-splits:
   `EtcdBootNCBad` (malformed: the bridge at no address, every program returns after its check). This also
   removes `memberId` from the premises (Q5): Go computes it with Perennial's proved `crypto/sha1`.
 - **`TrustBoundary` dropped**: Iris contract premises become per-function axioms (premises-to-axioms).

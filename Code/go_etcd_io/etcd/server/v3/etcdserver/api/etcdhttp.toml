@@ -1,0 +1,7 @@
+# (etcd-dist D2, 2026-11-24) Names only: the multi-machine server (examples/etcd/dist/server) calls
+# `NewPeerHandler` (etcd's peer handler: raft, leases, members), whose spec is the phase 7 S5 boundary's.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
