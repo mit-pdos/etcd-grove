@@ -24,7 +24,8 @@ translated by project models-net), for `ReadResponse` on net/rpc's `CONNECT` ans
   `eol ++ "\n"` (`eol` `""` or `"\r"`); `hdrOwn m hb`, the map `m` the model built of the block
   (each name to the one-value slice of its value); `hdrVals ms k`, the values of `k`'s slice in the
   header map `ms`, if it has one (what `shouldClose` reads of `"Connection"`); `mimeErr E err`, the
-  errors `modelReadMIMEHeader` returns (the stream's or a `textproto.ProtocolError`).
+  errors `modelReadMIMEHeader` returns (the stream's or a `textproto.ProtocolError`, whose message
+  starts with `"malformed MIME header"`).
 -/
 module
 
@@ -244,10 +245,12 @@ def hdrVals (ms : GMap GoString GoSlice) (k : GoString) : IProp GF :=
   | some s => iprop(∃ vs : List GoString, s ↦* vs)
 
 /-- The errors `modelReadMIMEHeader` returns: the stream's (with `E`'s evidence at some position)
-or a `textproto.ProtocolError` (a line cut by the stream's error). -/
+or a `textproto.ProtocolError` (a malformed line, or one cut by the stream's error), whose message
+starts with `"malformed MIME header"`. -/
 def mimeErr (E : List w8 → GoInterface → IProp GF) (err : GoInterface) : IProp GF :=
   iprop((∃ r : List w8, □ E r err) ∨
-    ⌜∃ msg : GoString, err = interface.mkOk net.textproto.ProtocolError.ty #msg⌝)
+    ⌜∃ msg : GoString, err = interface.mkOk net.textproto.ProtocolError.ty #msg ∧
+      go!"malformed MIME header" <+: msg⌝)
 
 instance mimeErr_persistent (E : List w8 → GoInterface → IProp GF) (err : GoInterface) :
     Persistent (mimeErr E err) := by
