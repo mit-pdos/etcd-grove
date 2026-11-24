@@ -51,30 +51,30 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
   have hS := go.method_set_is (t := go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty) go!"String"
   have hC := go.method_set_is (t := go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty) go!"CanInterface"
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hE hF hS hC
-  wp_auto
+  try wp_auto
   wp_apply hLocal p cfg m $$ [] as %err1 %Herr1
   · iframe #
-  wp_auto
+  try wp_auto
   wp_if_destruct
   · wp_auto
     iapply HΦ
     ipureintro; left; assumption
   rcases Herr1 with Hne | ⟨-, Hin⟩
   · exact absurd Hif Hne
-  wp_auto
+  try wp_auto
   wp_apply hAdv p cfg m urls peer $$ [] as %err2 -
   · iframe #
-  wp_auto
+  try wp_auto
   wp_if_destruct
   · wp_auto
     iapply HΦ
     ipureintro; left; assumption
-  wp_auto
+  try wp_auto
   wp_apply hDup cfg.InitialPeerURLsMap' m urls $$ [] as %dup -
   · iframe #
   wp_if_destruct
   · -- a repeated URL: an error naming the initial cluster
-    wp_auto
+    try wp_auto
     wp_apply wp_slice_literal (V := GoInterface)
     isplitr
     · ipureintro; rfl
@@ -102,7 +102,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
     (try wp_auto)
     iapply HΦ
     ipureintro; left; simp
-  wp_auto
+  try wp_auto
   wp_apply hStr cfg.InitialPeerURLsMap' m urls Hsum $$ [] as %s -
   · iframe #
   wp_if_destruct
@@ -118,8 +118,8 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
       (try wp_auto)
       iapply HΦ
       ipureintro; left; simp
-    all_goals (wp_auto; iapply HΦ; ipureintro; right; exact ⟨rfl, Hin⟩)
-  all_goals (wp_auto; iapply HΦ; ipureintro; right; exact ⟨rfl, Hin⟩)
+    all_goals ((try wp_auto); iapply HΦ; ipureintro; right; exact ⟨rfl, Hin⟩)
+  all_goals ((try wp_auto); iapply HΦ; ipureintro; right; exact ⟨rfl, Hin⟩)
 
 end proof
 

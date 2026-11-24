@@ -34,7 +34,7 @@ theorem config.ServerConfig.hasLocalMember.wp_proof
   wp_apply (wp_map_lookup1 (K := GoString) (V := GoSlice) _ _ cfg.InitialPeerURLsMap' m cfg.Name'
     DFrac.discard) $$ [Hm] as -
   · iframe #
-  wp_auto
+  try wp_auto
   wp_if_destruct
   · -- nil: an error
     wp_auto

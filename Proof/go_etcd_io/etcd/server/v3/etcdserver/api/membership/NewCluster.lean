@@ -32,11 +32,11 @@ theorem membership.NewCluster.wp_proof
   wp_start as ⟨#Hlg, #Hopts, #Hf⟩
   ihave %Hlgnn := zapLoggerOk_ne_null lg $$ Hlg
   wp_auto
+  simp only [Hlgnn, decide_false, Bool.false_eq_true, ↓reduceIte]
+  try wp_auto
   wp_apply hOpts opts f ml $$ [] as %co Hml
   · iframe #
-  wp_auto
-  simp only [Hlgnn, decide_false, Bool.false_eq_true, ↓reduceIte]
-  wp_auto
+  try wp_auto
   wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %mp Hmp
   wp_apply (wp_map_make1 (K := w64) (V := Bool)) as %rp Hrp
   wp_auto

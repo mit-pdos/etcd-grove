@@ -894,16 +894,39 @@ bootstrappedServer__Close: bootstrappedStorage__Close
 # (config.go). Pending (`?`, hypotheses of the results that reach them): `advertiseMatchesCluster`
 # (over the untranslated `netutil`), `isMemberBootstrapped` (stage 4), and the cluster rows law
 # `bootClusterRows` (`Hmembers`, `Hisc`; plan §7.1 I5 and the names-only `SetVersion` and the like).
+types_IDSlice__Len:
+types_IDSlice__Less:
+types_IDSlice__Swap:
+types_URLs__StringSlice+P: =http.URLStringAny_ok
+types_URLsMap__String: =http.URLStringAny_ok =_root_.Perennial.fmt.wp_Sprintf =_root_.Perennial.sort.wp_Strings =_root_.Perennial.strings.wp_Join
+config_CheckDuplicateURL: =http.URLStringAny_ok
+config_ServerConfig__BootstrapTimeoutEffective:
+config_ServerConfig__ShouldDiscover:
+config_ServerConfig__hasLocalMember: fmt_Errorf
+config_ServerConfig__advertiseMatchesCluster: ?
+config_ServerConfig__VerifyBootstrap: config_ServerConfig__hasLocalMember config_ServerConfig__advertiseMatchesCluster config_CheckDuplicateURL types_URLsMap__String config_ServerConfig__ShouldDiscover fmt_Errorf
 membership_WithMaxLearners:
 membership_ClusterOptions__applyOpts:
 membership_newClusterOpts: membership_ClusterOptions__applyOpts
 membership_NewCluster: membership_newClusterOpts
+membership_computeMemberID: types_URLs__StringSlice+P =_root_.Perennial.sort.wp_Strings =_root_.Perennial.strings.wp_Join =_root_.Perennial.crypto.sha1.wp_Sum binary_bigEndian__Uint64
+membership_newMember: types_URLs__StringSlice+P
+membership_NewMember: membership_computeMemberID membership_newMember
+membership_RaftCluster__MemberIDs: sort_Sort types_IDSlice__Len types_IDSlice__Less types_IDSlice__Swap
+membership_RaftCluster__genID: membership_RaftCluster__MemberIDs binary_bigEndian__PutUint64 binary_bigEndian__Uint64 =_root_.Perennial.crypto.sha1.wp_Sum
 membership_NewClusterFromURLsMap: membership_NewCluster membership_NewMember membership_RaftCluster__genID
-config_ServerConfig__advertiseMatchesCluster: ?
+membership_RaftCluster__MemberByName: Member__Clone
 etcdserver_isMemberBootstrapped: ?
-etcdserver_bootClusterRows: ?
 etcdserver_bootstrapNewClusterNoWAL: config_ServerConfig__VerifyBootstrap membership_WithMaxLearners membership_NewClusterFromURLsMap membership_RaftCluster__MemberByName config_ServerConfig__BootstrapTimeoutEffective etcdserver_isMemberBootstrapped config_ServerConfig__ShouldDiscover types_ID__String fmt_Errorf
 etcdserver_bootstrapCluster: etcdserver_bootstrapNewClusterNoWAL
+membership_RaftCluster__ID+O:
+membership_RaftCluster__buildMembershipMetric: types_ID__String_ptr prometheus_GaugeVec__WithLabelValues prometheus_gauge__Set
+membership_RaftCluster__SetID: membership_RaftCluster__buildMembershipMetric
+membership_ValidateMaxLearnerConfig:
+schema_membershipBackend__MustCreateBackendBuckets+Fresh: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+membership_RaftCluster__SetBackend+Fresh: schema_membershipBackend__MustCreateBackendBuckets+Fresh
+etcdserver_bootClusterRows: ?
+bootstrappedCluster__Finalize: membership_RaftCluster__ID+O membership_RaftCluster__SetID schema_NewMembershipBackend membership_RaftCluster__SetBackend+Fresh RaftCluster__Members membership_ValidateMaxLearnerConfig RaftCluster__IsIDRemoved etcdserver_bootClusterRows
 # (restart S3, D2 (b), 2026-11-11) the restarted raft storage (bootstrap.go), with its body, over
 # raft's storage methods: the restart contract's `memStorRestarted` is its post
 bootstrappedWAL__MemoryStorage: =srvApi_wp_NewMemoryStorage MemoryStorage__ApplySnapshot =srvApi_wp_MemSetHardState =srvApi_wp_MemAppend

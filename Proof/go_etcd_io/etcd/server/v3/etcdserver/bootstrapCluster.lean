@@ -33,22 +33,21 @@ theorem bootstrapCluster.wp_proof
   have hnc : cfg.NewCluster' = true := Hfresh.1
   wp_start as ⟨#Hzlg, #Hro, Hrt⟩
   wp_auto
-  simp only [hnc, Bool.not_true, decide_true, Bool.true_and, Bool.and_false,
-    Bool.false_eq_true, ↓reduceIte]
-  wp_auto
+  rw [show decide (true = cfg.NewCluster') = true by simp [hnc]]
+  try wp_auto
   wp_apply (hNew cfg U H prt Hfresh HU Hfips HiOk) $$ [Hrt] as %c %err Hres
   · iframe #; iframe Hrt
-  wp_auto
+  try wp_auto
   icases Hres with (%Hne | ⟨%Heq, Hok⟩)
   · obtain ⟨ei, rfl⟩ : ∃ ei, err = GoInterface.ok ei := by
       cases err with
       | nil => exact absurd rfl Hne
       | ok ei => exact ⟨ei, rfl⟩
-    wp_auto
+    try wp_auto
     iapply HΦ
     ileft; ipureintro; exact Hne
   subst Heq
-  wp_auto
+  try wp_auto
   iapply HΦ
   iright
   isplitr

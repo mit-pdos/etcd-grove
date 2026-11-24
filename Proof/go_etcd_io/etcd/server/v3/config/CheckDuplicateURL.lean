@@ -43,7 +43,7 @@ private theorem wp_slice_for_range_ret {V : Type} [ZeroVal V] [TypedPointsto (GF
   iintro Hs HP #Hiter HΦ
   ihave %Hlen := ownSlice_len _ _ _ $$ Hs
   unfold slice.forRange
-  wp_auto
+  try wp_auto
   ihave Hinv : (∃ (j : Nat), "i" ∷ i_ptr ↦ W64 j ∗ "HP" ∷ P j ∗ "Hs" ∷ sl ↦*{dq} vs ∗
       "HΦ" ∷ (P vs.length -∗ sl ↦*{dq} vs -∗ Φ executeVal) ∗ "%Hj" ∷ ⌜j ≤ vs.length⌝ :
       IProp GF) $$ [i HP Hs HΦ]
@@ -54,7 +54,7 @@ private theorem wp_slice_for_range_ret {V : Type} [ZeroVal V] [TypedPointsto (GF
   by_cases hj : j < vs.length
   · have hc : sint.Z (W64 (j : Int)) < sint.Z sl.len := by word
     simp only [decide_eq_true hc, ↓reduceIte]
-    wp_auto
+    try wp_auto
     have h0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
     simp only [h0, hc, and_self, ↓reduceIte]
     have hsj : (sint.Z (W64 (j : Int))).toNat = j := by word
@@ -70,7 +70,7 @@ private theorem wp_slice_for_range_ret {V : Type} [ZeroVal V] [TypedPointsto (GF
       iexact HΦr
     subst hbv
     iapply wp_for_post_do
-    wp_auto
+    try wp_auto
     iframe
     iexists (j + 1)
     have hw : W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by word
@@ -100,9 +100,9 @@ theorem config.CheckDuplicateURL.wp_proof
   wp_start as ⟨#Hm, #Hurls⟩
   ihave HΦ' : (∀ b : Bool, Φ #b) $$ [HΦ]
   · iintro %b; iapply HΦ; itrivial
-  wp_auto
+  try wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := Bool)) as %ump Hump
-  wp_auto
+  try wp_auto
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply (wp_map_for_range (K := GoString) (V := GoSlice) (fun _ _ => iprop(
       ∃ (umm : GMap GoString Bool) (us : GoSlice) (r : Bool),

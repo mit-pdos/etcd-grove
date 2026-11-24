@@ -91,6 +91,7 @@ theorem rbData_withMemBkts [GooseExts] (d : mvcc.KBReal) (D : backend.Data) (n :
     rw [backend.rbData_lookup]
 
 section iprops
+open Iris Iris.BI Iris.ProofMode
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -101,8 +102,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 theorem fkCl_withMemBkts (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) :
     backend.fkCl (GF := GF) γ P (withMemBkts D) = backend.fkCl γ P D := by
   unfold backend.fkCl
-  simp only [backend.fkInit, backend.fkVals, backend.fkWInit, backend.fkAbsD, backend.fkWfD,
-    dget_withMemBkts]
+  simp only [backend.fkInit, backend.fkVals, backend.fkWInit, backend.fkAbsD, backend.fkWfD]
+  rw [dget_withMemBkts]
 
 end iprops
 

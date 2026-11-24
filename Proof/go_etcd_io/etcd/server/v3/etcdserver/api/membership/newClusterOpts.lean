@@ -35,7 +35,7 @@ theorem membership.newClusterOpts.wp_proof
   iStructNamed Hco
   wp_apply hApply co opts f ml _ $$ [maxLearners] as Hml
   · iframe #; iframe
-  wp_auto
+  try wp_auto
   iapply HΦ
   iexact Hml
 

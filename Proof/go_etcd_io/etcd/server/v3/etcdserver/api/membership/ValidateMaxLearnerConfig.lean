@@ -78,6 +78,10 @@ theorem membership.ValidateMaxLearnerConfig.wp_proof :
       iexists pu, cu, il, nm, pus, cus
       iframe
     ihave Hown := Hmcl $$ Hm1
+    have hset : ms.set (sint.nat k) mv = ms := by
+      obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 Hmv_lookup
+      rw [← hget]; exact List.set_getElem_self hlt
+    rw [hset]
     wp_if_destruct
     all_goals
       (try wp_auto)

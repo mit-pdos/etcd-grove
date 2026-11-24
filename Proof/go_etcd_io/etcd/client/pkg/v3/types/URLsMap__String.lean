@@ -101,6 +101,7 @@ theorem types.URLsMap.String.wp_proof
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   wp_auto
+  wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply (wp_map_for_range (K := GoString) (V := GoSlice) (fun keys i => iprop(
       ∃ (ps : GoSlice) (xs : List GoString) (nm : GoString) (us : GoSlice),
@@ -124,6 +125,7 @@ theorem types.URLsMap.String.wp_proof
     ihave #Hvu : (vv ↦*□ urls key : IProp GF) $$ [Hurls]
     · iapply (BigSepM.bigSepM_lookup (Φ := fun k sl => (sl ↦*□ urls k : IProp GF)) Hvv) $$ Hurls
     (try wp_auto)
+    try wp_func_lits
     wp_apply (wp_slice_for_range_ro (V := _root_.Perennial.net.url.URL) _ vv (urls key) DFrac.discard _
       (fun j => iprop(∃ (ps : GoSlice) (xs' : List GoString),
         ⌜xs'.length = xs.length + j⌝ ∗ pairs_ptr ↦ ps ∗ ps ↦* xs' ∗

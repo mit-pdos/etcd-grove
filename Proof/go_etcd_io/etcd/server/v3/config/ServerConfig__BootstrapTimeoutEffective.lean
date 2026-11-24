@@ -29,9 +29,9 @@ theorem config.ServerConfig.BootstrapTimeoutEffective.wp_proof :
   wp_start as #Hbt
   wp_auto
   wp_if_destruct
-  · wp_auto
+  · try wp_auto
     iapply HΦ; itrivial
-  · wp_auto
+  · try wp_auto
     iapply HΦ; itrivial
 
 end proof

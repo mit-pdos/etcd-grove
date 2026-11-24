@@ -75,7 +75,7 @@ theorem membership.RaftCluster.MemberByName.wp_proof
   · iexists null, zero_val Loc
     simp only [named, Int.toNat_zero, List.take_zero, List.not_mem_nil, ↓reduceIte]
     iframe memb m Hmems
-    ipureintro; exact ⟨by omega, rfl⟩
+    ipureintro; exact ⟨by omega, by first | rfl | trivial⟩
   isplitr
   · imodintro
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
@@ -107,6 +107,7 @@ theorem membership.RaftCluster.MemberByName.wp_proof
       omega
     rw [hmk]
     simp only [Option.getD_some]
+    trace_state
     wp_if_destruct
     · -- the names agree: `key` is `k`
       have hkk : key = k := huniq key k mk mm hmk hk (Hif.trans hname.symm)
@@ -150,7 +151,7 @@ theorem membership.RaftCluster.MemberByName.wp_proof
     rw [show (GMap.size ms : Int).toNat = keys.length by omega, List.take_of_length_le (Nat.le_refl _)]
     rw [Hkset k, hvk]; rfl
   rw [if_pos hkin] at Hmb
-  subst Hmb
+  subst mb
   (try wp_auto)
   icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
     (Φ := fun (k : w64) (m : Loc) => membership.memberAt (GF := GF) m q

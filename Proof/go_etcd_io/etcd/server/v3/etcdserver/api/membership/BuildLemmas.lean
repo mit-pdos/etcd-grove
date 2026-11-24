@@ -68,9 +68,8 @@ theorem membership.memOfList_lookup_some (L : List apply.MemberM) (hnd : (L.map 
         obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hm'
         obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hm
         have hij : i = j := by
-          have := (List.Nodup.getElem_inj_iff hnd (i := i) (j := j)
+          exact (List.Nodup.getElem_inj hnd (i := i) (j := j)
             (hi := by simpa using hi) (hj := by simpa using hj)).1 (by simpa using hid)
-          exact this
         subst hij; rfl
       rw [this]
 

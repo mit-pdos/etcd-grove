@@ -95,6 +95,7 @@ theorem membership.RaftCluster.buildMembershipMetric.wp_proof
   icases HP with ⟨%x, -, Hlid, Hcp⟩
   (try wp_auto)
   -- `for p := range c.removed { knownPeers.WithLabelValues(...).Set(0) }`
+  wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (K := w64) (V := Bool) (fun (_keys : List w64) (_i : Int) => iprop(
       ∃ x : w64, "p" ∷ p_ptr ↦ x ∗ "Hlid" ∷ membership.rcLocalIDAddr c ↦{dq1} lid ∗

@@ -28,8 +28,6 @@ open Iris Iris.BI Iris.ProofMode
 /-- SHA-1's digest has 20 bytes. -/
 theorem membership.sha1_length (m : List w8) : (crypto.sha1.sha1 m).length = 20 := by
   unfold crypto.sha1.sha1
-  dsimp only
-  split
   simp [crypto.sha1.bytes32]
 
 section proof
@@ -91,9 +89,12 @@ theorem membership.computeMemberID.wp_proof
   have hsub : subslice (sint.nat (W64 0)) (sint.nat (W64 8))
       (crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)) =
       (crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8 ++ [] := by
-    simp [subslice]
+    have h0 : sint.nat (W64 0) = 0 := by rfl
+    have h8 : sint.nat (W64 8) = 8 := by rfl
+    simp [subslice, h0, h8]
   rw [hsub]
-  wp_apply (hU64 _ _ [] (DFrac.own 1) (by simp [membership.sha1_length])) $$ [Hmid] as Hmid
+  wp_apply (hU64 _ ((crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8) []
+    (DFrac.own 1) (by simp [membership.sha1_length])) $$ [Hmid] as Hmid
   · iframe #; iframe Hmid
   (try wp_auto)
   iapply HΦ

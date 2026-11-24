@@ -28,8 +28,10 @@ theorem membership.WithMaxLearners.wp_proof :
     membership.WithMaxLearners.spec (GF := GF) (hG := hG) := by
   intro ml
   wp_start
+  iapply wp_fupd
   wp_auto
   ipersist max
+  imodintro
   iapply HΦ
   unfold membership.clusterOptMax
   imodintro
