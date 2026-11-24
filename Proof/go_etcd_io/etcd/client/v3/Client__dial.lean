@@ -185,6 +185,7 @@ theorem Client.dial.wp_proof
       rw [Hcr, credsOfDial_nil]
       iapply BigSepL.bigSepL_nil.2; itrivial
     iapply HΦ
+    iframe Hlt
     icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
     · ileft
       isplitr
@@ -218,6 +219,7 @@ theorem Client.dial.wp_proof
       iapply BigSepL.bigSepL_singleton.2
       iexact Hpc
     iapply HΦ
+    iframe Hlt
     icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
     · ileft
       isplitr
