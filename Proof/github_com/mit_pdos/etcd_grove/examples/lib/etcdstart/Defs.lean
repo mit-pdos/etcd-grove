@@ -33,6 +33,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.net.InvNet
+public import Proof.google_golang_org.grpc.InvGrpcRun
 public import Spec.google_golang_org.grpc.Server__Serve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
@@ -757,6 +758,85 @@ theorem serveViews_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
   rw [hon, isServerReqM_false, isServerReadM_false]
   iframe #
   ipureintro; exact ⟨rfl, by rw [hM]; simp⟩
+
+/-! ### A served address's table, for its bridges (phase 7's switch, SW1, 2026-11-24)
+
+Since the switch a bridge's address serves its target's service table (`bridge.New`), and a
+registration is read off the dialed address's own table: there is no law transporting a registration
+from one address to another (the protocols are opaque, `notes/phase7-endstate.md` §1.5 item 5). So
+what a member serves is given relative to its table: `tableAt c P` is the single-process start's
+table term at `c` (`grpcServerAt`) with `P` at every address serving that term, and a bridge set to
+the term (`grpcServerAt_bridge`) serves `P`. -/
+
+/-- **`P` at every address serving the table `c` serves** (persistent; see above). -/
+def tableAt (c : GoString) (P : GoString → IProp GF) : IProp GF :=
+  iprop(∃ (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface))
+      (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (sms : List (GrpcStreamMethod GF)),
+    grpcServerAt c ics regs tys sms ∗ □ ∀ a, grpcServerAt a ics regs tys sms ={⊤}=∗ P a)
+
+instance tableAt_persistent (c : GoString) (P : GoString → IProp GF) :
+    Persistent (tableAt (GF := GF) c P) := by
+  unfold tableAt; infer_instance
+
+open Iris.ProofMode in
+/-- `P` at the table's own address. -/
+theorem tableAt_self (c : GoString) (P : GoString → IProp GF) :
+    tableAt (GF := GF) c P ⊢ |={⊤}=> P c := by
+  iintro #H
+  iunfold tableAt at H
+  icases H with ⟨%ics, %regs, %tys, %sms, #Hc, #Hw⟩
+  iapply Hw $$ %c Hc
+
+open Iris.ProofMode in
+/-- A table's `P` gives a weaker `Q`. -/
+theorem tableAt_mono (c : GoString) (P Q : GoString → IProp GF) :
+    tableAt (GF := GF) c P ∗ □ (∀ a, P a ={⊤}=∗ Q a) ⊢ tableAt c Q := by
+  iintro ⟨#H, #Hpq⟩
+  iunfold tableAt at H
+  icases H with ⟨%ics, %regs, %tys, %sms, #Hc, #Hw⟩
+  iunfold tableAt
+  iexists ics, regs, tys, sms
+  iframe Hc
+  iintro !> %a #Ha
+  imod (Hw $$ %a Ha) with HP
+  iapply Hpq $$ %a HP
+
+open Iris.ProofMode Net in
+/-- **A bridge's address set to its target's table** (phase 7's switch, SW1): what `Listen` left at
+`b` (`netAddrLeft`) sets `b`'s protocols to those of the table term `c` serves, at `c`'s net names
+(`addr_set_proto_tok`, the registry from `c`'s protocols, `addrProto_regCtx`): `b` serves the term
+(`grpcServerAt`), and both addresses serve one table, what `bridge.New` takes. -/
+theorem grpcServerAt_bridge (b c : GoString) (ics : List GoFunc)
+    (regs : List (GoString × GoFunc × GoInterface))
+    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (sms : List (GrpcStreamMethod GF)) :
+    netAddrLeft b ∗ grpcServerAt (GF := GF) c ics regs tys sms ⊢
+      |={⊤}=> grpcServerAt b ics regs tys sms ∗
+        ∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
+          grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) b (grpcStartSvc ics regs tys sms) ∗
+          grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) c (grpcStartSvc ics regs tys sms) := by
+  iintro ⟨Hleft, #Hc⟩
+  iunfold grpcServerAt at Hc
+  icases Hc with ⟨%hX, %π, %σ, #Ha⟩
+  iunfold netAddrLeft at Hleft
+  icases Hleft with ⟨%hX', Hp, #Hv, #Hti⟩
+  have h : hX' = hX := proof_irrel _ _
+  subst h
+  iunfold grpcAddrAt at Ha
+  icases Ha with ⟨#Hpr, #Hsl⟩
+  ihave #Hreg := addrProto_regCtx (Gg := hG.goose_globalGS) c _ _ $$ Hpr
+  imod addr_set_proto_tok (Gg := hG.goose_globalGS) ⊤ b (grpcCliPI (grpcStartSvc ics regs tys sms))
+    (grpcSrvPI (grpcStartSvc ics regs tys sms)) $$ Hreg Hp Hv Hti with #Hpb
+  ihave #Hb : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) b
+      (grpcStartSvc ics regs tys sms) $$ []
+  · unfold grpcAddrAt; iframe Hpb Hsl
+  ihave #Hc' : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) c
+      (grpcStartSvc ics regs tys sms) $$ []
+  · unfold grpcAddrAt; iframe Hpr Hsl
+  imodintro
+  isplitl []
+  · unfold grpcServerAt; iexists _, π, σ; iexact Hb
+  iexists _, π, σ
+  iframe Hb Hc'
 
 end defs
 

@@ -3513,6 +3513,36 @@ theorem grpcStartAtLis (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sic
   · iapply (grpc.startBound gs lis addr ics sics svcs regs sregs tys htys sms hsms hsnd hfit hnd)
     iframe Hn Hleft Hms
 
+/-- **The streams a server at `a` serves** (phase 7's switch, SW1): an address serving the start's
+table term (`grpcServerAt`) registers its streams, each at its content (`grpc.start'`'s registration,
+at any address of the term: a bridge's, `etcdstart.grpcServerAt_bridge`). -/
+theorem grpcServerAt_streams (a : GoString) (ics sics : List GoFunc)
+    (regs sregs : List (GoString × GoFunc × GoInterface))
+    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF))
+    (sms : List (GrpcStreamMethod GF)) (hsms : ∀ m ∈ sms, (m.name, m.handler, m.srv) ∈ sregs)
+    (hsnd : (sms.map (·.name)).Nodup) (hnd : ((regs ++ sregs).map Prod.fst).Nodup) :
+    grpcServerAt (GF := GF) a ics regs tys sms ∗
+      □ ([∗list] m ∈ sms, grpcStreamRunOk #m.handler m.srv sics m.Up m.spec ∗
+          □ ∀ md γ, m.spec md γ (m.dn md γ)) ⊢
+    [∗list] m ∈ sms, isGrpcStreamMd a m.name m.Up m.spec := by
+  iintro ⟨#Hs, #Hms⟩
+  iunfold grpcServerAt at Hs
+  icases Hs with ⟨%hX, %π, %σ, #Ha⟩
+  have Hm : iprop(□ grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) a
+      (grpcStartSvc ics regs tys sms)) ⊢
+      [∗list] m ∈ sms, ((grpcStreamRunOk #m.handler m.srv sics m.Up m.spec ∗
+        □ ∀ md γ, m.spec md γ (m.dn md γ)) -∗ isGrpcStreamMd a m.name m.Up m.spec) :=
+    BigSepL.bigSepL_intro (fun _ m hk => by
+      have hm : m ∈ sms := List.mem_of_getElem? hk
+      have he := grpcStartSvc_stream ics regs sregs tys sms hsms hsnd hnd m hm
+      iintro #Ha ⟨-, #Hsp⟩
+      iapply (isGrpcStreamMd_of_addr (Req := m.Req.toStreamMsg) (Rep := m.Rep.toStreamMsg)
+        a m.name (grpcStartSvc ics regs tys sms) m.Up m.dn m.spec he) $$ [Ha Hsp]
+      iframe Ha Hsp)
+  ihave Hw := Hm $$ []
+  · imodintro; iexact Ha
+  iapply BigSepL.bigSepL_wand $$ Hms Hw
+
 /-- **etcd's KV service, started, with other methods and streams** (`etcd_kv_started` with the
 methods `ms`, each meeting grpc's run contract, served by the same `grpc.serve`: `etcd_kv_served_with`;
 the closed lease example, 2026-11-02; since phase 7's switch, SW1, 2026-11-24, with the server's
@@ -3550,17 +3580,44 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) ∗
-        [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
+        ([∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec) ∗
+        grpcServerAt addr [il, im, iu] regs etcdTys sms ∗
+        □ (∀ a, grpcServerAt a [il, im, iu] regs etcdTys sms ={⊤}=∗
+          ([∗list] m ∈ sms, isGrpcStreamMd a m.name m.Up m.spec) ∗
+          isGrpcRpc a go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
+          isGrpcRpcMd a go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
+          isGrpcRpc a go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
+          isGrpcRpc a go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
+          isGrpcRpc a go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) ∗
+          [∗list] m ∈ ms, isGrpcRpcMd a m.name m.spec) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hleft, #Hb, #Hrp, #Hxs, #Hsms⟩
   imod (grpcStartAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs etcdTys etcdTys_reg sms
     hsms hsnd Hrf hnd) $$ [Hgs Hleft]
-    with ⟨#Hat', #Hst, Htok⟩
+    with ⟨#Hat', -, Htok⟩
   · iframe Hgs Hleft Hsms
   ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
   ihave #Him' := Him $$ %v3rpc.learnerReqOk
-  imod (etcd_kv_served_with addr p q s E ρ γr cid mid n il im iu regs sms ms
-    (by rw [etcdKVRegs_eq]; exact hregs) hms hmt hρ HL) $$ [] with H
-  · iframe #
+  -- (phase 7's switch, SW1) the registrations at every address serving the start's table term (a
+  -- bridge's), then at `addr`
+  ihave #Htab : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys sms ={⊤}=∗
+      ([∗list] m ∈ sms, isGrpcStreamMd a m.name m.Up m.spec) ∗
+      isGrpcRpc a go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
+      isGrpcRpcMd a go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
+      isGrpcRpc a go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
+      isGrpcRpc a go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
+      isGrpcRpc a go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) ∗
+      [∗list] m ∈ ms, isGrpcRpcMd a m.name m.spec) $$ []
+  · iintro !> %a #Ha
+    imod (etcd_kv_served_with a p q s E ρ γr cid mid n il im iu regs sms ms
+      (by rw [etcdKVRegs_eq]; exact hregs) hms hmt hρ HL) $$ [] with H
+    · iframe #
+    ihave Hss := grpcServerAt_streams a [il, im, iu] [ims, is] regs sregs etcdTys sms hsms hsnd hnd
+      $$ [Ha Hsms]
+    · iframe #
+    imodintro
+    iframe Hss
+    iexact H
+  imod (Htab $$ %addr Hat') with ⟨Hss, #H1, #H2, #H3, #H4, #H5, H6⟩
   imodintro
   iframe; iframe #
 
@@ -3603,18 +3660,31 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
+        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) ∗
+        grpcServerAt addr [il, im, iu] regs etcdTys sms ∗
+        □ (∀ a, grpcServerAt a [il, im, iu] regs etcdTys sms ={⊤}=∗
+          ([∗list] m ∈ sms, isGrpcStreamMd a m.name m.Up m.spec) ∗
+          isGrpcRpc a go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
+          isGrpcRpcMd a go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
+          isGrpcRpc a go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
+          isGrpcRpc a go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
+          isGrpcRpc a go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid)) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hleft, #Hb, #Hrp, #Hsms⟩
   imod (etcd_kv_started_with addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs [] sms
     hregs (by intro m hm; simp at hm) (by intro m hm; simp at hm) hsms hsnd Hrf hnd hρ HL)
     $$ [Hgs Hleft]
-    with ⟨Htok, Hst, #H1, #H2, #H3, #H4, #H5, -⟩
+    with ⟨Htok, Hst, #H1, #H2, #H3, #H4, #H5, -, #Hsat, #Htab⟩
   · iframe; iframe #
     iintro !>
     iapply BigSepL.bigSepL_nil.2
     itrivial
   imodintro
-  iframe; iframe #
+  iframe Htok Hst
+  iframe H1 H2 H3 H4 H5 Hsat
+  iintro !> %a #Ha
+  imod (Htab $$ %a Ha) with ⟨Hss, #G1, #G2, #G3, #G4, #G5, -⟩
+  imodintro
+  iframe Hss; iframe #
 
 end start
 
