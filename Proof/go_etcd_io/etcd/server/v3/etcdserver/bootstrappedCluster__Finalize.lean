@@ -237,8 +237,10 @@ theorem bootstrappedCluster.Finalize.wp_proof
     iunfold bootClusterDone
     isplitr
     · iunfold rnClusterOk
-      imodintro
-      iintro %id %Φ' - HΦ'
+      try imodintro
+      iintro %id %Φ'
+      try imodintro
+      iintro - HΦ'
       wp_apply (membership.RaftCluster.IsIDRemoved.spec_static hIIR bc.cl' id) $$ [$Hmpkg $Hrc]
       iapply HΦ'
       itrivial

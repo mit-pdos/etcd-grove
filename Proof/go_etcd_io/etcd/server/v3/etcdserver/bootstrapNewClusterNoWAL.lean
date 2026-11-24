@@ -207,10 +207,11 @@ theorem bootstrapNewClusterNoWAL.wp_proof
     · refine ⟨hname, ?_, ?_, ?_⟩
       · rw [hids_eq]; exact Hids.1
       · intro h
-        apply hnz
         have h2 : W64 0 ∈ (bootGo.members U tok).map (·.id) := h
         rw [((bootGo.members_perm U tok).map _).mem_iff] at h2
-        simpa [List.map_map, Function.comp_def, hfm] using h2
+        unfold bootGo.entries at h2
+        rw [List.map_map] at h2
+        exact hnz' h2
       · show (bootGo.memberOf U tok cfg.Name').id ∈ bootGo.ps U tok
         rw [hids_eq, Hids.2.1, hfm]
         exact (membership.memOfList_isSome _ hndE _).2

@@ -118,6 +118,7 @@ theorem membership.NewClusterFromURLsMap.wp_proof
     try simp only [hnz, decide_false, Bool.false_eq_true, ↓reduceIte]
     try wp_auto
     (try wp_auto)
+    try rw [show membership.memberIDOf ((urls key).map membership.urlStrOf) token = (fm key).id from rfl]
     wp_apply (wp_mapInsert (K := w64) (V := Loc) _ mpm ms (fm key).id mm) $$ [Hmap] as Hmap
     · iframe
     (try wp_auto)

@@ -122,12 +122,17 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
   try wp_method_call
   try wp_auto
   wp_apply hStr cfg.InitialPeerURLsMap' m urls Hsum $$ [] as %s -
-  · iframe #
-  wp_if_destruct
-  · wp_apply hDisc p cfg $$ [] as %b -
-    · iframe #
-    wp_if_destruct
-    · try wp_auto
+  try (· iframe #)
+  -- `c.InitialPeerURLsMap.String() == "" && !c.ShouldDiscover()`
+  by_cases hs : s = ([] : GoString)
+  · subst hs
+    rw [show decide (([] : GoString) = []) = true from rfl]
+    try wp_auto
+    wp_apply hDisc p cfg $$ [] as %b -
+    try (· iframe #)
+    cases b
+    · -- no discovery either: the error
+      try wp_auto
       wp_apply hErrorf _ _ _ _ $$ [] as %e -
       · iframe #
         isplitl
@@ -136,8 +141,9 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
       (try wp_auto)
       iapply HΦ
       ipureintro; left; simp
-    all_goals ((try wp_auto); iapply HΦ; ipureintro; right; exact ⟨rfl, Hin⟩)
-  all_goals ((try wp_auto); iapply HΦ; ipureintro; right; exact ⟨rfl, Hin⟩)
+    · (try wp_auto); iapply HΦ; ipureintro; right; exact ⟨rfl, Hin⟩
+  · rw [show decide (s = ([] : GoString)) = false from decide_eq_false hs]
+    (try wp_auto); iapply HΦ; ipureintro; right; exact ⟨rfl, Hin⟩
 
 end proof
 
