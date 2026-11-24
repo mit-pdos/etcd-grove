@@ -63,6 +63,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.internal.sync, isPkgInit (PROP := IProp GF) pkg_id.internal.sync),
    (pkg_id.internal.synctest, isPkgInit (PROP := IProp GF) pkg_id.internal.synctest),
    (pkg_id.internal.syscall.unix, isPkgInit (PROP := IProp GF) pkg_id.internal.syscall.unix),
+   (pkg_id.internal.testlog, isPkgInit (PROP := IProp GF) pkg_id.internal.testlog),
    (pkg_id.io, isPkgInit (PROP := IProp GF) pkg_id.io),
    (pkg_id.io.fs, isPkgInit (PROP := IProp GF) pkg_id.io.fs),
    (pkg_id.iter, isPkgInit (PROP := IProp GF) pkg_id.iter),
@@ -148,151 +149,155 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h10, h12, h6, h7, True.intro⟩
-  have h15 : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h13, True.intro⟩
-  have h16 : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h15, h5, h13, h6, True.intro⟩
-  have h17 : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h7, h14, h5, h13, h16, h6, True.intro⟩
-  have h18 : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h11, h6, h13, h17, h10, h7, h16, True.intro⟩
-  have h19 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.ipv4port (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h6, h9, h18, True.intro⟩
-  have h20 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.log (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h0, h8, True.intro⟩
-  have h21 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.events (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h8, h6, h7, h5, h19, h20, h0, True.intro⟩
-  have h22 : GetIsPkgInitProp pkg_id.«unsafe» (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h23 : GetIsPkgInitProp pkg_id.math.bits (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h22, True.intro⟩
-  have h24 : GetIsPkgInitProp pkg_id.internal.strconv (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h23, True.intro⟩
-  have h25 : GetIsPkgInitProp pkg_id.internal.stringslite (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h26 : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h6, h24, h25, True.intro⟩
-  have h27 : GetIsPkgInitProp pkg_id.internal.bytealg (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h28 : GetIsPkgInitProp pkg_id.unicode.utf8 (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h29 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h27, h28, h25, h7, h5, True.intro⟩
-  have h30 : GetIsPkgInitProp pkg_id.log.slog (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h11, h6, h9, h26, h29, True.intro⟩
-  have h31 : GetIsPkgInitProp pkg_id.cmp (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h32 : GetIsPkgInitProp pkg_id.iter (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h33 : GetIsPkgInitProp pkg_id.slices (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h31, h32, h23, True.intro⟩
-  have h34 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h23, h33, True.intro⟩
-  have h35 : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h11, h34, h10, h9, h29, True.intro⟩
-  have h36 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h37 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h5, h1, h10, h35, True.intro⟩
-  have h38 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h5, h10, h35, h37, True.intro⟩
-  have h39 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h18, h10, h35, h36, h37, h38, True.intro⟩
-  have h40 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrkv (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h29, True.intro⟩
-  have h41 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrwire (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h8, h0, h21, True.intro⟩
-  have h42 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.assert (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h9, True.intro⟩
-  have h43 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.queue (getIsPkgInit (GF := GF)) := by
+  have h15 : GetIsPkgInitProp pkg_id.internal.testlog (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h5, True.intro⟩
-  have h44 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.network (getIsPkgInit (GF := GF)) := by
+  have h16 : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h21, h19, h8, h6, h30, h18, h5, h42, h43, True.intro⟩
-  have h45 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.time (getIsPkgInit (GF := GF)) := by
+    exact ⟨h13, True.intro⟩
+  have h17 : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h10, h42, True.intro⟩
-  have h46 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.client (getIsPkgInit (GF := GF)) := by
+    exact ⟨h16, h5, h13, h6, True.intro⟩
+  have h18 : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h30, h34, h21, h19, h44, h43, h45, True.intro⟩
-  have h47 : GetIsPkgInitProp pkg_id.math (getIsPkgInit (GF := GF)) := by
+    exact ⟨h7, h14, h5, h13, h15, h17, h6, True.intro⟩
+  have h19 : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h11, h6, h13, h18, h10, h7, h17, True.intro⟩
+  have h20 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.ipv4port (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, h9, h19, True.intro⟩
+  have h21 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.log (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h0, h8, True.intro⟩
+  have h22 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.events (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h8, h6, h7, h5, h20, h21, h0, True.intro⟩
+  have h23 : GetIsPkgInitProp pkg_id.«unsafe» (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h48 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.replica (getIsPkgInit (GF := GF)) := by
+  have h24 : GetIsPkgInitProp pkg_id.math.bits (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h30, h47, h34, h42, h21, h19, h20, h44, h43, h45, True.intro⟩
-  have h49 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet (getIsPkgInit (GF := GF)) := by
+    exact ⟨h23, True.intro⟩
+  have h25 : GetIsPkgInitProp pkg_id.internal.strconv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h8, h21, h20, h7, h30, h18, h10, h35, h36, h39, h40, h41, h46, h44, h48, h45, True.intro⟩
-  have h50 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server2 (getIsPkgInit (GF := GF)) := by
+    exact ⟨h24, True.intro⟩
+  have h26 : GetIsPkgInitProp pkg_id.internal.stringslite (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h49, True.intro⟩
-  exact h50
+    exact True.intro
+  have h27 : GetIsPkgInitProp pkg_id.unicode.utf8 (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h28 : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, h25, h26, h27, True.intro⟩
+  have h29 : GetIsPkgInitProp pkg_id.internal.bytealg (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h30 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h29, h27, h26, h7, h5, True.intro⟩
+  have h31 : GetIsPkgInitProp pkg_id.log.slog (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h11, h6, h9, h28, h30, True.intro⟩
+  have h32 : GetIsPkgInitProp pkg_id.cmp (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h33 : GetIsPkgInitProp pkg_id.iter (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h34 : GetIsPkgInitProp pkg_id.slices (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h32, h33, h24, True.intro⟩
+  have h35 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h24, h34, True.intro⟩
+  have h36 : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h11, h35, h10, h9, h30, True.intro⟩
+  have h37 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h38 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h5, h1, h10, h36, True.intro⟩
+  have h39 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h5, h10, h36, h38, True.intro⟩
+  have h40 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h19, h10, h36, h37, h38, h39, True.intro⟩
+  have h41 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrkv (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h30, True.intro⟩
+  have h42 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrwire (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h8, h0, h22, True.intro⟩
+  have h43 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.assert (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h9, True.intro⟩
+  have h44 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.queue (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h5, True.intro⟩
+  have h45 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.network (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h7, h22, h20, h8, h6, h31, h19, h5, h43, h44, True.intro⟩
+  have h46 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.time (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h10, h43, True.intro⟩
+  have h47 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.client (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h7, h31, h35, h22, h20, h45, h44, h46, True.intro⟩
+  have h48 : GetIsPkgInitProp pkg_id.math (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h49 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.replica (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h7, h31, h48, h35, h43, h22, h20, h21, h45, h44, h46, True.intro⟩
+  have h50 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h0, h8, h22, h21, h7, h31, h19, h10, h36, h37, h40, h41, h42, h47, h45, h49, h46, True.intro⟩
+  have h51 : GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server2 (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h50, True.intro⟩
+  exact h51
 
 end table
 

@@ -112,3 +112,47 @@ the two variables, initializes its imports and runs their translated initializer
                 'iexists _', 'iframe HdefaultLogger handler'],
     )
     return SPECIAL
+
+
+# etc/dsv/kitgen.py (notes/dsv-kitgen.md): the first-run boot's tables, `BootTable.lean` and
+# `BootCmdsLinked.lean` (formerly etc/dsv/_vr_boot.py's; notes/dsv-vr.md, "Round 7", the boot). The
+# owned packages are the path of encoding/json's first run on a machine: `vsrnet` runs `replica`'s
+# first, `replica` `network`'s, `network` encoding/json's. The machines are listed for their order
+# only (the commands' mains stay as they are).
+KITGEN = dict(
+    name='vr',
+    go_mains=False,
+    lean_pkg=f'{VR}.examples.vsrnet',
+    proof_roots=[VR],  # the kit's own Lean trees (kitgen --export-challenge)
+    # the encoding/json model's registered codec (models/json/jsongen.py; vsrnet/json.toml)
+    codecs=[('json', 'examples/dsverify/vr/examples/vsrnet/json.toml',
+             'examples/dsverify/vr/examples/vsrnet', 'vsrnet')],
+    roles=[dict(cmd='orch'), dict(cmd='client{id}', ids=list(range(6))),
+           dict(cmd='server{id}', ids=list(range(1, 6)))],
+    boot=dict(
+        # the table: server1's chain (etc/gen-init.py's cmd/server1/PkgTable.lean)
+        table='server1',
+        owned=[f'{VR}.examples.vsrnet', f'{VR}.pkg.replica', f'{VR}.pkg.network', 'encoding.json'],
+        table_doc='''The package facts of the vr kit's boot (notes/dsv-vr.md, "Round 7", the boot; as
+swiftpaxos's): generic in a program's table `G` that gives every package of `vsrnet`'s import
+closure its `isPkgInit` (`KitG G`), the facts at `G` (`wf_*`) and, for the packages whose closure
+avoids the kit's owned packages (`ownedPkgs`: the path of encoding/json's first run, whose first
+initializations the boot proves), at `gOff S G` for `S` a sub-list of `ownedPkgs` (`wfO_*`): the
+table in which the packages of `S` are not initialized yet.''',
+        cmds_doc='''The vr kit's twelve commands' boots (notes/dsv-vr.md, "Round 7", the boot): each command's
+initialization from the machine's empty package state, its first, through `vsrnet`'s
+(`BootLinked.lean`, `boot_vsrnet`), at the command's table (`getIsPkgInit`, its `PkgTable.lean`;
+`kitG`), returning encoding/json's fresh registry (`codecFresh`).''',
+        opens=['open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode',
+               f'open {VR} {VR}.examples.vsrnet',
+               'open github_com.imdea_software.swiftpaxos (wp_package_init_first)'],
+        variables='''variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : cmd.{n}.Assumptions]''',
+        returns="returns encoding/json's fresh registry (`codecFresh`).",
+        q='encoding.json.codecFresh (GF := GF)',
+        q_sep='\n    ',
+        post='''        isPkgInit (PROP := IProp GF) pkg_id.{pkg}.cmd.{n} ∗
+        encoding.json.codecFresh (GF := GF)''',
+    ),
+)
