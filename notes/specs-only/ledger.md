@@ -6051,6 +6051,14 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   their specs keep it, passed through, for uniformity.)
   The clients' lease contract `isEtcdLease` (`cache/v3/InvEtcdTxn.lean`) gives its `Grant` and `Revoke`
   the token too (`KeepAlive` forks: unchanged), so that `lessor`'s proofs meet it (`LeaseClient.lean`).
-  Not yet followed: its users `concurrency.NewSession`, `Session.Close` (their specs need the token) and
-  theirs (`v3election`, `v3lock`, `leasing`).
+  The other client contracts likewise, on the methods that call the connection (`Get`, `Put`, `Delete`,
+  a builder's `Commit`, `Do`): `isEtcdKV`, `isEtcdKVE`, `isEtcdDeleteKV`, `txnBuilderSpec(X|O)`,
+  `readTxnBuilderSpec`, the `*Todo` contracts, `txnCommitErrTodo`, `isEtcdDoKV` (cache/v3), the
+  client's `kvLeasedPutTodo`, `kvLeasedCommitTodo`, `kmPutRestTodo`, `kmTxnUncoveredTodo`, the laws of
+  `ClientCallLaws.lean`, and v3lock's `unlockKVOk`; `If`/`Then`/`Else`, `Txn` (building) and watches
+  do not (`kv.Txn` makes no call: its addtok edit reverted). Their users' specs take the token too:
+  the cache's `Cache.get`, `serverRevision`, `Get` (its watch loop splits the token off the loop's
+  `threadTok`, `cacheWgLoopRunning`, so `getWatch`'s spec is unchanged), `concurrency.NewSession`,
+  `Session.Close`, and the concurrency, recipes and leasing functions that call a contract (2026-11-24,
+  in progress).
 - **Decision.** Applied (branch `prove-ps2-clientrdlock/2026-11-24`); the two axioms retired.
