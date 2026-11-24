@@ -360,3 +360,57 @@ only break is `SnapApplyWalk.lean:308` (`applySnapshot_walk`), at the guard's ne
 and refute `k ≤ ciEff γ st.k` from a strict `hle`. So `applySnapshot_walk` and `wp_proof_snapM` take
 `consistentIndex.ConsistentIndex.spec` (Link: `consistentIndex__ConsistentIndex` in
 `EtcdServer__applySnapshot`'s line) and `specSnapM`'s `hle` becomes `<` (its callers' `ci ≤ g < k`).
+
+### T4 round 4 (2026-11-24): `applySnapshot.wp_proofKeep` builds; the remaining steps scoped
+
+**Built (VM, `fec7d8cf82`):** the server's `Link` and `Results` with the fork guard: `applySnapshot`'s
+`specSnapM` (strict `ciEff < k`) and `specKeep`, both proved. `NewServer.wp_proofC` keeps its one
+`sorry` (`NewServerCrash.lean`, the case `σ.commit < i`).
+
+**What the five steps of "Proof plan after the guard" turn out to need** (read off the code, nothing
+written yet). Each item is more than its line in the plan says:
+
+1. **`applyAll`'s keep case is not only `applySnapshot.specKeep`.** After the guard, `applyAll` runs its
+   whole tail at `k`: `applyEntries` (nil), `Trigger(k)`, both `notifyc` receives, `raftAdvancedC`,
+   `snapshotIfNeededAndCompactRaftLog` (`specNoop`: disk = memory = applied = `k`, which `specKeep`
+   gives), and the `msgSnapC` merge. The merge is reachable: the snapshot's `Ready` can also carry this
+   node's election in a later term (`node.run` keeps stepping while a `Ready` is pending), so
+   `m.GetTerm() == apply.raftTerm` can hold. With `ci > k`, `createMergedSnapshotMessage` takes its
+   window branch (`replayConf != nil`, the bootstrap backend: `specKeep` leaves `replayConf`), which
+   needs the payload's `replayTerms` facts (`replayImageMetadata`, `rnReplayJob γ terms rt n`), as the
+   batch's merge does (`mergedCreate_window_replay`). **`rnApSnap` carries only `taReplayField`**, so
+   `raftNode.start`'s snapshot hand-off must also give `rnReplayJob` for the snapshot payload
+   (`terms = nil.appendEntries(rd.Entries)`, `raft.go:232-236`). The keep tail is then the batch's tail
+   (`wp_proofBatch`, ~600 lines, its merge branch included) at `ms = []`, `ai = k`, with the payload's
+   two-receive `notifyc` and its `srvFrozenAt`/`srvFrozenBelow` in place of `srvFrozenTerms`. Two ways
+   to write it: a copy of that tail in a new `applyAll.specKeep`; or one proof, `specBatch` taking
+   either no snapshot or a kept one with no entries. The second needs the run's keep arm to rebuild
+   `specBatch`'s precondition at `A'` (as `run_job_body` does) and a receive lemma over either notify.
+   The run's side is simple: in the window (`|A| < k ≤ |A₀|`) the ghost log stays `A₀`
+   (`ghostOf_in`, `A' <+: A₀`), so `applyResR … A'` differs from `applyResR … A` only in Go's rows
+   (`ai`, the term, `ep.confState`, `srvSnapState`, the cursor, `epReplayCfg`, whose second disjunct
+   holds in the window).
+2. **`rnRestartOk`'s `|a0| ≤ commit0`** feeds `rnRestartOk_winAbove` (the run's `hwin`) and
+   `raftNode.start`'s `rnStopImage` (`rnRestartOk_a0_le`, two uses). With item 1 the run needs no
+   `hwin` (`k ≤ |ghost|` is the keep case), and `rnStopImage`/`wal.stopImage` drop their commit bound
+   (item 4), so the conjunct can go.
+3. `replaySeed_*`: not yet read beyond its header (`replaySeed_facts` reads the replayed terms off
+   the WAL's entries up to `|A₀|`, which may pass `σ.last`).
+4. **`NodeStartSpecR`/`rnBootPre`'s `|A₀| ≤ σ.commit` is raft's.** It is the configuration point of
+   raft's own `RestartNode.spec` (`a ≤ σ.commit`, `Spec/go_etcd_io/raft/v3/RestartNode.lean`), which a
+   backend ahead of the WAL breaks (etcd hands raft the backend's conf state at `i`). Changing raft's
+   spec is not needed: the server's membership is fixed (`srv_confAt_simple`: the configuration
+   after any committed prefix is `Membership.simple cfg`), so the composition can give `RestartNode`
+   the point `a' = min |A₀| σ.commit` (the conf state reports the same `m`; `confAt γ a' m` from
+   `srv_confAt_simple` over the committed `A₀`). What then moves is the driver's view index:
+   `nodeConfig ⟨a', m⟩`, not `⟨|A₀|, m⟩`. The conf entries in `(a', |A₀|]` come back from raft and
+   are re-applied to raft (`ApplyConfChange` at or past the view's index) instead of skipped: the
+   view's bridge (`NodeBridge`, `rnView`, `applyConfChange`) must accept that, over the same `m`.
+   Then `rnStopImage` drops `a0 ≤ σ.commit` and `wal.stopImage` drops `i ≤ σ.commit` (whose
+   consumers are the restart proofs: item 5).
+5. `specRAt` over the crash image: `srvCrashImageAt_disk` without `hc`, then `wp_proofC` is
+   `specRAt`'s instance in both cases (the proved case's pattern), and the `NewServer+C` Link entry.
+
+**Size.** Item 1 is a new proof of about the batch tail's size plus a change to `raftNode.start` (its
+snapshot hand-off); item 4 reaches the node bridge's view proofs. This is several sessions of work,
+not one: the plan's "smaller" was against the regressing-ghost alternative (several thousand lines).
