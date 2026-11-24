@@ -398,7 +398,13 @@ PROJECTS = [
         # dial targets with a package counter (`clientTargetSeq`, an `atomic.Uint64`) in place of
         # `%p` of the client, which real `fmt` does not cover (the decision on #9,
         # issuecomment-7122889900: fork rewrites, no `%p` axiom).
-        rev="df6af0c36a6bf5394765d3740aaf26ca27eb8ca9",
+        # Then (etcd_safe P6, mit-pdos/etcd-grove#52, 2026-11-24; the torn-Save fix, D6 Q1 (a),
+        # notes/etcd-dist-d6.md §10) 2bd3048d7 (branch `goose-lean-fmt1c-tornsave`, on df6af0c36): the
+        # cherry-pick of 768ecf158 (`goose-lean-fmtattrs-tornsave`, on bc2b5f4d0): `WAL.Save` ends every
+        # Save that writes entries with a state record (`encodeState`), `readAll` drops the entry
+        # records no record follows (a Save a crash interrupted reads back as none), and
+        # `Unsaved`/`DiscardUnsaved`, which `bootstrap` calls (issues/raft-commit-lost-with-entries-kept.md).
+        rev="2bd3048d72e14b0641a7a427cd71348e9a926ca2",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
