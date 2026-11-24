@@ -4,8 +4,9 @@ initializers"; ported from dsverify-lab examples/gryff/proof/GryffProof/B/Init.l
 Server/SpecsDefs.lean's `gryffGlobals`, run gryff-bump-1).
 
 `gryff`'s initializer allocates mutable package variables (`stack`, `cpMarker`, the counters, the
-message buffers, `deferMap`, `bf_PT`) and its `init()` creates the trace prophecy (`traceProph =
-primitive.NewProph()`, ghost code, D13). These are owned resources, which a package fact (a
+message buffers, `deferMap`, `bf_PT`) and its `init()` creates the trace prophecy (`traceProph` from
+`primitive.NewProph()`, prophecy-only code of the prophecy patch
+`etc/proph-patches/dsv-gryff/01-trace-prophecy.patch`, D13). These are owned resources, which a package fact (a
 persistent `isPkgInit`) cannot carry, so the generated `wp_initialize'` (`gryff/src/gryff/Init.lean`)
 drops them. A replica node gets them from its own boot instead: `wp_initialize'_own`
 (`cmd/server{2,3,4}/Boot.lean`), its program's initialization from a fresh process (`ownGoState ∅`)

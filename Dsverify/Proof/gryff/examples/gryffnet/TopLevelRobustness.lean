@@ -118,9 +118,9 @@ end boot
 
 /-- **The gryff kit, closed** (see the statement's file). -/
 theorem gryff_remote_robust : gryff_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hmr hbv hsi hss hmp hrs RA H hboot σ g threads
-  refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g threads
-    (2 ^ 31 - 1) gryffLas_pairwise gryffLas_disj ?_
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hmr hbv hsi hss hmp hrs RA H hboot σ g
+  refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g (2 ^ 31)
+    (2 ^ 63) gryffLas_pairwise gryffLas_disj ?_
   intro G π hrb
   letI := RA G π
   iintro #Hreg Hs Hl

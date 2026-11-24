@@ -62,7 +62,7 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
     (hport : sint.Z port = 8502 + k) (γs : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib ∗
         net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗ H.muxFree net.rpc.defaultRPCPath ∗
-        H.defaultServer γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
+        net.rpc.defaultServer γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
         RA.rpcLisP γ.rpc (replicaRpcLis k) (net.rpc.connectReq net.rpc.defaultRPCPath)
           net.rpc.connectAns ∗
         ⌜worldOk γ ∧ threadBound GF ≤ 2 ^ 31⌝ }}

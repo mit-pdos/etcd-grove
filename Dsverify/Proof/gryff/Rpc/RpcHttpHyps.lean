@@ -4,8 +4,8 @@ net/rpc over HTTP on a server of its own (`rpc.NewServer`, `Server.Register`,
 `Server.HandleHTTP(DefaultRPCPath, DefaultDebugPath)`, `http.Serve(l, nil)`; `masterlib/master.go`)
 and each replica on `DefaultServer` (`rpc.Register`, `rpc.HandleHTTP`, `http.Serve(l, nil)`;
 `kit.go`, `serverlib/server.go`). `Net/` proves raw net/rpc (models-rpc-server: `NewServer`,
-`Server.Register`, `ServeConn`, `Accept`) and, merged here from models-rpc-http, the client over
-HTTP (`rpcAddrP`, `connectReq`, `connectAns`, `defaultRPCPath`, `DialHTTP.spec`,
+`Server.Register`, `ServeConn`, `Accept`; rpc-defaultserver: `defaultServer`, the package-level
+`Register` and `RegisterName`) and, from models-rpc-http, the client over HTTP (`rpcAddrP`, `connectReq`, `connectAns`, `defaultRPCPath`, `DialHTTP.spec`,
 `DialHTTPPath.spec`, the latter over `http.ReadResponse.spec`): those are used as they are, not
 restated. The server side is upamanyus's next item on `models-rpc-http`; this file states it as
 ONE class `RpcHttpHyp GF` with his intended names and shapes (#24; dsv-swiftpaxos's
@@ -105,10 +105,6 @@ class RpcHttpHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
   /-- `DefaultServeMux` routes `path` to a handler serving `W` at the addresses `A`. -/
   muxHas : RpcWorld GF → (GoString → Prop) → GoString → IProp GF
   muxHas_persistent : ∀ W A path, Persistent (muxHas W A path)
-  /-- `rpc.DefaultServer` is a server with the registry `γ`; a machine's comes from net/rpc's
-  initialization, `DefaultServer = NewServer()` (a boot resource, `rpcInitRes`). -/
-  defaultServer : GName → IProp GF
-  defaultServer_persistent : ∀ γ, Persistent (defaultServer γ)
   /-- `(*Server).ServeHTTP` as a net/http handler: on `CONNECT` it hijacks, writes
   `connectAns` and runs `ServeConn` on the frames (otherwise it answers 405). -/
   Server_ServeHTTP_spec : ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF)
@@ -135,16 +131,14 @@ class RpcHttpHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
         defaultServer γs ∗ (□ ∀ a, ⌜A a⌝ → srvServes γs C W a) ∗ srvEnv ∗ codecSet C }}
       (App (Val (@! net.rpc.HandleHTTP)) (Val #()))
     {{ RET #(); muxHas W A defaultRPCPath }}
-  /-- `rpc.Register(rcvr)`: `DefaultServer.Register(rcvr)` (as `Server.Register.spec`: a
-  second registration of a name returns an error). -/
-  Register_spec : ∀ (γ : GName) (C : CodecSpec GF) (rcvr : GoInterface) (S : MethodSpec GF)
-      (nm : GoString) (c : w8) (rest : GoString),
-    nm = c :: rest → uint.Z (W8 0x41) ≤ uint.Z c ∧ uint.Z c ≤ uint.Z (W8 0x5A) →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ defaultServer γ ∗ codecSet C ∗
-        C.rcv rcvr (rcvrIs C rcvr S nm false) }}
-      (App (Val (@! net.rpc.Register)) (Val #rcvr))
-    {{ (err : GoInterface), RET #err;
-        (⌜err = interface.nil⌝ ∗ svcReg γ C nm S) ∨ ⌜err ≠ interface.nil⌝ }}
+  /-- `rpc.DialHTTP` (Net's `net.rpc.DialHTTP.spec`, as it is). Net proves it,
+  `net.rpc.DialHTTP.wp` (`Net/Proof/net/rpc/Results.lean`, `DialHTTPPath` over net/http's
+  `ReadResponse`), but over two pending hypotheses, Perennial's `strings.Cut` and `strings.TrimLeft`
+  (`EtcdGrove.strings.Cut.spec`/`TrimLeft.spec`: names only at the pin b3f2fc485; their bodies are
+  translated from Perennial ed1955557 on). Until the pin has them it is this field, which
+  `DialHTTP.wp` shows true of Go (given Go's `strings.Cut`/`TrimLeft`); then it is dropped and
+  `net.rpc.DialHTTP.wp` discharges it. -/
+  DialHTTP_spec : net.rpc.DialHTTP.spec (GF := GF) (hG := hG)
   /-- A server `NewServer` made has no service yet (`γ`'s service map is empty: Net's
   `NewServer.spec` gives `isServer` only, so a first `Register` on it could not be shown to
   succeed: a finding for models-rpc-server). -/
@@ -179,7 +173,7 @@ class RpcHttpHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
     {{ (err : GoInterface), RET #err; True }}
 
 attribute [instance] RpcHttpHyp.handlerOk_persistent
-  RpcHttpHyp.muxHas_persistent RpcHttpHyp.defaultServer_persistent
+  RpcHttpHyp.muxHas_persistent
 
 end hyp
 
@@ -206,7 +200,7 @@ variables its client and server read (`cliEnv`: `io`'s and `sync`'s facts, `io.E
 `ErrUnexpectedEOF`, `ErrDeadlineExceeded`, `errFrame`, `ErrShutdown`, `debugLog = false`;
 `connected = "200 Connected to Go RPC"`). -/
 def rpcInitRes [H : RpcHttpHyp GF] : IProp GF :=
-  iprop(rpcBootRes (GF := GF) ∗ (∃ γs, H.defaultServer γs) ∗ net.rpc.cliEnv ∗
+  iprop(rpcBootRes (GF := GF) ∗ (∃ γs, net.rpc.defaultServer γs) ∗ net.rpc.cliEnv ∗
     globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus)
 
 /-- What net/http's initializer leaves on a machine: `DefaultServeMux` with no handler at

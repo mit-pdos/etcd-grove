@@ -118,9 +118,13 @@ theorem wp_RegisterWithMaster' (γ : GryffNames GF) (k : Nat) (hk : k < 3)
       isplitr
       · ipureintro; exact ⟨by decide, hW, by simp [ptrIface]⟩
       isplitr
+      · ipureintro; simp [net.rpc.maxFrameN]
+      isplitr
       · iapply L.enc_RegisterArgs «$r0_ptr» DFrac.discard (ipOf k) (portNum k)
         iframe «$r0»
         iintro -
+        isplitr
+        · ipureintro; exact encRegArgs_ipOf_length k (portNum k)
         isplitl
         · unfold masterSvc withErr masterSvc0
           isplit

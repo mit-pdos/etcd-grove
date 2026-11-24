@@ -179,6 +179,7 @@ variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))
 variable (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG))
 variable (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
 variable (wp_run : unitB.Replica.run.spec (GF := GF) (hG := hG))
+variable (wp_Register : net.rpc.Register.spec (GF := GF) (hG := hG))
 
 set_option goose.wp.extras true
 
@@ -189,7 +190,7 @@ def serveEnv (addrs : GoSlice) : IProp GF :=
     serverBoot (GF := GF) ∗
     ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗ addrs ↦* serverAddrs)
 
-include wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run in
+include wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run wp_Register in
 /-- `serve(k + 2, addrs)`: replica node `k`. -/
 theorem wp_serve_replica (γ : GryffNames GF) (k : Nat) (hk : k < 3) (addrs : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet ∗ serveEnv addrs ∗
@@ -287,7 +288,7 @@ theorem wp_serve_replica (γ : GryffNames GF) (k : Nat) (hk : k < 3) (addrs : Go
   wp_apply (NewReplica_core wp_rfl wp_run L RL γ k id nsl nodes hk) $$ [Hnsl Hready Hglob]
     as %rep ⟨Hrok, %ρ, %kr, %Hkr, Hisr⟩
   · iframe; iframe #
-  wp_apply (wp_Register_replica γ γs rep) $$ [Hrok] as %err Hr
+  wp_apply (wp_Register_replica wp_Register γ γs rep) $$ [Hrok] as %err Hr
   · iframe; iframe #
   icases Hr with (⟨%He, #Hsreg⟩ | %He)
   · subst He
@@ -382,7 +383,7 @@ theorem wp_ServerAddrs' :
   iapply HΦ
   iexact Hsl
 
-include wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run in
+include wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run wp_Register in
 theorem Server.wp_proof : Server.spec (GF := GF) (hG := hG) := by
   intro γ i hi
   wp_start as ⟨Hboot, %Hb, Hsh, Hx⟩
@@ -395,7 +396,7 @@ theorem Server.wp_proof : Server.spec (GF := GF) (hG := hG) := by
     iapply HΦ; itrivial
   · simp only [Nat.add_one_ne_zero, ↓reduceIte]
     icases Hx with ⟨Hglob, Hbp⟩
-    wp_apply (wp_serve_replica wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run γ k (by omega) sl)
+    wp_apply (wp_serve_replica wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run wp_Register γ k (by omega) sl)
       $$ [Hboot Hsl Hsh Hglob Hbp]
     · unfold serveEnv; iframe; iframe Hpkg2 Hpkg3; ipureintro; exact Hb
     try wp_auto

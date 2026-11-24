@@ -3,7 +3,8 @@ Ported from dsverify-lab examples/gryff/proof/Harness/Proof/github_com/goose_lan
 (run gryff-bump-1; notes/dsv-gryff.md), in namespace `Perennial.gryff.lib`; Perennial `7b2259a12` still
 lacks `go.NotInterface go.prophId`.
 
-Prophecy variables in a target (kits/gryff-net: a fork may insert them as marked ghost code):
+Prophecy variables in a target (kits/gryff-net; here prophecy-only code of the prophecy patch
+`etc/proph-patches/dsv-gryff/01-trace-prophecy.patch`):
 Perennial's `github.com/goose-lang/primitive` (`NewProph`, `ProphId.ResolveBool`,
 `ProphId.ResolveU64`; `Perennial/Proof/github_com/goose_lang/primitive/Link.lean`: `wp_NewProph`,
 `ProphId.wp_ResolveU64`, ...) gives their specs, and the distributed statement's adequacy covers

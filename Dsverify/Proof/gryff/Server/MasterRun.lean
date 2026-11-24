@@ -142,10 +142,14 @@ theorem wp_Call_Ping (γ : GryffNames GF) (c pa pr : Loc) (a : w8) :
   · iframe Hc Hcs Hpr
     isplitr
     · ipureintro; exact ⟨by decide, worldOk_replica γ Hw k hk, by simp [ptrIface]⟩
+    isplitr
+    · ipureintro; simp [net.rpc.maxFrameN]
     isplitl [Hpa]
     · iapply L.enc_PingArgs pa (DFrac.own 1) a
       iframe Hpa
       iintro -
+      isplitr
+      · ipureintro; exact encPingArgs_length a
       isplitl
       · unfold replicaSvc withErr replicaSvc0
         isplit
@@ -193,10 +197,14 @@ theorem wp_Call_BTL (γ : GryffNames GF) (c pa pr : Loc) :
   · iframe Hc Hcs Hpr
     isplitr
     · ipureintro; exact ⟨by decide, worldOk_replica γ Hw k hk, by simp [ptrIface]⟩
+    isplitr
+    · ipureintro; simp [net.rpc.maxFrameN]
     isplitl [Hpa]
     · iapply L.enc_BTLArgs pa (DFrac.own 1)
       iframe Hpa
       iintro -
+      isplitr
+      · ipureintro; exact encBTLArgs_length
       isplitl
       · unfold replicaSvc withErr replicaSvc0
         isplit

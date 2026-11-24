@@ -103,7 +103,7 @@ instance masterOk_persistent (γ : GryffNames GF) (m : Loc) : Persistent (master
 
 /-- A replica (U5's body; for now its rpc receiver's facts, H-U2-4): the replica as a net/rpc
 receiver of the `"Replica"` service for the kit's codec (`Server.Register.spec`'s, and
-`RpcHttpHyp.Register_spec`'s, precondition). -/
+the package-level `Register.spec`'s, precondition). -/
 @[irreducible] def replicaOk (_γ : GryffNames GF) (_rep : Loc) : IProp GF :=
   gryffCodec.rcv (ptrIface src.gryff.Replica.ty _rep)
     (net.rpc.rcvrIs gryffCodec (ptrIface src.gryff.Replica.ty _rep) replicaSvc go!"Replica" false)

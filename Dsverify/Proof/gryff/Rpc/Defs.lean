@@ -114,6 +114,21 @@ def ipOf (_k : Nat) : GoString := go!"127.0.0.1"
 /-- Replica node `k`'s port (`RegisterWithMaster`'s `portnum`); the lab's `portOf`. -/
 def portNum (k : Nat) : w64 := W64 (7502 + k)
 
+/-! ## The arguments' sizes (`Client.Call.spec`'s frame bound, `maxFrameN` = `2 ^ 30`) -/
+
+theorem encPingArgs_length (a : w8) : (encPingArgs a).length ≤ 2 ^ 30 := by
+  unfold encPingArgs tagged encStr strct fU8 fld encU64
+  split <;> simp [u64Le_length]
+
+theorem encBTLArgs_length : encBTLArgs.length ≤ 2 ^ 30 := by
+  unfold encBTLArgs tagged encStr strct
+  simp [u64Le_length]
+
+theorem encRegArgs_ipOf_length (k : Nat) (port : w64) :
+    (encRegArgs (ipOf k) port).length ≤ 2 ^ 30 := by
+  unfold encRegArgs tagged encStr strct fStr fU64 fld encStr encU64 ipOf
+  split <;> split <;> simp [u64Le_length]
+
 /-- Replica node `k`'s `"addr:port"`, as the master formats it (`portAddr k`). -/
 def addrOf (k : Nat) : GoString := portAddr k
 

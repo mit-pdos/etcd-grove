@@ -151,7 +151,7 @@ theorem Serve.wp_req (γ : GryffNames GF) (k : Nat) (port : w64) (γs : GName) (
     (hport : sint.Z port = 8502 + k) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib ∗ netShare γ ∗
         net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗ H.muxFree net.rpc.defaultRPCPath ∗
-        H.defaultServer γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
+        net.rpc.defaultServer γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
         replicaRegRes γ k ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
       (App (Val (@! gryff.src.serverlib.Serve)) (Val #port))
     {{ RET #(); True }} := by

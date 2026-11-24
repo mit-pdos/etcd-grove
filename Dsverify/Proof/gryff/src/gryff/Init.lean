@@ -4,8 +4,8 @@ Package initialization of `gryff.src.gryff`
 
 Its fact is `True`. Its initializer initializes its imports, allocates its variables, stores
 `stack` (`make([]*Instance, 0, 100)`), `cpcounter` (0) and `deferMap` (`make(map[uint64]uint64)`), and
-runs its `init()` (`proph.go`: the trace prophecy, `traceProph = primitive.NewProph()`; ghost code,
-notes/dsv-gryff.md). The variables and the prophecy are dropped here: a replica node keeps them
+runs its `init()` (the trace prophecy, `traceProph` from `primitive.NewProph()`: prophecy-only code
+of the prophecy patch `etc/proph-patches/dsv-gryff/01-trace-prophecy.patch`, notes/dsv-gryff.md). The variables and the prophecy are dropped here: a replica node keeps them
 from its own boot (`Dsverify/Proof/gryff/Boot/Defs.lean`, `cmd/server{2,3,4}/Boot.lean`; notes/dsv-gryff.md, "Package
 initializers").
 -/

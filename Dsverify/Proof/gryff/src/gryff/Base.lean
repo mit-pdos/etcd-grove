@@ -1,6 +1,7 @@
 /-
 The package fact of `gryff.src.gryff` (dsv-gryff, notes/dsv-gryff.md): `True`. Its mutable variables (`stack`, `cpMarker`, `cpcounter`, the counters, the message
-buffers, `deferMap`) and the trace prophecy `traceProph` (ghost code, D13) are owned by the
+buffers, `deferMap`) and the trace prophecy `traceProph` (prophecy-only code of the prophecy patch
+`etc/proph-patches/dsv-gryff/01-trace-prophecy.patch`, D13) are owned by the
 replica node, not facts: a node gets them from its own boot (`Dsverify/Proof/gryff/Boot/Defs.lean`, `cmd/server{2,3,4}/Boot.lean`;
 notes/dsv-gryff.md, "Package initializers")
 -/

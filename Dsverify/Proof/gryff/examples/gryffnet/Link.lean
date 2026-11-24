@@ -4,11 +4,12 @@ the kit applied to its callees' results. Net's specs (`netN.NetSpecs`: `Conn.Rea
 RemoteAddr`, `Listener.Accept`, `Listen`, `Dial`, `DialTimeout`) and dsv-bufio's
 (`wire.BufioSpecs`) are built here from their `wp_proof`s (bundles given by `haveI`, never an
 `instance`); the RPC layer's codec laws (`gryffCodecLaws`, `gryffRcvLaws`); Net's net/rpc
-(`Client.Call`, `SetCodec`, `DialHTTP` over `http.ReadResponse.spec`, which Net has not proved yet
-and the statement takes); `io.ReadFull`'s every-length form (`lib.io.ReadFull.wp_proofLt`); the
-kit's model (`Model.wp_proof`); remote's `Check`/`ServeClient`. What is not proved stays a premise
-(the statement's): the `InitHyp`s, `BinaryVarintHyps`, `StringsIndexHyp`, `SortSliceHyp`,
-`MathPowHyp`, `RandSeedHyp`, `RpcHttpAddr`, `RpcHttpHyp`, `RpcBootHyp`, `http.ReadResponse.spec`.
+(`Client.Call`, `SetCodec`, the package-level `Register` on `defaultServer`); `io.ReadFull`'s
+every-length form (`lib.io.ReadFull.wp_proofLt`); the kit's model (`Model.wp_proof`); remote's
+`Check`/`ServeClient`. What is not proved stays a premise (the statement's): the `InitHyp`s,
+`BinaryVarintHyps`, `StringsIndexHyp`, `SortSliceHyp`, `MathPowHyp`, `RandSeedHyp`, `RpcHttpAddr`,
+`RpcHttpHyp` (its `DialHTTP_spec` is Net's `net.rpc.DialHTTP.spec`, which Net proves over the
+pending `strings.Cut`/`TrimLeft`: `RpcHttpHyps.lean`), `RpcBootHyp`.
 -/
 module
 
@@ -86,9 +87,9 @@ theorem netSpecs [net.Assumptions] [net.FieldAssumptions] : netN.NetSpecs GF :=
     net.Conn.RemoteAddr.wp_proof, net.Listener.Accept.wp_proof, net.Listen.wp_proof,
     net.Dial.wp_proof, net.DialTimeout.wp_proof⟩
 
-/-! Net's net/rpc client and `SetCodec`, linked here as `Net/Proof/net/rpc/Results.lean` does;
-`DialHTTP` is that module's `net.rpc.DialHTTP.wp` (models-rpc-http: `DialHTTPPath` over net/http's
-`ReadResponse`, proved). -/
+/-! Net's net/rpc client and `SetCodec` (`Net/Proof/net/rpc/Results.lean`'s links). `DialHTTP` is
+`RpcHttpHyp.DialHTTP_spec` until the pin has Perennial's `strings.Cut`/`TrimLeft` (Net's
+`net.rpc.DialHTTP.wp` takes them as hypotheses `h_Cut`/`h_TrimLeft`). -/
 
 section rpc
 variable [net.rpc.Assumptions] [sync.Assumptions]
@@ -98,14 +99,7 @@ theorem SetCodec_wp : net.rpc.SetCodec.spec (GF := GF) (hG := hG) :=
 
 variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj] [NetProtoGS]
 
-theorem Call_wp : net.rpc.Client.Call.spec (GF := GF) (hG := hG) :=
-  net.rpc.Client.Call.wp_proof (net.rpc.Client.Go.wp_proof
-    (net.rpc.Client.send.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock
-      (net.rpc.clientCodec.WriteRequest.wp_proof
-        (net.rpc.getCodec.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock)
-        net.rpc.putU64.wp_proof (net.rpc.putString.wp_proof net.rpc.putU64.wp_proof)
-        (net.rpc.putFrame.wp_proof net.rpc.putU64.wp_proof) net.Conn.Write.wp_proof)
-      net.rpc.Call.done.wp_proof))
+theorem Call_wp : net.rpc.Client.Call.spec (GF := GF) (hG := hG) := net.rpc.Client.Call.wp
 
 end rpc
 
@@ -139,7 +133,7 @@ theorem wp_Server : Server.spec (GF := GF) (hG := hG) := by
   haveI := bufioSpecs (GF := GF) (hG := hG)
   haveI := netSpecs (GF := GF) (hG := hG)
   exact Server.wp_proof lib.io.ReadFull.wp_proofLt gryffCodecLaws gryffRcvLaws Call_wp
-    net.rpc.DialHTTP.wp SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt)
+    H.DialHTTP_spec SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt) net.rpc.Register.wp
 
 end server
 
