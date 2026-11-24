@@ -278,4 +278,23 @@ tickets, `fwdP`), re-prove raft's `MsgProp` step paths (`stepLeader`'s, `stepFol
 config line. Tracked by mit-pdos/etcd-grove#44.
 
 **Re-run (2026-11-23), forwarding off:** S2's `TestRuns`, 5 variants x 100 runs, and the three stress
-variants of §6 x 100 runs: see the commit that made the change for the counts.
+variants of §6 x 100 runs: 500 of 500 and 300 of 300 ACCEPTED by the Go checker (no `-race`).
+
+## 8. Resume here (end of session 1, 2026-11-24)
+
+Done: §1 approved and stated (`TopLevelDefs`, `Spec/.../TopLevelRobustness`); S-raft and S-sim statements
+(typecheck); harness statements part 1 (`Base`, `HarnessDefs` leaves, 24 spec files: leaves, recorder,
+`Cluster` accessors, `Events`, `RunCluster`, `Main`, `bootStorage`); forwarding off (§7, #44). Next, in order:
+1. **Decisions to take** (coordinator): (i) `RunCluster`/`raft_antithesis_accepts` need `CfgOk cfg` (`Tick > 0`,
+   `MaxDelay ≥ 0`, three nodes): with `Nodes = 3` alone the Go panics (`time.NewTicker`, `below(0)`); `Events`'
+   post adds `Stream.ConfBounded`. (ii) The harness keeps `n.cause = inp.msg` across `RawNode.Step`, which
+   consumes the message (`msgPtsCC … own 1`): change the harness to keep `msgOf(inp.msg, n.id)` (a `check.Msg`)
+   as the cause before `Step` (behaviour-preserving: `msgOf` takes `to` as an argument and raft writes no
+   field it reads once forwarding is off), then re-translate. (iii) The `ip` boundary in `ownRawNodeAt`
+   (§6, open item 2).
+2. Harness statements part 2: `Countable` for `NodeView` (ghost map), `antInv`, `isCluster`, `nodeOwn` and its
+   phases, `inputOk`, `sentMsg`, specs of `deliver`, `send`, `reportCause`, `drain`, `run`.
+3. Invariant phase: make `AntSim` (C1-C5, `Sim/Rel.lean`) inductive against `Sim/Stmts.lean`'s lemmas.
+4. Parallel proofs (§5): P-sim (pure lemmas), P-raft-1b/3/4 (one big rebuild at a time), P-harness.
+Builds: worktree `tmp/eg-ant4` has a seeded `.lake` (oleans hard-linked from `tmp/ant`, rest copied); helpers
+use `flock /tmp/ant4-build.lock` and `etc/lean-check.py` (server class) rather than `lake build`.

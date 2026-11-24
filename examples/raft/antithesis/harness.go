@@ -341,7 +341,7 @@ func RunCluster(cfg Config) *Cluster {
 			MaxInflightMsgs: 256,
 			// Forwarding disabled because raft.Step's spec covers only local MsgProp (From 0 or the
 			// node itself): a follower drops a proposal instead of forwarding it. Re-enable with option
-			// (a) of notes/antithesis-s4-design.md §7 (widen raft.Step/RawNode.Step to a network MsgProp).
+			// (a) of notes/antithesis-s4-design.md §7 (widen raft.Step/RawNode.Step to a network MsgProp): #44.
 			DisableProposalForwarding: true,
 			Logger:                    quietLogger{},
 		}

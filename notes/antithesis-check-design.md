@@ -257,7 +257,7 @@ the start, which needs the `RawNode` restart and generation laws (§6); (c) real
 (c) adds nothing to the report shapes.
 
 **Q3. Features in the first harness.** (Superseded in part, 2026-11-23: proposal forwarding is now
-**off**, the owner's decision, `notes/antithesis-s4-design.md` §7; to be re-enabled by that section's option (a).) Proposals (with forwarding: `RestartNode.spec`'s premise
+**off**, the owner's decision, `notes/antithesis-s4-design.md` §7; to be re-enabled by that section's option (a), #44.) Proposals (with forwarding: `RestartNode.spec`'s premise
 `DisableProposalForwarding = false` suggests keeping it on; the binding accepts `prop` sends),
 elections, heartbeats; no snapshots/compaction, membership changes or read index (risks 5-8).
 Recommend exactly that; read index next (cheapest: `ReadGiven` only checks the index).
