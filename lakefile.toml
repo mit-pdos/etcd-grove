@@ -83,9 +83,10 @@ globs = ["SpecPlan.+"]
 # over an agent-declared `KitLibs` class, generated from paxos's and rabia's statements, with
 # `KitLibs` classes and non-vacuity instances (rabia's equal to its landed premises; `rabiabad`, two
 # fields premcheck must refuse). Not a default target, and nothing imports it: its modules declare
-# the kits' statement names.
+# the kits' statement names. Under etc/ (etc/premcheck-test/lean/), out of the import tiers' tree.
 [[lean_lib]]
 name = "PremCheckTest"
+srcDir = "etc/premcheck-test/lean"
 globs = ["PremCheckTest.+"]
 
 # bbolt's top-level test (examples/bbolt/bank) and bbolt itself with its bodies (the fork
