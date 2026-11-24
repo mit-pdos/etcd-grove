@@ -37,6 +37,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Assumptions]
 variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
+variable [_root_.Perennial.log.NewModel]
 
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment
 

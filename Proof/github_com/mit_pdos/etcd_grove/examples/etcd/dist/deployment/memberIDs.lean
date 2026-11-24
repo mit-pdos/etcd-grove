@@ -4,7 +4,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/deployment/memb
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.memberIDs
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMember
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMemberOne
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 
 @[expose] public section
@@ -35,7 +35,7 @@ theorem urlHttp_plain (a : GoString) (h : Net.addrOk a = true) :
     first | rfl | (refine Eq.trans (rfl : _ = ([] : GoString)) ?_; simp [stringToGoString])
 
 theorem memberIDs.wp_proof [go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
-    (hNew : EtcdGrove.membership.NewMember.spec (GF := GF) (hG := hG)) :
+    (hNew : EtcdGrove.membership.NewMember.specOne (GF := GF) (hG := hG)) :
     etcd_dist.memberIDs.spec (GF := GF) (hG := hG) := by
   intro v d hfips
   wp_start as #Hd

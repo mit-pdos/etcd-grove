@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MemberBktsFresh
 
 @[expose] public section
 
@@ -46,6 +47,25 @@ abbrev schema.membershipBackend.MustCreateBackendBuckets.spec : Prop :=
       go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty @!! go!"MustCreateBackendBuckets"))
       (Val #()))
   {{ RET #(); backend.bOpen d.γB qo ∗ backend.rbOwnIn d.γB S r }}
+
+/-- **`mb.MustCreateBackendBuckets()` on a backend whose membership buckets may be absent** (claim
+#34, stage 2, 2026-11-25: `bootstrap`'s `Finalize` on a new backend): as `spec`, the buckets absent
+from the part created empty (`schema.withMemBkts`: bbolt's `CreateBucket`), present ones unchanged. -/
+abbrev schema.membershipBackend.MustCreateBackendBuckets.specFresh : Prop :=
+  ∀ (mbl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
+    (S : GoString → Prop) (r : GMap GoString backend.BktData),
+  (∀ n, membership.clusterBkts n → S n) →
+  d.P.has mvcc.membersBI → d.P.has mvcc.membersRemovedBI → d.P.has mvcc.clusterBI →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" mbl ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+          #d.be : GoInterface) ∗
+      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
+      backend.rbPart d.γB S r }}
+    (App (Val (mbl @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty @!! go!"MustCreateBackendBuckets"))
+      (Val #()))
+  {{ RET #(); backend.bOpen d.γB qo ∗ backend.rbOwnIn d.γB S (schema.withMemBkts r) }}
 
 end spec
 

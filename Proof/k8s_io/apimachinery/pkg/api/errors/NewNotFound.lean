@@ -6,6 +6,7 @@ module
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewNotFound
 public import Spec.k8s_io.apimachinery.pkg.runtime.schema.GroupResource__String_ptr
 public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -40,10 +41,14 @@ theorem NewNotFound.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   iapply wp_fupd
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1) (by
-    exact _root_.Perennial.fmt.ArgsWf.cons_string _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-      _root_.Perennial.fmt.ArgsWf.nil)))
+  -- `%q` of the name (`fmt-stage15`): some string
+  wp_apply (_root_.Perennial.fmt.Sprintf_pure_of _root_.Perennial.fmt.wp_Sprintf go!"%s %q not found" [.dir none _root_.Perennial.fmt.verb_s, .lit go!" ", .dir none _root_.Perennial.fmt.verb_q, .lit go!" not found"] _ _ _ (DFrac.own 1)
+      (by fmt_encode) ?fits ?pa)
     $$ [$Hasl] as %s -
+  case pa =>
+    (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+    exact .str _ _ _ (.str _ _ _ .nil)
+  case fits => fmt_fits
   ipersist «$v3»
   imodintro
   iapply HΦ

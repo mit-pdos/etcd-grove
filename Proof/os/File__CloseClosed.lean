@@ -27,7 +27,7 @@ variable [os.Assumptions]
 theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG := hG) := by
   intro f name
   unfold os.ownFile
-  wp_start as ⟨-, %inner, #Hf, Hfd, #Hn⟩
+  wp_start as ⟨-, %inner, #Hf, Hfd, #Hn, #Hsys⟩
   ihave ⟨%e, #Heok, #He⟩ := os.errClosed_of_pkgInit $$ Hpkg
   unfold os.ErrClosed at *
   unfold os.model.inner
@@ -49,7 +49,7 @@ theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG :
   isplitl [Hfd]
   · iexists inner
     iframe
-    isplitl [] <;> iassumption
+    (repeat' isplitl []) <;> iassumption
   · iapply EtcdGrove.fmtErrorOkOrNil_of
     iapply (os.pathError_fmtErrorOk pe_ptr _ _ e) $$ Op Path Err Heok
 

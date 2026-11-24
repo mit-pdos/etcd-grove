@@ -122,6 +122,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.github_com.anishathalye.porcupine,
       isPkgInit pkg_id.github_com.anishathalye.porcupine),
    (pkg_id.context, isPkgInit pkg_id.context),
+   (pkg_id.internal.gomodel, isPkgInit pkg_id.internal.gomodel),
    (pkg_id.github_com.goose_lang.primitive, isPkgInit pkg_id.github_com.goose_lang.primitive),
    (pkg_id.sort, isPkgInit pkg_id.sort),
    (pkg_id.sync, isPkgInit pkg_id.sync),

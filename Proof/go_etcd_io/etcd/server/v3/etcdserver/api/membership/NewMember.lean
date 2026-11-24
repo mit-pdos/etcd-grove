@@ -1,8 +1,6 @@
 /-
-Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/NewMember.lean`: `computeMemberID`
-then `newMember`. Lean-first (no Rocq counterpart). (An interim trust-boundary axiom until 2026-11-24,
-`notes/axiom-review/membership-NewMember.md`: retired by this proof once `computeMemberID` was translated
-with its body over Perennial's `hash`.)
+Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/NewMember.lean` (claim #34, stage 2,
+2026-11-25). Lean-first. `computeMemberID`, then `newMember` with that id, a voter.
 -/
 module
 
@@ -26,25 +24,24 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem membership.NewMember.wp_proof
-    (hCompute : membership.computeMemberID.spec (GF := GF) (hG := hG))
-    (hNew : membership.newMember.spec (GF := GF) (hG := hG)) :
+    (hCID : membership.computeMemberID.spec (GF := GF) (hG := hG))
+    (hNM : membership.newMember.spec (GF := GF) (hG := hG)) :
     membership.NewMember.spec (GF := GF) (hG := hG) := by
-  intro name sl p token hfips
-  wp_start as #Hsl
+  intro name sl us token Hfips Hplain Hlen Hbytes
+  wp_start as #Hus
   wp_auto
-  wp_apply (hCompute sl (membership.urlHttp p) token hfips) $$ [] as %id %hid
+  wp_apply (hCID sl us token Hfips Hplain Hlen Hbytes) $$ []
   · iframe #
-  wp_apply (hNew name sl [membership.urlHttp p] id false) $$ [] as %m %mv ⟨Hm, %hmv⟩
+  (try wp_auto)
+  wp_apply (hNM name sl us _ false Hplain) $$ [] as %m Hm
   · iframe #
+  (try wp_auto)
   iapply HΦ
-  iframe
-  ipureintro
-  intro hp
-  rw [hmv]
-  exact hid hp
+  unfold membership.memberOfURLs
+  iexact Hm
 
 end proof
 

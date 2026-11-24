@@ -13,8 +13,12 @@ public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 public import Proof.errors.NewVar
 public import Perennial.Proof.internal.bytealg.Base
+-- (claim #34 stage 2, 2026-11-25) the imports of membership's and `types`' newly translated functions
 public import Perennial.Proof.crypto.sha1.Base
 public import Perennial.Proof.encoding.binary.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.strings.Base
+public import Perennial.Proof.time.Base
 
 @[expose] public section
 

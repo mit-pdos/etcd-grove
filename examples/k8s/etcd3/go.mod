@@ -2,15 +2,15 @@ module github.com/mit-pdos/etcd-grove/examples/k8s/etcd3
 
 go 1.27.1
 
-replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124220404-47d6cdeeb180
 
-replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124220404-47d6cdeeb180
 
-replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124220404-47d6cdeeb180
 
-replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124220404-47d6cdeeb180
 
-replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124220404-47d6cdeeb180
 
 replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 
@@ -26,6 +26,8 @@ require (
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0
 	go.uber.org/zap v1.28.0
+	golang.org/x/net v0.59.0
+	google.golang.org/grpc v1.84.0
 	k8s.io/apimachinery v0.0.0-20261021173754-0b7d352f711c
 	k8s.io/apiserver v0.0.0-20261021221356-9c4ec15b8038
 )
@@ -86,7 +88,6 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/term v0.46.0 // indirect
@@ -94,7 +95,6 @@ require (
 	golang.org/x/time v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
-	google.golang.org/grpc v1.84.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -118,3 +118,10 @@ replace github.com/mit-pdos/etcd-grove/third_party/bridge => ../../../third_part
 
 // the examples' shared start (examples/lib/etcdstart), in the examples' module
 replace github.com/mit-pdos/etcd-grove/examples => ../..
+
+// k8s.io/apimachinery and k8s.io/apiserver at the pins above, from the fork upamanyus/kubernetes,
+// branch goose-lean-fmt1 (on Kubernetes 878cfa6c4c): their go.mod/go.sum as published, and
+// Preconditions.Check formatting its UIDs as strings (real fmt stage 1, mit-pdos/etcd-grove#9)
+replace k8s.io/apimachinery => github.com/upamanyus/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20261124053658-ef23adaea1b3
+
+replace k8s.io/apiserver => github.com/upamanyus/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20261124053658-ef23adaea1b3

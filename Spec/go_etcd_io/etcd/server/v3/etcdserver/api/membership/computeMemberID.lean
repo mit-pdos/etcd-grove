@@ -1,15 +1,10 @@
 /-
-`membership.computeMemberID(peerURLs, clusterName, nil)` (`member.go`) of one URL: the URLs' strings
-sorted and joined, then the token, hashed with SHA-1, the first 8 bytes read big-endian
-(`membership.memberIdOf`). Lean-first (no Rocq counterpart); etcd_safe's deployment check (2026-11-24).
+`membership.computeMemberID(peerURLs, clusterName, now)` (`member.go:61-74`; claim #34, stage 2,
+2026-11-25: translated with its body, over Perennial's proved `crypto/sha1.Sum`). Lean-first.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMemberDefs
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MemberId
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Init
-public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
-public import Perennial.TrustedCode.crypto.fips140
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Build
 
 @[expose] public section
 
@@ -25,20 +20,22 @@ open Iris Iris.BI
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `computeMemberID(us, token, nil)`, of a read-only `URLs` slice of one URL `u`, returns an id, which is
-`memberIdOf ("http://" ++ host) token` when `u` is of only the scheme `http` and a plain host
-(`http.urlRootPlain`: its string is then `http://` and the host). The `fips140` GODEBUG setting unset or
-`off` (`crypto/sha1.Sum`'s premise). -/
+/-- **`computeMemberID(us, token, nil)`** of plain peer URLs `us` (read-only; `URL.String()` is
+`urlStrOf`), when the `fips140` GODEBUG setting is off (`crypto/sha1.Sum`'s premise; with
+`fips140=only` it panics), at most `2^62` of them (`sort.Strings`' bound), their strings shorter than `2^61`
+bytes in all (`strings.Join`'s bound; claim #34 stage 2, 2026-11-25, ledger): `memberIDOf` of their strings
+and the token. -/
 abbrev membership.computeMemberID.spec : Prop :=
-  ∀ (sl : GoSlice) (u : _root_.Perennial.net.url.URL) (token : GoString),
-  crypto.fips140.GodebugFips140Off →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ sl ↦*□ [u] }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.computeMemberID)) (Val #sl)) (Val #token)) (Val #null))
-  {{ (id : w64), RET #id; ⌜http.urlRootPlain u → id = membership.memberIdOf (go!"http://" ++ u.Host') token⌝ }}
+  ∀ (sl : GoSlice) (us : List _root_.Perennial.net.url.URL) (token : GoString),
+  crypto.fips140.GodebugFips140Off → (∀ u ∈ us, http.urlRootPlain u) → us.length ≤ 2 ^ 62 →
+  ((us.map membership.urlStrOf).map List.length).sum < 2 ^ 61 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ sl ↦*□ us }}
+    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.computeMemberID)) (Val #sl)) (Val #token)) (Val #(null : Loc)))
+  {{ RET #(membership.memberIDOf (us.map membership.urlStrOf) token); True }}
 
 end spec
 

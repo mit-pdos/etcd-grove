@@ -30,6 +30,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvStreamInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.UnaryChain
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.net.InvNet
@@ -81,6 +82,27 @@ theorem peerURLsDir_httpURL (dir : w64 → List GoString) (id : w64) (host : GoS
   obtain ⟨hne, hb⟩ := types.plainHostPort_noEscape host hpl
   have he : stringToGoString "" = [] := by simp [stringToGoString]
   exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, hm⟩
+
+/-- **An address within etcd's URL bounds** (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2):
+`http://addr` a plain peer URL (`http://host:port`, `types.plainPeerURL`) of at most
+`etcdURLLenMax` bytes, so that a member's URL list `[http://addr]` is within `NewServer`'s
+`etcdURLsFit` (`etcdURLsFit_httpURL`). Decidable: the examples' literal addresses discharge it by
+`decide`. -/
+def addrFits (a : GoString) : Prop :=
+  types.plainPeerURL (go!"http://" ++ a) ∧ (go!"http://" ++ a).length ≤ etcdURLLenMax
+
+instance (a : GoString) : Decidable (addrFits a) := by unfold addrFits; infer_instance
+
+/-- **`[http://addr]` is within etcd's URL bounds**, of an address that fits (`NewServer`'s
+`etcdURLsFit` premise). -/
+theorem etcdURLsFit_httpURL (a : GoString) (h : addrFits a) : etcdURLsFit [httpURL a] := by
+  refine ⟨by simp [etcdURLCountMax], fun u hu => ?_⟩
+  rw [List.mem_singleton.1 hu]
+  have hpl := h.1.2
+  rw [List.drop_left' (by rfl)] at hpl
+  obtain ⟨hne, hb⟩ := types.plainHostPort_noEscape a hpl
+  have he : stringToGoString "" = [] := by simp [stringToGoString]
+  exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, h.2⟩
 
 /-- **The URLs of a one-member cluster's member `name`** (`StartServer`'s): its peer URLs
 `[http://peerAddr]`, its client URLs `[http://client]`, the initial cluster's map `{name ↦ _}` and
@@ -197,7 +219,7 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
 
 /-- **The premises shared by the members** (see the file header). -/
 def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
   unfold commonPremises; infer_instance
@@ -499,7 +521,8 @@ being built with etcd's interceptor chains and services (`v3rpc.Server.spec`'s p
 the configuration `C` `grpcCfgOk_of_started` gives: the KV answers of the server's views at
 `E`, `ρ`, `γr`; the watch server's state `R` at `E`; per-type stage B3: no reader stock of the
 watchable store any more, the watch runs borrow from the run pools), the
-server's resources back, and the listener `lis` at `addr`. -/
+server's resources back, and the listener `lis` at `addr`; (2026-11-24) the unary chain etcd's by
+identity (`v3rpc.etcdUnaryIcs`, what `etcd_noRefusal` reads). -/
 def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -519,7 +542,8 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs ∗
+    v3rpc.etcdUnaryIcs s [il, im, iu])
 
 /-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
 E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain with the auth layer
@@ -652,7 +676,8 @@ def grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs ∗
+    v3rpc.etcdUnaryIcs s [il, im, iu])
 
 open Iris.ProofMode in
 /-- **`grpcUpM` with auth off is `grpcUp`** (a bridge): the configuration, the `*kvServer` and the
@@ -664,7 +689,7 @@ theorem grpcUpM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu⟩
+    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu, #Hics⟩
   obtain ⟨hA, hE, hkv, -, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) := by
     rw [hA]; exact v3rpc.raftKV_srvKVAnsM_false s E ρ γr (W64 0) [] .none
@@ -696,7 +721,7 @@ theorem grpcUpM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu⟩
+    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu, -⟩
   obtain ⟨hA, hE, hkv, hau, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢
       v3rpc.raftKV s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none) := by

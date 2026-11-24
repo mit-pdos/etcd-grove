@@ -42,7 +42,10 @@ theorem twoPhase.wp_proof
     (wp_unionAuthzHandler_EvaluateConditions : EtcdGrove.union.unionAuthzHandler.EvaluateConditions.spec (GF := GF) (hG := hG)) :
     twoPhase.spec (GF := GF) (hG := hG) := by
   intro ctx h d m
-  wp_start as ⟨#Hu, #Hd, %Hwf⟩
+  wp_start as ⟨#Hu, #Hd, %Hwf', #Hdn⟩
+  have Hwf := Hwf'.1
+  have Hfit : Dec.foldFits authzNameMax m :=
+    Dec.foldFits_of_le _ m _ _ Hwf'.2.2 Hwf'.2.1 authz_foldBound_lt
   icases isDecision_tag d m $$ Hd with %Htag
   wp_auto
   wp_apply (ConditionsAwareDecision.wp_ptr_PossibleDecisions_of
@@ -73,7 +76,7 @@ theorem twoPhase.wp_proof
     · wp_auto
       wp_apply (wp_unionAuthzHandler_EvaluateConditions h ctx d m _) as %dec %r %e %Hdec
       · iframe #
-        ipureintro; exact Hwf
+        ipureintro; exact ⟨Hwf, Hfit⟩
       -- C2: the decision is possible (its failure decision is, by C3)
       have Hpd : m.pd.has dec = true := by
         rcases Hdec with Hdec | Hdec

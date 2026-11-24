@@ -32,14 +32,14 @@ theorem Prefix.Match.wp_proof : Prefix.Match.spec (GF := GF) (hG := hG) :=
   try wp_auto
   wp_func_call
   try wp_auto
-  by_cases hl : pfx.length < 2 ^ 63
+  by_cases hl : ((pfx).length : Int) ≤ maxAddr
   rotate_left
   · simp only [hl, ↓reduceIte]
     wp_apply wp_AngelicExit
   simp only [hl, ↓reduceIte]
   wp_auto
   have hn : sint.Z (W64 (pfx.length : Int)) = pfx.length := by
-    have : (pfx.length : Int) < 2 ^ 63 := by exact_mod_cast hl
+    have : (pfx.length : Int) < 2 ^ 63 := by unfold maxAddr at hl; omega
     word
   ihave %Hwf := ownSlice_wf _ _ _ $$ Hsl
   wp_if_destruct
@@ -48,7 +48,7 @@ theorem Prefix.Match.wp_proof : Prefix.Match.spec (GF := GF) (hG := hG) :=
       refine ⟨by decide, by rw [hn]; simp, by omega⟩
     have hb' : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 (pfx.length : Int)) ∧
         sint.Z (W64 (pfx.length : Int)) ≤ sint.Z sl.cap := ⟨hb.1, hb.2.1, by omega⟩
-    simp only [hb', and_self, ↓reduceIte]
+    simp only [hb', _root_.and_self, ↓reduceIte]
     icases (ownSlice_slice (W64 0) (W64 (pfx.length : Int)) sl dq key hb).1 $$ Hsl
       with ⟨H0, Hmid, Hrest⟩
     wp_apply wp_bytes_to_string _ _ dq $$ [$Hmid] as Hmid

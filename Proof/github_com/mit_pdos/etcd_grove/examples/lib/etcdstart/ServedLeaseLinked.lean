@@ -56,11 +56,12 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           grpcStreamServerAt addr [ims, is] sregs γ ∗ v3rpc.isWatchServer pw R ∗
           srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
           srvRevokeBuilt s E ∗ srvRunPool s E γr) ∗
+        etcdKVSrv addr s ∗
         client.etcdLeaseReadAt addr ∗ etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hlis, Hleft, #Hlu⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hlis, Hleft, #Hlu, #Hics⟩
   obtain ⟨HCA, -, Hregs, Hwreg, hRs, hRE, -, -, Hnd⟩ := HC
   -- the run pools, built from `memberUp`'s stocks
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
@@ -141,7 +142,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           simp only [client.etcdLeaseReadMethods, List.mem_cons, List.mem_nil_iff,
             _root_.or_false] at hm
           rcases hm with rfl | rfl <;> simp)
-        Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
+        Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, #Hksa, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -151,6 +152,8 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     icases Hle with ⟨#H1, #H2, -⟩
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
+    ihave #Hksb := etcdKVSrv_intro addr s [il, im, iu] $$ [Hksa Hics]
+    · iframe #
     imodintro
     iexists γ, _
     iframe Hserv Hgo
@@ -202,7 +205,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           simp only [client.etcdLeaseGrantMethods, List.mem_cons, List.mem_nil_iff,
             _root_.or_false] at hm
           rcases hm with rfl | rfl | rfl <;> simp)
-        Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, -, -, -, -, -, Hle⟩
+        Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, #Hksa, -, -, -, -, -, Hle⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -214,6 +217,8 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
     ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
     ihave #H2a := isGrpcRpc_leaseLeases_any addr (mvcc.api.mvccLeases E.γ) $$ H2'
+    ihave #Hksb := etcdKVSrv_intro addr s [il, im, iu] $$ [Hksa Hics]
+    · iframe #
     imodintro
     iexists γ, _
     iframe Hserv Hgo
@@ -266,7 +271,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           simp only [client.etcdLeaseGrantLiveMethods, List.mem_cons, List.mem_nil_iff,
             _root_.or_false] at hm
           rcases hm with rfl | rfl | rfl <;> simp)
-        Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, -, -, -, -, -, Hle⟩
+        Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, #Hksa, -, -, -, -, -, Hle⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -280,6 +285,8 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     -- the lease reads at the old specs, from the revocable mode's, at the lower bound `0`
     ihave #H1a := isGrpcRpc_leaseTTL_live_any addr (mvcc.api.mvccLeases E.γ) s 0 $$ [$Hlb0 $H1']
     ihave #H2a := isGrpcRpc_leaseLeases_live_any addr (mvcc.api.mvccLeases E.γ) 0 $$ [$Hlb0 $H2']
+    ihave #Hksb := etcdKVSrv_intro addr s [il, im, iu] $$ [Hksa Hics]
+    · iframe #
     imodintro
     iexists γ, _
     iframe Hserv Hgo
@@ -314,7 +321,7 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro H
   imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL) $$ H
-    with ⟨%γ, %Svc, Ht, -, -, Hr, Hl⟩
+    with ⟨%γ, %Svc, Ht, -, -, -, Hr, Hl⟩
   imodintro
   iframe Hr Hl
   iexists Svc
@@ -337,7 +344,7 @@ theorem kv_lease_served_go (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro H
   imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL) $$ H
-    with ⟨%γ, %Svc, Ht, Hgo, -, Hr, Hl⟩
+    with ⟨%γ, %Svc, Ht, Hgo, -, -, Hr, Hl⟩
   imodintro
   iframe Hgo Hr Hl
   iexists Svc
@@ -351,7 +358,8 @@ in a lease mode, whose `memberServed` keeps the watch stream and `noRefusalAt` i
 to serve, the `GoAttach` resources `grpcUp` holds (`srvGoRes`, back to the caller), the lease reads
 and the mode's registrations (`etcdLeaseServedAt`), the watch server `R` with its `Watch` stream
 served at the address (`v3rpc.etcd_watch_served_chain`, its runs borrowing from the server's run
-pools), and the address refusal-free (`grpcUp_noRefusal`: `etcd_noRefusal`, authentication off). -/
+pools), and the address refusal-free (`etcd_noRefusal_srv` at the started server, `etcdKVSrv`:
+`etcd_noRefusal`, authentication off). -/
 theorem kv_lease_served_watch (s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
@@ -378,12 +386,13 @@ theorem kv_lease_served_watch (s : Loc)
         ⌜noRefusalAt addr⌝ := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hlr, Hst, Hup, HW⟩
   ihave %Hoff := isServerReq_authOff s E ρ $$ Hreq
-  ihave ⟨Hup, %Hnr⟩ := grpcUp_noRefusal s E ρ γr gs lis addr cid mid R Hoff $$ [Hup]
-  · iframe Hup; iframe #
   imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL)
     $$ [Hlr Hst Hup] with ⟨%γ, %Svc, Hserv, Hgo, ⟨%pw, %ims, %is, %sregs, %HW, Hss, #Hws, #Hims, #His,
-      #Hb, #Hrp⟩, Hr, Hl⟩
+      #Hb, #Hrp⟩, #Hksa, Hr, Hl⟩
   · iframe; iframe #
+  -- (D29) the server now listening at `addr` is etcd's, over a member with authentication off
+  ihave %Hnr := etcd_noRefusal_srv addr s E ρ Hoff $$ [Hreq Hksa]
+  · iframe #
   obtain ⟨Hwreg, hRs, hRE⟩ := HW
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit

@@ -1,14 +1,10 @@
 /-
-`membership.newMember(name, peerURLs, memberID, isLearner)` (`member.go`): a fresh member with the id.
-Lean-first (no Rocq counterpart); etcd_safe's deployment check (2026-11-24).
+`membership.newMember(name, peerURLs, memberID, isLearner)` (`member.go:76-86`; claim #34, stage 2,
+2026-11-25: translated with its body). Lean-first.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMemberDefs
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MemberId
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Init
-public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
-public import Perennial.TrustedCode.crypto.fips140
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Build
 
 @[expose] public section
 
@@ -24,16 +20,19 @@ open Iris Iris.BI
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `newMember(name, us, id, l)`, of read-only `URLs`, returns a fresh member (owned) of id `id`. -/
+/-- **`newMember(name, us, id, isLearner)`** of plain peer URLs `us` (read-only): a fresh member,
+owned, of the id, the URLs' strings, the learner flag, the name, no client URLs. -/
 abbrev membership.newMember.spec : Prop :=
-  ∀ (name : GoString) (sl : GoSlice) (us : List _root_.Perennial.net.url.URL) (id : w64) (l : Bool),
+  ∀ (name : GoString) (sl : GoSlice) (us : List _root_.Perennial.net.url.URL) (id : w64) (il : Bool),
+  (∀ u ∈ us, http.urlRootPlain u) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ sl ↦*□ us }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.newMember)) (Val #name)) (Val #sl)) (Val #id)) (Val #l))
-  {{ (m : Loc) (mv : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member), RET #m; m ↦ mv ∗ ⌜mv.ID' = id⌝ }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.newMember)) (Val #name)) (Val #sl)) (Val #id)) (Val #il))
+  {{ (m : Loc), RET #m;
+      membership.memberAt m 1 ⟨id, us.map membership.urlStrOf, il, name, []⟩ }}
 
 end spec
 

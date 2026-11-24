@@ -98,7 +98,7 @@ def Workload.needsNoExpiry (w : Workload) : Bool :=
 
 /-- **etcd's member id** of the member whose one peer URL is `peerURL`, in the cluster `token`: the Lean
 model of `computeMemberID`, single URL, no time (`membership.memberIdOf`: the first 8 bytes, big-endian,
-of the SHA-1 of the URL followed by the token), the definition `membership.NewMember`'s proved spec
+of the SHA-1 of the URL followed by the token), the definition `membership.NewMember`'s proved one-URL spec (`specOne`)
 gives. -/
 def memberId (peerURL : GoString) (token : GoString) : w64 := membership.memberIdOf peerURL token
 

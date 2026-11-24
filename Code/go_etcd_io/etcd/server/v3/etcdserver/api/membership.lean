@@ -4,14 +4,18 @@ module
 public import Perennial.Code.crypto.sha1
 public import Perennial.Code.encoding.binary
 public import Code.encoding.json
+public import Perennial.Code.fmt
 public import Perennial.Code.sort
+public import Perennial.Code.strings
 public import Perennial.Code.sync
+public import Perennial.Code.time
 public import Code.github_com.Masterminds.semver.v3
 public import Code.github_com.prometheus.client_golang.prometheus
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.pkg.v3.notify
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.version
+public import Code.go_etcd_io.raft.v3
 public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.errors
 public import Net.Code.models_lab.jsoncodec
@@ -342,6 +346,150 @@ noncomputable def MemberStoreKey [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def MemberAttributesStorePath [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.MemberAttributesStorePath"
 
+/-- NewClusterFromURLsMap creates a new raft cluster using provided urls map. Currently, it does not support creating
+    cluster with raft learner member.
+
+    go: cluster.go:81:6 -/
+noncomputable def NewClusterFromURLsMap.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "token"
+  (Lam "urlsmap"
+  (Lam "opts"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType RaftCluster.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ClusterOption.ty)))) (Var "opts"))
+  (Let "urlsmap" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "urlsmap"))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ClusterOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve NewCluster []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType RaftCluster.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RaftCluster.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"genID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "urlsmap"))
+  (Let "urls" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Val #())))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (map.forRange go.string _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "urls"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.time.Time.ty)))) (Val UntypedNil))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve NewMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m"))))) (Var "$r0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType RaftCluster.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"cannot use %x as member id"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (Val #(W64 0)))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RaftCluster.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "__p" (App (App (Val (map.lookup2 _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType RaftCluster.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"member exists with identical ID %v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Member.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RaftCluster.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "m") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "urls") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RaftCluster.ty)))) (Pair (Var "c") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
+
+/-- go: cluster.go:106:6 -/
+noncomputable def NewCluster.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "opts"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType RaftCluster.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ClusterOption.ty)))) (Var "opts"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ClusterOption.ty)))) (Var "opts"))
+  (App (App (Val (GoInstruction (FuncResolve newClusterOpts []))) (Val #())) (Var "$a0")))
+  (Let "clOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterOptions.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ClusterOptions.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc RaftCluster.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))]))) (Val #())) (Val #()))
+  (Let "$v2" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)]))) (Val #())) (Val #()))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty))) (Let "$v0" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Enabled")) (ElementExpression go.bool (Var "$v0")))]))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ClusterOptions.ty go!"maxLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterOptions.ty)))) (Var "clOpts"))))
+  (App (Val (GoInstruction (CompositeLiteral RaftCluster.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"members")) (ElementExpression (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"removed")) (ElementExpression (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool) (Var "$v2"))), (KeyedElement (some (KeyField go!"downgradeInfo")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"maxLearners")) (ElementExpression go.int (Var "$v4")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RaftCluster.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ClusterOptions.ty)))) (Pair (Var "clOpts") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "$res0"))))))
+
 /-- go: cluster.go:121:23 -/
 noncomputable def RaftCluster.ID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
@@ -433,6 +581,115 @@ noncomputable def RaftCluster.Member.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "$res0"))))))
 
+/-- MemberByName returns a Member with the given name if exists.
+    If more than one member has the given name, it will panic.
+
+    go: cluster.go:155:23 -/
+noncomputable def RaftCluster.MemberByName.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "name"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "memb" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Member.ty) go!"Clone"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "memb"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Attributes.ty go!"Name"))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"Attributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "memb") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Member.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "memb")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Member.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"two member with same name found"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "m") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "$res0"))))))
+
+/-- go: cluster.go:170:23 -/
+noncomputable def RaftCluster.MemberIDs.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "ids" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Var "ids"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.IDSlice.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Var "ids")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Var "ids"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Pair (Var "ids") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "m") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Var "$res0"))))))
+
 /-- go: cluster.go:181:23 -/
 noncomputable def RaftCluster.IsIDRemoved.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
@@ -459,6 +716,75 @@ noncomputable def RaftCluster.IsIDRemoved.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: cluster.go:231:23 -/
+noncomputable def RaftCluster.genID.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"MemberIDs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))
+  (Let "mIDs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Val #(W64 8)) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Var "mIDs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]))) (Val #())) (Var "$a0"))))))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.crypto.sha1.Sum []))) (Val #())) (Var "$a0")))
+  (Let "hash" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 20 go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 20 go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$s" (Var "hash")
+  (App (Val (GoInstruction (Slice (go.GoType.ArrayType 20 go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 8)))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"Uint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"cid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 20 go.byte)))) (Pair (Var "hash") (Var "$r0")))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Var "mIDs"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Val #(W64 8)) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"PutUint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "id") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)))) (Pair (Var "mIDs") (Var "$r0")))))))))
+  (Val #()))))
+
+/-- go: cluster.go:241:23 -/
+noncomputable def RaftCluster.SetID.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "localID"
+  (Lam "cid"
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "cid" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "cid"))
+  (Let "localID" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "localID"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "localID"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "cid"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"buildMembershipMetric"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"cid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"localID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Var "$r0"))))))))))
+  (Val #())))))
 
 /-- go: cluster.go:247:23 -/
 noncomputable def RaftCluster.SetBackend.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1104,6 +1430,52 @@ noncomputable def RaftCluster.IsMemberExist.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- buildMembershipMetric sets the knownPeers metric based on the current
+    members of the cluster.
+
+    go: cluster.go:846:23 -/
+noncomputable def RaftCluster.buildMembershipMetric.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"removed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))
+  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 0))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (Let "$a0" (Let "$sl0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"localID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #()))
+  (Let "$sl1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (Var "p")) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) go!"WithLabelValues"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr knownPeers))) (Val #())))) (Var "$a0")))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "p") (Var "$key"))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))
+  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 4607182418800017408))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (Let "$a0" (Let "$sl0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"localID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #()))
+  (Let "$sl1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (Var "p")) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) go!"WithLabelValues"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr knownPeers))) (Val #())))) (Var "$a0")))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "p") (Var "$key")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"localID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #()))))
+
 /-- updateMembershipMetric updates the knownPeers metric to indicate that
     the given peer is now (un)known.
 
@@ -1141,6 +1513,133 @@ noncomputable def RaftCluster.updateMembershipMetric.impl [GooseExts] [GoGlobalC
   (App (Val doExecute)
   (Val #()))))))))
   (Val #())))))
+
+/-- ValidateMaxLearnerConfig verifies the existing learner members in the cluster membership and an optional N+1 learner
+    scale up are not more than maxLearners.
+
+    go: cluster.go:875:6 -/
+noncomputable def ValidateMaxLearnerConfig.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "maxLearners"
+  (Lam "members"
+  (Lam "scaleUpLearners"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "scaleUpLearners" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "scaleUpLearners"))
+  (Let "members" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType Member.ty))))) (Var "members"))
+  (Let "maxLearners" (App (Val (GoInstruction (GoAlloc go.int))) (Var "maxLearners"))
+  (Let "$r0" (Val #(W64 0))
+  (Let "numLearners" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "numLearners")) (App (Val (GoInstruction (GoLoad go.int))) (Var "maxLearners")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrTooManyLearners))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "scaleUpLearners"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "numLearners") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "numLearners")) (Val #(W64 1)))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Member.ty))))) (Var "members"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType Member.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef RaftAttributes.ty go!"IsLearner"))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "numLearners") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "numLearners")) (Val #(W64 1)))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "m") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "numLearners") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- go: cluster_opts.go:26:6 -/
+noncomputable def newClusterOpts.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "opts"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterOptions.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ClusterOptions.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ClusterOption.ty)))) (Var "opts"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc ClusterOptions.ty))) (App (Val (GoInstruction (CompositeLiteral ClusterOptions.ty))) (LiteralValue [])))
+  (Let "clOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterOptions.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ClusterOptions.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterOptions.ty)))) (Var "clOpts"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ClusterOptions.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ClusterOption.ty)))) (Var "opts"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ClusterOptions.ty) go!"applyOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterOptions.ty)))) (Var "clOpts"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ClusterOptions.ty)))) (Pair (Var "clOpts") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterOptions.ty)))) (Var "$res0")))))
+
+/-- go: cluster_opts.go:32:27 -/
+noncomputable def ClusterOptions.applyOpts.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "co"
+  (Lam "opts"
+  (Seq (App (Val exceptionDo)
+  (Let "co" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterOptions.ty)))) (Var "co"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ClusterOption.ty)))) (Var "opts"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ClusterOption.ty)))) (Var "opts"))
+  (Let "opt" (App (Val (GoInstruction (GoAlloc ClusterOption.ty))) (App (Val (GoInstruction (GoZeroVal ClusterOption.ty))) (Val #())))
+  (App (App (Val (slice.forRange ClusterOption.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterOptions.ty)))) (Var "co"))
+  (App (App (Val (GoInstruction (GoLoad ClusterOption.ty))) (Var "opt")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ClusterOption.ty))) (Pair (Var "opt") (Var "$value")))))))))))))
+  (Val #()))))
+
+/-- WithMaxLearners sets the maximum number of learners that can exist in the cluster membership.
+
+    go: cluster_opts.go:39:6 -/
+noncomputable def WithMaxLearners.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "max"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ClusterOption.ty))) (App (Val (GoInstruction (GoZeroVal ClusterOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "max" (App (Val (GoInstruction (GoAlloc go.int))) (Var "max"))
+  (Let "$r0" (Lam "co"
+  (Seq (App (Val exceptionDo)
+  (Let "co" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ClusterOptions.ty)))) (Var "co"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "max"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef ClusterOptions.ty go!"maxLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ClusterOptions.ty)))) (Var "co"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ClusterOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad ClusterOption.ty))) (Var "$res0")))))
 
 /-- JSONModelMarshal is encoding/json's Marshal of a Member (the encoding/json model's per-type
     dispatch, model.go; a model build only).
@@ -6757,7 +7256,7 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership where
-  pkgImportedPkgs := [pkg_id.crypto.sha1, pkg_id.encoding.binary, pkg_id.encoding.json, pkg_id.sort, pkg_id.sync, pkg_id.github_com.Masterminds.semver.v3, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.errors, pkg_id.models_lab.jsoncodec, pkg_id.path]
+  pkgImportedPkgs := [pkg_id.crypto.sha1, pkg_id.encoding.binary, pkg_id.encoding.json, pkg_id.fmt, pkg_id.sort, pkg_id.strings, pkg_id.sync, pkg_id.time, pkg_id.github_com.Masterminds.semver.v3, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.errors, pkg_id.models_lab.jsoncodec, pkg_id.path]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -6765,6 +7264,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6876,9 +7379,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.encoding.json.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.sort.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -6891,6 +7400,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.raft.v3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -7011,14 +7522,19 @@ class RaftCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
   ptr_Member_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Member" RaftCluster.Member.impl
+  ptr_MemberByName_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"MemberByName" RaftCluster.MemberByName.impl
+  ptr_MemberIDs_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"MemberIDs" RaftCluster.MemberIDs.impl
   ptr_Members_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Members" RaftCluster.Members.impl
   ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"RemoveMember" RaftCluster.RemoveMember.impl
   ptr_SetBackend_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetBackend" RaftCluster.SetBackend.impl
+  ptr_SetID_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetID" RaftCluster.SetID.impl
   ptr_SetVersionChangedNotifier_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetVersionChangedNotifier" RaftCluster.SetVersionChangedNotifier.impl
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
   ptr_ValidateConfigurationChange_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ValidateConfigurationChange" RaftCluster.ValidateConfigurationChange.impl
   ptr_Version_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Version" RaftCluster.Version.impl
+  ptr_buildMembershipMetric_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"buildMembershipMetric" RaftCluster.buildMembershipMetric.impl
+  ptr_genID_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"genID" RaftCluster.genID.impl
   ptr_updateMembershipMetric_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"updateMembershipMetric" RaftCluster.updateMembershipMetric.impl
 
 attribute [instance] RaftCluster.TypeAssumptions.type_repr
@@ -7054,13 +7570,18 @@ attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.ptr_IsMemberExist_unfold
   RaftCluster.TypeAssumptions.ptr_Lock_unfold
   RaftCluster.TypeAssumptions.ptr_Member_unfold
+  RaftCluster.TypeAssumptions.ptr_MemberByName_unfold
+  RaftCluster.TypeAssumptions.ptr_MemberIDs_unfold
   RaftCluster.TypeAssumptions.ptr_Members_unfold
   RaftCluster.TypeAssumptions.ptr_RemoveMember_unfold
   RaftCluster.TypeAssumptions.ptr_SetBackend_unfold
+  RaftCluster.TypeAssumptions.ptr_SetID_unfold
   RaftCluster.TypeAssumptions.ptr_SetVersionChangedNotifier_unfold
   RaftCluster.TypeAssumptions.ptr_Unlock_unfold
   RaftCluster.TypeAssumptions.ptr_ValidateConfigurationChange_unfold
   RaftCluster.TypeAssumptions.ptr_Version_unfold
+  RaftCluster.TypeAssumptions.ptr_buildMembershipMetric_unfold
+  RaftCluster.TypeAssumptions.ptr_genID_unfold
   RaftCluster.TypeAssumptions.ptr_updateMembershipMetric_unfold
 
 structure RaftAttributes [GooseExts] where
@@ -7312,6 +7833,7 @@ class ClusterOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_maxLearners : ∀ (x : ClusterOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ClusterOptions.underlying go!"maxLearners") (PairV #x #y) (Val #(({ x with maxLearners' := y } : ClusterOptions)))
   method_set : go.MethodSetIs ClusterOptions.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterOptions.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.applyOpts", (some (go.signature.Signature [(go.GoType.SliceType ClusterOption.ty)] false [])))]
+  ptr_applyOpts_unfold : MethodUnfold (go.GoType.PointerType ClusterOptions.ty) go!"applyOpts" ClusterOptions.applyOpts.impl
 
 attribute [instance] ClusterOptions.TypeAssumptions.type_repr
   ClusterOptions.TypeAssumptions.underlying
@@ -7319,6 +7841,7 @@ attribute [instance] ClusterOptions.TypeAssumptions.type_repr
   ClusterOptions.TypeAssumptions.set_maxLearners
   ClusterOptions.TypeAssumptions.method_set
   ClusterOptions.TypeAssumptions.ptr_method_set
+  ClusterOptions.TypeAssumptions.ptr_applyOpts_unfold
 
 abbrev ClusterOption [GooseExts] : Type := GoFunc
 
@@ -7434,6 +7957,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ClusterVersionBackend_instance : ClusterVersionBackend.TypeAssumptions
   MemberBackend_instance : MemberBackend.TypeAssumptions
   DowngradeInfoBackend_instance : DowngradeInfoBackend.TypeAssumptions
+  NewClusterFromURLsMap_unfold : FuncUnfold NewClusterFromURLsMap [] NewClusterFromURLsMap.impl
+  NewCluster_unfold : FuncUnfold NewCluster [] NewCluster.impl
+  ValidateMaxLearnerConfig_unfold : FuncUnfold ValidateMaxLearnerConfig [] ValidateMaxLearnerConfig.impl
+  newClusterOpts_unfold : FuncUnfold newClusterOpts [] newClusterOpts.impl
+  WithMaxLearners_unfold : FuncUnfold WithMaxLearners [] WithMaxLearners.impl
   jencAny_unfold : FuncUnfold jencAny [] jencAny.impl
   jencBoolPtr_unfold : FuncUnfold jencBoolPtr [] jencBoolPtr.impl
   jencStringPtr_unfold : FuncUnfold jencStringPtr [] jencStringPtr.impl
@@ -7477,14 +8005,18 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_sha1_Assumption : _root_.Perennial.crypto.sha1.Assumptions
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
   import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
+  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
+  import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
   import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_notify_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Assumptions
   import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
+  import_raft_Assumption : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_jsoncodec_Assumption : _root_.Perennial.models_lab.jsoncodec.Assumptions
@@ -7504,6 +8036,11 @@ attribute [instance] Assumptions.RaftCluster_instance
   Assumptions.ClusterVersionBackend_instance
   Assumptions.MemberBackend_instance
   Assumptions.DowngradeInfoBackend_instance
+  Assumptions.NewClusterFromURLsMap_unfold
+  Assumptions.NewCluster_unfold
+  Assumptions.ValidateMaxLearnerConfig_unfold
+  Assumptions.newClusterOpts_unfold
+  Assumptions.WithMaxLearners_unfold
   Assumptions.jencAny_unfold
   Assumptions.jencBoolPtr_unfold
   Assumptions.jencStringPtr_unfold
@@ -7547,14 +8084,18 @@ attribute [instance] Assumptions.RaftCluster_instance
   Assumptions.import_sha1_Assumption
   Assumptions.import_binary_Assumption
   Assumptions.import_json_Assumption
+  Assumptions.import_fmt_Assumption
   Assumptions.import_sort_Assumption
+  Assumptions.import_strings_Assumption
   Assumptions.import_sync_Assumption
+  Assumptions.import_time_Assumption
   Assumptions.import_semver_Assumption
   Assumptions.import_prometheus_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_notify_Assumption
   Assumptions.import_version_Assumption
+  Assumptions.import_raft_Assumption
   Assumptions.import_raftpb_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_jsoncodec_Assumption

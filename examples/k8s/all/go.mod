@@ -2,15 +2,15 @@ module github.com/mit-pdos/etcd-grove/examples/k8s/all
 
 go 1.27.1
 
-replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124220404-47d6cdeeb180
 
-replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124220404-47d6cdeeb180
 
-replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124220404-47d6cdeeb180
 
-replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124220404-47d6cdeeb180
 
-replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124163201-8aa40fd5ce20
+replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124220404-47d6cdeeb180
 
 replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 
@@ -19,6 +19,7 @@ require (
 	github.com/mit-pdos/etcd-grove/examples/k8s/compactor v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/examples/k8s/etcd3 v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
+	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0
 	go.uber.org/zap v1.28.0
 )
@@ -67,7 +68,6 @@ require (
 	github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 // indirect
 	go.etcd.io/bbolt v1.5.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0 // indirect
-	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/pkg/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/raft/v3 v3.7.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -123,3 +123,10 @@ replace github.com/mit-pdos/etcd-grove/examples => ../..
 replace github.com/mit-pdos/etcd-grove/examples/k8s/etcd3 => ../etcd3
 
 replace github.com/mit-pdos/etcd-grove/examples/k8s/compactor => ../compactor
+
+// k8s.io/apimachinery and k8s.io/apiserver at the pins above, from the fork upamanyus/kubernetes,
+// branch goose-lean-fmt1 (on Kubernetes 878cfa6c4c): their go.mod/go.sum as published, and
+// Preconditions.Check formatting its UIDs as strings (real fmt stage 1, mit-pdos/etcd-grove#9)
+replace k8s.io/apimachinery => github.com/upamanyus/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20261124053658-ef23adaea1b3
+
+replace k8s.io/apiserver => github.com/upamanyus/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20261124053658-ef23adaea1b3

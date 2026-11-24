@@ -1,17 +1,10 @@
 /-
-`membership.NewMember(name, peerURLs, clusterName, nil)` (`member.go`), of one peer URL
-`url.URL{Scheme: "http", Host: p}`: a fresh member whose id is `memberIdOf ("http://" ++ p) clusterName`
-when `p` is a plain host. Lean-first (no Rocq counterpart); etcd_safe's deployment check
-(`notes/etcd-dist-plan.md`, D2): `deployment.memberIDs` computes the members' ids with it. (An interim
-trust-boundary axiom until 2026-11-24, when `computeMemberID` was translated with its body again.)
+`membership.NewMember(name, peerURLs, clusterName, now)` (`member.go:49-52`; claim #34, stage 2,
+2026-11-25: translated with its body). Lean-first.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMemberDefs
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MemberId
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Init
-public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
-public import Perennial.TrustedCode.crypto.fips140
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Build
 
 @[expose] public section
 
@@ -27,23 +20,21 @@ open Iris Iris.BI
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `NewMember(name, us, token, nil)`, where `us` is a read-only `types.URLs` slice of exactly the one URL
-`url.URL{Scheme: "http", Host: p}`, returns a pointer to a fresh member (owned), whose `ID` is
-`memberIdOf ("http://" ++ p) token` (etcd's `computeMemberID`) when `p` is a plain host
-(`http.urlRootPlain`: non-empty, of bytes `url.URL.String` writes unescaped). The `fips140` GODEBUG
-setting unset or `off` (`GodebugFips140Off`): in mode `only`, `crypto/sha1.Sum` panics. -/
+/-- **`NewMember(name, us, token, nil)`** of plain peer URLs `us` (read-only), the `fips140` GODEBUG
+setting off, at most `2^62` URLs (`sort.Strings`' bound), their strings shorter than `2^61` bytes in all
+(`strings.Join`'s bound, `computeMemberID`'s): a fresh member, owned, `memberOfURLs name us token`. -/
 abbrev membership.NewMember.spec : Prop :=
-  ∀ (name : GoString) (sl : GoSlice) (p token : GoString),
-  crypto.fips140.GodebugFips140Off →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ sl ↦*□ [membership.urlHttp p] }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMember)) (Val #name)) (Val #sl)) (Val #token)) (Val #null))
-  {{ (m : Loc) (mv : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member), RET #m; m ↦ mv ∗
-      ⌜http.urlRootPlain (membership.urlHttp p) →
-        mv.ID' = membership.memberIdOf (go!"http://" ++ p) token⌝ }}
+  ∀ (name : GoString) (sl : GoSlice) (us : List _root_.Perennial.net.url.URL) (token : GoString),
+  crypto.fips140.GodebugFips140Off → (∀ u ∈ us, http.urlRootPlain u) → us.length ≤ 2 ^ 62 →
+  ((us.map membership.urlStrOf).map List.length).sum < 2 ^ 61 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ sl ↦*□ us }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMember)) (Val #name)) (Val #sl)) (Val #token))
+      (Val #(null : Loc)))
+  {{ (m : Loc), RET #m; membership.memberAt m 1 (membership.memberOfURLs name us token) }}
 
 end spec
 

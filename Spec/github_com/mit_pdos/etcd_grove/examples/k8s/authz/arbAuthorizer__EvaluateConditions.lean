@@ -1,6 +1,6 @@
 /-
 `z.EvaluateConditions(ctx, d, data)` (`authz.go`): some decision word, reason and error, for a
-well-formed `d` (a lie, or the library's evaluation with arbitrary condition results). Lean-first
+well-formed `d` that fits `strings.Join` (`isWFDecisionFit`, as `ecOk` gives it) (a lie, or the library's evaluation with arbitrary condition results). Lean-first
 (no Rocq counterpart).
 -/
 module
@@ -30,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 /-- See the file header. -/
 abbrev arbAuthorizer.EvaluateConditions.spec : Prop :=
   ∀ (z : arbAuthorizer) (ctx : GoInterface) (d : ConditionsAwareDecision) (data : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz ∗ isWFDecision d }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz ∗ isWFDecisionFit authzNameMax d }}
     (App (App (App (Val (z @!! arbAuthorizer.ty @!! go!"EvaluateConditions")) (Val #ctx)) (Val #d))
       (Val #data))
   {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e); True }}

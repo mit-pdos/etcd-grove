@@ -225,7 +225,10 @@ PROJECTS = [
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
         # Split oversized leaves and admit all individually readable key/value pairs.
-        rev="ca88bb6a8339da5d5c29eccf120e1b621021b4f9",
+        # Then (real fmt stage 1, 2026-11-24, #9) 7d335aa3e (branch `goose-lean-fmt1`, on ca88bb6a8):
+        # `Options.String` formats its bools with `%v` (as `%t`), the free-list type as a string, and
+        # whether `OpenFile`/`Logger` are set in place of their addresses (`%p`).
+        rev="7d335aa3eb233822487e9dd7eb2c8f95d99ea2ad",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash/fnv=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -382,19 +385,29 @@ PROJECTS = [
         # three log lines format the member's attributes field by field,
         # `fmt.Sprintf("{Name:%s ClientURLs:[%s]}", Name, strings.Join(ClientURLs, " "))`, the same bytes
         # as `fmt.Sprintf("%+v", s.attributes)`, which reaches fmt's reflection-based `printValue`.
-        # Then (sortslice, 2026-11-24, mit-pdos/etcd-grove#18, approved by Upamanyu via
+        # Then (sortslice, 2026-11-24, mit-pdos/etcd-grove#18, approved via
         # coordinator-E) 6b942d23f (branch `goose-lean-slicessort-on-fmtattrs`, on bc2b5f4d0; first
         # a336e97f9 on edc800c6f, branch `goose-lean-slicessort`): mvcc's `hashStorage.Store` sorts with
         # `slices.SortFunc(s.hashes, cmp.Compare on Revision)` instead of `sort.Slice` (whose reflection
         # Perennial does not model), an upstream-ready change.
-        # Then (etcd-dist D6 T4, 2026-11-24, the etcd_safe lead's decision) 8aa40fd5c (branch
-        # `goose-lean-slicessort-on-fmtattrs-snapguard`, on 6b942d23f): `applySnapshot` keeps the
+        # Then (real fmt stage 1, 2026-11-24, mit-pdos/etcd-grove#9) 3d8797e8 (branch
+        # `goose-lean-fmt1c`, the commits of `goose-lean-fmt1` rebased onto 6b942d23f): `Election.Campaign`, `Mutex.tryAcquire` and
+        # `store.restore` convert a method-less named lease ID to `int64` before `fmt.Sprintf`
+        # formats it (`%x`, `%016x`): byte-identical output, through `fmtInteger` (Perennial's verified
+        # subset) instead of `printValue`. Then df6af0c36 (same branch): `Client.dial` numbers its
+        # dial targets with a package counter (`clientTargetSeq`, an `atomic.Uint64`) in place of
+        # `%p` of the client, which real `fmt` does not cover (the decision on #9,
+        # issuecomment-7122889900: fork rewrites, no `%p` axiom).
+        # Then (etcd-dist D6 T4, 2026-11-24, the etcd_safe lead's decision) 8aa40fd5c (first on
+        # 6b942d23f, branch `goose-lean-slicessort-on-fmtattrs-snapguard`): `applySnapshot` keeps the
         # backend when the snapshot's index is at or below its consistent index (possible after a
         # crash left the backend ahead of the WAL) and only moves the applied state to the snapshot,
         # so the backend never moves back (nonissues/etcd-crash-backend-ahead-snapshot-regress.md).
         # To be combined with the WAL's torn-save fix (`goose-lean-fmtattrs-tornsave` @ 768ecf158,
         # branch etcd-safe-walfix/2026-11-24).
-        rev="8aa40fd5ce201b7658f8c1a856f3b416cd384a39",
+        # The two combined (etcd-safe-main, 2026-11-24): 47d6cdeeb, branch `goose-lean-fmt1c-snapguard`,
+        # 8aa40fd5c cherry-picked onto df6af0c36.
+        rev="47d6cdeeb1802f72fba4cae2b2d4536e0ac79fc6",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
@@ -1934,15 +1947,20 @@ PROJECTS = [
         # Kubernetes' conditional authorization (KEP-5681): k8s.io/apiserver's authorizer package
         # (conditions, conditions maps, the union decision builder, partial evaluation) and union
         # authorizer, with bodies, from the fork github.com/luxas/kubernetes, branch
-        # impl-conditional-authz-review (not merged upstream), resolved in the repository's go.work
+        # impl-conditional-authz-review (not merged upstream; c67a81026c8b), plus one commit of ours
+        # (upamanyus/kubernetes branch goose-lean-authz-fmt2, 2026-11-24, mit-pdos/etcd-grove#9):
+        # the three `%v` of a slice (UnconditionalPartsOrFailClosed, ConditionsAwareDecisionUnion.Add,
+        # unionAuthzHandler.EvaluateConditions) spelled out, byte-identical output (its Go tests
+        # compare with the original calls'), since Perennial's fmt does not follow reflection into a
+        # slice; resolved in the repository's go.work
         # (its staging modules: apimachinery at the fork's commit too, ~2026-11-03, while project
         # k8s-apiserver's apimachinery names are of examples/k8s/etcd3's pin, 2026-10-21). Names only:
         # k8s.io/apiserver/pkg/authentication/user (Code/k8s_io/apiserver/pkg/authentication/user.toml).
         # The rest it names (apimachinery's sets, errors, validation, field, fields, labels, runtime,
         # schema; net/http) is project k8s-apiserver's translation (the empty root). Its driver is
         # project k8s-authz-driver.
-        repo="https://github.com/luxas/kubernetes",
-        rev="c67a81026c8b193849a47fdc05398baeafdf55e4",
+        repo="https://github.com/upamanyus/kubernetes",
+        rev="5b30dab1b14146d5b5469a8def6aca963736a8bf",
         lean_roots=["k8s.io=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=[
             # with bodies
@@ -2202,8 +2220,9 @@ def dsv_kits():
     d = os.path.join(ROOT, "etc", "dsv")
     out = []
     for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
-        # (the generator, and the experiment scripts' proxy: etc/dsv/README.md)
-        if not f.endswith(".py") or f.startswith("_") or f in ("kitgen.py", "proxy.py"):
+        # (the generator, the experiment scripts' proxy and the run-analysis scripts: etc/dsv/README.md)
+        if not f.endswith(".py") or f.startswith("_") or f in ("kitgen.py", "proxy.py", "tokens.py",
+                                                                "backtrack.py", "parallel.py", "compare.py"):
             continue
         spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
         m = importlib.util.module_from_spec(spec)
@@ -2274,12 +2293,13 @@ CLIENT_GO_PINS = {
 def go_mod_requires(f):
     """The versions a go.mod file selects, by module path: its requirements, except that a module
     replaced by the same path at a version (`M => M vX`, as examples/k8s/daemonset/go.mod replaces
-    the staging modules k8s.io/kubernetes requires at v0.0.0) is at the replacement's version."""
+    the staging modules k8s.io/kubernetes requires at v0.0.0) is at the replacement's version, and
+    one replaced by another path (a fork: `k8s.io/apimachinery => github.com/upamanyus/kubernetes/
+    staging/src/k8s.io/apimachinery vX`, real fmt stage 1, 2026-11-24) is `NEW@vX`."""
     text = open(os.path.join(ROOT, f), encoding="utf-8").read()
     reqs = dict(re.findall(r"^\s*(?:require\s+)?(\S+)\s+(v\S+)(?:\s*//.*)?$", text, re.M))
     for old, new, ver in re.findall(r"^\s*(?:replace\s+)?(\S+)\s+=>\s+(\S+)\s+(v\S+)\s*$", text, re.M):
-        if old == new:
-            reqs[old] = ver
+        reqs[old] = ver if old == new else f"{new}@{ver}"
     return reqs
 
 
