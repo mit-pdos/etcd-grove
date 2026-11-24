@@ -35,7 +35,7 @@ theorem membership.NewClusterFromURLsMap.wp_proof
     (hNM : membership.NewMember.spec (GF := GF) (hG := hG))
     (hGen : membership.RaftCluster.genID.spec (GF := GF) (hG := hG)) :
     membership.NewClusterFromURLsMap.spec (GF := GF) (hG := hG) := by
-  intro lg token mp m urls opts f ml Hfips Hplain Hnd Hnz Hsz Hulen
+  intro lg token mp m urls opts f ml Hfips Hplain Hnd Hnz Hsz Hulen Hubytes
   -- the entries' members
   let fm : GoString → apply.MemberM := fun k => membership.memberOfURLs k (urls k) token
   have hfm : ∀ k, (fm k).id = (membership.memberOfURLs k (urls k) token).id := fun _ => rfl
@@ -79,7 +79,7 @@ theorem membership.NewClusterFromURLsMap.wp_proof
     · iapply (BigSepM.bigSepM_lookup (Φ := fun k sl => (sl ↦*□ urls k : IProp GF)) Hvv) $$ Hurls
     (try wp_auto)
     wp_apply hNM key vv (urls key) token Hfips (Hplain key (by rw [Hvv]; rfl))
-      (Hulen key (by rw [Hvv]; rfl)) $$ [] as %mm Hmm
+      (Hulen key (by rw [Hvv]; rfl)) (Hubytes key (by rw [Hvv]; rfl)) $$ [] as %mm Hmm
     · iframe #
     (try wp_auto)
     iunfold membership.memAt at Hmem

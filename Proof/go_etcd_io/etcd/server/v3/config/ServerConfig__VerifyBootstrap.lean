@@ -49,7 +49,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
     (hDisc : config.ServerConfig.ShouldDiscover.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     config.ServerConfig.VerifyBootstrap.spec (GF := GF) (hG := hG) := by
-  intro p cfg m urls peer Hsum
+  intro p cfg m urls peer Hsum Hplain Hbytes
   wp_start as ⟨#Hname, #Hmapf, #Hpeerf, #Hlgf, #Hdcf, #Hm, #Hurls, #Hpeer, #Hzlg⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
@@ -109,7 +109,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
         · unfold _root_.Perennial.fmt.stringMethodSpec
           imodintro
           iintro %Φ' HΦ'
-          wp_apply hStr cfg.InitialPeerURLsMap' m urls Hsum $$ [] as %s' -
+          wp_apply hStr cfg.InitialPeerURLsMap' m urls Hsum Hplain Hbytes $$ [] as %s' -
           · iframe #
           iapply HΦ'
         · ipureintro; exact ⟨hF, hE, hS, hC⟩
@@ -121,7 +121,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
   -- `c.InitialPeerURLsMap.String()` on the field's address: its value's method
   try wp_method_call
   try wp_auto
-  wp_apply hStr cfg.InitialPeerURLsMap' m urls Hsum $$ [] as %s -
+  wp_apply hStr cfg.InitialPeerURLsMap' m urls Hsum Hplain Hbytes $$ [] as %s -
   try (· iframe #)
   -- `c.InitialPeerURLsMap.String() == "" && !c.ShouldDiscover()`
   by_cases hs : s = ([] : GoString)

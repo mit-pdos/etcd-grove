@@ -82,6 +82,17 @@ private theorem wp_slice_for_range_ro {V : Type} [ZeroVal V] [TypedPointsto (GF 
 
 end loop
 
+/-- A string joined by `sep` is at most its pieces, each with one `sep`. -/
+private theorem intercalate_length_le (sep : GoString) :
+    ∀ (l : List GoString), (sep.intercalate l).length ≤ (l.map (fun x => x.length + sep.length)).sum
+  | [] => by simp
+  | [a] => by simp
+  | a :: b :: l => by
+    have ih := intercalate_length_le sep (b :: l)
+    rw [List.intercalate_cons_cons]
+    simp only [List.length_append, List.map_cons, List.sum_cons] at ih ⊢
+    omega
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -95,9 +106,8 @@ theorem types.URLsMap.String.wp_proof
     (hSort : sort.Strings.spec (GF := GF) (hG := hG))
     (hJoin : strings.Join.spec (GF := GF) (hG := hG)) :
     types.URLsMap.String.spec (GF := GF) (hG := hG) := by
-  intro mp m urls Hsum
+  intro mp m urls Hsum Hplain Hbytes
   wp_start as ⟨#Hm, #Hurls⟩
-  have hSp := fmt.Sprintf.argsWf hSprintf
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   try wp_auto
@@ -105,7 +115,9 @@ theorem types.URLsMap.String.wp_proof
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply (wp_map_for_range (K := GoString) (V := GoSlice) (fun keys i => iprop(
       ∃ (ps : GoSlice) (xs : List GoString) (nm : GoString) (us : GoSlice),
-      "%Hi" ∷ ⌜0 ≤ i ∧ xs.length = ((keys.take i.toNat).map (fun k => (urls k).length)).sum⌝ ∗
+      "%Hi" ∷ ⌜0 ≤ i ∧ xs.length = ((keys.take i.toNat).map (fun k => (urls k).length)).sum ∧
+        (xs.map (fun x => x.length + 1)).sum =
+          ((keys.take i.toNat).map (fun k => ((urls k).map (types.urlPieceLen k)).sum)).sum⌝ ∗
       "pairs" ∷ pairs_ptr ↦ ps ∗ "Hps" ∷ ps ↦* xs ∗ "Hcap" ∷ ownSliceCap GoString ps (DFrac.own 1) ∗
       "name" ∷ name_ptr ↦ nm ∗ "urls" ∷ urls_ptr ↦ us)) _ _ _ mp m DFrac.discard) $$ Hm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
@@ -121,32 +133,45 @@ theorem types.URLsMap.String.wp_proof
   · imodintro
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
     iNamed HP
-    obtain ⟨Hi0, Hxs⟩ := Hi
+    obtain ⟨Hi0, Hxs, Hxb⟩ := Hi
+    have hplk : ∀ u ∈ urls key, http.urlRootPlain u := Hplain key (by rw [Hvv]; rfl)
     ihave #Hvu : (vv ↦*□ urls key : IProp GF) $$ [Hurls]
     · iapply (BigSepM.bigSepM_lookup (Φ := fun k sl => (sl ↦*□ urls k : IProp GF)) Hvv) $$ Hurls
     (try wp_auto)
     try wp_func_lits
     wp_apply (wp_slice_for_range_ro (V := _root_.Perennial.net.url.URL) _ vv (urls key) DFrac.discard _
       (fun j => iprop(∃ (ps : GoSlice) (xs' : List GoString),
-        ⌜xs'.length = xs.length + j⌝ ∗ pairs_ptr ↦ ps ∗ ps ↦* xs' ∗
+        ⌜xs'.length = xs.length + j ∧ (xs'.map (fun x => x.length + 1)).sum =
+          (xs.map (fun x => x.length + 1)).sum + (((urls key).take j).map (types.urlPieceLen key)).sum⌝ ∗
+        pairs_ptr ↦ ps ∗ ps ↦* xs' ∗
         ownSliceCap GoString ps (DFrac.own 1) ∗ name_ptr ↦ key))) $$ Hvu [pairs Hps Hcap name]
     · iexists ps, xs
       iframe
-      ipureintro; rfl
+      ipureintro; simp
     · imodintro
-      iintro %j %x %hx ⟨%ps2, %xs2, %Hl2, pairs, Hps, Hcap, name⟩ -
+      iintro %j %x %hx ⟨%ps2, %xs2, %Hlb, pairs, Hps, Hcap, name⟩ -
+      obtain ⟨Hl2, Hb2⟩ := Hlb
       (try wp_auto)
-      wp_apply (hURL url_ptr (DFrac.own 1) x) $$ [url] as %s ⟨url, -⟩
+      wp_apply (hURL url_ptr (DFrac.own 1) x) $$ [url] as %s ⟨url, %Hs⟩
       · iexact url
+      have hs : s = go!"http://" ++ x.Host' := Hs (hplk x (List.mem_of_getElem? hx))
+      subst hs
       (try wp_auto)
       wp_apply wp_slice_literal (V := GoInterface)
-        [interface.mkOk go.string #key, interface.mkOk go.string #s]
+        [interface.mkOk go.string #key, interface.mkOk go.string #(go!"http://" ++ x.Host')]
       isplitr
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
-      wp_apply (hSp _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-          (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)))
-        $$ [$Hasl] as %str -
+      wp_apply (fmt.wp_Sprintf_pure hSprintf go!"%s=%s"
+          [.dir none _root_.Perennial.fmt.verb_s, .lit go!"=", .dir none _root_.Perennial.fmt.verb_s] _ _ _ _
+          (by fmt_encode) (by fmt_fits) (.str _ _ _ (.str _ _ _ .nil)))
+        $$ [$Hasl] as %str ⟨-, %Hout⟩
+      have hstr : str.length = key.length + 1 + (go!"http://" ++ x.Host').length := by
+        rw [Hout]
+        simp (config := { decide := true }) only [_root_.Perennial.fmt.dirOutFn,
+          _root_.Perennial.fmt.render, List.append_nil, ↓reduceIte, List.length_append,
+          List.length_cons, List.length_nil]
+        omega
       (try wp_auto)
       wp_apply wp_slice_literal (V := GoString) [str]
       isplitr
@@ -159,9 +184,15 @@ theorem types.URLsMap.String.wp_proof
       isplitl [pairs Hps Hcap name]
       · iexists ps3, xs2 ++ [str]
         iframe
-        ipureintro; simp [Hl2]; omega
+        ipureintro
+        refine ⟨by simp only [List.length_append, List.length_cons, List.length_nil, Hl2]; omega, ?_⟩
+        rw [List.take_add_one, hx, Option.toList_some, List.map_append, List.sum_append, List.map_append,
+          List.sum_append, Hb2]
+        simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hstr, types.urlPieceLen]
+        omega
       iexact Hvu
-    iintro ⟨%ps2, %xs2, %Hl2, pairs, Hps, Hcap, name⟩ -
+    iintro ⟨%ps2, %xs2, %Hlb, pairs, Hps, Hcap, name⟩ -
+    obtain ⟨Hl2, Hb2⟩ := Hlb
     (try wp_auto)
     unfold forMapPostcondition
     iright; ileft
@@ -171,30 +202,39 @@ theorem types.URLsMap.String.wp_proof
     iframe
     ipureintro
     have hi1 : (i + 1).toNat = i.toNat + 1 := by omega
-    refine ⟨by omega, ?_⟩
-    rw [hi1, List.take_succ, Hkey, Hl2, Hxs]
-    simp
+    refine ⟨by omega, ?_, ?_⟩
+    · rw [hi1, List.take_add_one, Hkey, Hl2, Hxs]
+      simp
+    · rw [hi1, List.take_add_one, Hkey, Hb2, Hxb, List.take_length]
+      simp
   iintro HP -
   iNamed HP
-  obtain ⟨Hi0, Hxs⟩ := Hi
+  obtain ⟨Hi0, Hxs, Hxb⟩ := Hi
   have htake : keys.take (GMap.size m : Int).toNat = keys := by
     rw [List.take_of_length_le]; omega
-  rw [htake] at Hxs
+  rw [htake] at Hxs Hxb
   have hperm : keys.Perm m.domList :=
     (List.perm_ext_iff_of_nodup Hknodup (GMap.nodup_dom_list m)).2
       (fun k => (Hkset k).trans (GMap.mem_dom_list m k).symm)
   have hlen : xs.length ≤ 2 ^ 62 := by
     rw [Hxs, (hperm.map _).sum_nat]; exact Hsum
+  have hxb : (xs.map (fun x => x.length + 1)).sum < 2 ^ 61 := by
+    rw [Hxb, (hperm.map _).sum_nat]; exact Hbytes
   (try wp_auto)
   ihave #Hsortp : isPkgInit (PROP := IProp GF) pkg_id.sort $$ []
   · iPkgInit
-  wp_apply hSort ps xs $$ [Hps] as %xs' ⟨Hps, -, -⟩
+  wp_apply hSort ps xs $$ [Hps] as %xs' ⟨Hps, %Hperm2, -⟩
   · iframe #; iframe; ipureintro; exact hlen
   (try wp_auto)
   ihave #Hstrp : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
   · iPkgInit
   wp_apply hJoin ps xs' (DFrac.own 1) go!"," $$ [Hps] as Hps
   · iframe #; iframe
+    ipureintro
+    have hsep : (go!"," : GoString).length = 1 := rfl
+    have h1 := intercalate_length_le go!"," xs'
+    rw [hsep, ← (Hperm2.map _).sum_nat] at h1
+    omega
   (try wp_auto)
   iapply HΦ
   itrivial

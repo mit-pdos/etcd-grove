@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`NewClusterFromURLsMap(lg, token, m, opts...)`** of a URLs map `m` (read-only, each entry's URLs
 `urls name`, plain), a zap logger and one option setting `maxLearners` to `ml`, the `fips140`
-GODEBUG setting off, **the entries' ids distinct and none `0`** (`NewMember`'s; facts of the
+GODEBUG setting off, each entry's URL strings shorter than `2^61` bytes in all (`NewMember`'s, for
+`strings.Join`), **the entries' ids distinct and none `0`** (`NewMember`'s; facts of the
 configuration, decided by evaluation): a fresh cluster, owned (`clusterOwned`), whose members are the
 entries' `memberOfURLs` (`memOfList`, in any order: Go's map order is unspecified), and whose id is
 `clusterIdOf` of their sorted ids; no error. (Go's two error returns are not reached: a repeated id
@@ -39,6 +40,7 @@ abbrev membership.NewClusterFromURLsMap.spec : Prop :=
   (m.domList.map (fun k => (membership.memberOfURLs k (urls k) token).id)).Nodup →
   W64 0 ∉ m.domList.map (fun k => (membership.memberOfURLs k (urls k) token).id) →
   GMap.size m ≤ 2 ^ 58 → (∀ k, (m.lookup k).isSome → (urls k).length ≤ 2 ^ 62) →
+  (∀ k, (m.lookup k).isSome → (((urls k).map membership.urlStrOf).map List.length).sum < 2 ^ 61) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
       zapLoggerOk lg ∗ mp ↦$□ m ∗ ([∗map] k ↦ sl ∈ m, sl ↦*□ urls k) ∗
       opts ↦*□ [f] ∗ membership.clusterOptMax f ml }}

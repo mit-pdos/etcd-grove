@@ -25,6 +25,40 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: computeMemberID, URLsMap.String -- Perennial's real `strings.Join` needs the joined string shorter than `2^61` bytes
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/computeMemberID.lean`
+  (`membership.computeMemberID.spec`), `.../membership/NewMember.lean` (`membership.NewMember.spec`),
+  `.../membership/NewClusterFromURLsMap.lean` (`membership.NewClusterFromURLsMap.spec`),
+  `Spec/go_etcd_io/etcd/client/pkg/v3/types/URLsMap__String.lean` (`types.URLsMap.String.spec`),
+  `Spec/go_etcd_io/etcd/server/v3/config/ServerConfig__VerifyBootstrap.lean` (`config.ServerConfig.VerifyBootstrap.spec`),
+  and the configuration fact `bootGo.initMapOk` (`Proof/.../etcdserver/BootValues.lean`) that
+  `bootstrapNewClusterNoWAL.spec`, `bootstrapCluster.spec`, `bootstrap.spec` and `Finalize.spec` take (claim #34,
+  stage 2's internal specs). No `SpecPlan/` counterpart states the bound; no top-level statement, no `bootPremise`.
+- **Defect.** Unprovable after lean `622264bf5e` (Perennial `d9c8c1d97`): Perennial `8e9f1ee59` replaced the
+  trusted `strings.Join` by the real one, whose spec takes `⌜(sep.intercalate xs).length < 2^61⌝` (Go panics when
+  the result's length overflows). `computeMemberID` joins the peer URLs' strings, `URLsMap.String` joins the
+  entries' `name=url` strings; nothing bounded their bytes. `URLsMap.String`'s URL strings came from
+  `http.URLStringAny_spec` without its plain-URL clause (any string), so no bound was derivable there at all.
+- **Evidence.** VM build of `bootstrap-stage2/2026-11-25` after merging lean (`49010f75d7`): `computeMemberID.lean`
+  (~line 71, the `strings.Join` precondition) and `URLsMap__String.lean` (the same precondition; also
+  `fmt.Sprintf.argsWf`, removed by lean's fmt rework).
+- **Proposed change.** (Decided by the stage's lead, 2026-11-24.) `computeMemberID.spec` and `NewMember.spec` take
+  `((us.map urlStrOf).map List.length).sum < 2^61`; `NewClusterFromURLsMap.spec` takes it for each entry.
+  `URLsMap.String.spec` switches to plain URLs (`∀ k u, http.urlRootPlain u`, so `URL.String()` is exactly
+  `http://host`) and takes `types.urlsMapStrLen m urls < 2^61` (each entry `k` and URL `u` count
+  `|k| + |http://host| + 2`: the piece `k=url` and its `,`), formats with `fmt.wp_Sprintf_pure` (exact output);
+  `VerifyBootstrap.spec` takes the same two premises and passes them down. `bootGo.initMapOk` gains the conjunct
+  `Σ_k Σ_{u ∈ initURLs k} (|k| + |urlStr u| + 2) < 2^61`, which gives both (`bootstrapNewClusterNoWAL`'s proof
+  derives each entry's bound); it is decidable and settled per example by evaluation, like its other conjuncts.
+  Alternatives considered: (a) per-URL `< 2^56` with a count bound: `initMapOk`'s `≤ 2^62` URLs is far too loose
+  for a product bound, and a tighter count is a second new conjunct for no gain; the one total sum bounds both
+  joins directly. (b) `URLsMap.String` as a pending hypothesis (`?`): rejected by the lead (it only feeds
+  `VerifyBootstrap`'s error text and its `== ""` test, but a hypothesis would stay in the trust report).
+  (c) A Perennial `strings.Join` spec without the bound: false of Go.
+- **Decision.** Applied (claim #34 stage 2, branch `bootstrap-stage2/2026-11-25`); internal specs only, no axiom,
+  no top-level statement or `bootPremise` changed.
+
 ## 2026-11-25: bootstrappedCluster.Finalize -- the lock invariant's bound on the members needs the initial cluster's size
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrappedCluster__Finalize.lean`,

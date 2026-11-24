@@ -44,7 +44,7 @@ theorem membership.computeMemberID.wp_proof
     (hSum : crypto.sha1.Sum.spec (GF := GF) (hG := hG))
     (hU64 : binary.bigEndian.Uint64.spec (GF := GF) (hG := hG)) :
     membership.computeMemberID.spec (GF := GF) (hG := hG) := by
-  intro sl us token Hfips Hplain Hlen
+  intro sl us token Hfips Hplain Hlen Hbytes
   wp_start as #Hus
   wp_auto
   ihave #Htpk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []
@@ -69,6 +69,9 @@ theorem membership.computeMemberID.wp_proof
   -- `strings.Join(peerURLstrs, "")`
   wp_apply (hJoin out xs' (DFrac.own 1) go!"") $$ [Hout] as Hout
   · iframe #; iframe Hout
+    ipureintro
+    rw [membership.intercalate_empty, List.length_flatten, ← (Hperm.map List.length).sum_nat]
+    exact Hbytes
   (try wp_auto)
   -- `[]byte(joinedPeerUrls)`, `append(b, []byte(clusterName)...)`
   wp_apply wp_string_to_bytes as %bs ⟨Hbs, Hbcap⟩

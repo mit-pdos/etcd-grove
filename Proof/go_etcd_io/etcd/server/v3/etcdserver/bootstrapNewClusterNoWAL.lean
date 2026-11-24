@@ -65,7 +65,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   intro cfg U H prt Hfresh HU Hfips HiOk
   obtain ⟨hnc, hend, hutf, hfits⟩ := Hfresh
   have HiOk' := HiOk
-  obtain ⟨hnd, hnz, hsz, hsum⟩ := HiOk
+  obtain ⟨hnd, hnz, hsz, hsum, hbytes⟩ := HiOk
   -- the entries' members, as the membership package names them
   let tok := cfg.InitialClusterToken'
   let fm : GoString → apply.MemberM := fun k => membership.memberOfURLs k (U.initURLs k) tok
@@ -95,6 +95,37 @@ theorem bootstrapNewClusterNoWAL.wp_proof
         · have := ih h; omega
     have := hle _ hkd
     omega
+  -- each entry's URL strings, fewer than `2^61` bytes (`NewMember`'s `strings.Join`)
+  have hubytes : ∀ k, (U.initMap.lookup k).isSome →
+      (((U.initURLs k).map membership.urlStrOf).map List.length).sum < 2 ^ 61 := by
+    intro k hk
+    have hkd : k ∈ U.initMap.domList := (GMap.mem_dom_list _ _).2 hk
+    let F : GoString → Nat := fun k =>
+      ((U.initURLs k).map (fun u => k.length + (bootGo.urlStr u).length + 2)).sum
+    have hle : ∀ l : List GoString, k ∈ l → F k ≤ (l.map F).sum := by
+      intro l hl
+      induction l with
+      | nil => cases hl
+      | cons a l ih =>
+        rw [List.map_cons, List.sum_cons]
+        rcases List.mem_cons.1 hl with rfl | h
+        · omega
+        · have := ih h; omega
+    have hin : ∀ l : List _root_.Perennial.net.url.URL,
+        ((l.map membership.urlStrOf).map List.length).sum ≤
+          (l.map (fun u => k.length + (bootGo.urlStr u).length + 2)).sum := by
+      intro l
+      induction l with
+      | nil => simp
+      | cons a l ih =>
+        simp only [List.map_cons, List.sum_cons]
+        have : (membership.urlStrOf a).length = (bootGo.urlStr a).length := rfl
+        omega
+    have h1 := hle _ hkd
+    have h2 := hin (U.initURLs k)
+    have h3 : (U.initMap.domList.map F).sum < 2 ^ 61 := hbytes
+    have hF : F k = ((U.initURLs k).map (fun u => k.length + (bootGo.urlStr u).length + 2)).sum := rfl
+    omega
   wp_start as ⟨#Hzlg, #Hro, Hrt⟩
   iunfold bootCfgRO at Hro
   icases Hro with ⟨#Hpeer, #Hcli, #Hmap, #Hurls⟩
@@ -112,7 +143,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   ihave #Hcf := cfg
   iStructNamedSuffix Hcf "F"
   -- `cfg.VerifyBootstrap()`
-  wp_apply (hVB cfg_ptr cfg U.initMap U.initURLs U.peer hsum) $$ [] as %verr %Hverr
+  wp_apply (hVB cfg_ptr cfg U.initMap U.initURLs U.peer hsum HU hbytes) $$ [] as %verr %Hverr
   · iframe #
   rcases Hverr with Hne | Hok
   · obtain ⟨ve, rfl⟩ : ∃ ve, verr = GoInterface.ok ve := by
@@ -133,7 +164,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   iintro %osl ⟨Hosl, -⟩
   imod ownSlice_persist $$ Hosl with #Hosl
   wp_apply (hNCU cfg.Logger' tok cfg.InitialPeerURLsMap' U.initMap U.initURLs _ f
-      cfg.MaxLearners' Hfips HU hnd' hnz' hsz hlen) $$ [] as %c ⟨%Hcnn, %ms, %ids, %Hids, Hcl⟩
+      cfg.MaxLearners' Hfips HU hnd' hnz' hsz hlen hubytes) $$ [] as %c ⟨%Hcnn, %ms, %ids, %Hids, Hcl⟩
   · iframe #
   try wp_auto
   have hmem : membership.memOfList (U.initMap.domList.map fm) = bootGo.memMap U tok :=

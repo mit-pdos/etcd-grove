@@ -30,10 +30,10 @@ theorem membership.NewMember.wp_proof
     (hCID : membership.computeMemberID.spec (GF := GF) (hG := hG))
     (hNM : membership.newMember.spec (GF := GF) (hG := hG)) :
     membership.NewMember.spec (GF := GF) (hG := hG) := by
-  intro name sl us token Hfips Hplain Hlen
+  intro name sl us token Hfips Hplain Hlen Hbytes
   wp_start as #Hus
   wp_auto
-  wp_apply (hCID sl us token Hfips Hplain Hlen) $$ []
+  wp_apply (hCID sl us token Hfips Hplain Hlen Hbytes) $$ []
   · iframe #
   (try wp_auto)
   wp_apply (hNM name sl us _ false Hplain) $$ [] as %m Hm

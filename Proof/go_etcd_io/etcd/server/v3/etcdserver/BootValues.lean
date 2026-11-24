@@ -161,11 +161,16 @@ under two names, which `VerifyBootstrap`'s `CheckDuplicateURL` refuses); a fact 
 checked by evaluation (`memberID` is computable). None `0`: Go answers an id `0` with an error
 (`cannot use 0 as member id`); excluded so that `NewClusterFromURLsMap`'s loop never returns (a fact
 of the configuration too). The size: `genID`'s `make([]byte, 8*len(ids))` and
-`sort.Sort` need it. -/
+`sort.Sort` need it. The URLs' bytes (2026-11-25, after Perennial's real `strings.Join`, whose result must be
+shorter than `2^61` bytes): each entry `k` and URL `u` count `k=http://host,`, fewer than `2^61` bytes in all,
+which bounds both `URLsMap.String()`'s join (`VerifyBootstrap`) and each member's joined URLs
+(`computeMemberID`); a decidable fact of the configuration, settled per example by evaluation. -/
 def initMapOk [GooseExts] (U : BootURLs) (token : GoString) : Prop :=
   (U.initMap.domList.map (fun k => (memberOf U token k).id)).Nodup ∧
     W64 0 ∉ U.initMap.domList.map (fun k => (memberOf U token k).id) ∧ GMap.size U.initMap ≤ 2 ^ 58 ∧
-    (U.initMap.domList.map (fun k => (U.initURLs k).length)).sum ≤ 2 ^ 62
+    (U.initMap.domList.map (fun k => (U.initURLs k).length)).sum ≤ 2 ^ 62 ∧
+    (U.initMap.domList.map (fun k => ((U.initURLs k).map (fun u => k.length + (urlStr u).length + 2)).sum)).sum <
+      2 ^ 61
 
 /-- **This member's id is not one of raft's local targets** (claim #34 stage 4, 2026-11-25; ledger,
 "`bootstrapRaft.spec`: an id raft refuses"): raft v3.7's `Config.validate` refuses an id that
