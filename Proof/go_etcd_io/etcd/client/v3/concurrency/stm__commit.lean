@@ -68,8 +68,8 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
   ihave %Hru := readFacts_under pfx st.reads $$ Hfacts
   ihave %Hwu := writesAt_under pfx wsMap st.writes $$ Hwrites
   wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
-  · ipureintro
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro
     exact ⟨stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (by simp),
       stmCommit_size Hsz Hms Hops.2 (.inl rfl)⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres

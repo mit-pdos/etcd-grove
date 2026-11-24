@@ -91,8 +91,8 @@ theorem stmSerializable.commit.wp_proof
     obtain ⟨e, he⟩ := Option.isSome_iff_exists.1 ((Hksl.2 k).1 hk)
     exact Hru k e he
   wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
-  · ipureintro
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro
     exact ⟨stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (keyOps_under pfx ks hks),
       stmCommit_size Hsz Hms Hops.2 (.inr ⟨ks, Hksl, rfl⟩)⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres

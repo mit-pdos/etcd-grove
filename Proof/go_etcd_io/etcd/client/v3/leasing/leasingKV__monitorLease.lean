@@ -245,8 +245,8 @@ theorem leasingKV.monitorLease.wp_proof
     · iapply etcdReached_zero
     ihave #HG := HKV' $$ %ctx %cs %(pfx ++ key) %slice.nil %([] : List (OpFull → OpFull)) %(W64 0)
     wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
-    · iframe Hctx HctxC Hnil H0
-      (try iframe Hlt)
+    · (try iframe Hlt)
+      iframe Hctx HctxC Hnil H0
       ipureintro
       exact ⟨concurrency.keyOp_not_panics, (concurrency.keyOp_t (pfx ++ key)).1,
         opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 0) (V := 0) (optsKeep_nil _ _ _)
@@ -292,8 +292,9 @@ theorem leasingKV.monitorLease.wp_proof
       wp_apply hRes lkv γ pfx cctx
         ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
            PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key r
-        $$ [$Hpkg $Hlkv $Hcctx $HcctxC]
-      · ipureintro; exact Hkl
+        $$ [$Hlt $Hpkg $Hlkv $Hcctx $HcctxC]
+      · (try iframe Hlt)
+        ipureintro; exact Hkl
       (try wp_auto)
       wp_for_post
       wp_apply Hcancel'
@@ -325,8 +326,9 @@ theorem leasingKV.monitorLease.wp_proof
       wp_apply hRes lkv γ pfx cctx
         ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
            PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key r
-        $$ [$Hpkg $Hlkv $Hcctx $HcctxC]
-      · ipureintro; exact Hkl
+        $$ [$Hlt $Hpkg $Hlkv $Hcctx $HcctxC]
+      · (try iframe Hlt)
+        ipureintro; exact Hkl
       (try wp_auto)
       wp_for_post
       wp_apply Hcancel'

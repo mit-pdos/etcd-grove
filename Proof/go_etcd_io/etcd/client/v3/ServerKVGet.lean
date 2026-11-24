@@ -528,8 +528,8 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : app
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   iapply (kv_get_server api addr s E γr cid mid pfx hpfx todoCtxVal cd key sl gs R lo Hnp Ht Hx Hsz hrb)
     $$ [Hlt HR] [HΦ]
-  · iframe #; iframe
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe #; iframe
   inext
   iintro %resp %err ⟨Hlt, HR, #Hres, #Hmore, -⟩
   iapply HΦ
@@ -560,8 +560,8 @@ theorem isEtcdKVE_of_kv_r (api : Loc) (addr : List GoString) (s : Loc) (E : appl
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
   iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx Hsz hrb)
     $$ [Hlt] [HΦ]
-  · iframe #
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe #
   inext
   iintro %resp %err ⟨Hlt, -, #Hres, -, #Hse⟩
   iapply HΦ

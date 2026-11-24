@@ -205,8 +205,8 @@ theorem leasingKV.monitorSession.wp_proof
   imod Hclose $$ %_ %(reset_wf Hwf m) Hfacts' Hinst Hready Hown HX with HP
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl $HP]
   wp_apply hNS cl cctx osl gs pctx pcs $$ [$Hlt $Hcpkg $Hscl $Hopts $Hpc $Hpcc] as %s' %err1 ⟨Hlt, Hns⟩
-  · ipureintro; exact Hpctx
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro; exact Hpctx
   icases Hns with (%Hns | ⟨%Hns, %γs, %sid, #Hsess, -⟩)
   · -- no session: try again
     obtain ⟨rfl, Hne⟩ := Hns

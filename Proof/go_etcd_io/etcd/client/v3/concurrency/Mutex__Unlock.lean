@@ -90,8 +90,8 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
     ihave #Hnil := optsAt_nil (GF := GF)
     iunfold isEtcdDeleteKV at HDel
     wp_apply HDel $$ %ctx %cs %st.key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hlt $Hctx $HctxC $Hnil $Hlo] as %dresp %derr ⟨Hlt, #Hd⟩
-    · ipureintro
-      (try iframe Hlt)
+    · (try iframe Hlt)
+      ipureintro
       refine ⟨deleteOp_not_panics st.key, ?_⟩
       rw [(deleteOp_fields st.key).1, (deleteOp_fields st.key).2]
       exact ⟨keyRangeUnder_key pfx st.key Hif, deleteOp_size Hkl⟩

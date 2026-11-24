@@ -336,8 +336,8 @@ theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx
   iunfold kvAu1 at Hau
   iapply (v3.kv.wp_Delete api γ.kv false todoCtxVal cd key sl gs
     (kmWriteQ γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))))) $$ [Hlt Hau]
-  · iframe #
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe #
     isplitl []
     · ipureintro; exact ⟨hpan, ht, by simpa [deleteWireOf, txn.deleteOpOf] using hz⟩
     isplitl [Hau]

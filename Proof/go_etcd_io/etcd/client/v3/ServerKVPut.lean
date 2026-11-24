@@ -388,8 +388,8 @@ theorem isEtcdPutKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
   iintro !> %key %val %sl %gs %op %lo %Φ !> ⟨Hlt, #Hopts, #Hlo, %Hp⟩ HΦ
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   iapply (kv_put_result api addr s E γr cid mid todoCtxVal cd key val sl gs op lo pfx Hp hrb) $$ [Hlt]
-  · iframe #
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe #
   iexact HΦ
 
 /-! ## The delete -/
@@ -574,8 +574,8 @@ theorem isEtcdDeleteKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E
   iintro !> %key %sl %gs %lo %Φ !> ⟨Hlt, #Hopts, #Hlo, %Hp⟩ HΦ
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   iapply (kv_delete_result api addr s E γr cid mid todoCtxVal cd key sl gs lo pfx Hp hrb) $$ [Hlt]
-  · iframe #
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe #
   iexact HΦ
 
 end proofs

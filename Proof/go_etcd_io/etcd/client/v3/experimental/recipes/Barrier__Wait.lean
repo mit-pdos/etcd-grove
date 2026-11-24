@@ -43,8 +43,8 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
   iunfold isEtcdKVTodo at HGet
   ihave #HG := HGet $$ %key %slice.nil %([] : List (OpFull → OpFull)) %iprop(True) %lo
   wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, -⟩
-  · iframe Hopts Hlo
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe Hopts Hlo
     ipureintro
     exact ⟨keyOp_not_panics, (keyOp_t key).1, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),

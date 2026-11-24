@@ -81,8 +81,8 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   iunfold isEtcdKVTodo at HGet
   wp_apply HGet $$ %kp %gsl %(withTopM (W64 0) (W64 2)) %(iprop(True) : IProp GF) %lo [$Hlt $Hgres $Hlo]
     as %gresp %gerr ⟨Hlt, -, #Hgr, -⟩
-  · ipureintro
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro
     exact ⟨lastKeyOp_not_panics, (lastKeyOp_fields kp).1, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
       lastKeyOp_size (by word)⟩
@@ -309,8 +309,9 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ (seqBuild kp key val g) (by rfl) $$ HB
-  wp_apply HCommit $$ %(seqBuild kp key val g) %g [$HB $Hg] as %tresp %terr ⟨Hres, -⟩
-  · ipureintro; exact ⟨seqTxn_under pfx kp key val g Hk.2.1 Hpk, TxnModel.exactGets_of_noGets _ (by simp [seqBuild, seqTxn])
+  wp_apply HCommit $$ %(seqBuild kp key val g) %g [$Hlt $HB $Hg] as %tresp %terr ⟨Hlt, Hres, -⟩
+  · (try iframe Hlt)
+    ipureintro; exact ⟨seqTxn_under pfx kp key val g Hk.2.1 Hpk, TxnModel.exactGets_of_noGets _ (by simp [seqBuild, seqTxn])
         (by simp [seqBuild, seqTxn, compareM, cmpKeyM]) (by simp [seqBuild, seqTxn, op_simps]),
         seqTxn_size g Hk.2.2.1 HkeyL Hk.2.2.2⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres

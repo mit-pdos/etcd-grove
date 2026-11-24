@@ -126,7 +126,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err ⟨Hres, #Hce⟩
+  wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres, #Hce⟩
   · ipureintro; exact ⟨newKeyTxn_under pfx key val lease Hk.1, TxnModel.exactGets_of_noGets _ (by simp [newKeyTxn])
         (by simp [newKeyTxn, compareM, cmpKeyM]) (by simp [newKeyTxn, op_simps]),
         newKeyTxn_size lease Hk.2.1 Hk.2.2⟩

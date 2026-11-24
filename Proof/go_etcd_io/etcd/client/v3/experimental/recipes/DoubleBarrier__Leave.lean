@@ -170,8 +170,8 @@ theorem DoubleBarrier.Leave.wp_proof
     %iprop(True) %lo
   wp_auto
   wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, -⟩
-  · iframe Hopts' Hlo
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe Hopts' Hlo
     ipureintro
     exact ⟨waitersOp_not_panics.2, (waitersOp_t _).2, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
@@ -341,8 +341,8 @@ theorem DoubleBarrier.Leave.wp_proof
       (try wp_auto)
       wp_apply HDel $$ %(key ++ go!"/ready") %slice.nil %([] : List (OpFull → OpFull)) %lo
         [$Hlt $Hnilo $Hlo] as %dresp %derr ⟨Hlt, #Hdres⟩
-      · ipureintro
-        (try iframe Hlt)
+      · (try iframe Hlt)
+        ipureintro
         refine ⟨concurrency.deleteOp_not_panics _, ?_, by rw [hde]; simp, rfl,
           deleteOp_size (by simp; omega)⟩
         rw [hdk, hde]; exact concurrency.keyRangeUnder_key _ _ hpr
@@ -369,8 +369,8 @@ theorem DoubleBarrier.Leave.wp_proof
       wp_method_call
       wp_auto
       wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$Hlt $Hek $Hkv $Hlo] as %err2 ⟨Hlt, Hek, Hres⟩
-      · ipureintro; exact Hk
-        (try iframe Hlt)
+      · (try iframe Hlt)
+        ipureintro; exact Hk
       ihave #Hres := leaveResult_of_delete _ st lo err2 $$ Hres
       iapply HΦ $$ [Hlt]
       iframe Hlt

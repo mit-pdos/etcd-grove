@@ -212,8 +212,8 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
-  · ipureintro
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro
     exact ⟨acquireTxn_under pfx key id Hpfx Hpk, acquireTxn_size pfx key id Hpl (by omega)⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres

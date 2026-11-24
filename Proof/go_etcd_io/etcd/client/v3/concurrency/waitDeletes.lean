@@ -84,8 +84,8 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
   ihave #HG := HKV $$ %ctx %cs %pfx %gsl
     %(withTopM (W64 2) (W64 2) ++ [withMaxCreateRevM maxCreateRev]) %lo'
   wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
-  · iframe Hctx HctxC Hopts Hlo'
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe Hctx HctxC Hopts Hlo'
     ipureintro
     exact ⟨lastCreateOp_not_panics maxCreateRev, lastCreateOp_t pfx maxCreateRev,
       lastCreateOp_size maxCreateRev Hp.2.1⟩

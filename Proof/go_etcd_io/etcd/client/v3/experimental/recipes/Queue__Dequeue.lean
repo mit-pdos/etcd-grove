@@ -56,8 +56,8 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
   ihave #HG := HGet $$ %kp %osl %(withTopM (W64 3) (W64 1)) %iprop(True) %lo
   obtain ⟨Ht, Hk, He, Hrev, Hser, -, -, Hl, Hc, -, Hf1, Hf2, Hf3, Hf4⟩ := firstRevOp_fields kp Hkp
   wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, #Hmore⟩
-  · iframe Hopts Hlo
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe Hopts Hlo
     ipureintro
     exact ⟨firstRevOp_not_panics, Ht, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
@@ -224,8 +224,9 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       wp_auto
       wp_apply wp_bytes_to_string ekeySl e.key DFrac.discard $$ [$HeKs] as -
       (try wp_auto)
-      wp_apply hDRK kv kp e.key e.rev rd $$ [$Hpkg $Hkv $Hrd] as %ok %derr Hdres
-      · ipureintro; exact ⟨Hin, Hepos, by
+      wp_apply hDRK kv kp e.key e.rev rd $$ [$Hlt $Hpkg $Hkv $Hrd] as %ok %derr ⟨Hlt, Hdres⟩
+      · (try iframe Hlt)
+        ipureintro; exact ⟨Hin, Hepos, by
         have hk := Hkse v Hvse; unfold etcdKeyMax at hk
         rw [Hvk] at hk; word⟩
       icases Hdres with (⟨%Hdnil, %r, #Hr, %Hrr, Hc⟩ | %Hdne)
@@ -274,8 +275,9 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
         ipureintro; exact ⟨rfl, by omega⟩
     · -- `More`: retry
       rw [method_unfold (t := go.GoType.PointerType Queue.ty) (m := go!"Dequeue")]
-      wp_apply IH $$ [$Hpkg $Hcc $Hq $Hlo] as %v %err Hres
-      · ipureintro; exact Hlo0
+      wp_apply IH $$ [$Hlt $Hpkg $Hcc $Hq $Hlo] as %v %err ⟨Hlt, Hres⟩
+      · (try iframe Hlt)
+        ipureintro; exact Hlo0
       (try wp_auto)
       iapply HΦ
       iframe Hlt

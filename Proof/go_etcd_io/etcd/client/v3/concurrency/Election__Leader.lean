@@ -82,8 +82,8 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   iunfold isEtcdKV at HKV
   ihave #HG := HKV $$ %ctx %cs %pfx %slf %(withTopM (W64 2) (W64 1)) %lo
   wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
-  · iframe Hctx HctxC Hslf Hlo
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe Hctx HctxC Hslf Hlo
     ipureintro
     exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx, ownerOp_size Hpl⟩
   iunfold kvGetResult at Hgres

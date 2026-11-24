@@ -300,8 +300,8 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
   (try wp_auto)
   ihave #HG := HKV $$ %ctx %cs %pfx %slf %(withTopM (W64 2) (W64 1)) %Rl
   wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
-  · iframe Hctx HctxC Hslf HRl
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe Hctx HctxC Hslf HRl
     ipureintro
     exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx, ownerOp_size Hpl⟩
   iunfold kvGetResult at Hgres

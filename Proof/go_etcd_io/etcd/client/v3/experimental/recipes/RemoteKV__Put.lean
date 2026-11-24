@@ -42,8 +42,8 @@ theorem RemoteKV.Put.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (h
   ihave #Hnil := optsAt_nil (GF := GF)
   iunfold isEtcdPutKVTodo at HPut
   wp_apply HPut $$ %key %val %slice.nil %([] : List (OpFull → OpFull)) %(TxnOp.put key val (W64 0)) %lo [$Hlt $Hnil $Hlo] as %resp %err ⟨Hlt, Hres⟩
-  · ipureintro
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro
     exact ⟨putOp_not_panics' key val, putOp_txnOpOf' key val, Hk.1, rfl, putOp_size Hkl Hk.2⟩
   (try wp_auto)
   iapply HΦ

@@ -122,8 +122,8 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
   ihave #Hnil := optsAt_nil (GF := GF)
   iunfold isEtcdDeleteKV at HDel
   wp_apply HDel $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %r [$Hlt $Hctx $HctxC $Hnil $Hr] as %dresp %derr ⟨Hlt, #Hd⟩
-  · ipureintro
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro
     refine ⟨deleteOp_not_panics key, ?_⟩
     rw [(deleteOp_fields key).1, (deleteOp_fields key).2]
     exact ⟨keyRangeUnder_key pfx key Hp.1, deleteOp_size Hkln⟩

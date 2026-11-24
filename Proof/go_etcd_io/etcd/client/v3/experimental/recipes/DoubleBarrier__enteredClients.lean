@@ -74,8 +74,8 @@ theorem DoubleBarrier.enteredClients.wp_proof
     %iprop(True) %lo
   wp_auto
   wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, -⟩
-  · iframe Hopts' Hlo
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe Hopts' Hlo
     ipureintro
     exact ⟨waitersOp_not_panics.1, (waitersOp_t _).1, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),

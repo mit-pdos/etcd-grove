@@ -148,8 +148,8 @@ theorem txnLeasing.guardRanges.wp_proof
         have Hob := Hos o (List.mem_of_getElem? Hoi)
         wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$Hlt $HLKV $Hrd $Hsr $Hctx $HctxC $Hcc]
           as %maxRev %err ⟨Hlt, Hrd⟩
-        · ipureintro; exact Hob
-          (try iframe Hlt)
+        · (try iframe Hlt)
+          ipureintro; exact Hob
         cases err with
         | ok e =>
           (try wp_auto)
@@ -202,8 +202,8 @@ theorem txnLeasing.guardRanges.wp_proof
           ihave #H0 := etcdReached_zero (GF := GF)
           obtain ⟨Hnp, Ht1, HnP, Hrev0⟩ := lastRevOp_facts o.key o.base.rangeEnd
           wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
-          · iframe Hctx HctxC Hopts H0
-            (try iframe Hlt)
+          · (try iframe Hlt)
+            iframe Hctx HctxC Hopts H0
             ipureintro; exact ⟨Hnp, Ht1, lastRevOp_size _ _ Hob.1 Hob.2⟩
           iunfold kvGetResult at Hgres
           icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, -, Hgr⟩)

@@ -228,8 +228,8 @@ theorem stm.fetch.wp_proof (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
     · iapply etcdReached_zero
     wp_apply HCommit $$ %(ks.map (fun k => opGetModel k gs)) %(W64 0) [$Hlt $HB $H0] as %resp %err ⟨Hlt, #Hres⟩
-    · ipureintro
-      (try iframe Hlt)
+    · (try iframe Hlt)
+      ipureintro
       refine fetchTxn_size (fun k => ⟨(readOp_fields k gs Hgs).2.1, (readOp_fields k gs Hgs).2.2.1,
         ?_⟩) Hsz.1 Hsz.2
       rcases Hgs with rfl | rfl | ⟨S, rfl⟩ <;> simp [op_simps]

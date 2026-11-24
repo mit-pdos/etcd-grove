@@ -58,8 +58,8 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
   ihave #HG := HGet $$ %kp %osl %(withTopM (W64 0) (W64 1)) %Ro %lo
   obtain ⟨Ht, Hk, He, Hrev, Hser, -, Hl, Hc, -, Hf1, Hf2, Hf3, Hf4⟩ := firstKeyOp_fields kp Hkp
   wp_apply HG $$ [Hlt HRo] as %gresp %gerr ⟨Hlt, -, #Hgres, #Hmore⟩
-  · iframe HRo Hosl Hlo
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe HRo Hosl Hlo
     ipureintro
     exact ⟨firstKeyOp_not_panics, Ht, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
@@ -229,8 +229,8 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       wp_apply wp_bytes_to_string ekeySl e.key DFrac.discard $$ [$HeKs] as -
       (try wp_auto)
       wp_apply hDRK kv [] e.key e.rev rd $$ [$Hlt $Hpkg $Hkv $Hrd] as %ok %derr ⟨Hlt, Hdres⟩
-      · ipureintro; exact ⟨List.nil_prefix, Hepos, by
-        (try iframe Hlt)
+      · (try iframe Hlt)
+        ipureintro; exact ⟨List.nil_prefix, Hepos, by
         have hk := Hkse v Hvse; unfold etcdKeyMax at hk
         rw [Hvk] at hk; word⟩
       icases Hdres with (⟨%Hdnil, %r, #Hr, %Hrr, Hc⟩ | %Hdne)
@@ -251,8 +251,8 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
         wp_auto
         rw [method_unfold (t := go.GoType.PointerType PriorityQueue.ty) (m := go!"Dequeue")]
         wp_apply IH $$ [$Hlt $Hpkg $Hcc $Hq $Hlo] as %v' %err' ⟨Hlt, Hres⟩
-        · ipureintro; exact Hlo0
-          (try iframe Hlt)
+        · (try iframe Hlt)
+          ipureintro; exact Hlo0
         (try wp_auto)
         iapply HΦ
         iframe Hlt
@@ -281,8 +281,8 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
     · -- `More`: retry
       rw [method_unfold (t := go.GoType.PointerType PriorityQueue.ty) (m := go!"Dequeue")]
       wp_apply IH $$ [$Hlt $Hpkg $Hcc $Hq $Hlo] as %v %err ⟨Hlt, Hres⟩
-      · ipureintro; exact Hlo0
-        (try iframe Hlt)
+      · (try iframe Hlt)
+        ipureintro; exact Hlo0
       (try wp_auto)
       iapply HΦ
       iframe Hlt

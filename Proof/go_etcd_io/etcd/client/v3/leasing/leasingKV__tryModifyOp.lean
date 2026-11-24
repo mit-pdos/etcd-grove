@@ -118,8 +118,8 @@ theorem leasingKV.tryModifyOp.wp_proof
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := ⟨[compareM (cmpKeyM .create (pfx ++ o.key)) .lt (.num (rv + W64 1))], [top], []⟩, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %_ %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
-  · ipureintro
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro
     refine ⟨TxnModel.under_nil _, ?_⟩
     have hw := txnOpOf_wireLen_le Htop
     obtain ⟨h1, h2, h3⟩ := Hsh

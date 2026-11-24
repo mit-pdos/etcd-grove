@@ -97,8 +97,8 @@ theorem RWMutex.waitOnLastRev.wp_proof
   ihave #HG := HKV $$ %bp %gsl %(withTopM (W64 3) (W64 2) ++ [withMaxModRevM (st.rev - W64 1)])
     %iprop(True) %lo
   wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, -⟩
-  · iframe Hopts' Hlo
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe Hopts' Hlo
     ipureintro
     exact ⟨lastRevOp_not_panics _, lastRevOp_t bp _, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),

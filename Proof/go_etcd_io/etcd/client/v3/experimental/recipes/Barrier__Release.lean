@@ -38,8 +38,8 @@ theorem Barrier.Release.wp_proof : Barrier.Release.spec (GF := GF) (hG := hG) :=
   iunfold isEtcdDeleteKVTodo at HDel
   obtain ⟨hkk, hke⟩ := concurrency.deleteOp_fields key
   wp_apply HDel $$ %key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hlt $Hnil $Hlo] as %resp %err ⟨Hlt, #Hres⟩
-  · ipureintro
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro
     refine ⟨concurrency.deleteOp_not_panics key, ?_, by rw [hke]; simp, rfl, deleteOp_size (by omega)⟩
     rw [hkk, hke]; exact concurrency.keyRangeUnder_key key key (List.prefix_refl key)
   iunfold deleteResult at Hres

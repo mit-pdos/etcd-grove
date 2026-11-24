@@ -215,8 +215,8 @@ theorem isEtcdKVTodo_of_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoStri
   ihave #Hsi := sortNamesIf_of_ok (opGetModel key gs).base.sortSet $$ Hsn
   iapply (kv_get_km api γ dup pfx hpfx todoCtxVal cd key sl gs R lo Hnp Ht Hx Hlin Hsz)
     $$ [Hlt HR] [HΦ]
-  · iframe #; iframe
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe #; iframe
   inext
   iintro %resp %err ⟨Hlt, HR, #Hres, #Hmore, -⟩
   iapply HΦ
@@ -245,8 +245,8 @@ theorem isEtcdKVE_of_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString)
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
   iapply (kv_get_km api γ dup pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx Hlin Hsz)
     $$ [Hlt] [HΦ]
-  · iframe #
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe #
   inext
   iintro %resp %err ⟨Hlt, -, #Hres, -, #Hse⟩
   iapply HΦ

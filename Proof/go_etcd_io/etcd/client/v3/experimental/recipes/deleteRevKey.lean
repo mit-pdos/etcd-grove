@@ -108,7 +108,6 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   ihave HB := txnBuild_conv B _ ({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨deleteRevTxn_under pfx key rev Hk.1, TxnModel.exactGets_of_noGets _ (by simp [deleteRevTxn])
-    (try iframe Hlt)
         (by simp [deleteRevTxn, compareM, cmpKeyM]) (by simp [deleteRevTxn, op_simps]),
         deleteRevTxn_size rev Hk.2.2⟩
   iunfold txnCommitResultTok at Hres

@@ -371,8 +371,8 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
-  · ipureintro
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    ipureintro
     exact ⟨campaignTxn_under pfx key pv id Hpk, campaignTxn_size key pv id (by omega) Hvl⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
@@ -463,8 +463,8 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       · unfold electionState; iframe; ipureintro; exact ⟨Or.inr rfl, Hkey28⟩
       wp_apply hProclaim e s γ client id pfx ⟨key, v.createRev, s, st.hdr⟩ ctx cs pv r
         $$ [$Hlt $Hpkg $He $Hst $Hctx $HctxC $Hr] as %perr ⟨Hlt, Hpr⟩
-      · ipureintro; exact Hvl
-        (try iframe Hlt)
+      · (try iframe Hlt)
+        ipureintro; exact Hvl
       icases Hpr with (⟨%Hpn, %hdr', Hst, Hfact⟩ | ⟨#Herr, Hrest⟩ | ⟨%Hpne, Hst⟩)
       · obtain ⟨rfl, -⟩ := Hpn
         icases Hfact with (%Hnp | ⟨%r', #Hhr', #Hr', #Hpc, %Hrr'⟩)

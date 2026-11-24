@@ -78,8 +78,8 @@ theorem leasingKV.revokeRange.wp_proof
   ihave #H0 := etcdReached_zero (GF := GF)
   ihave #HG := HKV $$ %ctx %cs %(pfx ++ b) %_ %([withRangeM L] : List (OpFull → OpFull)) %(W64 0)
   wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
-  · iframe Hctx HctxC Hopts H0
-    (try iframe Hlt)
+  · (try iframe Hlt)
+    iframe Hctx HctxC Hopts H0
     ipureintro
     refine ⟨by simp [opGetPanics, op_simps], by simp [op_simps], ?_⟩
     apply opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 2 ^ 27 + 2 ^ 26) (V := 0)

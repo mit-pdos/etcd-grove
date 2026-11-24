@@ -145,8 +145,8 @@ theorem leasingKV.rescind.wp_proof
     iintro HB
     (try wp_auto)
     wp_apply HCommit $$ %_ %(W64 0) [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
-    · ipureintro
-      (try iframe Hlt)
+    · (try iframe Hlt)
+      ipureintro
       refine ⟨TxnModel.under_nil _, ?_⟩
       simp [txnSizeOk, txnWireLen, cmpWireLen, TxnOp.wireLen, opWireLen, wireSlack, TxnBuild.empty,
         TxnModel.empty, compareM, cmpKeyM, op_simps]
