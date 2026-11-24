@@ -289,10 +289,10 @@ end with `etcdKVAt` on the member's heap, which S2 replaces.
   premise (`MemberFiles`, `ClientFiles`), and the bridge takes the initial-state conditions as a hypothesis
   (`robust_of_distBootI`). The fix is `initLocal st _ := FsInit st` in `fsSemWithS` (a trusted-semantics change,
   with its example: not made here).
-- **The step bound** is `2 ^ 28 - 1` (was `2 ^ 40 - 11` in the first statement): `goose_dist_adequacy` bounds
+- **The step bound** was `2 ^ 28 - 1` (was `2 ^ 40 - 11` in the first statement): `goose_dist_adequacy` bounds
   threads over every execution of `n` steps, which the bridge meets with `n + 2`, and the server's specs take
-  `threadBound ≤ 2 ^ 28`. An along-the-execution distributed adequacy (as the single-process
-  `goose_adequacy_below`) would restore it (`notes/perennial-changes.md`, 2026-11-23).
+  `threadBound ≤ 2 ^ 28`. **Superseded 2026-11-24** (§12, "The bounds"): over `goose_dist_adequacy_below` the
+  statement is at `threads := putgetThreads` (`2 ^ 28`) and `bound := 2 ^ 48`.
 
 ## 8. Against S2's draft signatures (2026-11-23; `notes/phase7-plan.md` on `phase7-s2-design` `0606f68248`, §"S2 draft signatures")
 
@@ -656,3 +656,54 @@ and A5 proves its `Get` returns `v`: Go panics (`scratch/pgint-review/gocx`, 5/5
 - A lead, untested: `etcd_noRefusal`/`etcd_noOtherRefusal` (`v3rpc/NoRefusal.lean`) derive the global, pure
   `noRefusalAt addr` from a server under construction and `netListenerAt`; with `listen_au` re-listening it may
   outlive the server it came from.
+  (**Fixed on `lean`** the same day, merged here: `notes/audit.md`, `http.register`/`http.reserve`.)
+
+**The bounds (2026-11-24, after merging `lean`: the thread-bound `Robust`, `4e3c90e848`, and dsv-steps63).** The
+statement was `Robust [] (system …) g (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)`; it is now
+`(threads := putgetThreads) (bound := 2 ^ 48)`, `putgetThreads := 2 ^ 28` a named constant
+(`TopLevelDefs.lean`), the member's server specs' `threadBound ≤ 2 ^ 28` (`etcdstart.Serve.spec`,
+`wp_StartServer1`; the client's take `2 ^ 31`).
+- **The bridge**: `Net.robust_of_distBootIT` (new, a theorem, `Net/Statement/DistBridgeExts.lean`), over Perennial's
+  `goose_dist_adequacy_below` at `n + 1` receipts and `threads` threads, with each machine's obligation
+  `DistBootWpST bound T` (`receiptBound ≤ bound`, `threadBound = T`); as `DistBridge.lean`'s and dsverify's `RBT`
+  variants, over any list of extensions with the net extension. No receipt floor: the served member's `srvLevels`
+  (`srvLevelK ≤ threadBound`) now comes from the thread bound. `robust_of_distBootIL` stays for D9's skeleton
+  (`etcd/dist/TopLevelRobustness.lean`, unchanged).
+- **The step bound is `2 ^ 48`, not `2 ^ 63`**: an execution of `n` steps runs at `n + 1` receipts, and the member's
+  start caps them at `2 ^ 48` (`etcdstart.wp_StartServer1`'s `Hrb48`, the receipt bound of the server's request ids,
+  through `newServer`/`BuildServer`'s `[ReceiptBoundLe GF (2 ^ 48)]`), the single-process `etcd_all`'s bound. So:
+  `Member.spec` at `ReceiptBoundLe GF (2 ^ 48)` (was `2 ^ 28`), its write-back budget and named premises at
+  `N = 2 ^ 48 - 1` (`receiptBound ≤ N + 1`; `N + 7 + bootWB ≤ wbInit = 2 ^ 62 - 1`); the statement's `Hprem` at
+  `n + 1 ≤ 2 ^ 48` (was `n + 12 ≤ 2 ^ 40`), `etcd_all`'s range for the same `etcdstart.premises`
+  (`Spec/.../etcd/all/TopLevelRobustness.lean`); the interim axiom `Serve_dist` at `ReceiptBoundLe GF (2 ^ 48)` (was
+  `2 ^ 28`): the single-process `etcdstart.Serve.spec` it mirrors takes no receipt bound, and the member it serves was
+  started at that ceiling. The client's proof takes no receipt bound.
+- **`os`'s field steps**: `putget_safe.spec` binds `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]`, as
+  the single-process theorems since wal-nostorageok (approved 2026-11-21, option (A)); `lean`'s `putget_safe_of_s2`
+  took them as the hypothesis `HOs` "until etcd-dist settles it".
+
+**The robustness review's items (2026-11-24, `putget_safe` section of the owner's review, same branch).**
+- *Step bound, named*: `putgetSteps := 2 ^ 48` beside `putgetThreads` (`TopLevelDefs.lean`); the statement is
+  `Robust [] (system …) g (threads := putgetThreads) (bound := putgetSteps)`.
+- *Network start premises*: `DistDeploy` left the statement. Its `init` conjuncts (no connection, no listener) are
+  `Robust`'s own `extsInitGlobal`/`extsInitLocal` (`robust_of_distBootIT` takes only `addrs.Nodup` and `addrOk` of
+  its list now, not `DistDeploy`).
+- *Address validity checked in Go*: `Member` returns at once unless `AddrOk(peer) && AddrOk(client) && peer != client`,
+  `Client` unless `AddrOk(ep)` (`putget.go`; `AddrOk`/`decimal` the same Go text as kvnet's, their proofs copied
+  from kvnet's part into `Proof/.../dist/putget/{Addrs,AddrOk,decimal}.lean`, which the main tree cannot import
+  from `KvNet/`). `Member.spec`/`Client.spec` take their resources behind the check (`⌜…⌝ -∗ …`), the machines'
+  shares are `memberShareIf`/`clientShareIf`, and the start sets only the addresses that pass
+  (`startAddrs`, `putget_shares`: both, the client's alone, or none). The premise left is the addresses'
+  lengths, `peer.length + 1 < 2 ^ 63` (and `client`'s): `AddrOk`'s loop runs `i` to `len(a)`, which wraps past
+  `2 ^ 63 - 1`; every Go string meets it, but a Lean `GoString` is any list. Go: `TestAddrOk` (the addresses
+  `TestPutGet` deploys at pass, malformed ones do not, and `Member`/`Client` then return); `TestPutGet`'s
+  fault-free round, which must check, is the real path with the deployment's addresses (not rerun here: it needs
+  namespaces and writes outside the worktree).
+- *`ETCD_VERIFY` not moved into Go* (`HEnv`, `HEnvTok` stay): a check at start (`os.Getenv`) would give the proof
+  nothing about etcd's later reads. `os.Getenv` is names-only, and its spec returns some string, constrained
+  (to an off value for `ETCD_VERIFY`) only under `envVerifyOff`; no spec ties two reads of a variable together,
+  and `verify.IsVerificationEnabled` reads it at every call. So the token cannot come from a Go check without a
+  model of the process environment (a ghost map of the variables, stable since no verified code sets them,
+  handed out at a machine's start): a trusted-semantics change to `os` and to the distributed start, for the
+  owner. `verifyEnvOff` is an opaque `axiom … : Prop` (no witness can meet it), and `envVerifyOffTok` is
+  produced only by the single-process `goose_adequacy_start` under it.

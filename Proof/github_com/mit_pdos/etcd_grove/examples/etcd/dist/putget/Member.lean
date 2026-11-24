@@ -3,7 +3,8 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/Member.l
 `notes/putget-dist-plan.md` section 10). Lean-first (no Rocq counterpart).
 
 The in-process putget's `Main` up to `Serve` (`Proof/.../examples/etcd/putget/Main.lean`), on a machine of its
-own: `zap.NewNop()`; the
+own, after its addresses' check (`AddrOk` twice and their comparison; an invalid or repeated address returns, and
+the wand of the precondition is then never opened): `zap.NewNop()`; the
 member's start bundle from `ETCD_VERIFY` off (the precondition's `envVerifyOff`) and the fresh data directory and WAL area
 (`etcdstart.memberStartRes_one`); `etcdstart.StartServer` from the named premises (`etcdstart.wp_StartServer1`,
 shared with the in-process `Main`: `alloc1` inside); the client's putget invariant allocated from the
@@ -20,6 +21,8 @@ public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ServeDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartOne
 public import Proof.go_etcd_io.etcd.client.v3.PutGetInvAlloc
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AddrOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 
 @[expose] public section
 
@@ -48,14 +51,42 @@ theorem Member.wp_proof
     (wp_StartServer : etcdstart.StartServer.spec (GF := GF) (hG := hG))
     (wp_holdForever : holdForever.spec (GF := GF) (hG := hG))
     (wp_Serve_dist : etcd_dist.Serve_dist.spec (GF := GF) (hG := hG))
+    (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB peer client id ctxs boot γE Pub Hbf hpl Hpf Hcf HLv Haf Hbuq Hrf Hdbo Hms
+  intro CS π TB RB peer client id ctxs boot γE Pub Hbf hlp hlc HLv Haf Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
-  have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
-  have HrbN : receiptBound GF ≤ 2 ^ 28 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
-  have HwbN : 2 ^ 28 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
-  wp_start as ⟨Htok, #Hprem, #Hvoff, Hwa, Hshare, #Hpub⟩
+  have Hrb48 : receiptBound GF ≤ 2 ^ 48 := RB.receiptBound_le
+  have HrbN : receiptBound GF ≤ 2 ^ 48 - 1 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
+  have HwbN : 2 ^ 48 - 1 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
+  wp_start as ⟨Htok, Hw⟩
+  (try wp_auto)
+  -- the addresses' check: `!AddrOk(peer) || !AddrOk(client) || peer == client` returns
+  wp_apply wp_AddrOk _ hlp
+  cases hp : Net.addrOk peer
+  · simp only [Bool.not_false]
+    try wp_auto
+    iapply HΦ; itrivial
+  simp only [Bool.not_true]
+  try wp_auto
+  wp_apply wp_AddrOk _ hlc
+  cases hc : Net.addrOk client
+  · simp only [Bool.not_false]
+    try wp_auto
+    iapply HΦ; itrivial
+  simp only [Bool.not_true]
+  try wp_auto
+  by_cases hpc : peer = client
+  · simp only [hpc, decide_true]
+    try wp_auto
+    iapply HΦ; itrivial
+  simp only [hpc, decide_false]
+  try wp_auto
+  have hpl := etcd_dist.addrOk_plainPeerURL hp
+  have Hpf := etcd_dist.addrOk_addrFits hp
+  have Hcf := etcd_dist.addrOk_addrFits hc
+  ispecialize Hw $$ %(by simp [hp, hc, hpc])
+  icases Hw with ⟨#Hprem, #Hvoff, Hwa, Hshare, #Hpub⟩
   iunfold memberShare at Hshare
   icases Hshare with ⟨#Haddr, Hhalf, #Hinv⟩
   -- the imports' package facts
@@ -74,7 +105,7 @@ theorem Member.wp_proof
   -- `StartServer(Name, peer, client, lg)`
   ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hwa]
   · iframe; iframe #
-  wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne (2 ^ 28) name peer client lg id ctxs boot Hbf hpl
+  wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne (2 ^ 48 - 1) name peer client lg id ctxs boot Hbf hpl
       (by decide) (by decide) Hpf Hcf Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, Hetcd⟩)

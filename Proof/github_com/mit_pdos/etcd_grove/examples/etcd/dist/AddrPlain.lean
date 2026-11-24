@@ -15,6 +15,7 @@ module
 public import GooseLang.Ext.Net.Impl
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 
 @[expose] public section
 
@@ -357,6 +358,16 @@ theorem addrOk_length_le {a : GoString} (h : Net.addrOk a = true) : a.length ≤
       · simp at hr
     · simp at hr
   · simp at h
+
+/-- A valid address is within etcd's URL bounds (`etcdstart.addrFits`, `Member.spec`'s premise): `http://`
+and it is a plain peer URL (`addrOk_plainPeerURL`) of at most `7 + 21` bytes
+(`addrOk_length_le`). -/
+theorem addrOk_addrFits {a : GoString} (h : Net.addrOk a = true) : etcdstart.addrFits a := by
+  refine ⟨addrOk_plainPeerURL h, ?_⟩
+  have := addrOk_length_le h
+  simp only [List.length_append, etcdURLLenMax]
+  have : (go!"http://").length = 7 := rfl
+  omega
 
 end etcd_dist
 end EtcdGrove

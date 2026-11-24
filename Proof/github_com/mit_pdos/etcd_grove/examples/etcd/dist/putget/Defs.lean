@@ -50,10 +50,24 @@ def memberShare (client : GoString) (γE : GName) (mid : w64) (Pub : EnvView →
     IProp GF :=
   iprop(etcdAddrAt client γE mid ∗ envPubHalf γE ∗ envPubInv γE Pub)
 
+/-- **The member machine's share, once its addresses pass its check** (2026-11-24): `Member` returns at
+once unless `peer` and `client` are valid (`AddrOk`) and distinct, so the start owes it `memberShare` only
+then. -/
+def memberShareIf (peer client : GoString) (γE : GName) (mid : w64) (Pub : EnvView → IProp GF) :
+    IProp GF :=
+  iprop(⌜Net.addrOk peer = true ∧ Net.addrOk client = true ∧ peer ≠ client⌝ -∗
+    memberShare client γE mid Pub)
+
 /-- **The client's share** (persistent): the member's address fact and the publication invariant. -/
 def clientShare (client : GoString) (γE : GName) (mid : w64) (Pub : EnvView → IProp GF) :
     IProp GF :=
   iprop(etcdAddrAt client γE mid ∗ envPubInv γE Pub)
+
+/-- **The client machine's share, once its address passes its check** (2026-11-24): `Client` returns at
+once unless its address is valid (`AddrOk`). -/
+def clientShareIf (client : GoString) (γE : GName) (mid : w64) (Pub : EnvView → IProp GF) :
+    IProp GF :=
+  iprop(⌜Net.addrOk client = true⌝ -∗ clientShare client γE mid Pub)
 
 instance clientShare_persistent (client : GoString) (γE : GName) (mid : w64)
     (Pub : EnvView → IProp GF) : Persistent (clientShare client γE mid Pub) := by

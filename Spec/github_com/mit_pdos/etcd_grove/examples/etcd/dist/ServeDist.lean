@@ -34,7 +34,7 @@ the started member (`memberUp`, its member id `mid`), the address `a` set to ser
 for `(γE, mid)` (`etcdAddrAt`) and the member's view published at `γE` (`envAt γE ν`, `ν` the
 member's own, `memberView ρ`), `Serve` returns. -/
 abbrev Serve_dist.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 28)]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     [π : NetProtoGS] (s : Loc) (a : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (mid : w64) (γE : GName) (ν : EnvView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗

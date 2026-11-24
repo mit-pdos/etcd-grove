@@ -52,6 +52,7 @@ axiom etcd_dist.Client_Get_dist.wp_proof
 axiom etcd_dist.Client_Put_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
 axiom etcd_dist.etcdSvc
+axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
@@ -63,6 +64,7 @@ axiom grpcConn_persistent
 axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
+axiom hsEncC_ok
 axiom http.CloseIdleConnections_ok
 axiom http.Flush_ok
 axiom http.NewRequest_ok
@@ -89,13 +91,15 @@ axiom membership.RaftCluster.String.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom pbAuthenticateRequestT_reg
 axiom pbAuthenticateResponseT_reg
 axiom pbEntryC_reg
+axiom pbHsC_reg
 axiom pbMessageC_reg
+axiom pbRecordC_reg
+axiom pbSnapC_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom peer.Peer.String.wp_proof
 axiom probing.NewProber.wp_proof
@@ -115,6 +119,7 @@ axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
+axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
@@ -141,6 +146,8 @@ axiom semver.NewVersion.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
+axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
@@ -158,7 +165,4 @@ axiom types.NewURLs.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom verifyEnvOff
 axiom withVersion.wp_proof
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

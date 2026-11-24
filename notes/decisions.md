@@ -42525,3 +42525,27 @@ full names; the client's three uses discharge it by `kvMethod_put`/`_deleteRange
 Trust-shrinking: the attempt contract (`grpcInvokerOk`) promises a non-refusal for fewer calls; the
 members' axioms are unchanged in statement and now speak of fewer calls.
 
+
+## `putget_safe` at `Robust`'s thread bound: `putgetThreads` and `2 ^ 48` steps (2026-11-24 · the owner's rule for top-level statements · branch `dist-putget-interim/2026-11-24`)
+
+**Rule** (the owner): a top-level statement uses `Robust`'s separate thread bound, the thread count a named constant,
+the step bound as high as the proof allows (dsverify's `Robust [] (system σ) g threads (2 ^ 63)`).
+
+**Decision.** `putget_safe.spec` is `Robust [] (system …) g (threads := putgetThreads) (bound := 2 ^ 48)`,
+`putgetThreads := 2 ^ 28` (`TopLevelDefs.lean`), through a new proved bridge `Net.robust_of_distBootIT`
+(`DistBridgeExts.lean`, over `goose_dist_adequacy_below`: `n + 1` receipts, `threads` threads, obligation
+`DistBootWpST bound T`). Why `2 ^ 48` and not `2 ^ 63`: the receipts grow with the steps, and the member's start
+(`etcdstart.wp_StartServer1`) takes at most `2 ^ 48` receipts (the server's request ids), as the single-process
+`etcd_all`. Raised with it, each only to what the single-process proofs support: `Member.spec`'s receipt class and
+budget (`N = 2 ^ 48 - 1`), `Hprem` to `n + 1 ≤ 2 ^ 48` (`etcd_all`'s), the interim axiom `Serve_dist`'s
+`ReceiptBoundLe` to `2 ^ 48` (`etcdstart.Serve.spec` has none). Details: `notes/putget-dist-plan.md` §12, "The bounds".
+
+**Alternatives.** Keeping the receipt floor (`DistBootWpSL`'s `lo`): unneeded once `threadBound = threads ≥ srvLevelK`.
+Raising the member's receipt ceiling past `2 ^ 48`: a change to the server's request-id proofs, not this statement's.
+
+**Then (same day, the robustness review):** the step bound named `putgetSteps`; `DistDeploy` out of the statement
+(its `init` conjuncts are `Robust`'s, the bridge takes the addresses' `Nodup`/`addrOk` of the list it starts);
+the programs check their addresses in Go (`AddrOk`, distinctness) so their validity left the statement, leaving
+only their lengths as Go strings'; `ETCD_VERIFY` stays a premise (`HEnv`, `HEnvTok`): a Go check at start does not
+constrain later `os.Getenv` reads without a model of the process environment, a trusted change for the owner
+(`notes/putget-dist-plan.md` §12, "The robustness review's items").

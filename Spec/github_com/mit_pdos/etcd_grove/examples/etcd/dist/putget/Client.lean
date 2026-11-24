@@ -44,10 +44,12 @@ abbrev Client.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)] [ThreadBoundLe GF (2 ^ 31)] [π : NetProtoGS]
     (client : GoString) (γE : GName) (mid : w64),
-  plainEndpoint client →
+  -- the address as a Go string (`AddrOk`'s loop runs to `len(a)`)
+  client.length + 1 < 2 ^ 63 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget ∗
-      clientShare (G := hG.goose_globalGS) client γE mid (putgetPub (G := hG.goose_globalGS)) }}
+      (⌜Net.addrOk client = true⌝ -∗
+        clientShare (G := hG.goose_globalGS) client γE mid (putgetPub (G := hG.goose_globalGS))) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Client)) (Val #client))
   {{ (b : Bool), RET #b; True }}
 

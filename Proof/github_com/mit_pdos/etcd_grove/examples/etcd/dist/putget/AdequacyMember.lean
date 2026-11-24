@@ -4,8 +4,8 @@
 
 `member_boot`: the member machine's boot program (`putget.initialize' #()`, then `putget.Member(peer, client)`)
 is safe from the member's share of the distributed start (`memberShare` at `Pub = putgetPub`) and its whole
-start (`DistBootWpSL`: its files' and listeners' start resources, no package initialized, its main thread's
-token, the logic's bounds with at least `srvLevelK` receipts).
+start (`DistBootWpST`: its files' and listeners' start resources, no package initialized, its main thread's
+token, the logic's bounds: at most `2 ^ 48` receipts, the thread bound `putgetThreads`).
 Linked: `Member.wp_proof` at its callees' linked results (`etcdstart`'s `Link`, `zap.NewNop`'s,
 `time.Sleep`'s, and the trust-boundary axiom `etcd_dist.Serve_dist.wp_proof`), `putget`'s `wp_initialize'`.
 
@@ -28,6 +28,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Mem
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ServeDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.holdForever
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AddrOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.decimal
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -82,16 +84,6 @@ def putgetRegKeys : List w64 :=
    0x1de4f1c3b13fe482, 0xe4ccc50c7daf4c9c, 0x9b8a677c6e6c1ef8, 0x7133d22463246355,
    0xaa607cdd4f5c0a9a, 0xb0bfadd1258d120e, 0xe5bc0e939f7dd45d, 0x35c8acd42298ce6b]
 
-/-- A valid address is within etcd's URL bounds (`etcdstart.addrFits`, `Member.spec`'s premise): `http://`
-and it is a plain peer URL (`etcd_dist.addrOk_plainPeerURL`) of at most `7 + 21` bytes
-(`etcd_dist.addrOk_length_le`). -/
-theorem addrOk_addrFits {a : GoString} (h : Net.addrOk a = true) : etcdstart.addrFits a := by
-  refine ⟨etcd_dist.addrOk_plainPeerURL h, ?_⟩
-  have := etcd_dist.addrOk_length_le h
-  simp only [List.length_append, etcdURLLenMax]
-  have : (go!"http://").length = 7 := rfl
-  omega
-
 /-- **The registering packages' IDs can have their rights** (prom-registry, route (b)): decided by the
 kernel once, over the IDs as literals (`mvccfull_regQsOk`). -/
 theorem putget_regQsOk :
@@ -109,26 +101,28 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
-    (peer client : GoString) (hpeer : Net.addrOk peer = true) (hclient : Net.addrOk client = true)
+    (peer client : GoString) (hlp : peer.length + 1 < 2 ^ 63) (hlc : client.length + 1 < 2 ^ 63)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
-    (Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
+    (Hprem : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
           boot)
     (σm : state) (Hm : MemberFiles σm)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) :
-    DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootMember peer client) σm
-      (memberShare client γE id (putgetPub (GF := putgetGF))) := by
-  intro hG hGG hL hlo hrb hT
+    DistBootWpST putgetSteps putgetThreads (bootMember peer client) σm
+      (memberShareIf peer client γE id (putgetPub (GF := putgetGF))) := by
+  intro hG hGG hL hrb hT
+  unfold putgetSteps at hrb
+  unfold putgetThreads at hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
   subst hGG hL
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
   haveI := Hctx hG
   haveI : ReceiptBoundLe putgetGF (2 ^ 62) := ⟨by omega⟩
-  haveI : ReceiptBoundLe putgetGF (2 ^ 28) := ⟨by omega⟩
-  haveI : ThreadBoundLe putgetGF (2 ^ 28) := ⟨by rw [hT]; omega⟩
+  haveI : ReceiptBoundLe putgetGF (2 ^ 48) := ⟨hrb⟩
+  haveI : ThreadBoundLe putgetGF (2 ^ 28) := ⟨Nat.le_of_eq hT⟩
   haveI := etcdFsSemOk
   iintro Hshare Hls Hgs Htok
   -- (prom-registry) the machine's registration rights: a fresh ghost map of its packages' IDs, the
@@ -160,16 +154,19 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   · iframe
   (try wp_auto)
   -- `putget.Member(peer, client)`
-  ihave #Hpr := Hprem (2 ^ 28) (by decide) hG
+  ihave #Hpr := Hprem (2 ^ 48 - 1) (by decide) hG
   ihave #Hpub := memberPubOk_putgetPub (G := G') ⟨fl, lc, nh, gs, th, cr⟩
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
-      mvcc.api.mvccApi_names_nonempty_law_holds
-      peer client id ctxs boot γE (putgetPub (GF := putgetGF)) Hbf (etcd_dist.addrOk_plainPeerURL hpeer)
-      (addrOk_addrFits hpeer) (addrOk_addrFits hclient)
-      (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
+      (AddrOk.wp_proof decimal.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
+      peer client id ctxs boot γE (putgetPub (GF := putgetGF)) Hbf hlp hlc
+      (by unfold srvLevels srvLevelK srvRevokeK; rw [hT]; decide) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hwa Hshare]
-  · iframe; iframe #
+  · iframe Htok
+    iintro %hg
+    iunfold memberShareIf at Hshare
+    ispecialize Hshare $$ %hg
+    iframe; iframe #
   ipureintro
   rfl
 

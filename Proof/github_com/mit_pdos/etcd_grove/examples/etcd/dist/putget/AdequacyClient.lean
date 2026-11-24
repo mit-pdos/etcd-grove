@@ -4,12 +4,12 @@
 
 `client_boot`: the client machine's boot program (`putget.initialize' #()`, then `putget.Client(client)`,
 its result discarded) is safe from the client's share of the distributed start (`clientShare` at
-`Pub = putgetPub`) and its whole start (`DistBootWpSL`); the registration rights of its packages' metric
+`Pub = putgetPub`) and its whole start (`DistBootWpST`); the registration rights of its packages' metric
 IDs are allocated here, the machine's own registry ghost state (prom-registry, as `member_boot`). Linked: `Client.wp_proof` at its callees' linked results (`zap.NewNop`'s, `etcdstart`'s `Link`,
 `context`'s, and the trust-boundary axioms `etcd_dist.Client_Put_dist.wp_proof` and
 `etcd_dist.Client_Get_dist.wp_proof`), `putget`'s `wp_initialize'`. The client touches no file: its
-files' and listeners' start resources are unused. That a valid address is a plain endpoint is proved
-(`etcd_dist.addrOk_plainEndpoint`); `errors.As`'s target `rpctypes.EtcdError` from the package's
+files' and listeners' start resources are unused. `Client` checks its address (`AddrOk`), and
+that a valid address is a plain endpoint is proved (`etcd_dist.addrOk_plainEndpoint`); `errors.As`'s target `rpctypes.EtcdError` from the package's
 method sets (`rpctypesEtcdError_asTarget`).
 -/
 module
@@ -57,11 +57,13 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
       ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (client : GoString) (hcl : Net.addrOk client = true) (σc : state)
+    (client : GoString) (hlc : client.length + 1 < 2 ^ 63) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) (mid : w64) :
-    DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootClient client) σc
-      (clientShare client γE mid (putgetPub (GF := putgetGF))) := by
-  intro hG hGG hL hlo hrb hT
+    DistBootWpST putgetSteps putgetThreads (bootClient client) σc
+      (clientShareIf client γE mid (putgetPub (GF := putgetGF))) := by
+  intro hG hGG hL hrb hT
+  unfold putgetSteps at hrb
+  unfold putgetThreads at hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
   subst hGG hL
@@ -69,8 +71,9 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   haveI : ContextReadErrs (GF := putgetGF) (hG := hG) := Hctx hG
   haveI : ContextErrsClient (GF := putgetGF) (hG := hG) := Hcec hG
   haveI := etcdFsSemOk
-  haveI : ThreadBoundLe putgetGF (2 ^ 31) := ⟨by rw [hT]; omega⟩
-  iintro #Hshare - Hgs -
+  haveI : ThreadBoundLe putgetGF (2 ^ 31) := ⟨Nat.le_trans (Nat.le_of_eq hT) (by decide)⟩
+  iintro Hshare - Hgs -
+  iunfold clientShareIf at Hshare
   -- (prom-registry) the machine's registration rights: a fresh ghost map of its packages' IDs, the
   -- machine's registry name (as `member_boot`)
   imod (prometheus.regKeys_alloc (GF := putgetGF)
@@ -92,10 +95,10 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   wp_apply (Client.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClient context.wp_Background
       context.WithTimeoutBackground.wp_proof context.wp_ErrAny
       etcd_dist.Client_Put_dist.wp_proof etcd_dist.Client_Get_dist.wp_proof
-      mvcc.api.mvccApi_names_nonempty_law_holds
-      client γE mid (etcd_dist.addrOk_plainEndpoint hcl)
-      EtcdGrove.rpctypesEtcdError_asTarget) $$ [] as %b -
-  · iframe #
+      (AddrOk.wp_proof decimal.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
+      client γE mid hlc
+      EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hshare] as %b -
+  · iframe
   (try wp_auto)
   all_goals first | done | (ipureintro; rfl) | itrivial
 

@@ -22,6 +22,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClie
 public import Perennial.Spec.context.Background
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AddrOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 
 @[expose] public section
 
@@ -53,11 +55,23 @@ theorem Client.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Put_dist : etcd_dist.Client_Put_dist.spec (GF := GF) (hG := hG))
     (wp_Get_dist : etcd_dist.Client_Get_dist.spec (GF := GF) (hG := hG))
+    (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Client.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC TB π ep γE mid hplain hAs
+  intro CS CRE CEC TB π ep γE mid hlen hAs
   have Htb : threadBound GF ≤ 2 ^ 31 := TB.threadBound_le
-  wp_start as #Hshare
+  wp_start as Hshare
+  (try wp_auto)
+  -- the address's check: `!AddrOk(ep)` returns `false`
+  wp_apply wp_AddrOk _ hlen
+  cases hc : Net.addrOk ep
+  · simp only [Bool.not_false]
+    try wp_auto
+    iapply HΦ; itrivial
+  simp only [Bool.not_true]
+  try wp_auto
+  have hplain := etcd_dist.addrOk_plainEndpoint hc
+  ispecialize Hshare $$ %(by simp [hc])
   iunfold clientShare at Hshare
   icases Hshare with ⟨#Haddr, #Hinv⟩
   -- `context`'s `closedchan`, from its package's fact

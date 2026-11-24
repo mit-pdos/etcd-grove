@@ -100,9 +100,17 @@ def bootClient [GoSemanticsFunctions] (client : GoString) : Expr :=
 def system [GoSemanticsFunctions] (peer client : GoString) (σm σc : state) : List (Expr × state) :=
   [(bootMember peer client, σm), (bootClient client, σc)]
 
-/-- **The deployment's addresses**: the member's peer address (in its URLs; with one member nothing
-listens there or dials it) and its client address (its gRPC listener, the client's endpoint). -/
-def addrs (peer client : GoString) : List GoString := [peer, client]
+/-- **The deployment's thread bound** (`putget_safe`'s `threads`, 2026-11-24): fewer than `2 ^ 28` live
+threads on each machine along the execution, the bound the member's server specs take
+(`threadBound GF ≤ 2 ^ 28`: `etcdstart.Serve.spec`, `etcdstart.wp_StartServer1`; the client's take
+`2 ^ 31`). -/
+abbrev putgetThreads : Nat := 2 ^ 28
+
+/-- **The deployment's step bound** (`putget_safe`'s `bound`, 2026-11-24): fewer than `2 ^ 48` steps, the
+receipts the member's start takes at most (an execution of `n` steps runs at `n + 1` receipts;
+`etcdstart.wp_StartServer1`'s `receiptBound GF ≤ 2 ^ 48`, the server's request ids), the single-process
+`etcd_all`'s bound. -/
+abbrev putgetSteps : Nat := 2 ^ 48
 
 end programs
 
