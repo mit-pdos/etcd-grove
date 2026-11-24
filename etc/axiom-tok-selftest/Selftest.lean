@@ -145,6 +145,35 @@ axiom st_unknown_typedpt_nolaw : ∀ (f : val) (p : Loc),
   {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #();
     iprop(∀ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V), p ↦ (zero_val V)) }}
 
+/-- Review counterexample 1 (2026-11-24): a law that mentions the instance only inside its Go type
+argument, at another Lean type: no law over the binder, so the walk still truncates. -/
+axiom st_unknown_typedpt_const : ∀ (f : val) (p : Loc),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #();
+    iprop(∀ (V : Type) (_ : ZeroVal V) (tp : TypedPointsto (GF := GF) V)
+      (_ : IntoValTyped (GF := GF) w64 (Function.const _ go.uint64 tp)), p ↦ (zero_val V)) }}
+
+/-- Review counterexample 2: the law is over a second instance `tp2`; the points-to uses `tp`,
+which has none. -/
+axiom st_unknown_typedpt_tp2 : ∀ (f : val) (p : Loc),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #();
+    iprop(∀ (V : Type) (_ : ZeroVal V) (tp2 : TypedPointsto (GF := GF) V)
+      (_ : IntoValTyped (GF := GF) V go.int) (tp : TypedPointsto (GF := GF) V),
+        p ↦ (zero_val V)) }}
+
+/-- Review counterexample 3: the law is at a `GoSemanticsFunctions` instance the user binds, not
+the axiom's own. -/
+axiom st_unknown_typedpt_gsf : ∀ (f : val) (p : Loc),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #();
+    iprop(∀ (V : Type) (_ : ZeroVal V) (tp : TypedPointsto (GF := GF) V)
+      (g : GoSemanticsFunctions) (_ : IntoValTyped (GF := GF) V go.int), p ↦ (zero_val V)) }}
+
+/-- Review counterexample 4: the axiom binds a second `GoSemanticsFunctions` instance of its own,
+which the law uses: the ambient instance is not unique, so no law counts. -/
+axiom st_unknown_typedpt_gsf2 [g2 : GoSemanticsFunctions] : ∀ (f : val) (p : Loc),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #();
+    iprop(∀ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V)
+      (_ : IntoValTyped (GF := GF) V go.int), p ↦ (zero_val V)) }}
+
 /-- A token split into its levels. -/
 axiom st_pass_split : threadTok (GF := GF) ⊢ |==> levelTok 0 ∗ threadTokFrom 1
 

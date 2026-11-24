@@ -340,6 +340,10 @@ structure WS where
   nkeys : Nat := 0
   /-- `reachesRes` of a constant, across the axioms of a run (`analyze` threads it). -/
   reach : Std.HashMap Name Bool := {}
+  /-- The axiom's own instance-implicit and implicit binders (its section's `[go.Semantics]`, `{GF}`,
+  ...), opened by `walkProp`: the ambient context its WPs use (`lawBoundTP` checks a law's
+  `GoSemanticsFunctions` instance against it). -/
+  ambient : Array FVarId := #[]
   deriving Inhabited
 
 abbrev W := StateRefT WS MetaM
@@ -657,20 +661,98 @@ def Scen.closeAtom (k : String) (s : Scen) : Scen :=
   let prod := s.prod.filter (!fam ·)
   { s with prod := fails.foldl (fun m f => m.addK f Cnt.one) prod, cons := s.cons.filter (!fam ·) }
 
+/-- Whether a constant is a source of `GoSemanticsFunctions` instances: the class itself, or
+`go.Semantics` (whose `sem_fn` field is one). -/
+def isGsfSource (c : Name) : Bool :=
+  c.getRoot == `Perennial && (lastStr c == "GoSemanticsFunctions" ||
+    (lastStr c == "Semantics" && c.toString.endsWith "go.Semantics"))
+
+/-- A law's `GoSemanticsFunctions` argument is the axiom's own: every free variable in it is one
+of the axiom's ambient binders (`WS.ambient`), exactly one ambient binder is a
+`GoSemanticsFunctions` source (`isGsfSource`), that source is a `go.Semantics` (not a bare
+`GoSemanticsFunctions` binder), and the argument uses it. -/
+def gsfAmbient (a : Expr) (amb : Array FVarId) : MetaM Bool := do
+  let a ← instantiateMVars a
+  if a.hasLooseBVars || a.hasMVar then return false
+  let lctx ← getLCtx
+  let srcOf (f : FVarId) : MetaM Bool := do
+    match lctx.find? f with
+    | some decl => match (← instantiateMVars decl.type).consumeMData.getAppFn with
+      | .const c _ => pure (isGsfSource c)
+      | _ => pure false
+    | none => pure false
+  let ambSrcs ← amb.filterM fun f => do pure (lctx.contains f) <&&> srcOf f
+  unless ambSrcs.size == 1 do return false
+  -- the one source is the axiom's `go.Semantics` (the semantics its WPs run under), not a bare
+  -- `GoSemanticsFunctions` binder the user could instantiate at will
+  let some sdecl := lctx.find? ambSrcs[0]! | return false
+  let isSem := match (← instantiateMVars sdecl.type).consumeMData.getAppFn with
+    | .const c _ => lastStr c == "Semantics" && c.toString.endsWith "go.Semantics"
+    | _ => false
+  unless isSem do return false
+  -- every local of the context the term mentions is ambient (a term's free variables are locals)
+  let used := lctx.getFVarIds.filter (a.containsFVar ·)
+  if a.hasFVar && used.isEmpty then return false
+  unless used.all (amb.contains ·) do return false
+  return used.contains ambSrcs[0]!
+
 /-- A typed points-to instance bound by the user together with its laws: the binder's type is
-`TypedPointsto V`, and the `∀`s right after it (Iris's or Lean's) bind an `IntoValTyped V t` over it
-(`reflNew`: `∀ V (_ : ZeroVal V) (_ : TypedPointsto V) (_ : IntoValTyped V t), p ↦ zero_val V`).
+`TypedPointsto V`, and one of the `∀`s right after it (Iris's or Lean's) binds a law
+`@IntoValTyped GF V t zv tp gsf` over it (`reflNew`:
+`∀ V (_ : ZeroVal V) (_ : TypedPointsto V) (_ : IntoValTyped V t), p ↦ zero_val V`).
 Such an instance is not a resource the user picks (rule 3): `IntoValTyped.wp_alloc` makes its
 `l ↦ v` what an allocation produces from `True`, so it holds no token and nothing the user chooses.
-The binder is `plain`; the walk of `typedPointstoDef` over it then counts nothing. -/
-partial def lawBoundTP (n : Name) (ty : Expr) (body : Expr → Expr) : MetaM Bool := do
-  unless (← instantiateMVars ty).consumeMData.getAppFn.isConstOf `Perennial.TypedPointsto do
+The binder is then `plain`; the walk of `typedPointstoDef` over it counts nothing.
+
+The law must be exactly over this binder: its `TypedPointsto` instance argument IS the binder
+(not a term mentioning it, nor another instance), its `V` is the binder's `V` (and so its `GF` the
+binder's, by typing), and its `GoSemanticsFunctions` instance is the axiom's ambient one
+(`gsfAmbient`), so the law speaks of the allocations the axiom's own WPs perform. The domain may
+not mention binders between the instance and the law (no loose bound variables). Anything else:
+not plain (the walk then truncates at `typedPointsto`, an unknown `--check` refuses). -/
+def lawDomOk (d : Expr) (fv : FVarId) (V : Expr) (amb : Array FVarId) : MetaM Bool := do
+  let d := (← instantiateMVars d).consumeMData
+  unless d.getAppFn.isConstOf `Perennial.IntoValTyped do return false
+  if d.hasLooseBVars then return false
+  let args := d.getAppArgs
+  let cinfo ← getConstInfo `Perennial.IntoValTyped
+  forallBoundedTelescope cinfo.type args.size fun xs _ => do
+    if xs.size != args.size then return false
+    let mut sawTP := false
+    let mut sawV := false
+    let mut sawGsf := false
+    for i in [:xs.size] do
+      let decl ← xs[i]!.fvarId!.getDecl
+      let bty := (← instantiateMVars decl.type).consumeMData
+      let a := args[i]!.consumeMData
+      match bty.getAppFn with
+      | .const c _ =>
+        if c == `Perennial.TypedPointsto then
+          sawTP := true
+          unless a == .fvar fv do return false
+        else if lastStr c == "GoSemanticsFunctions" then
+          sawGsf := true
+          unless ← gsfAmbient a amb do return false
+        else if decl.userName == `V then
+          sawV := true
+          unless a == V do return false
+      | _ =>
+        if decl.userName == `V then
+          sawV := true
+          unless a == V do return false
+    return sawTP && sawV && sawGsf
+
+partial def lawBoundTP (n : Name) (ty : Expr) (body : Expr → Expr) (amb : Array FVarId) :
+    MetaM Bool := do
+  let ty' := (← instantiateMVars ty).consumeMData
+  unless ty'.getAppFn.isConstOf `Perennial.TypedPointsto do
     return false
+  let some V := ty'.getAppArgs.back? | return false
   withLocalDeclD n ty fun x => do
     let fv := x.fvarId!
-    let rec peel (e : Expr) (fuel : Nat) : Bool :=
+    let rec peel (e : Expr) (fuel : Nat) : MetaM Bool := do
       match fuel with
-      | 0 => false
+      | 0 => return false
       | fuel + 1 =>
         let e := e.consumeMData
         let dom? : Option (Expr × Expr) := match e with
@@ -685,11 +767,11 @@ partial def lawBoundTP (n : Name) (ty : Expr) (body : Expr → Expr) : MetaM Boo
               else none
             | _ => none
         match dom? with
-        | none => false
+        | none => return false
         | some (d, b) =>
-          (d.consumeMData.getAppFn.isConstOf `Perennial.IntoValTyped && d.containsFVar fv)
-            || peel b fuel
-    return peel (body x) 4
+          if ← (try lawDomOk d fv V amb catch _ => pure false) then return true
+          peel b fuel
+    peel (body x) 4
 
 def bindVar (n : Name) (ty : Expr) (kind : Pol → Bool → W VKind) (pol : Pol)
     (k : Expr → W Res) : W Res := do
@@ -779,7 +861,8 @@ partial def walkI (cfg : Cfg) (e : Expr) (pol : Pol) (d : Nat) : W Res := do
           if pol == .pos && (← (try carriesIProp ty catch _ => pure false)) then recordConsType ty
           let isPost := pol == .neg && ty.consumeMData.isForall &&
             (ty.consumeMData.getForallBody.getAppFn.isConstOf `Iris.IProp)
-          let lawTP ← (try lawBoundTP n ty body catch _ => pure false)
+          let amb := (← get).ambient
+          let lawTP ← (try lawBoundTP n ty body amb catch _ => pure false)
           let k := bindVar n ty (fun p c => if lawTP && p == .pos then pure .plain else forallKind n p c)
             pol fun x => walkI cfg (body x) pol d
           if isPost then inCallback k else k
@@ -1004,11 +1087,21 @@ partial def walkProp (cfg : Cfg) (e : Expr) (pol : Pol) (d : Nat) : W Res := do
   match e with
   | .forallE n t b bi =>
     if bi.isInstImplicit then
-      return ← withLocalDecl n bi t fun x => walkProp cfg (b.instantiate1 x) pol d
+      return ← withLocalDecl n bi t fun x => do
+        let old := (← get).ambient
+        modify fun st => { st with ambient := st.ambient.push x.fvarId! }
+        try walkProp cfg (b.instantiate1 x) pol d
+        finally modify fun st => { st with ambient := old }
     if !b.hasLooseBVars && (← (try isProp t catch _ => pure false)) then
       return (← flipped (walkProp cfg t pol.flip d)).sep (← walkProp cfg b pol d)
     if pol == .pos && (← (try carriesIProp t catch _ => pure false)) then recordConsType t
-    return ← bindVar n t (fun p c => forallKind n p c) pol fun x => walkProp cfg (b.instantiate1 x) pol d
+    return ← bindVar n t (fun p c => forallKind n p c) pol fun x => do
+      -- the axiom's implicit binders (`{GF}`, `{hlc}`) are ambient too (`WS.ambient`)
+      unless bi.isImplicit || bi.isStrictImplicit do return ← walkProp cfg (b.instantiate1 x) pol d
+      let old := (← get).ambient
+      modify fun st => { st with ambient := st.ambient.push x.fvarId! }
+      try walkProp cfg (b.instantiate1 x) pol d
+      finally modify fun st => { st with ambient := old }
   | _ => pure ()
   let fn := e.getAppFn
   let args := e.getAppArgs
