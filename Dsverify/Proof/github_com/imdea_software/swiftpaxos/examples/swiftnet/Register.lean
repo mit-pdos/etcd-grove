@@ -59,7 +59,7 @@ theorem reg_args_fit (ip : GoString) (port : w64) (k : Nat)
   have hmem := List.mem_of_getElem? hk
   have hl : (sp.addrPort ip port).length ≤ 14 := by
     simp only [replicaAddrs, List.mem_cons, List.mem_nil_iff, or_false] at hmem
-    rcases hmem with h | h | h | h | h <;> rw [← h] <;> simp
+    rcases hmem with h | h | h | h | h <;> rw [h] <;> simp
   have hip : ip.length ≤ 14 := by
     unfold sp.addrPort at hl; simp only [List.length_append] at hl; omega
   have ht : netrpcw.tRegisterArgs.length ≤ 100 := by simp [netrpcw.tRegisterArgs]
