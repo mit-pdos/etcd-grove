@@ -5,6 +5,8 @@ Specs of `os`'s trusted models of the file offset (`TrustedCode/os.lean`'s `Seek
 -/
 module
 
+public import Proof.os.ForLoeb
+public import Proof.internal.gomodel.LocalChoose
 public import Proof.os.Base
 public import Spec.os.File__WriteAt
 public import GooseLang.Ext.Fs.Specs
@@ -40,6 +42,7 @@ theorem os.File.Seek.wp_start (f : Loc) (fd : w64) (name : GoString) (dqf : DFra
     {{ RET (PairV #off #GoInterface.nil); os.ownFile f fd name dqf ∗ os.ownOff f off }} := by
   unfold os.ownFile os.ownOff
   wp_start as ⟨⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, ⟨%inner', #Hf', Ho⟩⟩
+  try simp only [os.modelOffMax, os.modelSeekMax, os.modelMaxRW]
   icombine Hf Hf' gives %hin
   cases hin
   ihave #Hf2 := Hf
@@ -49,7 +52,7 @@ theorem os.File.Seek.wp_start (f : Loc) (fd : w64) (name : GoString) (dqf : DFra
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd
   rw [decide_eq_false hfd']
   try wp_auto
-  try rw [show W64 0 + off = off from BitVec.zero_add off]
+  try rw [show (zero_val w64 : w64) + off = off from BitVec.zero_add off]
   have hz : sint.Z (W64 0) = 0 := rfl
   have hm : sint.Z (W64 0x4000000000000000) = 2 ^ 62 := rfl
   try rw [decide_eq_false (show ¬ sint.Z off < sint.Z (W64 0) by simp only [sint.Z] at *; omega)]
@@ -80,6 +83,7 @@ theorem os.File.Seek.wp_cur (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
     {{ RET (PairV #o #GoInterface.nil); os.ownFile f fd name dqf ∗ os.ownOff f o }} := by
   unfold os.ownFile os.ownOff
   wp_start as ⟨⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, ⟨%inner', #Hf', Ho⟩⟩
+  try simp only [os.modelOffMax, os.modelSeekMax, os.modelMaxRW]
   icombine Hf Hf' gives %hin
   cases hin
   ihave #Hf2 := Hf
@@ -126,6 +130,7 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
          (⌜err ≠ interface.nil⌝ ∗ os.ownOff f o)) }} := by
   unfold os.ownFile os.ownOff
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
+  try simp only [os.modelOffMax, os.modelSeekMax, os.modelMaxRW]
   icombine Hf Hf' gives %hin
   cases hin
   ihave #Hf2 := Hf
@@ -210,6 +215,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
          (⌜err ≠ interface.nil⌝ ∗ os.ownOff f (W64 (-1)))) }} := by
   unfold os.ownOff
   wp_start as ⟨#Hinv, Hf, ⟨%inner, #Hfi, Ho⟩, Hsl, Hosfd, Hm, Hbs, Hmc⟩
+  try simp only [os.modelOffMax, os.modelSeekMax, os.modelMaxRW]
   ihave #Hf2 := Hfi
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
@@ -260,7 +266,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     iexists inner; iframe; iassumption
   | ok ie =>
     try wp_auto
-    wp_apply wp_ArbitraryInt as %x _
+    wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]
@@ -295,6 +301,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
          (⌜n = W64 0 ∧ err ≠ interface.nil⌝ ∗ os.ownOff f o)) }} := by
   unfold os.ownFile os.ownOff
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
+  try simp only [os.modelOffMax, os.modelSeekMax, os.modelMaxRW]
   icombine Hf Hf' gives %hin'
   cases hin'
   ihave #Hf2 := Hf
@@ -322,7 +329,9 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (o + sl.len) by
     rw [hsum, show sint.Z (W64 0x4000000000000000) = 2 ^ 62 from rfl]; omega)]
   try wp_auto
+  wp_for_bind
   iloeb as IH generalizing Hosfd Hm Hbs Hsl Ho Hfd HΦ
+  wp_for_step
   have hmx : ¬ (sint.Z (W64 1073741824) < sint.Z sl.len) := by
     rw [hslz, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
   rw [decide_eq_false hmx]
@@ -335,8 +344,9 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     try wp_auto
-    rw [decide_eq_false hmx]
-    iapply IH $$ Hosfd Hm Hbs Hsl Ho Hfd HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hosfd Hm Hbs Hsl Ho Hfd HΦ [$] [$] [$] [$] [$] [$] [$]
   rw [decide_eq_false he4]
   try wp_auto
   obtain ⟨k, hkl, rfl, hke0⟩ := hre
@@ -345,6 +355,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
   · simp only [decide_eq_false he0, Bool.not_false]
     try wp_auto
     wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+    wp_for_post
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
@@ -384,6 +395,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     simp only [BitVec.toNat_ofInt] at this; omega
   rw [decide_eq_false hk0']
   try wp_auto
+  wp_for_post
   iapply HΦ
   iframe Hosfd Hm Hbs
   isplitl [Hfd]

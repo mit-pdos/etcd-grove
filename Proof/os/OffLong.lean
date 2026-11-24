@@ -8,6 +8,7 @@ WAL W6 (2026-11-13, `wal-bridge`). Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.internal.gomodel.LocalChoose
 public import Proof.os.Off
 public import Spec.os.WriteLong
 public import Proof.os.ErrorOk
@@ -63,7 +64,7 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
   try wp_auto
   rw [hsl, decide_eq_true (rfl : W64 0 = W64 0)]
   try wp_auto
-  wp_apply wp_ArbitraryInt as %e _
+  wp_apply internal.gomodel.ChooseUint64.wp_local as %e -
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
   · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   by_cases he : e = W64 0
@@ -174,7 +175,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     iexists inner; iframe; iassumption
   | ok ie =>
     try wp_auto
-    wp_apply wp_ArbitraryInt as %x _
+    wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
     iapply HΦ
     iframe Hf Hsl Hosfd Hmc Hek
     iright

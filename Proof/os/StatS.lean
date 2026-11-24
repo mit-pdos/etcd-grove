@@ -12,6 +12,7 @@ counterpart).
 -/
 module
 
+public import Proof.internal.gomodel.LocalChoose
 public import Spec.os.OpenFileS
 public import Proof.os.SharedExt
 public import Proof.os.PathKindS
@@ -83,7 +84,7 @@ theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFra
     try wp_auto
     wp_stub os.fsFdKind.impl
     wp_apply wp_osFdKindDirS fd J .idle CoPset.subseteq_top $$ Hos Hfd as Hfd
-    wp_apply wp_ArbitraryInt as %sz _
+    wp_apply internal.gomodel.ChooseUint64.wp_local as %sz -
     iapply wp_fupd
     try wp_auto
     wp_stub os.fsDirClose.impl
@@ -92,7 +93,7 @@ theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFra
     try wp_auto
     wp_apply os.model.wp_base as %nm _
     try wp_auto
-    wp_apply wp_ArbitraryInt as %x _
+    wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
     ipersist name
     ipersist size
     ipersist mode
@@ -246,7 +247,7 @@ theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : 
       try wp_auto
       wp_apply os.model.wp_base as %nm _
       try wp_auto
-      wp_apply wp_ArbitraryInt as %x _
+      wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
       ipersist name
       ipersist size
       ipersist mode

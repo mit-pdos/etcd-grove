@@ -63,7 +63,7 @@ theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) 
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     iright
     iframe
     ipureintro; rfl
@@ -74,7 +74,7 @@ theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) 
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     ileft
     iframe Hok
     ipureintro; exact ⟨fun h => (by cases h), hne he0⟩

@@ -4,6 +4,7 @@ needs `fileStat.FieldAssumptions` (`TrustedCode/os.lean`).
 -/
 module
 
+public import Proof.internal.gomodel.LocalChoose
 public import Proof.os.ForLoeb
 public import Proof.os.ErrorOk
 public import Proof.os.PathParent
@@ -86,7 +87,7 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       try wp_auto
       wp_apply filepathlite.Base.wp_lex as %nm _
       try wp_auto
-      wp_apply wp_ArbitraryInt as %x _
+      wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
       ipersist name
       ipersist size
       ipersist mode
@@ -147,7 +148,7 @@ private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG)
   try wp_auto
   wp_apply filepathlite.Base.wp_lex as %nm _
   try wp_auto
-  wp_apply wp_ArbitraryInt as %x _
+  wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
   ipersist name
   ipersist size
   ipersist mode

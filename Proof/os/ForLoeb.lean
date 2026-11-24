@@ -122,7 +122,8 @@ macro "wp_for_step" : tactic => `(tactic| (
   case hbody => rfl
   case hpost => rfl
   wp_auto
-  cleanup_bool_decide))
+  cleanup_bool_decide
+  (try wp_auto)))
 
 end EtcdGrove
 end Perennial

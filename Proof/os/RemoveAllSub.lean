@@ -8,6 +8,7 @@ induction hypothesis, on the claims but `J`'s (the pool, `os.rmPool`), which cov
 -/
 module
 
+public import Proof.internal.gomodel.LocalChoose
 public import Proof.os.RemoveAllTop
 public import Proof.os.RemoveAllCover
 
@@ -373,7 +374,7 @@ theorem os.model.wp_removeAllFrom_subDir (n : Nat) (ih : os.rmSubSpec (GF := GF)
           wp_stub os.fsDirClose.impl
           wp_apply wp_osDirCloseS fd J _ CoPset.subseteq_top $$ Hos Hfd as %ec
           rm_restoreS hsubk
-          wp_apply wp_ArbitraryInt as %y _
+          wp_apply internal.gomodel.ChooseUint64.wp_local as %y -
           by_cases hy : y = W64 0
           · subst hy
             try wp_auto
