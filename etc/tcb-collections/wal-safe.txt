@@ -15,7 +15,6 @@ roots ^WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/TopLevel
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.runtime.initFuncsOk
 axiom Perennial.runtime.opaqueInitsOk
-axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom hsEncC_ok
 axiom pbEntryC_reg

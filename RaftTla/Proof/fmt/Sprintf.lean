@@ -5,6 +5,7 @@ Port of election_proof/proof_fmt_Sprintf.v.
 module
 
 public import RaftTla.Spec.fmt.Sprintf
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -22,16 +23,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- From Perennial's `fmt.wp_Sprintf`, proved from its model of `Sprintf`
-(`Perennial/TrustedCode/fmt.lean`). -/
-theorem fmt.Sprintf.wp_proof : fmt.Sprintf.spec (GF := GF) (hG := hG) := by
-  intro format args xs dq
-  iintro %Φ ⟨#Hpkg, Hargs, %Hwf⟩ HΦ
-  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf format args xs dq Hwf $$ [$Hargs] as %s ⟨Hargs, %Hout⟩
-  iapply HΦ
-  iframe Hargs
-  ipureintro; exact Hout
-
+/-- From Perennial's spec of the real `Sprintf` (`fmt.wp_Sprintf`, translated and proved, real
+`fmt` stage 1), through `fmt.wp_Sprintf_pure`. -/
+theorem fmt.Sprintf.wp_proof : fmt.Sprintf.spec (GF := GF) (hG := hG) :=
+  fun format ps args xs pargs dq he hf hp hq =>
+    fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf format ps args xs pargs dq he hf hp hq
 
 end proof
 

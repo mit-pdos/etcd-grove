@@ -34,6 +34,7 @@ public import Proof.go_uber_org.zap.internal.stacktrace.Init
 public import Proof.go_uber_org.zap.zapcore.Init
 public import Proof.net.url.Init
 public import Proof.os.Init
+public import Proof.fmt.SprintfPure
 public import Perennial.Proof.errors.NewVar
 public import Spec.strings.ToLower
 public import Spec.go_uber_org.zap.Defs

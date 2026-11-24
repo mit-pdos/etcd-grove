@@ -383,7 +383,7 @@ theorem rafthttp.streamReader.dial.wp_proof
     unfold http.reqRest
     iexact Hrest
   (try wp_auto)
-  wp_apply hSetPeer req _ urls uvs $$ [$Hreq] as ⟨%hs, -, %Hpu, -, Hreq⟩
+  wp_apply hSetPeer req _ urls uvs Hturls.fit $$ [$Hreq] as ⟨%hs, -, %Hpu, -, Hreq⟩
   · iframe #
   (try wp_auto)
   wp_apply hWithContext req _ (.fixed []) ctx $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr, #Hrctx⟩

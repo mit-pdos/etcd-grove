@@ -28,6 +28,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interfa
 public import Net.Spec.net.Listen
 public import Perennial.Proof.sync
 public import Perennial.Proof.fmt.Results
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -84,28 +85,17 @@ theorem rpcAddrOf_fmt (k : Nat) :
 theorem sprintf_str_colon_int [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
     [go.IntoValInj GoString] [go.IntoValInj w64] [go.string ↓u go.string]
     (x : GoString) (n : w64) (out : GoString)
-    (h : fmt.SprintfOut go!"%s:%d" [interface.mkOk go.string #x, interface.mkOk go.int #n] out) :
+    (h : out = _root_.Perennial.fmt.render [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      [.str x, .int (sint.Z n)]) :
     out = x ++ go!":" ++ fmt.decimal (sint.Z n) := by
-  have hfmt : go!"%s:%d" = W8 37 :: W8 115 :: W8 58 :: W8 37 :: [W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := fmt.SprintfOut.str_inv h
-  obtain ⟨o2, rfl, h2⟩ := fmt.SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := fmt.SprintfOut.int_inv (w := 0) (rest := []) (by decide)
-    (fmt.IntArgValue.int n) (fmt.IntArgValue.uniq_int n) h2
-  rw [fmt.SprintfOut.done_inv h3, fmt.decimalPad_zero]
-  simp
+  rw [h]; simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
 
 theorem sprintf_colon_int [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
     [go.IntoValInj w64] [go.string ↓u go.string] (n : w64) (out : GoString)
-    (h : fmt.SprintfOut go!":%d" [interface.mkOk go.int #n] out) :
+    (h : out = _root_.Perennial.fmt.render [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      [.int (sint.Z n)]) :
     out = go!":" ++ fmt.decimal (sint.Z n) := by
-  have hfmt : go!":%d" = W8 58 :: W8 37 :: [W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := fmt.SprintfOut.byte_inv (by decide) h
-  obtain ⟨o2, rfl, h2⟩ := fmt.SprintfOut.int_inv (w := 0) (rest := []) (by decide)
-    (fmt.IntArgValue.int n) (fmt.IntArgValue.uniq_int n) h1
-  rw [fmt.SprintfOut.done_inv h2, fmt.decimalPad_zero]
-  simp
+  rw [h]; simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
 
 /-! ## The master's predicates -/
 

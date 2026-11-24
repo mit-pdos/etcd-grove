@@ -186,19 +186,18 @@ theorem wp_syncDirAnc
     (R : Roots) (rcs cs : List GoString) (j0 jp : Ino) (dq : DFrac) (qc : Qp) (n k : Nat)
     (hR : RootsOk R) (hm : (joinPath [] rcs, j0) ∈ R) (hrcs : rcs ≠ []) (hcs : ∀ c ∈ cs, NameOk c)
     (hk : k ≤ (rcs ++ cs).length) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv ∗ osSpine j0 cs dq jp ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv ∗ osSpine j0 cs dq jp ∗
         osCallPerm (callKey R (joinPath [] rcs)) qc ∗ osLogLb n }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir))
         (Val #(os.ancPath ((rcs ++ cs).take k))))
     {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osSpine j0 cs dq jp ∗
         osCallPerm (callKey R (joinPath [] rcs)) qc ∗
         (⌜rcs.length ≤ k⌝ -∗ ⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }} := by
-  iintro %Φ ⟨#Hinv, #Hsi, #Hab, Hs, Hperm, #Hlb⟩ HΦ
+  iintro %Φ ⟨#Hfupk, #Hinv, #Hsi, #Hab, Hs, Hperm, #Hlb⟩ HΦ
   by_cases hlt : k < rcs.length
   · rw [List.take_append_of_le_length (by omega)]
     wp_apply hAbove _ R ⟨rcs, j0, k, hm, hlt, rfl⟩ $$ [] as %err #Hfe
-    · isplitl [] <;> try isplitl []
-      all_goals iassumption
+    · (repeat' isplitl []) <;> iassumption
     iapply HΦ
     isplitr
     · iexact Hfe

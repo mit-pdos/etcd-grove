@@ -77,7 +77,7 @@ theorem startMember.wp_proof
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [etcdstart.httpURL peerAddr])
       urlsOk [id] bootLog ctxs (dir id) id γ ρ E₀ Φs γn .none HwbN hvs hrule hboot hblen Hγn1 Hγn2
       Hdirok (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _)
-      ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty)
+      ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ (by decide) (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty)
       (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -, #Hdd⟩)
@@ -144,7 +144,7 @@ theorem startMember.wp_proofRestart
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [etcdstart.httpURL peerAddr])
       urlsOk [id] bootLog ctxs (dir id) id γ ρ γn HwbN hvs hrule hboot hblen Hγn1 Hγn2
       Hdirok (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _)
-      ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ Haf Hbuq Hdbo) $$ [Htok Hrr] as %s %err Hres
+      ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hrr] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, #Hdd⟩)
   · cases err with

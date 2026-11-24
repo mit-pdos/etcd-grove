@@ -61,10 +61,11 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
     (wp_Clone : EtcdGrove.slices.Clone.spec (GF := GF) (hG := hG))
     (wp_Set_Clone : EtcdGrove.sets.Set.Clone.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecisionUnion.ToDecision.spec (GF := GF) (hG := hG) := by
-  intro p ks
+  intro p ks N hfit
   wp_start as Hb
   iunfold ownBuilder at Hb
-  icases Hb with ⟨%u, %nds, %es, %Hwfl, Hp, Hin, Hinc, #HL, Hes, Hesc, #Hest, Hsub⟩
+  icases Hb with ⟨%u, %nds, %es, %Hwn, Hp, Hin, Hinc, #HL, Hes, Hesc, #Hest, Hsub, #HN⟩
+  obtain ⟨Hwfl, Hnm⟩ := Hwn
   ihave %Hlen := ownSlice_len _ _ _ $$ Hes
   wp_auto
   wp_if_destruct
@@ -80,15 +81,14 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
     · first | iassumption | iapply utilerrors.errTreeOrNil_nil
     iapply HΦ
     isplitl []
-    · iunfold isWFDecisionLe
-      iexists _
-      iframe #
-      ipureintro; exact ⟨Dec.ofWord_WF _, by rw [Dec.ofWord_depth]; omega⟩
+    · iapply (isWFDecisionBnd_leaf (Dec.depthL ks + 1) (Dec.sizeL ks + 1) N dd _ (Dec.ofWord_WF _)
+        (Dec.ofWord_isUnion _) (by omega))
+      iexact Hdd
     iunfold ownBuilder
     iexists u, nds, es
     iframe
     iframe #
-    ipureintro; exact Hwfl
+    ipureintro; exact ⟨Hwfl, Hnm⟩
   · wp_apply (wp_ConditionsAwareDecisionUnion_PossibleDecisions p (DFrac.own 1) u (DFrac.own 1) ks)
       $$ [$Hp $Hsub] as %sp ⟨⟨%S, HS, %HSp⟩, Hp, Hsub⟩
     wp_apply (sets.Set.wp_ptr_Len_of (K := w64) (T := Decision.ty) wp_Set__Len possibleDecisions_ptr
@@ -114,7 +114,7 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
       wp_auto
       iapply HΦ
       isplitl []
-      · iunfold isWFDecisionLe
+      · iunfold isWFDecisionBnd
         iexists Dec.union ks
         isplitl
         · iunfold isDecision
@@ -136,15 +136,20 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
             iunfold isDecisionL at HL
             iexact HL
           · iapply utilerrors.errTreeOrNil_nil
+        isplitr
         · ipureintro
           have := Dec.union_card_pos ks
-          exact ⟨⟨Hwfl.1, by omega, Hwfl.2⟩, by simp [Dec.depth]⟩
+          exact ⟨⟨Hwfl.1, by omega, Hwfl.2⟩, by simp [Dec.depth], by simp [Dec.size]⟩
+        iapply decNames_union N _ ks nds Hnm
+        isplitl
+        · iexact Hci
+        · iexact HN
       iunfold ownBuilder
       iexists u, nds, es
       iframe
       iframe #
       isplitr
-      · ipureintro; exact Hwfl
+      · ipureintro; exact ⟨Hwfl, Hnm⟩
       iunfold subOk
       isplitr
       · ipureintro; exact Hflag
@@ -194,13 +199,16 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
           "Hec" ∷ ownSliceCap GoInterface esl (DFrac.own 1) ∗
           "#Heys" ∷ ([∗list] e ∈ eys, utilerrors.errTree e) ∗
           "namedDecision" ∷ namedDecision_ptr ↦ nd ∗
-          "onlyPossibleDecision" ∷ onlyPossibleDecision_ptr ↦ k0 : IProp GF)
+          "onlyPossibleDecision" ∷ onlyPossibleDecision_ptr ↦ k0 ∗
+          "%Hrxs" ∷ ⌜rxs.length ≤ Dec.sizeL (ks.take (sint.nat j)) ∧ ∀ x ∈ rxs, x.length ≤ (1 + Dec.depthL ks) * (N + 2) + maxAddr.toNat + 4⌝ : IProp GF)
         $$ [i Hin aggregateReasons Hrn Hrc aggregateErrors Hen Hec namedDecision onlyPossibleDecision]
       · iexists W64 0, slice.nil, slice.nil, [], [], _
         iframe
         isplitr
         · ipureintro; constructor <;> word
-        iapply BigSepL.bigSepL_nil.2; itrivial
+        isplitl []
+        · iapply BigSepL.bigSepL_nil.2; itrivial
+        ipureintro; simp
       wp_for HI
       by_cases hlt : sint.Z j < sint.Z u.inner'.len
       · simp only [hlt, _root_.decide_true, ↓reduceIte]
@@ -219,13 +227,19 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
         have hvd : (List.map (fun x => x.d') nds)[sint.nat j]? = some v.d' := by
           rw [List.getElem?_map, hv]; rfl
         icases isDecisionL_lookup _ ks (sint.nat j) v.d' hvd $$ HL with ⟨%mj, %Hmj, #Hdj⟩
-        have Hdep : [v.conditionalAuthorizerName'].length + mj.depth < 2 ^ 63 := by
-          have := Dec.depth_le_depthL ks _ mj Hmj
-          have := Hwfl.2
+        have Hdep : ([v.conditionalAuthorizerName'].length + mj.depth) * (N + 2) <
+            _root_.Perennial.strings.joinMax := by
+          have := Dec.foldFits_path N ks _ mj Hmj hfit
           simp only [List.length_singleton]; omega
-        wp_apply (wp_collectReasonsAndErrors _ (DFrac.own 1) [v.conditionalAuthorizerName'] v.d' mj k0 Hdep)
-          $$ [Hnsl] as %rs %es2 ⟨-, ⟨%xs2, Hrs, -⟩, ⟨%ys2, Hes2, -, #Hys2⟩⟩
-        · iframe; iexact Hdj
+        have Hpre : ∀ x ∈ [v.conditionalAuthorizerName'], x.length ≤ N := by
+          intro x hx; simp only [List.mem_singleton] at hx; subst hx
+          exact Hnm v (List.mem_of_getElem? hv)
+        ihave #Hdnj := decNamesL_lookup N _ ks (sint.nat j) v.d' mj hvd Hmj $$ HN
+        have Hmjd := Dec.depth_le_depthL ks _ mj Hmj
+        wp_apply (wp_collectReasonsAndErrors _ (DFrac.own 1) [v.conditionalAuthorizerName'] v.d' mj k0 N
+          Hpre Hdep) $$ [Hnsl] as %rs %es2 ⟨-, ⟨%xs2, Hrs, -, %Hxs2⟩, ⟨%ys2, Hes2, -, #Hys2⟩⟩
+        · iframe; isplitr; · iexact Hdj
+          iexact Hdnj
         wp_apply wp_slice_append $$ [$Hrn $Hrc $Hrs] as %rsl' ⟨Hrn, Hrc, -⟩
         wp_apply wp_slice_append $$ [$Hen $Hec $Hes2] as %esl' ⟨Hen, Hec, -⟩
         wp_for_post
@@ -234,13 +248,27 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
         iframe
         isplitr
         · ipureintro; constructor <;> word
-        iapply BigSepL.bigSepL_append.2
-        isplitr; · iexact Heys
-        iexact Hys2
+        isplitl []
+        · iapply BigSepL.bigSepL_append.2
+          isplitr; · iexact Heys
+          iexact Hys2
+        ipureintro
+        have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+        rw [hj1, Dec.sizeL_take_succ ks _ mj Hmj]
+        simp only [List.length_singleton] at Hxs2
+        have Hle : (1 + mj.depth) * (N + 2) ≤ (1 + Dec.depthL ks) * (N + 2) :=
+          Nat.mul_le_mul_right _ (by omega)
+        refine ⟨by simp only [List.length_append]; have := Hxs2.1; have := Hrxs.1; omega, fun x hx => ?_⟩
+        rcases List.mem_append.mp hx with hx | hx
+        · exact Hrxs.2 x hx
+        · have := Hxs2.2 x hx; omega
       · simp only [hlt, _root_.decide_false, Bool.false_eq_true, ↓reduceIte]
+        have Hrxs_le : rxs.length ≤ Dec.sizeL ks := by
+          have := Dec.sizeL_take_le ks (sint.nat j); omega
         wp_auto
         wp_if_destruct
-        · wp_apply (wp_Join rsl rxs (DFrac.own 1) _) $$ [$Hrn] as Hrn
+        · wp_apply (_root_.Perennial.strings.Join_bounded_of wp_Join rsl rxs (DFrac.own 1) go!", " _ Hrxs.2
+            (Dec.foldFits_join N ks rxs.length _ Hrxs_le (by decide) hfit)) $$ [$Hrn] as Hrn
           wp_apply (wp_NewAggregate esl (DFrac.own 1) eys) $$ [$Hen] as %agg ⟨Hen, Hagg⟩
           ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' eys agg $$ [Hagg]
           · isplitr
@@ -250,17 +278,16 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
           · first | iassumption | iapply utilerrors.errTreeOrNil_nil
           iapply HΦ
           isplitl []
-          · iunfold isWFDecisionLe
-            iexists _
-            iframe #
-            ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
+          · iapply (isWFDecisionBnd_leaf (Dec.depthL ks + 1) (Dec.sizeL ks + 1) N dd .deny trivial rfl (by omega))
+            iexact Hdd
           iunfold ownBuilder
           iexists u, nds, es
           iframe
           iframe #
-          ipureintro; exact Hwfl
+          ipureintro; exact ⟨Hwfl, Hnm⟩
         · wp_if_destruct
-          · wp_apply (wp_Join rsl rxs (DFrac.own 1) _) $$ [$Hrn] as Hrn
+          · wp_apply (_root_.Perennial.strings.Join_bounded_of wp_Join rsl rxs (DFrac.own 1) go!", " _ Hrxs.2
+            (Dec.foldFits_join N ks rxs.length _ Hrxs_le (by decide) hfit)) $$ [$Hrn] as Hrn
             wp_apply (wp_NewAggregate esl (DFrac.own 1) eys) $$ [$Hen] as %agg ⟨Hen, Hagg⟩
             ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' eys agg $$ [Hagg]
             · isplitr
@@ -270,17 +297,16 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
             · first | iassumption | iapply utilerrors.errTreeOrNil_nil
             iapply HΦ
             isplitl []
-            · iunfold isWFDecisionLe
-              iexists _
-              iframe #
-              ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
+            · iapply (isWFDecisionBnd_leaf (Dec.depthL ks + 1) (Dec.sizeL ks + 1) N dd .noOpinion trivial rfl (by omega))
+              iexact Hdd
             iunfold ownBuilder
             iexists u, nds, es
             iframe
             iframe #
-            ipureintro; exact Hwfl
+            ipureintro; exact ⟨Hwfl, Hnm⟩
           · wp_if_destruct
-            · wp_apply (wp_Join rsl rxs (DFrac.own 1) _) $$ [$Hrn] as Hrn
+            · wp_apply (_root_.Perennial.strings.Join_bounded_of wp_Join rsl rxs (DFrac.own 1) go!", " _ Hrxs.2
+            (Dec.foldFits_join N ks rxs.length _ Hrxs_le (by decide) hfit)) $$ [$Hrn] as Hrn
               wp_apply (wp_NewAggregate esl (DFrac.own 1) eys) $$ [$Hen] as %agg ⟨Hen, Hagg⟩
               ihave #Hagg := utilerrors.errTreeOrNil_of_newAggregate' eys agg $$ [Hagg]
               · isplitr
@@ -290,30 +316,26 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
               · first | iassumption | iapply utilerrors.errTreeOrNil_nil
               iapply HΦ
               isplitl []
-              · iunfold isWFDecisionLe
-                iexists _
-                iframe #
-                ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
+              · iapply (isWFDecisionBnd_leaf (Dec.depthL ks + 1) (Dec.sizeL ks + 1) N dd .allow trivial rfl (by omega))
+                iexact Hdd
               iunfold ownBuilder
               iexists u, nds, es
               iframe
               iframe #
-              ipureintro; exact Hwfl
+              ipureintro; exact ⟨Hwfl, Hnm⟩
             · wp_apply _root_.Perennial.errors.wp_New_errorString as %ee ⟨#_, #Hee⟩
               ihave #Hee := utilerrors.errorString_errTreeOrNil ee _ $$ Hee
               wp_apply (wp_ConditionsAwareDecisionDeny _ _) $$ [] as %dd #Hdd
               · first | iassumption | iapply utilerrors.errTreeOrNil_nil
               iapply HΦ
               isplitl []
-              · iunfold isWFDecisionLe
-                iexists _
-                iframe #
-                ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
+              · iapply (isWFDecisionBnd_leaf (Dec.depthL ks + 1) (Dec.sizeL ks + 1) N dd .deny trivial rfl (by omega))
+                iexact Hdd
               iunfold ownBuilder
               iexists u, nds, es
               iframe
               iframe #
-              ipureintro; exact Hwfl
+              ipureintro; exact ⟨Hwfl, Hnm⟩
 
 end proof
 

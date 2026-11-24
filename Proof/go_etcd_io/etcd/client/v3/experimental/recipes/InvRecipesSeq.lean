@@ -351,28 +351,6 @@ theorem seqNext_order (kp : GoString) (sg : List EtcdKv) (key : GoString) (hkp :
     rw [hwkey, hk]
     exact seqKey_lt kp mw (mv + 1) hmw (by omega)
 
-section sprintf
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
-
-/-- `Sprintf("%s/%016d", x, n)` for a string `x` and an `int` `n` (of any sign) is `x/` then
-`decimalPad 16 n` (`SprintfOut.str_slash_016d_int` for `n ≥ 0`). -/
-theorem sprintf_slash_016d [go.IntoValInj GoString] [go.IntoValInj w64] [go.string ↓u go.string]
-    (x : GoString) (n : w64) (out : GoString)
-    (h : _root_.Perennial.fmt.SprintfOut go!"%s/%016d"
-      [interface.mkOk go.string #x, interface.mkOk go.int #n] out) :
-    out = x ++ go!"/" ++ _root_.Perennial.fmt.decimalPad 16 (sint.Z n) := by
-  have hfmt : go!"%s/%016d" =
-      W8 37 :: W8 115 :: W8 47 :: W8 37 :: [W8 48, W8 49, W8 54, W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := _root_.Perennial.fmt.SprintfOut.str_inv h
-  obtain ⟨o2, rfl, h2⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := _root_.Perennial.fmt.SprintfOut.int_inv (w := 16) (rest := []) (by decide)
-    (_root_.Perennial.fmt.IntArgValue.int n) (_root_.Perennial.fmt.IntArgValue.uniq_int n) h2
-  rw [_root_.Perennial.fmt.SprintfOut.done_inv h3]
-  simp
-
-end sprintf
-
 /-! ## `newSequentialKV`'s transaction -/
 
 /-- `If(ModRevision(__kp) < g + 1).Then(OpPut(__kp, ""), OpPut(key, val))`. -/

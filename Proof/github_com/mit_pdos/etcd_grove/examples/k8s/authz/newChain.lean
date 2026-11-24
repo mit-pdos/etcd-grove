@@ -42,7 +42,8 @@ theorem newChain.wp_proof
     (wp_legacyAuthorize : EtcdGrove.k8s_authz.legacyAuthorize.spec (GF := GF) (hG := hG)) :
     newChain.spec (GF := GF) (hG := hG) := by
   wp_start
-  ihave #Harb : (∀ z : arbAuthorizer, ⌜uint.nat z.depth' < 2 ^ 63 - 1⌝ -∗
+  ihave #Harb : (∀ z : arbAuthorizer,
+      ⌜uint.nat z.depth' ≤ authzDepthMax ∧ 4 ^ uint.nat z.depth' ≤ authzSizeMax⌝ -∗
       isAuthorizer (interface.mkOk arbAuthorizer.ty #z) : IProp GF) $$ []
   · iintro %z %hz
     iunfold isAuthorizer
@@ -53,12 +54,9 @@ theorem newChain.wp_proof
     · iintro %ctx %attrs
       iunfold caaOk
       iintro !> %Ψ _ HΨ
-      wp_apply (wp_arbAuthorizer_ConditionsAwareAuthorize z ctx attrs hz) as %d #Hd
+      wp_apply (wp_arbAuthorizer_ConditionsAwareAuthorize z ctx attrs hz.1 hz.2) as %d #Hd
       iapply HΨ
-      iapply isWFDecisionLe_weaken
-      isplitl []
-      · iexact Hd
-      ipureintro; omega
+      iexact Hd
     · iintro %ctx %d %data
       iunfold ecOk
       iintro !> %Ψ #Hwf HΨ
@@ -86,10 +84,11 @@ theorem newChain.wp_proof
         iapply HΨ'
         iexact He
       iapply HΨ
-      iapply isWFDecisionLe_weaken
+      iapply isWFDecisionBnd_weaken
       isplitl []
-      · iexact Hd'
-      ipureintro; omega
+      · iapply isWFDecisionLe_zero_bnd
+        iexact Hd'
+      ipureintro; unfold authzDepthMax authzSizeMax; omega
     · iintro %ctx %d %data
       iunfold ecOk
       iintro !> %Ψ _ HΨ
@@ -113,14 +112,24 @@ theorem newChain.wp_proof
   (try wp_auto)
   wp_apply (wp_New _ _) as %a %err Hres
   · iframe #
-    isplitr
-    · iapply Harb
-      all_goals (ipureintro; word)
-    isplitr
-    · iapply Harb
-      all_goals (ipureintro; word)
-    iapply BigSepL.bigSepL_nil.2
-    itrivial
+    have h2 : uint.nat (W64 2) = 2 := by word
+    isplitl []
+    · isplitr
+      · iapply Harb
+        ipureintro
+        exact ⟨by unfold authzDepthMax; word, by rw [h2]; unfold authzSizeMax; decide⟩
+      iapply BigSepL.bigSepL_cons.2
+      isplitr
+      · iapply Harb
+        ipureintro
+        exact ⟨by unfold authzDepthMax; word, by rw [h2]; unfold authzSizeMax; decide⟩
+      iapply BigSepL.bigSepL_nil.2
+      itrivial
+    ipureintro
+    refine ⟨by unfold authzChainMax; simp, fun na hna => ?_⟩
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hna
+    unfold authzNameMax
+    rcases hna with rfl | rfl | rfl <;> simp
   (try wp_auto)
   iapply HΦ
   iexact Hres
