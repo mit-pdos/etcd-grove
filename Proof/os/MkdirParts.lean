@@ -151,15 +151,16 @@ theorem os.Mkdir.wp_notTree (R : Roots) (p : GoString) (perm : w32)
       try wp_auto
       rw [hpost _ (by decide)]
       iapply HΦ'
-      iright; iframe; ipureintro; exact ⟨by decide, by decide⟩
-    · try rw [decide_eq_false hx]
+      iright; (try dsimp only); iframe; ipureintro; exact ⟨by decide, by decide⟩
+    · rw [decide_eq_false (show x ≠ W64 0 from hx)]
       try wp_auto
       rw [hpost _ hx]
       iapply HΦ'
       by_cases hx4 : x = W64 4
       · ileft; iframe; ipureintro; exact hx4
-      · iright; iframe; ipureintro; exact ⟨hx4, hx⟩
-  simp only [errnoErr, he0, ↓reduceIte]
+      · iright; (try dsimp only); iframe; ipureintro; exact ⟨hx4, hx⟩
+  have he0' : ¬ e = 0 := he0
+  simp only [errnoErr, he0', ↓reduceIte]
   try wp_auto
   try wp_alloc pe as Hpe
   try wp_auto
@@ -185,7 +186,9 @@ theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (
     (fun e => iprop(⌜e ≠ 0⌝ ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
     hpin htn) $$ [Hp Hn Hperm] as %err ⟨%e, ⟨%he0, Hp, Hn, Hperm⟩, %he⟩
   · iframe; iframe #
-    iintro !> %m %Φ' ⟨Hp, Hn, Hperm⟩ HΦ'
+    iintro !>
+    unfold os.mkdirAttempt
+    iintro %m %Φ' ⟨Hp, Hn, Hperm⟩ HΦ'
     icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
     wp_stub syscall.fsMkdir.impl
     wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
@@ -196,7 +199,7 @@ theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (
     iapply HΦ'
     by_cases he4 : e = W64 4
     · ileft; iframe; ipureintro; exact he4
-    · iright; iframe; ipureintro; exact ⟨he4, he⟩
+    · iright; (try dsimp only); iframe; ipureintro; exact ⟨he4, he⟩
   iapply HΦ
   iframe
   ipureintro; intro hc; exact he0 (he.2.1 hc)

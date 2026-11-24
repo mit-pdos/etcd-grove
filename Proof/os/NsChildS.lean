@@ -96,7 +96,9 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
       iapply IH $$ Hperm Hp Hn HΦ
     · rw [decide_eq_false he4]
       try wp_auto
-      wp_apply os.wp_pathError_errno as %err #Herr
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_pathError_errnoV as %err #Herr
       iapply HΦ
       iframe
       iright
@@ -161,7 +163,9 @@ theorem os.OpenFile.wp_absentErrS (d b : GoString) (flag : w64) (perm : w32) (R 
     iapply IH $$ Hperm Hp Hn HΦ
   rw [decide_eq_false (show e ≠ W64 4 from he4)]
   try wp_auto
-  wp_apply os.wp_pathError_errno as %err #Herr
+  wp_apply os.wp_modelErrno
+  try wp_auto
+  wp_apply os.wp_pathError_errnoV as %err #Herr
   iapply HΦ
   iframe
   iexists e

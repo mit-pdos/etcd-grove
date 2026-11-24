@@ -12,6 +12,7 @@ module
 public import Proof.os.Off
 public import Proof.os.ErrorOk
 public import Proof.os.ErrnoPathErr
+public import Proof.os.ForLoeb
 
 @[expose] public section
 
@@ -79,8 +80,9 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     try wp_auto
-    rw [($hd:term)]
-    iapply IH $$ Hosfd Hm Hbs Hsl Ho Hfd HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hosfd Hm Hbs Hsl Ho Hfd HΦ [$] [$] [$] [$] [$] [$] [$]
   rw [decide_eq_false he4]
   try wp_auto
   obtain ⟨k, hkl, rfl, hke0⟩ := hre
@@ -95,6 +97,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
     iunfold os.errnoPathErr at Hep2
     icases Hep2 with ⟨%pe, %op, %path, %hpe, -⟩
     subst hpe
+    wp_for_post
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
@@ -146,6 +149,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
       · have := congrArg List.length h
         simp only [List.length_take, List.length_drop, List.length_nil] at this
         omega
+    wp_for_post
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
@@ -178,6 +182,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
     simp only [BitVec.toNat_ofInt] at this; omega
   rw [decide_eq_false hk0']
   try wp_auto
+  wp_for_post
   iapply HΦ
   iframe Hosfd Hm Hbs
   isplitl [Hfd]
@@ -259,8 +264,9 @@ theorem os.File.Read.wp_eof (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
     rw [hsl]; simp only [sint.Z]; word
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (o + sl.len) by
     rw [hsum, show sint.Z (W64 0x4000000000000000) = 2 ^ 62 from rfl]; omega)]
-  try wp_auto
+  wp_for_bind
   iloeb as IH generalizing Hosfd Hm Hbs Hsl Ho Hfd HΦ
+  wp_for_step
   by_cases hmx : sint.Z (W64 1073741824) < sint.Z sl.len
   · rw [decide_eq_true hmx]
     try wp_auto

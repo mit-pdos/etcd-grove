@@ -112,7 +112,9 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
       iapply IH $$ Hperm Hp Hn HΦ
     · rw [decide_eq_false he4]
       try wp_auto
-      wp_apply os.wp_pathError_errno as %err #Herr
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_pathError_errnoV as %err #Herr
       iapply HΦ
       iframe
       iright

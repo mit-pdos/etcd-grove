@@ -167,12 +167,14 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     · ipureintro; exact ⟨rfl, hfd0⟩
     unfold os.ownFile os.ownOff
     isplitr [off]
-    · iexists inner_ptr
+    · iexists _
       iframe
       isplitl [] <;> (try isplitl []) <;> iassumption
-    · iexists inner_ptr
-      iframe
-      iassumption
+    · iexists _
+      isplitl []
+      · iexact f
+      (try rw [show (W64 0 : w64) = 0 from rfl])
+      iexact off
   · iclear Hfd
     have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h, -⟩; exact absurd h he0; exact h
     have hW := fun hne : e ≠ 0 => (hres.resolve_left (fun h => hne h.1)).2.2

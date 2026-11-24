@@ -56,7 +56,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
   (try wp_auto)
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout, Hm⟩)
   · wp_apply +noauto (wp_aunc_step "Open" _ (osNames j (.only [b]) (DFrac.own r) h)
-      (crOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
+      (crOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ «$res0» «$res1» perm flag name]
     iintro Hr
     ihave Hw := (osNames_join j _ q r h hq).1 $$ [Hn Hr]
     · iframe
@@ -132,12 +132,14 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · ipureintro; exact ⟨rfl, hfd0, hi⟩
         unfold os.ownFile os.ownOff
         isplitr [off]
-        · iexists inner_ptr
+        · iexists _
           iframe
           isplitl [] <;> (try isplitl []) <;> iassumption
-        · iexists inner_ptr
-          iframe
-          iassumption
+        · iexists _
+          isplitl []
+          · iexact f
+          (try rw [show (W64 0 : w64) = 0 from rfl])
+          iexact off
     · -- the file created
       icases (osNames_join j _ q r _ hq).2 $$ Hw with ⟨Hn, Hr'⟩
       unfold osLogged
@@ -199,12 +201,14 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · ipureintro; exact ⟨rfl, hfd0, rfl⟩
         unfold os.ownFile os.ownOff
         isplitr [off]
-        · iexists inner_ptr
+        · iexists _
           iframe
           isplitl [] <;> (try isplitl []) <;> iassumption
-        · iexists inner_ptr
-          iframe
-          iassumption
+        · iexists _
+          isplitl []
+          · iexact f
+          (try rw [show (W64 0 : w64) = 0 from rfl])
+          iexact off
     · -- an error, no effect
       icases (osNames_join j _ q r h hq).2 $$ Hw with ⟨Hn, Hr'⟩
       by_cases he4 : e = W64 4
@@ -283,12 +287,14 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
       · ipureintro; exact ⟨rfl, hfd0, rfl⟩
       unfold os.ownFile os.ownOff
       isplitr [off]
-      · iexists inner_ptr
+      · iexists _
         iframe
         isplitl [] <;> (try isplitl []) <;> iassumption
-      · iexists inner_ptr
-        iframe
-        iassumption
+      · iexists _
+        isplitl []
+        · iexact f
+        (try rw [show (W64 0 : w64) = 0 from rfl])
+        iexact off
     · iclear Hfd
       have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
       subst hfd
@@ -389,7 +395,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
   (try wp_auto)
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout, Hm⟩)
   · wp_apply +noauto (wp_aunc_step "Open" _ (osNames j (.only [b]) (DFrac.own r) h)
-      (crOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
+      (crOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ «$res0» «$res1» perm flag name]
     iintro Hr
     ihave Hw := (osNames_join j _ q r h hq).1 $$ [Hn Hr]
     · iframe
@@ -439,12 +445,14 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         · ipureintro; exact ⟨rfl, hfd0, hi⟩
         unfold os.ownFile os.ownOff
         isplitr [off]
-        · iexists inner_ptr
+        · iexists _
           iframe
           isplitl [] <;> (try isplitl []) <;> iassumption
-        · iexists inner_ptr
-          iframe
-          iassumption
+        · iexists _
+          isplitl []
+          · iexact f
+          (try rw [show (W64 0 : w64) = 0 from rfl])
+          iexact off
     · -- the file created
       icases (osNames_join j _ q r _ hq).2 $$ Hw with ⟨Hn, Hr'⟩
       unfold osLogged
@@ -492,12 +500,14 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         · ipureintro; exact ⟨rfl, hfd0, rfl⟩
         unfold os.ownFile os.ownOff
         isplitr [off]
-        · iexists inner_ptr
+        · iexists _
           iframe
           isplitl [] <;> (try isplitl []) <;> iassumption
-        · iexists inner_ptr
-          iframe
-          iassumption
+        · iexists _
+          isplitl []
+          · iexact f
+          (try rw [show (W64 0 : w64) = 0 from rfl])
+          iexact off
     · -- an error, no effect
       icases (osNames_join j _ q r h hq).2 $$ Hw with ⟨Hn, Hr'⟩
       by_cases he4 : e = W64 4
@@ -550,12 +560,14 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
       · ipureintro; exact ⟨rfl, hfd0, rfl⟩
       unfold os.ownFile os.ownOff
       isplitr [off]
-      · iexists inner_ptr
+      · iexists _
         iframe
         isplitl [] <;> (try isplitl []) <;> iassumption
-      · iexists inner_ptr
-        iframe
-        iassumption
+      · iexists _
+        isplitl []
+        · iexact f
+        (try rw [show (W64 0 : w64) = 0 from rfl])
+        iexact off
     · iclear Hfd
       have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h, -⟩; exact absurd h he0; exact h
       subst hfd

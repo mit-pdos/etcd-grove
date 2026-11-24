@@ -5,6 +5,7 @@ needs `fileStat.FieldAssumptions` (`TrustedCode/os.lean`).
 module
 
 public import Proof.internal.gomodel.LocalChoose
+public import Proof.os.ModelMode
 public import Proof.os.ForLoeb
 public import Proof.os.ErrorOk
 public import Proof.os.PathParent
@@ -82,11 +83,11 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       simp only [Bool.not_true]
       iapply wp_fupd
       try wp_auto
-      iStructNamed fs
+      iStructNamed «$r0»
       try wp_auto
       wp_apply filepathlite.Base.wp_lex as %nm _
       try wp_auto
-      wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
+      wp_apply os.wp_modelMode as %x
       ipersist name
       ipersist size
       ipersist mode
@@ -102,7 +103,7 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       rotate_left
       · ileft; ipureintro; rfl
       ileft
-      iexists fs_ptr
+      iexists «$r0_ptr»
       unfold os.ownFileStat
       isplitr
       · ipureintro; exact ⟨rfl, rfl⟩
@@ -138,24 +139,33 @@ private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG)
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
+  wp_for_bind
+  iloeb as IH generalizing Hosfd Hm Hfd HΦ
+  wp_for_step
   try wp_auto
   wp_stub os.fsFstat.impl
   wp_apply wp_osFstatNE hS fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as Hosfd Hm
+  try wp_auto
+  try rw [show decide ((0 : w64) = W64 4) = false from decide_eq_false (by decide)]
+  try wp_auto
+  try rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
+  try simp only [Bool.not_true]
   iapply wp_fupd
-  iStructNamed fs
+  iStructNamed «$r0»
   try wp_auto
   wp_apply filepathlite.Base.wp_lex as %nm _
   try wp_auto
-  wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
+  wp_apply os.wp_modelMode as %x
   ipersist name
   ipersist size
   ipersist mode
   imodintro
+  wp_for_post
   iapply HΦ
   iframe
   isplitl []
   · isplitl [] <;> (try isplitl []) <;> iassumption
-  iexists fs_ptr
+  iexists «$r0_ptr»
   unfold os.ownFileStat
   isplitr
   · ipureintro; rfl
