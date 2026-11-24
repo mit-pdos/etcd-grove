@@ -64,7 +64,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
     (wp_done : Call.done.spec (GF := GF) (hG := hG)) :
     Client.send.spec (GF := GF) (hG := hG) := by
   intro c W a γ pc sm svc M S args reply ch γt γf K Φm Rargs D Θ C
-  wp_start as ⟨#Hcl, %Hsv, #Hset, Henc, HD, #Hdec, Hγt, #Hf, Herr, Hdone⟩
+  wp_start as ⟨#Hcl, %Hsv, %Hsm, #Hset, Henc, HD, #Hdec, Hγt, #Hf, Herr, Hdone⟩
   unfold isClientN clientAt
   icases Hcl with ⟨%cc, %t, %cn, %la, %ra, #Hcodec, #Hrwc, #Hconn, #Hci, #Hrpc, #Hsl, #Henv,
     #Hsmu, #Hmu⟩
@@ -184,6 +184,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
         args (interface.ok e) ed C (reqProto (Gg := hG.goose_globalGS) W a) Wd
         (fun bs => iprop(S M bs Φm ∗ Rargs)) (fun _ => iprop(True))
         $$ [$Hrwc $Hconn $Hed $Hwerr $Hreq $Hset $Hsend $Henc $Hupd] as %err ⟨Hreq, Hres⟩
+    · ipureintro; simpa using Hsm
     icases Hres with (⟨%Herr, Hwerr, Hsend, Henc⟩ | ⟨%Hn, -⟩)
     rotate_left
     · cases Hn
@@ -298,8 +299,8 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
       ihave Hr : (|={⊤}=> monoListAuthOwn γ.conn.reqs (1 : Qp).half (L ++ [(sm, eb, post, col)]) ∗
           □ reqProto (Gg := hG.goose_globalGS) W a cn
             (W.hs a ++ reqsWire L ++ reqWire (W64 n1) sm eb) : IProp GF) $$ [Hreqs Hlc1 Hap HS]
-      · iapply req_append W a cn γ.conn L n1 hLn sm svc M S eb Φm post col ap HLok (by omega) hfit.1
-          hfit.2 ⟨Hsv.1, Hsv.2.1⟩ $$ [$Hrpc $Hsl $Hlc1 $Hreqs $Hnmn $Hap $Hpost $HS]
+      · iapply req_append W a cn γ.conn L n1 hLn sm svc M S eb Φm post col ap HLok (by omega)
+          hfit.1 hfit.2 ⟨Hsv.1, Hsv.2.1⟩ $$ [$Hrpc $Hsl $Hlc1 $Hreqs $Hnmn $Hap $Hpost $HS]
       imod Hr with ⟨Hh, #Hp⟩
       imodintro
       simp only []
@@ -311,6 +312,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
         (fun eb => iprop(Rargs ∗ monoListAuthOwn γ.conn.reqs (1 : Qp).half (L ++ [(sm, eb, post, col)]) ∗
           ⌜reqOk (sm, eb, post, col)⌝))
         $$ [$Hrwc $Hconn $Hed $Hwerr $Hreq $Hset $Hsend $Henc $Hupd] as %err ⟨Hreq, Hres⟩
+    · ipureintro; simpa using Hsm
     icases Hres with (⟨%Hne, -⟩ | ⟨-, %eb, ⟨HR, Hh, %Hrok⟩, Hout⟩)
     · exact Hne.elim
     icases Hout with (⟨%Herr, Hwerr, Hsend⟩ | ⟨%w, %k, ⟨%Hw, %Hwne⟩, Hwerr, Hsend, #HE⟩)

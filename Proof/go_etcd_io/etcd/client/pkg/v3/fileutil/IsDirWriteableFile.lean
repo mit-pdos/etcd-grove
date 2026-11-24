@@ -71,7 +71,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proofFile
     wp_apply wp_Remove dir go!".touch" J i R dq hJ (1 : Qp).half (1 : Qp).half qc
         (rmFileOut J go!".touch" i hJ (DFrac.own (1 : Qp).half)) touch_nameOk hfile
         (Qp.half_add_half 1) $$ [Hp Hperm Hq Hau]
-      as %e ⟨Hp, Hperm, %o', %hok', HQ, Hout⟩
+      as %e ⟨-, Hp, Hperm, %o', %hok', HQ, Hout⟩
     · iframe; isplitl [] <;> iassumption
     icases os.rmFileOut_join J _ i hJ o' $$ [HQ Hout] with ⟨%h', Hn, %hc⟩
     · iframe

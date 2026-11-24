@@ -17,6 +17,7 @@ Proved in `Proof/os/Remove.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.os.SharedAu
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -54,7 +55,7 @@ abbrev os.Remove.specFileS : Prop :=
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (rmFileOut j b i h (DFrac.own r)) Q }}
     (App (Val (@! os.Remove)) (Val #(child d b)))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+  {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ rmFileOut j b i h (DFrac.own q) o }}
 
 /-- `specFileS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
@@ -68,7 +69,7 @@ abbrev os.Remove.specFileSnc : Prop :=
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAUnc (osNames j (.only [b]) (DFrac.own r) h) (rmFileOut j b i h (DFrac.own r)) Q }}
     (App (Val (@! os.Remove)) (Val #(child d b)))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+  {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ rmFileOut j b i h (DFrac.own q) o }}
 
 end spec
