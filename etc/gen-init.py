@@ -60,6 +60,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
          # putget_safe (2026-11-23, notes/putget-dist-plan.md): the member and client machines' package
          'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget',
+         # gRPC's robustness driver (notes/library-drivers.md): its two machines' commands
+         'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.server',
+         'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
@@ -2201,6 +2204,21 @@ translated initializers, two slice literals (`mvccrand.go`), whose slices are ma
             'imod ownSlice_persist $$ SE with #SE'] + FIN_PRE[:6] +
            ['imodintro', 'unfold mvccrandInit keyList extraEndList', 'iframe #'],
 )
+
+# (grpcdriver, 2026-11-24) gRPC's robustness driver (notes/library-drivers.md): its package's fact is
+# `True` (`Base.lean`): `reached`, a function value, is allocated and stored; its service's `True`:
+# `Driver_ServiceDesc`, a `grpc.ServiceDesc` literal, as etcdserverpb's descriptors
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variable `reached`, initializes its imports
+and stores `reached`'s function value.''',
+    alloc_types={'reached': 'GoFunc'},
+    before={'reached': ['try wp_auto']})
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates and sets its translated gRPC service descriptor
+(`Driver_ServiceDesc`, a `grpc.ServiceDesc` literal) and initializes its imports.''',
+    alloc_types={'Driver_ServiceDesc': 'google_golang_org.grpc.ServiceDesc'},
+    finish=['repeat (wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩; wp_auto)',
+            'iframe Hown', 'is_pkg_init_finish'])
 
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
     doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service
@@ -5342,6 +5360,11 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
 # distributed theorem (notes/putget-dist-plan.md)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/PkgTable.lean'
+# (grpcdriver, 2026-11-24) gRPC's robustness driver's two commands (each machine's boot program runs its
+# command's initializer), for grpcdriver_robust
+for _c in ['server', 'client']:
+    PROGRAMS[f'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.{_c}'] = \
+        f'Proof/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/cmd/{_c}/PkgTable.lean'
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
