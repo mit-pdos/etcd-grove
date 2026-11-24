@@ -166,7 +166,13 @@ if [ -n "$CHALLENGE" ]; then
     step "the challenge's checks, in a scratch clone (several minutes)"
     git clone -q "$W" "$T/c" && mkdir -p "$T/c/.lake" && ln -s "$W/.lake/packages" "$T/c/.lake/packages"
     sed -n '/^- The checks/,/^$/p' "$W/CLAUDE.md" | sed -n 's/^ *- `\(.*\)`$/\1/p' | while read -r c; do
-        (cd "$T/c" && timeout 1800 bash -c "$c") >"$T/check.log" 2>&1 && echo "PASS $c" || { echo "FAIL $c"; tail -5 "$T/check.log"; }
+        if (cd "$T/c" && timeout 1800 bash -c "$c") >"$T/check.log" 2>&1; then echo "PASS $c"
+        # the kitlibs-check of the challenge as exported: its non-vacuity instance is the template's
+        # `sorry` (the agent's to prove), so the check refuses it for that and must refuse nothing else
+        elif [[ $c == *kitlibs-check.py* ]] && grep -q '^kitlibs-check: REFUSED: the instance rests on `sorryAx`$' "$T/check.log" &&
+             ! grep '^kitlibs-check: REFUSED: ' "$T/check.log" | grep -vqxF 'kitlibs-check: REFUSED: the instance rests on `sorryAx`'; then
+            echo "PASS $c (as exported: refused for the template instance's sorry alone)"
+        else echo "FAIL $c"; tail -5 "$T/check.log"; fi
     done | tee "$T/checks.out"
     grep -q '^FAIL' "$T/checks.out" && fail=1
     git -C "$W" status --porcelain | grep -q . && bad "the checks changed the work tree"
