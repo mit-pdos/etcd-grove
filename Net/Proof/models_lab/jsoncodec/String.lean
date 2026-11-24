@@ -35,7 +35,7 @@ set_option maxHeartbeats 2000000
 
 theorem String.wp_proof (wp_At : At.spec (GF := GF) (hG := hG)) (wp_Str : Str.spec (GF := GF) (hG := hG)) :
     String.spec (GF := GF) (hG := hG) := by
-  intro b dq bs i str rest hs hb str ++ 34#8
+  intro b dq bs i str rest hs hb
   wp_start as Hs
   ihave %Hlen := ownSlice_len $$ Hs
   have hl63 := len_lt b bs Hlen

@@ -35,7 +35,7 @@ set_option maxHeartbeats 2000000
 
 theorem Member.wp_proof (wp_SkipSpace : SkipSpace.spec (GF := GF) (hG := hG)) (wp_Str : Str.spec (GF := GF) (hG := hG)) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro b dq bs i k rest hk hb k ++ 34#8
+  intro b dq bs i k rest hk hb
   wp_start as Hs
   ihave %Hlen := ownSlice_len $$ Hs
   have hl63 := len_lt b bs Hlen

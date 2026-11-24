@@ -36,7 +36,7 @@ set_option maxHeartbeats 2000000
 
 theorem QuotedUint.wp_proof (wp_At : At.spec (GF := GF) (hG := hG)) (wp_ValueEnd : ValueEnd.spec (GF := GF) (hG := hG)) (wp_Digits : Digits.spec (GF := GF) (hG := hG)) :
     QuotedUint.spec (GF := GF) (hG := hG) := by
-  intro b dq bs i mx n rest hb JsonScan.decN n ++ 34#8 hn
+  intro b dq bs i mx n rest hb hn
   wp_start as Hs
   ihave %Hlen := ownSlice_len $$ Hs
   have hl63 := len_lt b bs Hlen

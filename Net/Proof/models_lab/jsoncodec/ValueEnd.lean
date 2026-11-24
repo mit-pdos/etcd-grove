@@ -50,7 +50,7 @@ theorem ValueEnd.wp_proof (wp_Scan : Scan.spec (GF := GF) (hG := hG)) :
     simp [subslice]
   rw [hsub]
   wp_apply (wp_Scan _ dq (bs.drop (uint.nat i)) true) $$ H2 as H2
-  simp only [JsonScan.scanF]
+  try simp only [JsonScan.scanF]
   have hle := JsonScan.scanL_le (bs.drop (uint.nat i)) true
   simp only [List.length_drop] at hle
   rw [hd]
