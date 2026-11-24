@@ -78,10 +78,47 @@ facts would change what their premises say; their switch to `Net/`'s initializer
 The two instances are never imported together (nor, so, their `wp_initialize'`s). The `True` facts of
 net/http's closure (`Net/Proof/<pkg>/Base.lean`) are shared.
 
-## gRPC and net/http
+## gRPC: `examples/lib/grpcdriver`
 
-To come, in that order: gRPC's driver in the main tree (`models/grpc`; unary calls, the three stream
-kinds as watch and lease use them, metadata, status codes and messages, context errors, concurrent
-calls on one `ClientConn`, `Close`), whose collection drives phase 7's S2/S3; then net/http's with
-the S5 server work, its client side limited by the model (the `Transport` and chunked bodies panic
+Users: etcd's client and server (unary KV/Lease/Auth calls, the Watch and LeaseKeepAlive streams), the
+QuePaxa kit. The driver's server serves one service (`svc.Driver`, protoc-gen-go-grpc's form over
+protobuf's `StringValue`) with every method kind; its client makes random calls and streams from
+random goroutines on one `ClientConn`, then closes it and calls once more.
+
+| section | property |
+|---|---|
+| error-set | an error from a call or stream operation is a status (`status.FromError` accepts it), or `io.EOF` |
+| unary-reply | a unary call without error ran the handler exactly once, on this request, and its reply is that run's |
+| status-roundtrip | a call whose handler failed returns an error (and, checked by the Go test only: with the handler's code) |
+| metadata | the values the caller's context carries at a key reach the handler, in order |
+| ctx-canceled | a call with a context already cancelled fails with `codes.Canceled` |
+| server-stream | the handler's messages arrive in order, without loss or duplication; `io.EOF` after all of them, or before any (grpc-go#9443) |
+| client-stream | once every `Send` succeeded, the reply is to all of them, in order |
+| bidi-stream | each direction is a queue; `io.EOF` after every message, or before any |
+| concurrent-calls | calls and streams made concurrently on one `ClientConn` each meet their section |
+| close | after `Close`, a call fails with `codes.Canceled` |
+
+**Finding (2026-11-24): a stream can end cleanly with no message.** grpc-go v1.84 (and the model, which keeps
+`stream.go`) returns a bare `io.EOF` from a transparently retried attempt whose replayed request fails
+(grpc/grpc-go#9443, `nonissues/grpc-transparent-retry-spurious-eof.md`); the first driver asserted every
+message before `io.EOF` and was false of grpc. Its server-stream and bidi sections accept `io.EOF` before any
+message.
+
+**Gap for S3 (2026-11-24): status-roundtrip's code.** The proof states the code relay only as the Go test
+checks it: the unary run contract's error continuation (`Ψe : GoString → IProp`, `grpcRunOkMd`) carries the
+handler's message, not its code, so a handler's code reaching the caller cannot be stated without changing every
+handler's spec. The Lean statement covers "a failed handler fails the call"; S3's call protocol (the status in
+the call's ghost state) is where the code relay belongs.
+
+Statement (2026-11-24): `grpcdriver_robust.spec`
+(`Spec/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/TopLevelRobustness.lean`): the two machines,
+neither crashing, deployed at `grpcAddrs`, are `Robust [] … grpcThreads grpcSteps` (`grpcThreads = 2 ^ 31`, the
+client's `WaitGroup`; `grpcSteps = 2 ^ 63 - 1`). No premise but the deployment's start and the programs' typing
+facts. The proof is in progress (branch `grpc-driver-lean`); it rests on the canonical grpc specs strengthened
+on a trusted branch (the plan's T1-T11: error shapes, cancelled contexts, `ClientConn.Close`, a plain dial,
+server-streaming `NewStream`, the replies' size without `grpcRepliesFit`, the stream end, `MD.Get`).
+
+## net/http
+
+To come, with the S5 server work, its client side limited by the model (the `Transport` and chunked bodies panic
 `NotModelled`).
