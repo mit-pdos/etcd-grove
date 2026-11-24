@@ -6344,3 +6344,23 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Proposed change.** As above, the same rule as that entry: a path spec that promises `fmtErrorOk` takes
   `isPkgInit os`. No top-level statement changes. Every caller already has its package's `isPkgInit`.
 - **Decision.** Applied (zeldovich-coordinator, #9 7129495598).
+
+## 2026-11-24: `fmt.SprintfSlice`/`fmt.ErrorfSlice` deleted; three k8s authorizer proofs take `fmt.Sprintf.spec`/`fmt.ErrorfLeaf.spec` instead (prove-ps2-sprintfslice, #9 7135546785)
+
+- **Spec.** Deleted: `fmt.SprintfSlice.spec`, `fmt.ErrorfSlice.spec` (both axioms) and the slice vocabulary
+  `fmt.sliceArgOk`/`fmt.argOkAtSl`/`fmt.argsOkAtSl`/`fmt.argsOkSl` (`Spec/fmt/Errorf.lean`), along with
+  `authorizer.Decision.sliceArgOkAt`. Callee hypotheses changed:
+  - `ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof` takes `_root_.Perennial.fmt.Sprintf.spec`
+    in place of `SprintfSlice`;
+  - `unionAuthzHandler.EvaluateConditions.wp_proof` takes `fmt.ErrorfLeaf.spec` in place of `ErrorfSlice`;
+  - `ConditionsAwareDecisionUnion.Add.wp_proof` drops `ErrorfSlice`, since it already takes `ErrorfLeaf`.
+
+  The three functions' own specs are unchanged.
+- **Defect.** The two axioms were false of the semantics: a `%v` of a slice reaches the real `fmt`'s
+  `printValue`, which is stuck in the translation (`notes/axiom-review/fmt-slice.md`).
+- **Evidence.** The real `fmt`'s translation (Perennial `52d62e83c`), `printArg` → `printValue`.
+- **Proposed change.** Rewrite the three call sites in the k8s-authz fork (`upamanyus/kubernetes`
+  `goose-lean-authz-fmt2`, luxas `c67a81026c8b` plus one commit). Each spells out what `%v` prints of the
+  slice with a loop and `+=`, then formats it under `[%s]`. The output is byte-identical (Go tests in the
+  fork). Then prove the three sites over the specs above.
+- **Decision.** Applied (coordinator-E, #9 7135546785; the fork commit was described on #9 7136404436).

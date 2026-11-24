@@ -61,8 +61,8 @@ REVIEWED = {
     # as Go does and returns Go's error (`errors.New(s)`, `*wrapError`, `*wrapErrors`), stuck where it
     # cannot follow Go; the proofs that stepped into the previous model (`errors.New(format)`) now go
     # through `fmt.wp_Errorf` (ErrorfWrap, ErrorfErrs, ErrorfLeaf, `wp_Errorf_errStrOk`,
-    # `wp_Errorf_errorfIs`, the generated initializers) or are axioms (ErrorfStrs, ErrorfSlice,
-    # `wp_Errorf_setArgs`, `wp_Errorf_labelArgs`), so none is listed. A new step into the model's
+    # `wp_Errorf_errorfIs`, the generated initializers) or are axioms (ErrorfStrs,
+    # `wp_Errorf_setArgs`, `wp_Errorf_labelArgs`; ErrorfSlice until 2026-11-24), so none is listed. A new step into the model's
     # unfolding is still refused until reviewed here.
 }
 
