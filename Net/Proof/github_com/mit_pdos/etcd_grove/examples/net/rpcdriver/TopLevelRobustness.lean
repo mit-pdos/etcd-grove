@@ -25,7 +25,7 @@ set_option linter.iris.style.nameCheck false
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Robustness
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Robustness EtcdGrove.rpcdriver
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
 

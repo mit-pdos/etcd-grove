@@ -5,7 +5,8 @@
 Each function's proof (`<F>.wp_proof`) with its callees' linked results: net/rpc's
 (`Net/Proof/net/rpc/Results.lean`), net/http's interim axioms (`Handle.wp_proof`,
 `Serve.wp_proof_rpc`), Perennial's.
-Written by hand (`etc/gen-link.py` does not cover this part yet).
+Written by hand (`etc/gen-link.py` does not cover this part yet); its results are in
+`EtcdGrove.rpcdriver`, under the prefix every `Link.lean` shares (`etc/proof_roots.py`).
 -/
 module
 
@@ -46,13 +47,15 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 
-namespace github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
+namespace EtcdGrove.rpcdriver
+
+open github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
 
 section link
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
 variable [π : NetProtoGS]
 
 theorem wp_below : below.spec (GF := GF) (hG := hG) :=
@@ -97,5 +100,5 @@ theorem wp_Register : Register.spec (GF := GF) (hG := hG) :=
 
 end link
 
-end github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
+end EtcdGrove.rpcdriver
 end Perennial
