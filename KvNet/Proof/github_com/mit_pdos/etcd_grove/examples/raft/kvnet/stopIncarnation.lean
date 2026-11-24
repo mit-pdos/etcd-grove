@@ -42,6 +42,7 @@ theorem stopIncarnation.wp_proof (wp_stop : Replica.stop.spec (GF := GF) (hG := 
   wp_start as Hs
   simp only [kvStp]
   icases Hs with ⟨Hrs, Hpt, %Hdir, #Hglob, #Hpeers, %Hopts⟩
+  subst Hdir
   iunfold ptStop at Hpt
   icases Hpt with ⟨%i, %Hi, Hpt⟩
   subst Hi
@@ -51,7 +52,7 @@ theorem stopIncarnation.wp_proof (wp_stop : Replica.stop.spec (GF := GF) (hG := 
   iapply HΦ
   iunfold kvNodeStart
   isplitr
-  · ipureintro; exact Hdir
+  · ipureintro; first | rfl | trivial
   iexists fl, qc
   iframe Hst Hglob Hpeers
   ipureintro; exact Hopts

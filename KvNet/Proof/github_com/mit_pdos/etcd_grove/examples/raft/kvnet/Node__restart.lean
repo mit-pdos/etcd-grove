@@ -60,11 +60,6 @@ theorem Node.restart.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) 
   wp_apply Hstart1 $$ [$Hpkg $HM $HR $Hstats $Hctor] as %r' %tv' ⟨%n', #Hrn', #Hrep', #Hn', Hstp'⟩
   try wp_auto
   wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hr Ht Hstp']
-  · inext
-    iunfold nodeLockInv
-    iexists r', tv', n'
-    iframe
-  try wp_auto
   iapply HΦ
   itrivial
 

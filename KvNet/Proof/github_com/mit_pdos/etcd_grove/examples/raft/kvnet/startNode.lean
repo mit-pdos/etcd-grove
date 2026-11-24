@@ -49,21 +49,23 @@ theorem startNode.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (st
   ihave #Hstart' := Hstart
   iunfold startLaw at Hstart'
   ihave #Hstart1 := Hstart' $$ %sp %f
+  iapply wp_fupd
   wp_apply Hstart1 $$ [$Hpkg $HM $HR $Hstats' $Hctor] as %r %tv ⟨%n, #Hrn, #Hrep, #Hn, Hstp⟩
   -- the node, its mutex over the incarnation
   generalize «$r0_ptr» = nd
   ihave Hnd := typedPointsto_split _ _ _ $$ «$r0»
   simp only [TypedPointsto.typedPointstoDef, named]
   icases Hnd with ⟨Hcfg, Hst, HnewT, Hmu, Hr, Ht, -⟩
-  ipersist Hcfg
-  ipersist Hst
-  ipersist HnewT
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hcfg with #Hcfg
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hst with #Hst
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HnewT with #HnewT
   imod sync.init_Mutex (nodeLockInv rep stp nd cfg M γ N cfg.ID') ⊤ _ $$ Hmu [Hr Ht Hstp] with #Hmu
   · inext
     iunfold nodeLockInv
     iexists r, tv, n
     iframe
   try wp_auto
+  imodintro
   iapply HΦ
   iunfold isNodeS
   iexists cfg, M, sp, f

@@ -661,7 +661,7 @@ theorem start.wp_proof
   isplitl [Hpstop]
   · iexact Hpstop
   isplitr
-  · ipureintro; rfl
+  · ipureintro; first | rfl | trivial
   isplitr
   · iexact Hglob0
   isplitr
