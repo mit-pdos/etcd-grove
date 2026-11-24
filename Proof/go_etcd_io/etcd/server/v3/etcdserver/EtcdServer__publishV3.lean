@@ -29,6 +29,8 @@ public import Proof.context.LibKeys
 public import Proof.context.LibKeysChain
 public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -192,7 +194,7 @@ theorem EtcdServer.publishV3.wp_proof
   · iPkgInit
   ihave #Hmemp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
-  have hSp := fmt.Sprintf.argsWf wp_Sprintf
+  have hSp := fmt.wp_Sprintf_pure wp_Sprintf
   wp_for
   (try wp_auto)
   -- `select { case <-s.stopping: ...; return; default: }`
@@ -226,8 +228,12 @@ theorem EtcdServer.publishV3.wp_proof
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
         (try wp_auto)
-        wp_apply (hSp _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-          (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hasl] as %astr ⟨-, -⟩
+        wp_apply (hSp go!"{Name:%s ClientURLs:[%s]}" [.lit go!"{Name:", .dir none _root_.Perennial.fmt.verb_s, .lit go!" ClientURLs:[", .dir none _root_.Perennial.fmt.verb_s, .lit go!"]}"] _ _ _ _ (by fmt_encode) ?fits ?pa)
+          $$ [$Hasl] as %astr ⟨-, -⟩
+        case pa =>
+          (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+          exact .str _ _ _ (.str _ _ _ .nil)
+        case fits => fmt_fits
         (try wp_auto)
         wp_apply hZS as %f2 -
         (try wp_auto)
@@ -343,8 +349,12 @@ theorem EtcdServer.publishV3.wp_proof
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
     (try wp_auto)
-    wp_apply (hSp _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-      (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hasl] as %astr ⟨-, -⟩
+    wp_apply (hSp go!"{Name:%s ClientURLs:[%s]}" [.lit go!"{Name:", .dir none _root_.Perennial.fmt.verb_s, .lit go!" ClientURLs:[", .dir none _root_.Perennial.fmt.verb_s, .lit go!"]}"] _ _ _ _ (by fmt_encode) ?fits ?pa)
+      $$ [$Hasl] as %astr ⟨-, -⟩
+    case pa =>
+      (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+      exact .str _ _ _ (.str _ _ _ .nil)
+    case fits => fmt_fits
     (try wp_auto)
     wp_apply hZS as %f2 -
     (try wp_auto)
@@ -390,8 +400,12 @@ theorem EtcdServer.publishV3.wp_proof
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
     (try wp_auto)
-    wp_apply (hSp _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-      (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hasl] as %astr ⟨-, -⟩
+    wp_apply (hSp go!"{Name:%s ClientURLs:[%s]}" [.lit go!"{Name:", .dir none _root_.Perennial.fmt.verb_s, .lit go!" ClientURLs:[", .dir none _root_.Perennial.fmt.verb_s, .lit go!"]}"] _ _ _ _ (by fmt_encode) ?fits ?pa)
+      $$ [$Hasl] as %astr ⟨-, -⟩
+    case pa =>
+      (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+      exact .str _ _ _ (.str _ _ _ .nil)
+    case fits => fmt_fits
     (try wp_auto)
     wp_apply hZS as %f2 -
     (try wp_auto)
