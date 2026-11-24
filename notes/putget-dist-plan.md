@@ -580,7 +580,12 @@ obligation). Then the axioms are theorems with the same statements.
   over an all-`False` etcd model and the mvcc API's names law (`MvccName` is sealed).
 - (2026-11-24, Upamanyu's approval, a one-off exception to the scope rule) **`dataDirFresh` deleted from bootstrap's WAL
   slot** (`wal.bootRes`, its own commit): `dataAreaFresh d` already says the data directory holds no entry
-  (`dataAreaFresh_empty`). The start bundles (`memberStartRes`, `memberFreshRes`) lose it; the single-process start
+  (its definition: the whole names claim on `d`'s root, none naming an entry; review 3's D1 dropped a vacuous lemma
+  `dataAreaFresh_empty` the contract commit's message cites). The start bundles (`memberStartRes`, `memberFreshRes`) lose it; the single-process start
   axiom's `startRights` still hands it out, unchanged, and `memberStartRes_intro` drops it. So `MemberBootHyps` and
   `putget_safe_of_hyps` are gone: **`theorem putget_safe : putget_safe.spec`**, over the five interim axioms, no
   hypothesis. Full VM build passes; `putget-dist.txt` 158 axioms (no `dataDirFresh`).
+- (review 3, 2026-11-24) `dataDirFresh` (and `dataDirFresh_timeless`) is now an **unused axiom**: the single-process
+  start axiom's `startRights` still hands it out and nothing consumes it; deleting it (with that conjunct of
+  `startRights`) changes the start axiom's statement, a separate decision. Docstrings (`Start.lean`, `WalDir.lean`)
+  say so; every collection's baseline rerun on the VM.

@@ -31,7 +31,8 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   precondition, `InvBoot.lean`), and the start bundles `memberStartRes`/`memberFreshRes` (`lib/etcdstart/StartRes.lean`).
 - **Defect.** The slot took the axiomatized token `dataDirFresh d` besides `dataAreaFresh d`, which already claims every
   name of `d`, none naming an entry; `putget_safe` had no source for the token on a distributed machine.
-- **Evidence.** `dataAreaFresh_empty` (`storage/WalAreaFresh.lean`).
+- **Evidence.** `dataAreaFresh`'s definition (`storage/WalAreaFresh.lean`): the whole names claim on `d`'s root, none
+  naming an entry, coherent with the tree through the shared mode's invariant.
 - **Proposed change.** Delete the token from `wal.bootRes` (a deletion of trust) and from the start bundles.
 - **Decision.** Accepted (Upamanyu, 2026-11-24, via coordinator-E); applied on `dist-putget-interim/2026-11-24`.
 
