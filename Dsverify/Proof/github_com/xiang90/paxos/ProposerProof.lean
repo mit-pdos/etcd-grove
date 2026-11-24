@@ -45,12 +45,12 @@ theorem message_intoVal_inj : Function.Injective (intoVal (V := message)) := by
     have e3 : Val #(f b) = Val #(f a) := (congrFun e1 (Val #(f a))).mpr rfl
     injection e3 with e4
     exact (go.intoVal_inj e4).symm
-  have h1 := fld message.from' _ (fun x => package_sem.message_instance.get_from x)
-  have h2 := fld message.to' _ (fun x => package_sem.message_instance.get_to x)
-  have h3 := fld message.typ' _ (fun x => package_sem.message_instance.get_typ x)
-  have h4 := fld message.n' _ (fun x => package_sem.message_instance.get_n x)
-  have h5 := fld message.prevn' _ (fun x => package_sem.message_instance.get_prevn x)
-  have h6 := fld message.value' _ (fun x => package_sem.message_instance.get_value x)
+  have h1 := fld message.from' _ (fun x => package_sem.instance'message.get'from x)
+  have h2 := fld message.to' _ (fun x => package_sem.instance'message.get'to x)
+  have h3 := fld message.typ' _ (fun x => package_sem.instance'message.get'typ x)
+  have h4 := fld message.n' _ (fun x => package_sem.instance'message.get'n x)
+  have h5 := fld message.prevn' _ (fun x => package_sem.instance'message.get'prevn x)
+  have h6 := fld message.value' _ (fun x => package_sem.instance'message.get'value x)
   cases a; cases b
   simp_all
 

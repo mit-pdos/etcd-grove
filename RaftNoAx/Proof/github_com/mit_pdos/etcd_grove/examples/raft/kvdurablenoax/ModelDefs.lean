@@ -95,9 +95,9 @@ theorem boxIn_inj (x y : KVInput) : boxIn x = boxIn y ↔ x = y := by
   constructor
   · intro h
     simp only [boxIn, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
-    have hk := pureDet_result (ta.get_Kind x) (ta.get_Kind y) h
-    have hK := pureDet_result (ta.get_Key x) (ta.get_Key y) h
-    have hv := pureDet_result (ta.get_Val x) (ta.get_Val y) h
+    have hk := pureDet_result (ta.get'Kind x) (ta.get'Kind y) h
+    have hK := pureDet_result (ta.get'Key x) (ta.get'Key y) h
+    have hv := pureDet_result (ta.get'Val x) (ta.get'Val y) h
     simp only [Expr.Val.injEq] at hk hK hv
     cases x; cases y
     simp only [KVInput, github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Input.mk.injEq]
