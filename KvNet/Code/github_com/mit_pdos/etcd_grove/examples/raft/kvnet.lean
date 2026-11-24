@@ -118,6 +118,9 @@ noncomputable def newPeerTransport.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] newPeerTransport.ty
 
+@[reducible] noncomputable def MaxDirLen [GooseExts] [GoGlobalContext] : val :=
+  #(549755813888 : Int)
+
 @[reducible] noncomputable def OpPut [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
@@ -665,7 +668,7 @@ noncomputable def decimal.impl [GooseExts] [GoGlobalContext] : val :=
 /-- AddrOk says whether a is a well-formed address: the canonical spelling a.b.c.d:p of an IPv4
     address that is not in 0.0.0.0/8 and is below 224.0.0.0, with a port in 1-32767 or 61000-65535
     (outside Linux's default ephemeral range). It is the net extension's addrOk
-    (GooseLang/Ext/Net/Deploy.lean), the top-level theorem's premise on every replica address.
+    (GooseLang/Ext/Net/Deploy.lean), which ValidAddrs checks of every replica address.
 
     go: addrs.go:50:6 -/
 noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
@@ -673,6 +676,7 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "a" (App (Val (GoInstruction (GoAlloc go.string))) (Var "a"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "parts" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 5 go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 5 go.string)))) (Val #())))
   (Let "$r0" (Val #(W64 0))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -772,13 +776,23 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "start") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 21)))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- ValidAddrs says whether the replicas' addresses and bootstrap voters are ones the top-level
     theorem's premises allow: every address well formed and none twice, fewer than 2^32 replicas,
     and the bootstrap voters 1..voters among them.
 
-    go: addrs.go:81:6 -/
+    go: addrs.go:86:6 -/
 noncomputable def ValidAddrs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "voters"
@@ -843,7 +857,7 @@ noncomputable def ValidAddrs.impl [GooseExts] [GoGlobalContext] : val :=
     addresses and voters (ValidAddrs), raft's size limits not both 0, and MaxInflightMsgs a
     positive Go int below 2^62 (raft's RestartNode needs it).
 
-    go: addrs.go:98:6 -/
+    go: addrs.go:107:6 -/
 noncomputable def ValidCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "voters"
@@ -3710,10 +3724,12 @@ noncomputable def listen.impl [GooseExts] [GoGlobalContext] : val :=
 /-- RunNode is a replica's process, as the top-level theorem runs it: replica id of the cluster
     whose replicas' addresses are addrs (comma-separated, replica i at the i-th, ids from 1), its
     durable file in the directory dir, the bootstrap configuration's voters 1..voters, and raft's
-    options. It panics if the cluster is not one the theorem's premises allow (ValidCluster) or id
-    is not one of its replicas; otherwise it never returns (Run).
+    options. It returns at once, doing nothing, if the cluster is not one it can run (ValidCluster),
+    id is not one of its replicas, or dir is too long (MaxDirLen): a configuration it cannot run is a
+    safe run, so the top-level theorem needs no premise that the configuration is valid. Otherwise it
+    never returns (Run).
 
-    go: node.go:149:6 -/
+    go: node.go:151:6 -/
 noncomputable def RunNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addrs"
@@ -3776,16 +3792,16 @@ noncomputable def RunNode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "a") (Var "$value"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.string)))) (Pair (Var "m") (Var "$r0")))))))))
-  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "as"))
+  (If (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "as"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "voters"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxSizePerMsg"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxCommittedSizePerReady"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maxInflightMsgs"))
   (App (App (App (App (App (App (Val (GoInstruction (FuncResolve ValidCluster []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (Val #(W64 1))))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "as"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"kvnet: not a valid cluster")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))) (Val #true) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "dir"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val MaxDirLen)))))
+  (App (Val doReturn)
+  (Val #()))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -3795,7 +3811,7 @@ noncomputable def RunNode.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Run runs the replica cfg.ID until its process ends: it starts it from its durable file
     (StartNode), then serves its peers and clients on its address. It never returns.
 
-    go: node.go:168:6 -/
+    go: node.go:170:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Seq (App (Val exceptionDo)
@@ -3815,7 +3831,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- accept serves the connections l accepts, peers' and clients', each in a goroutine of its own
     (serve). It never returns.
 
-    go: node.go:175:16 -/
+    go: node.go:177:16 -/
 noncomputable def Node.accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "l"
@@ -3863,7 +3879,7 @@ noncomputable def Node.accept.impl [GooseExts] [GoGlobalContext] : val :=
     random index from the log's start to the snapshot's, the entries up to the snapshot's index
     then being skipped (Replica.applyEntry).
 
-    go: node.go:194:6 -/
+    go: node.go:196:6 -/
 noncomputable def StartNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
@@ -3881,7 +3897,7 @@ noncomputable def StartNode.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- startNode is StartNode with the transport newT makes (its incarnations' each).
 
-    go: node.go:199:6 -/
+    go: node.go:201:6 -/
 noncomputable def startNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "newT"
@@ -3926,7 +3942,7 @@ noncomputable def startNode.impl [GooseExts] [GoGlobalContext] : val :=
 /-- stopIncarnation stops the incarnation of replica r and transport t (start's) for good: the
     replica (Replica.stop), then the transport's senders.
 
-    go: node.go:207:6 -/
+    go: node.go:209:6 -/
 noncomputable def stopIncarnation.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "t"
@@ -3943,7 +3959,7 @@ noncomputable def stopIncarnation.impl [GooseExts] [GoGlobalContext] : val :=
 /-- start starts an incarnation of replica cfg.ID from its file (StartNode), with the transport newT
     makes, counting in stats.
 
-    go: node.go:214:6 -/
+    go: node.go:216:6 -/
 noncomputable def start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "stats"
@@ -4220,7 +4236,7 @@ noncomputable def start.impl [GooseExts] [GoGlobalContext] : val :=
 /-- serve serves one accepted connection: a peer's (Transport.servePeer) or a client's
     (serveClient), by its first byte.
 
-    go: node.go:275:16 -/
+    go: node.go:277:16 -/
 noncomputable def Node.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "c"
@@ -4269,7 +4285,7 @@ noncomputable def Node.serve.impl [GooseExts] [GoGlobalContext] : val :=
     node, until the connection fails or ends. A frame that does not decode, or a message not
     addressed to this replica, ends the connection.
 
-    go: node.go:296:16 -/
+    go: node.go:298:16 -/
 noncomputable def Node.servePeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "c"
@@ -4340,7 +4356,7 @@ noncomputable def Node.servePeer.impl [GooseExts] [GoGlobalContext] : val :=
 /-- serveClient answers one request frame with one response frame: 1 (ok) and the answer, or 0
     (no answer: the client tries again, here or elsewhere).
 
-    go: node.go:327:16 -/
+    go: node.go:329:16 -/
 noncomputable def Node.serveClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "c"
@@ -4465,7 +4481,7 @@ noncomputable def Node.serveClient.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- handle runs one request; false if it has no answer.
 
-    go: node.go:350:16 -/
+    go: node.go:352:16 -/
 noncomputable def Node.handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "kind"
@@ -4842,7 +4858,7 @@ noncomputable def Node.handle.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- status is the replica's Status now.
 
-    go: node.go:418:16 -/
+    go: node.go:420:16 -/
 noncomputable def Node.status.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon

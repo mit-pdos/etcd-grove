@@ -138,5 +138,11 @@ func TestRestartsInProcess(t *testing.T) {
 		if n == 0 {
 			t.Fatalf("round %d: no replica was restarted in its process", i)
 		}
+		// the checking client passed its validation (kvcheck.Check returns at once on a cluster it
+		// cannot check, which porcupine would accept as an empty history): only its main path sends
+		// configuration changes and restart requests
+		if c.Stats.Node[kvnet.StConfChangesProposed] == 0 {
+			t.Fatalf("round %d: the checking client proposed no configuration change", i)
+		}
 	}
 }

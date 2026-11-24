@@ -9,7 +9,8 @@ states them (the file to audit); the definitions they name are in
 `KvNet/Proof/.../kvnet/TopLevelDefs.lean`, the proofs in `KvNet/Proof/.../kvnet/TopLevelRobustness.lean`.
 The statement was agreed with the user on 2026-11-20 (`notes/kvnet-robust-goal.md`); adapted here to
 `Robust`'s thread bound (none: `threads := bound + 1`, as kvdurable's) and to the decided bound on
-`MaxInflightMsgs` (`< 2^62`, raft's `RestartNode`'s; Go's `ValidCluster` checks it).
+`MaxInflightMsgs` (`< 2^62`, raft's `RestartNode`'s; Go's `ValidCluster` checks it); its premises on
+the configuration replaced by the programs' own checks on 2026-11-24.
 
 **What it says.** Replica `i + 1` runs `kvnetReplicaProgram` (kvnet's initialization, then
 `RunNode(i + 1, addrs, dir, <raft's options>)`) on a machine of its own that may crash at any step
@@ -19,13 +20,19 @@ that never crashes runs `kvcheckProgram` (kvcheck's initialization, then `Check(
 replicas (retried until answered), configuration changes and leadership disruptions, its history
 traced with a counter clock and checked by porcupine with no timeout; it **panics unless porcupine
 answers `Ok`**. So "no thread of any machine has a top-level panic" includes: the client's history
-is linearizable against kvnet's model. Both programs also panic on a configuration the premises
-exclude (so the theorem's coverage is decided by the premises, not by Go code).
+is linearizable against kvnet's model.
 
-**The premises.** Raft's options valid for the number of replicas (`ClusterConfig.Ok`); fewer than
-`2^32` replicas; `dir` shorter than `2^39` bytes (durable's path bound; Linux's `PATH_MAX` is 4096); distinct addresses, each canonical `a.b.c.d:p` (`Net.addrOk`: IPv4 unicast, port
-nonzero and below the ephemeral range); on every replica's machine, `dir` a root of its file system
-with nothing in it. `Robust` itself requires every machine to be a fresh Go process (one context
+**The configuration is checked by the programs, not by premises** (2026-11-24). Both programs return
+at once, doing nothing, on a configuration they cannot run: `Check` unless the addresses (`addrs`
+split at its commas, as the programs see them) are distinct, each canonical `a.b.c.d:p` (IPv4
+unicast, port nonzero and below the ephemeral range), fewer than `2^32`, with the bootstrap voters
+among them (Go's `kvnet.ValidAddrs`); `RunNode` unless, besides, raft's options are valid
+(`kvnet.ValidCluster`: `ClusterConfig.Ok`), its id is one of the replicas, and `dir` is shorter than
+`2^39` bytes (durable's path bound; Linux's `PATH_MAX` is 4096). So the theorem covers every
+configuration, and its coverage of the real runs is the Go checks' (`examples/raft/kvnet`'s
+`validate_test.go` shows the example's configuration and random valid ones pass them).
+
+**The premises.** On every replica's machine, `dir` a root of its file system with nothing in it. `Robust` itself requires every machine to be a fresh Go process (one context
 `lctx`) and the machines and the network to start in their extensions' initial states (no
 listener, no connection; the files as on disk), which the extensions' semantics state
 (`Net.net_semantics`, `Fs.fs_semantics`: their `initLocal`/`initGlobal`, 2026-11-22).
@@ -82,12 +89,7 @@ def raft_kvnet_robust.spec : Prop :=
     [log_sem : log.NewModel],
   ∀ (cl : ClusterConfig) (dir : GoString) (replicas : List (GoString × state)) (σc : state)
     (g : GlobalState),
-    cl.Ok replicas.length →
-    replicas.length < 2 ^ 32 →
-    dir.length < 2 ^ 39 →
-    (replicas.map (·.1)).Nodup →
     (∀ a σ, (a, σ) ∈ replicas →
-      Net.addrOk a = true ∧                               -- canonical a.b.c.d:p
       dir ∈ (fsOf σ).fs.roots.map (·.1) ∧                 -- dir is an empty root
       ∀ c, (fsOf σ).lookup (joinPath dir [c]) = none) →
     let addrs := List.intercalate go!"," (replicas.map (·.1))
