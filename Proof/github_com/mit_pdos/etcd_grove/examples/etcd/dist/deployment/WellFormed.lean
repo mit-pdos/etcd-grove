@@ -199,6 +199,7 @@ theorem len_eq_of (s : GoSlice) (n : Nat) (hl : n = sint.nat s.len) (h0l : 0 ≤
     s.len = W64 (n : Int) ∧ n < 2 ^ 63 := by
   constructor <;> word
 
+set_option maxHeartbeats 4000000 in
 theorem deployment.WellFormed.wp_proof
     (hNameOk : etcd_dist.deployment.nameOk.spec (GF := GF) (hG := hG))
     (hNames : etcd_dist.deployment.kindNames.spec (GF := GF) (hG := hG))
@@ -483,7 +484,79 @@ theorem deployment.WellFormed.wp_proof
               · iframe #; ipureintro; rw [hsj]; exact hsj'
               wp_apply hNodeCount
               err_exit
-          · skip
+          · have hjl := idx_end _ _ _ Hlw.1 Hlw.2 Hif Hn1
+            subst hjl
+            rw [← hnl', List.take_length] at Hok
+            wp_apply (hIds v d hfips) $$ [] as %bid %hbid
+            · iunfold deploymentRepr
+              iframe #
+              ipureintro; exact ⟨htok, hcfg⟩
+            cases bid
+            · simp only [Bool.not_false]
+              err_exit
+            simp only [Bool.not_true]
+            wp_auto
+            rw [htok]
+            wp_if_destruct
+            · err_exit
+            have htok0 : d.token ≠ [] := Hif
+            wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Htl
+            wp_if_destruct
+            · err_exit
+            have htokl := strlen_le _ 255 Htl (by decide) Hif
+            rw [hcfg]
+            wp_auto
+            wp_if_destruct
+            · err_exit
+            have hsnap : 1 ≤ uint.Z d.cfg.snapCount := by
+              have : uint.Z (W64 1) = 1 := rfl
+              omega
+            wp_if_destruct
+            · err_exit
+            have hcatch : 1 ≤ uint.Z d.cfg.catchUp := by
+              have : uint.Z (W64 1) = 1 := rfl
+              omega
+            repeat' wp_if_destruct
+            all_goals first | err_exit | skip
+            all_goals (
+              have hret : d.cfg.retention ≠ W64 0 →
+                  (d.cfg.compactorMode = go!"revision" ∧ 1 ≤ sint.Z d.cfg.retention) ∨
+                  (d.cfg.compactorMode = go!"periodic" ∧ 10 ≤ sint.Z d.cfg.retention) := by
+                intro h
+                first
+                  | exact absurd ‹d.cfg.retention = W64 0› h
+                  | (left; exact ⟨‹_›, by have : sint.Z (W64 1) = 1 := rfl; omega⟩)
+                  | (right; exact ⟨‹_›, by have : sint.Z (W64 10) = 10 := rfl; omega⟩)
+              wp_apply (hCompat v.Workloads' d.workloads) $$ [] as %bc %hbc
+              · iframe #
+              cases bc
+              · simp only [Bool.not_false]
+                err_exit
+              simp only [Bool.not_true]
+              wp_auto
+              ihave HF : (∃ (j : Nat) (wv : deployment.Workload),
+                  "i" ∷ i_ptr ↦ W64 j ∗ "w" ∷ w_ptr ↦ wv ∗
+                  "%Hj" ∷ ⌜j ≤ d.workloads.length ∧ ∀ w ∈ d.workloads.take j,
+                    (kindAlone w.kind = true → d.cfg.auth = true) ∧
+                    (w.kind = W64 3 → ¬ (d.cfg.retention ≠ W64 0 ∧ d.cfg.compactorMode = go!"periodic")) ∧
+                    (w.kind = W64 9 → d.cfg.auth = false)⌝ : IProp GF) $$ [i w]
+              · iexists 0, _
+                iframe
+                ipureintro
+                exact ⟨by omega, fun w hw => by simp at hw⟩
+              wp_for HF
+              obtain ⟨Hf1, Hf2⟩ := Hj
+              wp_if_destruct
+              · have Hif' : sint.Z (W64 (j : Int)) < sint.Z v.Workloads'.len := by
+                  first | exact Hif | exact of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
+                obtain ⟨hj, h0, hsj, hw⟩ := idx_facts _ _ _ Hlw.1 Hlw.2 Hif' Hf1
+                simp only [h0, Hif', _root_.and_self, ↓reduceIte]
+                obtain ⟨ww, hww⟩ : ∃ ww, d.workloads[j]? = some ww := ⟨_, List.getElem?_eq_getElem hj⟩
+                wp_apply (wp_load_slice_index v.Workloads' (sint.Z (W64 (j : Int))) (d.workloads.map Workload.val) DFrac.discard ww.val h0) $$ [] as -
+                · iframe #; ipureintro; rw [hsj, List.getElem?_map, hww]; rfl
+                wp_apply hAuth
+                skip
+              · skip)
       · rw [decide_eq_false hnl]
         (try simp only [Bool.not_false])
         err_exit
