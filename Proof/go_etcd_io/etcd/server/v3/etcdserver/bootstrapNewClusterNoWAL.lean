@@ -70,10 +70,14 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   let tok := cfg.InitialClusterToken'
   let fm : GoString → apply.MemberM := fun k => membership.memberOfURLs k (U.initURLs k) tok
   have hfm : ∀ k, bootGo.memberOf U tok k = fm k := fun k => bootGo.memberOf_eq U tok k
+  -- (no `simp` here: it would unfold the ids' SHA-1)
+  have heqm : U.initMap.domList.map (fun k => (fm k).id) =
+      U.initMap.domList.map (fun k => (bootGo.memberOf U tok k).id) :=
+    List.map_congr_left (fun k _ => by rw [hfm])
   have hnd' : (U.initMap.domList.map (fun k => (fm k).id)).Nodup := by
-    simpa [hfm] using hnd
+    rw [heqm]; exact hnd
   have hnz' : W64 0 ∉ U.initMap.domList.map (fun k => (fm k).id) := by
-    simpa [hfm] using hnz
+    rw [heqm]; exact hnz
   have hndE : ((U.initMap.domList.map fm).map (·.id)).Nodup := by
     rw [List.map_map]; exact hnd'
   have hlen : ∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length ≤ 2 ^ 62 := by

@@ -55,7 +55,7 @@ theorem config.ServerConfig.hasLocalMember.wp_proof
     ipureintro; right
     refine ⟨rfl, ?_⟩
     cases h : m !! cfg.Name' with
-    | none => simp [h] at Hif
+    | none => simp [h] at Hif; exact absurd rfl Hif
     | some _ => rfl
 
 end proof

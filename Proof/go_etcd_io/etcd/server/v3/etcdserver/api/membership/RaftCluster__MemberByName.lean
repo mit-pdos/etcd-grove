@@ -109,7 +109,7 @@ theorem membership.RaftCluster.MemberByName.wp_proof
     simp only [Option.getD_some]
     wp_if_destruct
     · -- the names agree: `key` is `k`
-      have hkk : key = k := huniq key k mk mm hmk hk (Hif.trans hname.symm)
+      have hkk : key = k := huniq key k mk mm hmk hk hname.symm
       subst hkk
       have hvv : vv = vk := by rw [hvk] at Hvv; exact (Option.some.inj Hvv).symm
       subst hvv
@@ -159,6 +159,7 @@ theorem membership.RaftCluster.MemberByName.wp_proof
   rw [hk]
   simp only [Option.getD_some]
   wp_apply hClone vk q mm $$ [Hown] as %mc ⟨Hown, Hmc, -⟩
+  · iframe #; iframe
   ihave Hmems := Hmclose $$ Hown
   (try wp_auto)
   wp_method_call

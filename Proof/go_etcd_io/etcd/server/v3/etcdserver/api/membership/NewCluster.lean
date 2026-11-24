@@ -50,8 +50,7 @@ theorem membership.NewCluster.wp_proof
   unfold membership.clusterOwned membership.memAt membership.memDom
   iexists _, rp, _
   iframe
-  iexists mp
-  iframe
+  try iframe #
   isplitr
   · ipureintro; constructor <;> simp
   iapply BigSepM.bigSepM_empty.2; itrivial

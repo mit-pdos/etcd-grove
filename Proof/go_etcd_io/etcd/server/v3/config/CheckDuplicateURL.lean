@@ -136,6 +136,7 @@ theorem config.CheckDuplicateURL.wp_proof
       wp_apply (wp_map_lookup1 (K := GoString) (V := Bool) _ _ ump umm s (DFrac.own 1)) $$ [Hump]
         as Hump
       · iframe
+      generalize hb : (umm !! s).getD (zero_val Bool : Bool) = b
       wp_if_destruct
       · -- a duplicate: `return true`
         (try wp_auto)

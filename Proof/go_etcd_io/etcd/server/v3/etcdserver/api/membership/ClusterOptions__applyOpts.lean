@@ -53,6 +53,7 @@ theorem membership.ClusterOptions.applyOpts.wp_proof :
     iframe
     simp only [Nat.zero_add, Nat.one_ne_zero, ↓reduceIte]
     iframe
+    try itrivial
   iintro ⟨Hopt, Hml, co⟩ Hopts
   simp only [List.length_singleton, Nat.one_ne_zero, ↓reduceIte]
   try wp_auto

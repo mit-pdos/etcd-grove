@@ -95,6 +95,28 @@ theorem rbData_withMemBkts [GooseExts] (d : mvcc.KBReal) (D : backend.Data) (n :
   · simp only [if_neg h]
     rw [backend.rbData_lookup]
 
+/-! The compaction keys' state is a function of `dget` (rewritten at the predicates, whose classical
+`Decidable` instances are stated over them). -/
+theorem fkAbsD_withMemBkts [GooseExts] (D : backend.Data) :
+    backend.fkAbsD (withMemBkts D) = backend.fkAbsD D := by
+  unfold backend.fkAbsD; rw [dget_withMemBkts]
+
+theorem fkWfD_withMemBkts [GooseExts] (P : backend.BParams) (D : backend.Data) :
+    backend.fkWfD P (withMemBkts D) = backend.fkWfD P D := by
+  unfold backend.fkWfD; rw [dget_withMemBkts]
+
+theorem fkInit_withMemBkts [GooseExts] (D : backend.Data) :
+    backend.fkInit (withMemBkts D) = backend.fkInit D := by
+  unfold backend.fkInit; rw [fkAbsD_withMemBkts]
+
+theorem fkWInit_withMemBkts [GooseExts] (P : backend.BParams) (D : backend.Data) :
+    backend.fkWInit P (withMemBkts D) = backend.fkWInit P D := by
+  unfold backend.fkWInit; rw [fkWfD_withMemBkts]
+
+theorem fkVals_withMemBkts [GooseExts] (D : backend.Data) :
+    backend.fkVals (withMemBkts D) = backend.fkVals D := by
+  unfold backend.fkVals; rw [dget_withMemBkts]
+
 section iprops
 open Iris Iris.BI Iris.ProofMode
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -107,8 +129,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 theorem fkCl_withMemBkts (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) :
     backend.fkCl (GF := GF) γ P (withMemBkts D) = backend.fkCl γ P D := by
   unfold backend.fkCl
-  simp only [backend.fkInit, backend.fkVals, backend.fkWInit, backend.fkAbsD, backend.fkWfD,
-    dget_withMemBkts_app]
+  rw [fkInit_withMemBkts, fkWInit_withMemBkts, fkVals_withMemBkts]
 
 end iprops
 

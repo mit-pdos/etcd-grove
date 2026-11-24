@@ -63,9 +63,11 @@ theorem membership.NewClusterFromURLsMap.wp_proof
     simpa [List.map_map, Function.comp_def] using hndk
   isplitl [Hmem name urls c token]
   · iexists ∅, _, _
-    iframe Hmem name urls c token
-    ipureintro
-    refine ⟨le_refl _, by simp, by simp [GMap.map_size_empty]⟩
+    iframe name urls c token
+    isplitr
+    · ipureintro
+      refine ⟨le_refl _, by simp, by simp [GMap.map_size_empty]⟩
+    iexact Hmem
   isplitr
   · imodintro
     iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
@@ -89,8 +91,8 @@ theorem membership.NewClusterFromURLsMap.wp_proof
       rw [List.map_map]
       exact membership.loop_fresh keys (fun k => (fm k).id) i.toNat key hndk' Hkey
     have hndp : (((keys.take i.toNat).map fm).map (·.id)).Nodup := by
-      rw [List.map_map, ← List.map_take]
-      exact hndk'.sublist ((List.take_sublist _ _).map _)
+      rw [List.map_map, List.map_take]
+      exact hndk'.sublist (List.take_sublist _ _)
     have habs : (ms !! (fm key).id) = none := by
       cases h : ms !! (fm key).id with
       | none => rfl
@@ -99,6 +101,7 @@ theorem membership.NewClusterFromURLsMap.wp_proof
         rw [h] at h1
         have h2 := (membership.memOfList_isSome _ hndp (fm key).id).1 (by simpa using h1.symm)
         exact absurd h2 hfresh
+    rw [show membership.memberIDOf ((urls key).map membership.urlStrOf) token = (fm key).id from rfl]
     wp_apply (wp_map_lookup2 (K := w64) (V := Loc) _ _ mpm ms (fm key).id (DFrac.own 1)) $$ [Hmap]
       as Hmap
     · iframe

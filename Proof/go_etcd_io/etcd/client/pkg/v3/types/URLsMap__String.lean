@@ -156,9 +156,11 @@ theorem types.URLsMap.String.wp_proof
       (try wp_auto)
       isplitr
       · ipureintro; rfl
-      iexists ps3, xs2 ++ [str]
-      iframe
-      ipureintro; simp [Hl2]; omega
+      isplitl [pairs Hps Hcap name]
+      · iexists ps3, xs2 ++ [str]
+        iframe
+        ipureintro; simp [Hl2]; omega
+      iexact Hvu
     iintro ⟨%ps2, %xs2, %Hl2, pairs, Hps, Hcap, name⟩ -
     (try wp_auto)
     unfold forMapPostcondition

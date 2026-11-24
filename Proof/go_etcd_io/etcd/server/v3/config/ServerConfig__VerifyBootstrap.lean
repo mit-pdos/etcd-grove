@@ -66,7 +66,9 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
   · iframe #
   try wp_auto
   wp_if_destruct
-  · try wp_auto
+  rotate_left
+  · -- `err != nil`: the error
+    try wp_auto
     iapply HΦ
     ipureintro; left; assumption
   rcases Herr1 with Hne | ⟨-, Hin⟩
@@ -76,7 +78,9 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
   · iframe #
   try wp_auto
   wp_if_destruct
-  · try wp_auto
+  rotate_left
+  · -- `err != nil`: the error
+    try wp_auto
     iapply HΦ
     ipureintro; left; assumption
   try wp_auto

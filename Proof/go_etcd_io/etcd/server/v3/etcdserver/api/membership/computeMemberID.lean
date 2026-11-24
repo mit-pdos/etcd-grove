@@ -96,7 +96,7 @@ theorem membership.computeMemberID.wp_proof
   · rw [← hsub]; iexact Hmid
   wp_apply (hU64 _ ((crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8) []
     (DFrac.own 1) (by simp [membership.sha1_length])) $$ [Hmid'] as Hmid
-  · iframe #; iframe Hmid'
+  · iframe #; iexact Hmid'
   (try wp_auto)
   have hid : beToU64 ((crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8) =
       membership.memberIDOf (us.map membership.urlStrOf) token := by
