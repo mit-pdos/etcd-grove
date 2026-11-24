@@ -10,7 +10,7 @@ set_option autoImplicit false
 
 noncomputable section
 
-namespace Perennial.kitlibs-checkTest
+namespace Perennial.kitlibsCheckTest
 
 open Iris Iris.BI Iris.ProgramLogic Net
 
@@ -163,4 +163,4 @@ axiom axBadSystem (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics]
     {{ (⌜True⌝ : IProp GF) }} (App (Val (@! rabia.internal.config.getEnvInt)) (Val #s)) {{ (x : w64), RET #x; True }}
 
 end
-end Perennial.kitlibs-checkTest
+end Perennial.kitlibsCheckTest

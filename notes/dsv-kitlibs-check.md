@@ -1,6 +1,7 @@
 # dsv-kitlibs-check (branch `dsv-premcheck`): agent-extensible library premises for dsverify challenges
 
-Branch `dsv-premcheck` (off `lean` 2970851538). The user's decision (option (b), for every case
+Branch `dsv-premcheck` (off `lean` 2970851538; the tool was named premcheck until the user's rename to
+`kitlibs-check`, 2026-11-24, following `etc/<thing>-check.py`; the branch keeps its name). The user's decision (option (b), for every case
 study, since experiments are repeated): a challenge's fixed statement takes **one** premise over a
 class the agent declares, `KitLibs`, and a mechanical checker, `etc/kitlibs-check`, constrains what the
 class may say. The landed kits keep their own statements; the challenge statement is a generated
@@ -135,13 +136,14 @@ Build note for the coordinator: `/shared/tmp/build-slot.sh` fails for this sessi
 `systemd-run --scope` ("Access denied ... interactive authentication"; the system manager via
 polkit). I took slot 1's lock myself (`flock /shared/tmp/etcd-grove-build.lock`) and ran
 `systemd-run --user --scope -p MemoryMax=45G lake build ...` with `LEAN_NUM_THREADS=8`, the slot's
-limits. The script could fall back to `--user` scopes.
+limits. The script could fall back to `--user` scopes. (Fixed since: build-slot.sh falls back to a `--user` scope; the landing
+builds below went through it.)
 
 ## Interfaces
 
-### kitgen (`dsv-kitgen`; the coordinator relays, not edited here)
+### kitgen (implemented on this branch after `dsv-kitgen` landed on `lean` 54c7e5504e; see "Landing")
 
-`--export-challenge KIT DIR` should, for every kit:
+`--export-challenge KIT DIR`, for every kit:
 1. **The statement**: write `Dsverify/Spec/<pkg>/TopLevelRobustness.lean` as the variant above
    (theorem name, binders, addresses and step bound from `KITGEN.statement`; `heap_at` always in the
    spec file; imports: `TopLevelDefs`, `Net.Statement.DistDeploy`, `Robustness.Statement`, the remote
@@ -171,6 +173,22 @@ limits. The script could fall back to `--user` scopes.
    and `etc/kitlibs-check.py` ship. `FIXED_FILES` no longer lists premise class files (the `InitHyp`
    `Init.lean`s stay fixed), nor a `NonVacuityLinked.lean`.
 6. **Offline**: nothing new (kitlibs-check runs `lake env lean --run` on the built tree).
+
+**As implemented** (`etc/dsv/kitgen.py`, section "The challenge's library premise"):
+- The statement: `kitlibs_spec_file` runs `etc/kitlibs-check.py`'s `variant_text` over kitgen's own
+  `spec_file` (from KITGEN), so it is the reference text by construction (kitgen's header line
+  aside); checked against the built and validated `KitLibsCheckTest/{paxos,rabia}/Statement.lean`
+  (equal, the KitLibs module's name aside). `CHALLENGE.txt` says `statement: kitlibs`, and
+  `kitgen --check` in a challenge then compares the statement with the variant.
+- The challenge plan's statement closure is the variant's (its imports), so the landed premise
+  classes are not "statement" modules; the kit's `NonVacuityLinked` is never on the allow-list; a
+  landed premise class file that no shipped module but the statement imports is left out.
+- The fixed list is the exported tree's modules plus the packages' and Lean's built modules (else
+  `KitLibs.lean` could not import Perennial or Iris), minus `KitLibs`, `KitLibsLinked` AND the goal's
+  proof module (an axiom there would otherwise pass as the fixed tree's).
+- `DIR.lab/kitlibs-check/` holds the lab's copies of `kitlibs-check.py`, `KitLibsCheck.lean`, the conf
+  and the fixed list. The leak check also requires the variant statement, the conf and the fixed
+  list, and no `etc/kitlibs-check-test/`.
 
 ### The skill (`dsv-skill`)
 
@@ -209,15 +227,19 @@ fresh copy of the exported tree):
 
 ## Open questions
 
-1. **The `globalAddr` exception** (rabia's landed `proto.RegisterEnum` takes
+1. **OPEN (the user has not decided). The `globalAddr` exception** (rabia's landed `proto.RegisterEnum` takes
    `message.MsgType_value`'s points-to): allowed only at negative polarity. Alternative: refuse
    all system mentions and have rabia's premise use an abstract once-token; that changes a landed
-   premise's shape. Kept the exception; the user may prefer the strict rule.
+   premise's shape. Default kept: the narrow exception. Configurable: the conf's `global_addr=`
+   (`negative`, the default; `none`, the strict rule), which kitgen writes from KITGEN's optional
+   `kitlibs_check=dict(global_addr=...)`.
 2. **`net` as a model package**: a KitLibs triple cannot be about `net`'s functions, but may mention
    `net` types and Net's predicates (a library function taking a `net.Conn`, e.g. a codec over a
    connection, needs them). Should other proved packages the challenge ships (bufio, encoding/gob,
    the main tree's) be `model=` too, so an agent must use their proved specs instead of assuming?
    The rule "a function with a body or model is never a premise" is in the skill text, not checked.
+   **OPEN (the user has not decided).** Default: `model=net` only. Configurable: KITGEN's optional
+   `kitlibs_check=dict(model=[...])` (also `system`, `driver`) sets the conf's `model=` lines.
 3. **Fixed definitions are atomic in scans**: kitlibs-check judges a tree constant by name and module,
    never its body (sound while no library module imports the system's; kitgen's export could check
    that).
@@ -231,6 +253,30 @@ fresh copy of the exported tree):
 6. **Existing InitHyp rule** ("every `InitHyp` a visible premise of the statement"): in the variant,
    `InitHyp`s are inside `KitLibs` (visible in the agent's file, not the statement). The landed kits
    keep the rule.
+
+## Landing (2026-11-24)
+
+- Merged `origin/lean` 54c7e5504e (`dsv-kitgen` with the dsverify skill landed): clean, no conflicts.
+- `notes/dsv-kitlibs-check-skill.patch` applied to the landed skill files with no drift
+  (`git apply --check` clean); then renamed with the tool.
+- Renamed premcheck to kitlibs-check (user decision): `etc/kitlibs-check.py`, `etc/KitLibsCheck.lean`,
+  `etc/kitlibs-check-test/` (lean_lib `KitLibsCheckTest`), `etc/dsv/<kit>-kitlibs-check.conf`, these
+  notes, the patch; every mention in the skill, the template, the README; output prefix
+  `kitlibs-check:`, env `KITLIBS_CHECK_LAKE`. Branch name unchanged.
+- The export wired (above); both open questions keep their defaults and are configurable.
+- Results, this host (`/shared/tmp/build-slot.sh`, Lake artifact cache, Perennial 47ec64a9d):
+  - paxos exported from 539fd0c862 (`/shared/tmp/kitlibs-export-paxos`): 37 kit modules, 235 of other
+    kits', leak check ok (statement closure 116 modules); fixed list 28,239 modules; in the export
+    `kitgen --check --no-codecs paxos`, `tier-check --check` (227 known), `gen-init --check` (273),
+    `goose --check --project dsv-paxos` pass. `kitlibs-check.py etc/dsv/paxos-kitlibs-check.conf` in the
+    export (2,492 jobs): the shipped `sorry` stub REFUSED (`sorryAx`); with the instance filled
+    (`exact ⟨⟩`, as an agent would) ACCEPTED, Lean's 3 axioms, the empty KitLibs passing the `fixed=`
+    import rule.
+  - `--selftest`: 23 field/axiom and 15 file cases pass (the rename had turned the test namespace
+    `premcheckTest` into an invalid identifier; now `kitlibsCheckTest`).
+  - The validation lib rebuilt as `KitLibsCheckTest` (2,680 jobs): paxos, rabia, rabiaself ACCEPTED,
+    rabiabad REFUSED for exactly its two bad fields and axioms, as before; rabia with `global_addr=none`
+    REFUSED on `proto.RegisterEnum`'s `MsgType_value` (the strict rule works).
 
 ## Progress
 
