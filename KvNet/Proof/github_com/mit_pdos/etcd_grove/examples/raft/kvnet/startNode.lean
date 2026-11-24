@@ -63,7 +63,12 @@ theorem startNode.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (st
   · inext
     iunfold nodeLockInv
     iexists r, tv, n
-    iframe
+    iframe Hr Ht Hstp
+    isplitr
+    · iexact Hrn
+    isplitr
+    · imodintro; iexact Hrep
+    iexact Hn
   try wp_auto
   imodintro
   iapply HΦ

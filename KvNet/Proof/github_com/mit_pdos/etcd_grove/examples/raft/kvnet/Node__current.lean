@@ -38,6 +38,15 @@ theorem Node.current.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) 
   icases HL with ⟨%r, %tv, %n, Hr, Ht, #Hrn, #Hrep, #Hn, Hstp⟩
   try wp_auto
   wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hr Ht Hstp]
+  · inext
+    iunfold nodeLockInv
+    iexists r, tv, n
+    iframe Hr Ht Hstp
+    isplitr
+    · iexact Hrn
+    isplitr
+    · imodintro; iexact Hrep
+    iexact Hn
   iapply HΦ
   iexists n
   isplitr

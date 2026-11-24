@@ -47,7 +47,7 @@ theorem stopIncarnation.wp_proof (wp_stop : Replica.stop.spec (GF := GF) (hG := 
   icases Hpt with ⟨%i, %Hi, Hpt⟩
   subst Hi
   try wp_auto
-  wp_apply wp_stop γ vs dir cfg.ID' r $$ [$Hrs] as ⟨%fl, %qc, Hst⟩
+  wp_apply wp_stop γ vs _ cfg.ID' r $$ [$Hrs] as ⟨%fl, %qc, Hst⟩
   wp_apply Hpt
   iapply HΦ
   iunfold kvNodeStart
