@@ -28,7 +28,9 @@ theorem clockwork.realClock.After.wp_proof (wp_After : time.After.spec (GF := GF
     clockwork.realClock.After.spec (GF := GF) (hG := hG) := by
   intro rc d P n
   wp_start as ⟨#HP, #Hn⟩
-  ihave #HA := clockwork.wp_After_stamp wp_After d P n $$ HP Hn
+  ihave #Ht : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
+  · iPkgInit
+  ihave #HA := clockwork.wp_After_stamp wp_After d P n $$ Ht HP Hn
   wp_auto
   wp_apply HA as %ch %γ HT
   wp_end
