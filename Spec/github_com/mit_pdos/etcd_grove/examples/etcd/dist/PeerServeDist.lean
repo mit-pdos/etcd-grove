@@ -31,7 +31,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`http.Serve(pl, h)` of etcd's peer handler at the member's peer address** (see the file header): `pa` set to
-etcd's peer protocols of `s`'s cluster and member (`httpAddrAt γ.cl id pa`), `pl` a listener open at `pa` (`netListenerOpen`, from `net.Listen` through
+etcd's peer protocols of `s`'s cluster and member (`httpAddrAt γ id pa`), `pl` a listener open at `pa` (`netListenerOpen`, from `net.Listen` through
 `listen_au` over `httpAddrAt`'s `addrProto`), `h` etcd's peer handler of `s` (`peerHandlerOf`), `s` started
 (`isServerReqM`) and member `id` of its network (`srvNetMember`), with the handler's per-request resources
 (`httpProcSlots` of `srvServeRes`, `NewServer_dist`'s post, as the in-process `http.Serve_ok` takes them). -/
@@ -42,7 +42,7 @@ abbrev PeerServe_dist.spec : Prop :=
   γn.N = srvNet γ →
   -- `pa` is the member's own peer address (its directory entry; review of 2026-11-24)
   go!"http://" ++ pa ∈ γn.dir id →
-  {{ httpAddrAt (Gg := hG.goose_globalGS) γ.cl id pa ∗ netListenerOpen pl pa ∗ peerHandlerOf h s ∗
+  {{ httpAddrAt (Gg := hG.goose_globalGS) γ id pa ∗ netListenerOpen pl pa ∗ peerHandlerOf h s ∗
       srvNetMember γn s id τ ∗ isServerReqM on s E ρ ∗
       ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) }}
     (App (App (Val (@! _root_.Perennial.net.http.Serve)) (Val #pl)) (Val #h))

@@ -678,7 +678,7 @@ addresses' `addrUnset`; no heap):
 
 | What | From | Today's section | D7 |
 |---|---|---|---|
-| raft's cluster `γ.cl` with its bootstrap log: `isClusterU`, `clusterInv`, `rdPool` (with its time receipts), the budget, `isCommittedLogLb γ boot`; per voter `raftState γ.cl id init`, `nodeVacant γ.cl id` | `cluster_alloc_boot_impl_tr` | heap, **only because of `bootMarshal`** | a global `cluster_alloc_bootG` without `bootMarshal`, giving per voter `nodeBootG` (below) |
+| raft's cluster `γ` with its bootstrap log: `isClusterU`, `clusterInv`, `rdPool` (with its time receipts), the budget, `isCommittedLogLb γ boot`; per voter `raftState γ.cl id init`, `nodeVacant γ.cl id` | `cluster_alloc_boot_impl_tr` | heap, **only because of `bootMarshal`** | a global `cluster_alloc_bootG` without `bootMarshal`, giving per voter `nodeBootG` (below) |
 | `srvRaftLogInv`, `kvInv`, `idClusterInv`, `(0) ↪[issued]□ none`, `srvPropMint`, `srvRdCtxInv`, and per member `(pfx,0) ↪[cnt]`, `idKeyFactAt fs (pfx,0) (idx id).slog`, `idWaitTokAt wn (pfx,0)`, the snapshot directory's `ghostMapAuth γd` | `srvClusterBoot_alloc` (`kvInv_alloc_boot`, `idCluster_alloc`, ...) | heap | re-sectioned (their bodies read only global ghost state: checked for `kvInv`, `srvRaftLogInv`, `srvFloorFacts`) |
 | each member's store names `idx id`, `cok id`, `rev id` with their fresh resources (`newServerStoreFreshA`, the two empty maps) | `newServerNames_allocL` | heap | re-sectioned; **must be global**: the claims' invariant names every member's `(idx id).slog` (`xsOf`) and every member's boot needs the claimers' facts of all members (`ΦsOf ids idx`), so they are chosen before `srvClusterBoot_alloc` |
 | the client's `etcdKV γk (kvModelSt …)` (lease mode `none`) | `srvClusterBoot_alloc` | **already global** (`InvRequest.lean:297`) | to the share of the machine running the KV check (below) |
@@ -1456,7 +1456,7 @@ and **`s5Holds : S5Holds GF`** (the D9 skeleton's and `putgetk`'s named hypothes
 **Axioms** (each in its own Spec/Proof pair under `.../etcd/dist/`, docstring: what, why true, what retires it):
 - `NewServer_dist.wp_proof : NewServer.specG_dist on cmp` (I-3): `NewServer.specG` verbatim but for the network:
   no `γn` binder (the post's `∃ γn` with `γn.N = srvNet γ ∧ γn.dir = dir`, as `putgetk`'s `StartMember_dist`),
-  `netHttpOk γn id` replaced by `httpAddrAt γ.cl pid a` of every other peer's directory address, and `noProxyEnv` added.
+  `netHttpOk γn id` replaced by `httpAddrAt γ pid a` of every other peer's directory address, and `noProxyEnv` added.
 - `NewPeerHandler_dist.wp_proof` and `PeerServe_dist.wp_proof` (I-4): `etcdhttp.NewPeerHandler(lg, s)` on a
   started member returns `peerHandlerOf h s`; `http.Serve(pl, h)` at `pa` (`httpAddrAt pa`, `netListenerOpen pl
   pa`, `srvNetMember`, `isServerReqM`, the `httpProcSlots` of `srvServeRes`) is safe, post `True`. Two axioms because
@@ -1524,9 +1524,16 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
 - **`NewServer_dist`: unsound as first stated; fixed.** `httpPeerSvc` named no cluster, so a second ghost cluster
   (`srvClusterBoot_alloc` is a theorem) with the same configuration (same ids) could run a duplicate of member 1 at the
   same peer addresses; Go: the duplicate's raft panics (`tocommit(58) is out of range [lastIndex(3)]`, 5/6 runs, with
-  bootstrap's `GET /members` refused by a fault). Fix applied: `httpPeerSvc cl id` (an address set once, for one
-  cluster and one member), `Hpeers` at `γ.cl pid`, the docstring's "allocated once by the start" argument replaced.
-  **Not re-reviewed yet.**
+  bootstrap's `GET /members` refused by a fault). Fix applied: `httpPeerSvc γ id` (an address set once, for one
+  cluster and one member), `Hpeers` at `γ pid`, the docstring's "allocated once by the start" argument replaced.
+  **Re-review (fresh agent, same day): survives.** Routes blocked: two members at one address (`dirHostsDistinct`,
+  `addrUnset` spent once), one id twice (`nodeVacant`/`raftState` exclusive; the docstring's "exclusive `nodeBoot`"
+  corrected: `nodeBoot` is persistent), an own address set for another id, disagreeing peer configurations (ids, peers,
+  contexts pinned to the cluster's allocation), relaying bytes (protocols per connection), the proxy, bootstrap's
+  `GET /members` (a non-etcd server there crashes `NewServer`: `[null]` members, a nil dereference, unrecovered; out of
+  reach through `Hpeers`). Hardening applied: indexed by the whole `SrvRaft` `γ`, not only `γ.cl`. Open, not a
+  counterexample: `bootstrapCluster.spec` takes only `roundTripperOk H prt` and asserts no panic, its soundness
+  resting on its callers' address facts (`Hpeers` here, `netHttpOk` in one process): state them in it, or say so.
 - **`NewPeerHandler_dist`: sound.**
 - **`PeerServe_dist`: unsound in combination with two existing axioms; recorded, not fixed here.**
   (1) The single-process start (`goose_adequacy_start`) hands out both the net extension's `addrUnset pa` and the
@@ -1538,7 +1545,7 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
   family). (2) The names-only `leasehttp.RenewHTTP` axiom posts to any URL: requests to `pa`'s `/leases/internal`
   (a recovered nil dereference), `/members/promote/<id>` (a rejected promote's conf-change entry reaches the log:
   outside `srvRule`/`ccLogOk`, no Go panic found), `/leases`. Fix: restrict `RenewHTTP` to a member's lease URL. Applied
-  here: `pa` tied to the member's directory entry and its cluster (`httpAddrAt γ.cl id pa`, `γn.N = srvNet γ`);
+  here: `pa` tied to the member's directory entry and its cluster (`httpAddrAt γ id pa`, `γn.N = srvNet γ`);
   docstrings no longer claim that nothing but the axioms writes at `pa`. Evidence `/tmp/peerforge/` (not kept).
 - `etcdSvc` (A1) and A3: no new table content, so no re-review.
 
