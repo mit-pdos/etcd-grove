@@ -1,6 +1,7 @@
 /-
-The proof of `Net/Spec/net/OpError__Temporary.lean`: `OpError.Temporary.impl`'s type assertions on
-`Err` (`model.errFlag`), else the extension's `AnyBool`.
+The proof of `Net/Spec/net/OpError__Temporary.lean`, over Go's own `OpError.Temporary`: under
+`opErrOk`, `Err` is one of net's own errors (`netOwnErr`), whose `Temporary` (and, for an
+`*os.SyscallError`, its `Errno`'s `Temporary` and `Timeout`) is translated Go.
 -/
 module
 
@@ -77,9 +78,23 @@ theorem OpError.Temporary.wp_proof : OpError.Temporary.spec (GF := GF) (hG := hG
       ipureintro
       unfold ErrFlag interface.mkOk; dsimp only
       refine ⟨?_, ?_, ?_⟩ <;> intro h <;> first | rfl | (simp only [goose_wp_simp_extra] at h)
-  · -- TODO(egnet): Errno.Temporary's direct call `e.Timeout()` (`MethodResolve syscall.Errno.ty
-    -- "Timeout" #n`) is not stepped by wp_auto nor matched by wp_apply of `wp_Errno_Timeout`.
-    sorry
+  · unfold sysErr
+    icases He with ⟨%p, %name, %n, %he, #Hp⟩
+    rw [he.1]
+    ihave #Hp2 := Hp
+    iStructNamed Hp2
+    haveI : go.NotInterface go.uintptr := ⟨by simp [go.uintptr]⟩
+    repeat' (first | wp_if_destruct |
+      (rw [show go.typeSetContains syscall.Errno.ty temporary.ty = true by go_type_set]) |
+      (rw [show go.typeSetContains (go.GoType.PointerType os.SyscallError.ty) temporary.ty = true by go_type_set]) |
+      (rw [show go.typeSetContains (go.GoType.PointerType os.SyscallError.ty) syscall.Errno.ty = false by go_type_set]) |
+      wp_method_call | (wp_func_call; wp_call) | wp_auto |
+      (wp_apply wp_Errno_Timeout as %b))
+    all_goals
+      iapply HΦ
+      ipureintro
+      unfold ErrFlag interface.mkOk; dsimp only
+      refine ⟨?_, ?_, ?_⟩ <;> intro h <;> first | rfl | (simp only [goose_wp_simp_extra] at h)
 
 end proof
 
