@@ -28,7 +28,28 @@ variable [net_sem : net.Assumptions] [net_udp_sem : net.UdpFieldAssumptions]
 
 theorem newReassembler.wp_proof :
     newReassembler.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro F γu sts
+  wp_start as #Hs
+  try wp_auto
+  wp_apply (wp_map_make1 (K := w64) (V := GoSlice)) as %pm Hpm
+  wp_apply (wp_map_make1 (K := w64) (V := GoSlice)) as %dm Hdm
+  iapply wp_fupd
+  wp_apply (wp_map_make1 (K := w64)
+    (V := github_com.mit_pdos.etcd_grove.examples.raft.kvnet.msgID)) as %lm Hlm
+  try wp_auto
+  iStructNamed «$r0»
+  ipersist pending
+  ipersist done
+  ipersist last
+  ipersist stats
+  imodintro
+  iapply HΦ
+  iunfold ownReassembler
+  iexists pm, dm, lm, sts, ∅, ∅, ∅
+  iframe pending done last stats Hs Hpm Hdm Hlm
+  isplitl []
+  · iapply BigSepM.bigSepM_empty.2; itrivial
+  iapply BigSepM.bigSepM_empty.2; itrivial
 
 end proof
 
