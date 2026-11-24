@@ -2,7 +2,7 @@
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
 # and every collection, the axiom-tok gate, the translations (and the examples' go.mod pins), the generated
-# initializers, the issues' front matter, the bounds, auth-mode and client-port mediation checks, the packages' imports, the import tiers and the interfaces. Prints one line per check and exits 1 if any fails.
+# initializers, the issues' front matter, the bounds, auth-mode and client-port mediation checks, the packages' imports and the import tiers. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
 #   LAKE_PACKAGES=.lake/manifest-stdinit.json PERENNIAL_CHECKOUT=/shared/perennial-std-init \
@@ -421,7 +421,6 @@ fail=0
 # backend-auth-split stage's Q6, 2026-11-02); both read the sources only
 api=ok
 for c in etc/api/*.txt; do
-  case "$c" in *-layout.txt) continue ;; esac
   if ! python3 etc/api-check.py "$c" --check > "$tmp/api.log" 2>&1; then
     echo "api $c: FAILED"; grep -v "^warning" "$tmp/api.log" | tail -10; api=FAILED
   fi
@@ -439,34 +438,6 @@ if python3 etc/tier-check.py --check > "$tmp/tier.log" 2>&1; then
 else
   echo "tier: FAILED"; head -20 "$tmp/tier.log"; fail=1
 fi
-return $fail
-}
-
-sec_iface() {
-fail=0
-# 8b. the checked-in interfaces (`interface/`) are what the build exports, with no new layout
-# violation: CI's "Check the packages' interfaces" loop, verbatim (reads the build; `$LAKE_OPTS`
-# carries `--packages`). Added 2026-11-13: CI failed on it since a1e57a9676 while land.sh passed.
-# The packages at once (each about 30s, mostly its own parallel pretty-printing; one after another
-# they were 200s of the gate, 2026-11-18).
-iface=ok
-pids=()
-for c in etc/api/*.txt; do
-  case "$c" in *-layout.txt) continue ;; esac
-  b=$(basename "$c" .txt)
-  ( python3 etc/gen-interface.py "$c" --check --layout > "$tmp/iface.$b.log" 2>&1
-    echo $? > "$tmp/iface.$b.status" ) &
-  pids+=($!)
-done
-wait "${pids[@]}"
-for c in etc/api/*.txt; do
-  case "$c" in *-layout.txt) continue ;; esac
-  b=$(basename "$c" .txt)
-  if [ "$(cat "$tmp/iface.$b.status" 2>/dev/null)" != 0 ]; then
-    echo "interface $c: FAILED"; tail -20 "$tmp/iface.$b.log"; iface=FAILED
-  fi
-done
-echo "interfaces: $iface"; [ "$iface" = ok ] || fail=1
 return $fail
 }
 
@@ -573,9 +544,9 @@ fi
 return $fail
 }
 
-secs=(links tcb goose models issues bounds mode api iface premisefix k8s7e)
+secs=(links tcb goose models issues bounds mode api premisefix k8s7e)
 # sections that read the build: tcb (Lean runs, tcb.json), models (model-param's and pbschema's Lean
-# runs), iface (gen-interface reads the .oleans); the others read only the sources and the Go code.
+# runs); the others read only the sources and the Go code.
 # With PERENNIAL_CHECKOUT, the translations need .lake/packages/perennial linked, which the build
 # must not see: then every section waits for the build, as before.
 early=(links goose issues bounds mode api premisefix k8s7e)

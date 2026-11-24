@@ -46,6 +46,19 @@ moved to where it can be seen. So (#24, upamanyus's condition for this mechanism
 
 Paxos needs none: its statement rests on Lean's three axioms with no hypotheses.
 
+## Challenges: the dsverify skill and the challenge's `CLAUDE.md`
+
+A kit is exported as a **challenge** (a self-contained tree without the kit's proofs, for an agent to
+prove; `etc/dsv/kitgen.py --export-challenge KIT DIR`, branch dsv-kitgen) together with two files of
+this repository (notes/dsv-skill.md):
+- `.claude/skills/dsverify/`: the dsverify skill, the method given to the agent (moved here from
+  dsverify-lab's `skill/`). Copied whole into the challenge's `.claude/skills/dsverify/`, or left
+  out for a control arm. It must hold nothing an agent must not read: no kit's proofs, no kit's
+  known bugs.
+- `etc/dsv/challenge-CLAUDE.md`: the template of the challenge's `CLAUDE.md` (the goal, what not to
+  edit, how to build and check, no network); its header lists the fields the export fills. The
+  same with or without the skill.
+
 ## Adding a kit
 
 1. Port the kit's Go into `examples/dsverify/<kit>/` (the fork as its own Go module, the kit package

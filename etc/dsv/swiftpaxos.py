@@ -120,6 +120,7 @@ KITGEN = dict(
     name='swiftpaxos',
     go_mains=False,
     lean_pkg=f'{SWIFT}.examples.swiftnet',
+    proof_roots=[SWIFT],  # the kit's own Lean trees (kitgen --export-challenge)
     # the net/rpc model's codec (models/net/rpc/rpcgen.py; examples/swiftnet/gen-rpc.sh)
     codecs=[('rpc', 'examples/dsverify/swiftpaxos/examples/swiftnet/rpc.toml',
              'examples/dsverify/swiftpaxos/examples/swiftnet', 'swiftnet')],

@@ -8,8 +8,9 @@ Usage:
   etc/dsv/kitgen.py --audit KIT            print what a reader of the kit's statement must check
   etc/dsv/kitgen.py --scaffold KIT         write the hand-written files' starting points, if absent
   etc/dsv/kitgen.py --list [KIT ...]       print the generated files
-  etc/dsv/kitgen.py --export-challenge DIR KIT   a self-contained tree for a proving run on the kit,
-                                           none of the kit's proofs; then the leak check
+  etc/dsv/kitgen.py --export-challenge DIR KIT   the kit as a challenge for a proving run (none of
+                                           its proofs; --no-skill, --skill-from REV, --code-changes),
+                                           the lab's files in DIR.lab; then the leak check
   etc/dsv/kitgen.py --leak-check DIR KIT   the leak check of an exported tree
   --no-codecs                              do not run the codec generators (they run Go)
 
@@ -798,9 +799,18 @@ def audit(kit, kg):
 
 
 # ---------------------------------------------------------------------------------------------
-# --export-challenge DIR KIT: a self-contained tree for an automatic-proving run on the kit
-# (notes/dsv-kitgen.md, "The challenge export"): the kit's Go and statement, the shared
-# infrastructure it needs, and none of the kit's own proofs.
+# --export-challenge DIR KIT: the kit as a challenge for an automatic-proving run (notes/dsv-kitgen.md,
+# "The challenge export"; the interface of notes/dsv-skill.md): this repository's tracked tree,
+# without the kit's proofs, other kits' proofs, the notes and the lab's old harness; the dsverify
+# skill (or not: --no-skill), the challenge's CLAUDE.md, CHALLENGE.txt; the lab's files beside it.
+
+SORRY = re.compile(r'\bsorry\b')
+GOOSE_SORRY = re.compile(r'(?m)^  sorry -- axiomatized type$')
+IMP = re.compile(r'^\s*(?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?(\S+)', re.M)
+COMMENT = re.compile(r'/-.*?-/|--[^\n]*', re.S)
+SKILL = '.claude/skills/dsverify'
+TEMPLATE = 'etc/dsv/challenge-CLAUDE.md'
+
 
 def _tiers():
     """etc/tier-check.py's modules, tiers and imports (repository modules only)."""
@@ -822,74 +832,127 @@ def closure(roots, imports, stop=lambda m: False):
     return seen
 
 
-def kit_file(kit):
-    spec = importlib.util.spec_from_file_location('kitgen_kitfile_' + kit, os.path.join(DSV, kit + '.py'))
-    m = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(m)
-    return m
+def kit_files():
+    """Every kit file (with or without KITGEN), by name."""
+    out = {}
+    for f in sorted(os.listdir(DSV)):
+        if f.endswith('.py') and not f.startswith('_') and f != 'kitgen.py':
+            spec = importlib.util.spec_from_file_location('kitgen_kitfile_' + f[:-3], os.path.join(DSV, f))
+            m = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(m)
+            out[f[:-3]] = m
+    return out
 
 
-def challenge_sets(kit, kg):
-    """The export's modules: (exported, allow, generated, dropped, in_tree, statement, tiers)."""
+def kit_roots(m):
+    """A kit's own Lean trees, `Dsverify/{Proof,Spec}/<root>/`: KITGEN's `proof_roots`, else its
+    goose project's first owned directory."""
+    kg = getattr(m, 'KITGEN', {})
+    if 'proof_roots' in kg:
+        return kg['proof_roots']
+    owned = getattr(m, 'GOOSE', {}).get('owned', [])
+    return [owned[0].replace('/', '.')] if owned else []
+
+
+def in_roots(mod, roots):
+    return any(mod == t or mod.startswith(t + '.')
+               for r in roots for t in (f'Dsverify.Proof.{r}', f'Dsverify.Spec.{r}'))
+
+
+def gen_outputs(m):
+    """gen-init's generated modules of a kit: its packages' `Init`, its programs' `PkgTable`."""
+    return {f'Dsverify.Proof.{q}.Init' for q in getattr(m, 'PKGS', [])} | \
+        {'Dsverify.' + v[:-5].replace('/', '.') for v in getattr(m, 'PROGRAMS', {}).values()}
+
+
+def proof_module(kg):
+    return f'Dsverify.Proof.{kg["lean_pkg"]}.TopLevelRobustness'
+
+
+def mod_path(m):
+    return m.replace('.', '/') + '.lean'
+
+
+def challenge_plan(kit, kg):
+    """What the challenge holds of the Lean trees: (allow: the kit's own modules exported, with
+    why; others: the other kits' modules exported, with why; the statement; tiers, imports)."""
     tiers, imports = _tiers()
-    km = kit_file(kit)
-    pkg = kg['lean_pkg']
-    roots = kg.get('proof_roots', [pkg])
-    tree = tuple(f'Dsverify.{t}.{r}' for r in roots for t in ('Proof', 'Spec'))
-
-    def in_tree(m):
-        return any(m == t or m.startswith(t + '.') for t in tree)
-
-    stmt = f'Dsverify.Spec.{pkg}.TopLevelRobustness'
-    proof = f'Dsverify.Proof.{pkg}.TopLevelRobustness'
+    kits = kit_files()
+    roots = kit_roots(kits[kit])
+    stmt = f'Dsverify.Spec.{kg["lean_pkg"]}.TopLevelRobustness'
     cs = closure([stmt], imports)
-    allow = {m for m in cs if in_tree(m)}
+    allow = {m: 'statement' for m in cs if in_roots(m, roots)}
     bad = sorted(m for m in allow if tiers[m] not in ('spec', 'defs'))
     if bad:
         sys.exit('kitgen: the statement imports proof modules of the kit (they would leak):\n  ' + '\n  '.join(bad))
-    # gen-init's generated files of the kit: its packages' Init.lean, its programs' PkgTable.lean
-    gen = {f'Dsverify.Proof.{q}.Init' for q in getattr(km, 'PKGS', [])} | \
-        {'Dsverify.' + v[:-5].replace('/', '.') for v in getattr(km, 'PROGRAMS', {}).values()}
-    gen = {m for m in gen if m in imports}
-    # the shared infrastructure: what the kit's landed proof and the generated files use outside
-    # the kit's tree
-    infra = {m for m in closure([proof], imports) if not in_tree(m)}
-    infra |= {m for m in closure(gen, imports, stop=in_tree) if not in_tree(m)}
-    out = infra | allow | gen | cs
-    dropped = []
-    changed = True
-    while changed:  # keep the export closed under imports: drop what imports an unexported module
-        changed = False
-        for m in sorted(out):
-            miss = [i for i in imports[m] if i not in out]
-            if miss:
-                out.discard(m)
-                dropped.append((m, miss))
-                changed = True
-    if stmt not in out:
-        sys.exit(f'kitgen: the statement {stmt} cannot be exported closed: {dropped}')
-    return out, allow, gen & out, dropped, in_tree, stmt, tiers
+    gen_all = set()
+    for k, m in kits.items():
+        gen_all |= {g for g in gen_outputs(m) if g in imports}
+    for g in gen_outputs(kits[kit]):
+        if g in imports:
+            allow.setdefault(g, 'generated')
+    nv = f'Dsverify.Proof.{kg["lean_pkg"]}.NonVacuityLinked'
+    if nv in imports:
+        allow[nv] = 'non-vacuity (fixed)'
+    # other kits' trees: what this kit's landed proof uses of them, and every kit's generated
+    # files (gen-init --check reads them) with what they import
+    other_roots = [r for k, m in kits.items() if k != kit for r in kit_roots(m)]
+    used = closure([proof_module(kg)], imports, stop=lambda x: in_roots(x, roots))
+    gclos = closure(gen_all, imports)
+    others = {}
+    for m in sorted(used | gclos):
+        if in_roots(m, other_roots) and not in_roots(m, roots):
+            others[m] = 'used by the kit' if m in used else ('generated' if m in gen_all else 'imported by generated')
+    for m in gclos:
+        if in_roots(m, roots) and m not in allow:
+            sys.exit(f'kitgen: gen-init\'s generated files import the kit\'s {m} ({tiers[m]}): it would leak')
+    return allow, others, roots, other_roots, stmt, tiers, imports
 
 
-def go_dirs(start):
-    """The Go module at `start` (relative to ROOT) and every local module its go.mod replaces with,
-    transitively."""
-    seen, st = [], [start]
-    while st:
-        d = os.path.normpath(st.pop())
-        if d in seen:
-            continue
-        seen.append(d)
-        gm = os.path.join(ROOT, d, 'go.mod')
-        if os.path.exists(gm):
-            for t in re.findall(r'=>\s*(\.\.?/\S+)', open(gm).read()):
-                st.append(os.path.join(d, t))
-    return seen
+def tracked():
+    r = subprocess.run(['git', 'ls-files', '-z'], cwd=ROOT, capture_output=True, text=True)
+    return [f for f in r.stdout.split('\0') if f]
 
 
-CHALLENGE_GOAL = """{header}module
+def dsv_issue(path):
+    """An issue file of a dsverify kit (the export leaves them out)."""
+    try:
+        t = open(os.path.join(ROOT, path), errors='replace').read()
+    except OSError:
+        return False
+    return bool(re.search(r'dsverify|Dsverify|examples/dsverify', t))
 
-public import Dsverify.Spec.{pkg}.TopLevelRobustness
+
+def excluded(f, kit, allow, others, roots, other_roots):
+    """Why the export leaves tracked file `f` out, or None."""
+    top = f.split('/', 1)[0]
+    if top == 'notes':
+        return 'notes'
+    if f == 'CLAUDE.md':
+        return 'etcd-grove\'s CLAUDE.md (the template replaces it)'
+    if top == '.claude':
+        return None if f.startswith(SKILL + '/') else '.claude (not the skill)'
+    if f.startswith('old/dsverify/'):
+        return 'the lab\'s old harness'
+    if top in ('issues', 'nonissues') and f.endswith('.md') and not f.endswith('INDEX.md') and dsv_issue(f):
+        return 'a dsverify kit\'s issue'
+    mt = re.match(r'etc/tcb-collections/dsv-(\w+)\.txt$', f)
+    if mt and mt.group(1) != kit:
+        return 'another kit\'s trust-base baseline'
+    if f.startswith('Dsverify/Scratch/'):
+        return 'scratch'
+    if f.endswith('.lean') and top == 'Dsverify':
+        m = f[:-5].replace('/', '.')
+        if in_roots(m, roots) and m not in allow:
+            return 'the kit\'s proof'
+        if in_roots(m, other_roots) and m not in others:
+            return 'another kit\'s proof'
+    return None
+
+
+PROOF_STUB = """module
+
+public import {spec}
 
 @[expose] public section
 
@@ -899,8 +962,8 @@ namespace Perennial
 
 namespace {pkg}
 
-/-- The goal: the kit's top-level statement (`Dsverify/Spec/.../TopLevelRobustness.lean`). -/
-theorem goal : {thm}.spec :=
+/-- **The goal** (`{spec_file}`). -/
+theorem {thm} : {thm}.spec := by
   sorry
 
 end {pkg}
@@ -908,132 +971,184 @@ end Perennial
 """
 
 
-def export_challenge(kit, kg, dest):
-    import json
+def fill_template(kit, kg, head, fixed, nv, checks, code_changes):
+    t = open(os.path.join(ROOT, TEMPLATE)).read()
+    t = re.sub(r'<!-- Template:.*?-->\n\n?', '', t, count=1, flags=re.S)
+    pp = pkg_path(kg)
+    vals = {
+        'TITLE': kg.get('title', kit), 'KIT': kit, 'GO_DIR': kg['go_module_dir'],
+        'THEOREM': kg['statement']['theorem'],
+        'SPEC_FILE': f'Dsverify/Spec/{pp}/TopLevelRobustness.lean',
+        'PROOF_FILE': f'Dsverify/Proof/{pp}/TopLevelRobustness.lean',
+        'PROOF_MODULE': proof_module(kg),
+        'FIXED_FILES': '\n'.join(f'- `{f}`' for f in fixed),
+        'NONVACUITY_MODULE': f'`{nv}`' if nv else 'none (the statement has no premises)',
+        'CHECKS': '\n'.join(f'  - `{c}`' for c in checks),
+        'CODE_CHANGES': code_changes, 'SOURCE': head,
+    }
+    t = re.sub(r'\{\{(\w+)\}\}', lambda mt: vals[mt.group(1)], t)
+    return t
+
+
+def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='allowed', allow_dirty=False):
+    import hashlib
     import shutil
-    out, allow, gen, dropped, in_tree, stmt, tiers = challenge_sets(kit, kg)
-    km = kit_file(kit)
     dest = os.path.abspath(dest)
     if os.path.exists(dest) and os.listdir(dest):
         sys.exit(f'kitgen: {dest} is not empty')
+    git = lambda *a: subprocess.run(['git', *a], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    head = git('rev-parse', 'HEAD')
+    dirty = git('status', '--porcelain', '--untracked-files=no')
+    if dirty and not allow_dirty:
+        sys.exit('kitgen: the work tree has uncommitted changes (commit them, or --allow-dirty)')
+    allow, others, roots, other_roots, stmt, tiers, imports = challenge_plan(kit, kg)
     os.makedirs(dest, exist_ok=True)
-    head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout.strip()
-
-    def cp(rel):
-        s, d = os.path.join(ROOT, rel), os.path.join(dest, rel)
-        os.makedirs(os.path.dirname(d), exist_ok=True)
-        if os.path.isdir(s):
-            shutil.copytree(s, d, dirs_exist_ok=True, ignore=shutil.ignore_patterns('.lake', '.git'))
-        else:
-            shutil.copy2(s, d)
-
-    for m in sorted(out):
-        cp(m.replace('.', '/') + '.lean')
-    # the Lake configuration: the pin's manifest and toolchain; the libraries the export has
-    cp('lake-manifest.json')
-    cp('lean-toolchain')
-    lk = open(os.path.join(ROOT, 'lakefile.toml')).read()
-    tops = {m.split('.')[0] for m in out}
-    parts = re.split(r'(?m)^(?=\[\[|\[leanOptions\])', lk)
-    keep, libs = [parts[0]], []
-    for p_ in parts[1:]:
-        if p_.startswith('[[lean_lib]]'):
-            globs = re.findall(r'"([A-Za-z]+)\.\+"', p_)
-            if not any(g in tops for g in globs):
-                continue
-            libs.append(re.search(r'name = "(\w+)"', p_).group(1))
-        elif p_.startswith('[[lean_exe]]'):
+    lab = dest.rstrip('/') + '.lab'
+    os.makedirs(lab, exist_ok=True)
+    left = {}
+    for f in tracked():
+        why = excluded(f, kit, allow, others, roots, other_roots)
+        if why:
+            left[f] = why
             continue
-        keep.append(p_)
-    keep.insert(len(keep) - 1 if keep[-1].startswith('[leanOptions]') else len(keep),
-                '# the challenge\'s goal (kitgen --export-challenge)\n[[lean_lib]]\nname = "Goal"\n\n')
-    lk2 = ''.join(keep)
-    lk2 = re.sub(r'(?m)^defaultTargets = .*$',
-                 'defaultTargets = [' + ', '.join(f'"{x}"' for x in libs + ['Goal']) + ']', lk2)
-    open(os.path.join(dest, 'lakefile.toml'), 'w').write(lk2)
-    # the Go: the kit's module and the local modules it replaces with; the models, if translated
-    gdirs = go_dirs(kg['go_module_dir'])
-    g = getattr(km, 'GOOSE', {})
-    if g.get('std_models') or g.get('module_models'):
-        gdirs.append('models')
-    for d in gdirs:
-        cp(d)
-    # the goal, and the comparator's files in the lab's convention (statement/comparator-check.sh)
-    thm, pkg = kg['statement']['theorem'], kg['lean_pkg']
-    open(os.path.join(dest, 'Goal.lean'), 'w').write(CHALLENGE_GOAL.format(header='', pkg=pkg, thm=thm))
-    c = os.path.join(dest, 'challenge', 'comparator')
-    os.makedirs(c)
+        if f.startswith(SKILL + '/') and (not skill or skill_from):
+            continue
+        s, d = os.path.join(ROOT, f), os.path.join(dest, f)
+        if os.path.islink(s) or not os.path.isfile(s):
+            continue
+        os.makedirs(os.path.dirname(d), exist_ok=True)
+        shutil.copy2(s, d)
+    # the skill from another revision
+    skill_tree = 'none'
+    if skill:
+        rev = skill_from or 'HEAD'
+        skill_tree = git('rev-parse', f'{rev}:{SKILL}')
+        if skill_from:
+            arc = subprocess.run(['git', 'archive', '--format=tar', rev, SKILL], cwd=ROOT, capture_output=True)
+            subprocess.run(['tar', '-x', '-C', dest], input=arc.stdout, check=True)
+    # the goal's file: the statement's proof, a `sorry`
+    pp, pkg, thm = pkg_path(kg), kg['lean_pkg'], kg['statement']['theorem']
+    pf = os.path.join(dest, 'Dsverify', 'Proof', pp, 'TopLevelRobustness.lean')
+    os.makedirs(os.path.dirname(pf), exist_ok=True)
+    open(pf, 'w').write(PROOF_STUB.format(spec=stmt, pkg=pkg, thm=thm,
+                                          spec_file=f'Dsverify/Spec/{pp}/TopLevelRobustness.lean'))
+    # the fixed files: the statement, TopLevelDefs, the premise classes' modules, non-vacuity
+    fixed = [f'Dsverify/Spec/{pp}/TopLevelRobustness.lean', f'Dsverify/Proof/{pp}/TopLevelDefs.lean']
+    for _, _, cls in premises(kg['statement']):
+        for c in cls:
+            w = find_class(c)
+            if w and w[0] not in fixed:
+                fixed.append(w[0])
+    nvm = f'Dsverify.Proof.{pkg}.NonVacuityLinked'
+    nv = nvm if nvm in allow else None
+    if nv:
+        fixed.append(mod_path(nv))
+    km = kit_files()[kit]
+    checks = [f'python3 etc/goose.py --check --project dsv-{kit}']
+    if os.path.isdir(os.path.join(ROOT, 'etc', 'proph-patches', f'dsv-{kit}')):
+        checks.append(f'python3 etc/proph_patch.py --project dsv-{kit}')
+    checks += ['python3 etc/gen-init.py --check', f'python3 etc/dsv/kitgen.py --check --no-codecs {kit}',
+               'python3 etc/tier-check.py --check']
+    cm = fill_template(kit, kg, head, fixed, nv, checks, code_changes)
+    open(os.path.join(dest, 'CLAUDE.md'), 'w').write(cm)
+    # kitgen's generated files the challenge leaves out (the proof's skeleton, Mains: the kit's
+    # proofs), which `kitgen --check` in the challenge then skips
+    gen = generated(kit, kg)
+    omitted = sorted(f for f in gen if not os.path.exists(os.path.join(dest, f)) or
+                     f == f'Dsverify/Proof/{pp}/TopLevelRobustness.lean')
+    with open(os.path.join(dest, 'CHALLENGE.txt'), 'w') as fh:
+        fh.write(f'source: {head}{" (dirty)" if dirty else ""}\nkit: {kit}\n'
+                 f'skill: {skill_tree}{" from " + skill_from if skill_from and skill else ""}\n'
+                 f'claude-md: sha256 {hashlib.sha256(cm.encode()).hexdigest()}\n')
+        for f in omitted:
+            fh.write(f'omitted: {f}\n')
+    # the lab's files (outside the agent's tree): the comparator's, and the manifest
+    c = os.path.join(lab, 'comparator')
+    os.makedirs(c, exist_ok=True)
+    import json
     pin = next(x['rev'] for x in json.load(open(os.path.join(ROOT, 'lake-manifest.json')))['packages']
                if x['name'] == 'perennial')
     gomod = re.search(r'(?m)^module (\S+)', open(os.path.join(ROOT, kg['go_module_dir'], 'go.mod')).read()).group(1)
     open(os.path.join(c, 'challenge.conf'), 'w').write(
         f'# the comparator\'s check of the goal (the lab\'s statement/comparator-check.sh conventions),\n'
         f'# written by {ME} --export-challenge {kit} from etcd-grove {head}\n'
-        f'# the theorem, and the project\'s module that has it (the library Goal)\n'
-        f'theorem=Perennial.{pkg}.goal\nsolution=Goal\n'
-        f'# the module root of the exported tree\'s kit modules\nlayout=Dsverify\n'
-        f'# the fork\'s Go module, and the kit package whose commands are the system\n'
-        f'gomodule={gomod}\ntest=./{kg["go_pkg_dir"]}\n'
-        f'# the Perennial revision the goal is stated over; the project must pin the same\nperennial={pin}\n'
-        f'# the challenge is the exported tree itself (etcd-grove\'s translations and infrastructure), not\n'
-        f'# Goose\'s output regenerated by the lab: the statement\'s module and its closure\n'
+        f'theorem=Perennial.{pkg}.{thm}\nsolution={proof_module(kg)}\nlayout=Dsverify\n'
+        f'gomodule={gomod}\ntest=./{kg["go_pkg_dir"]}\nperennial={pin}\n'
+        f'# the challenge is the exported tree (etcd-grove\'s translations and infrastructure), not Goose\'s\n'
+        f'# output regenerated by the lab: the statement\'s module over it\n'
         f'tree=etcd-grove {head}\nstatement={stmt}\n')
-    open(os.path.join(c, 'Challenge.lean'), 'w').write(CHALLENGE_GOAL.format(
-        header=f'/-\nThe comparator\'s challenge: the kit\'s statement `{thm}.spec`, its proof a `sorry`; the text\n'
-               f'below this header is `Goal.lean`\'s, so that the two elaborate alike. Written by\n'
-               f'{ME} --export-challenge {kit}.\n-/\n', pkg=pkg, thm=thm))
-    tree_files = sorted(m for m in out if in_tree(m))
-    with open(os.path.join(dest, 'challenge', 'MANIFEST.txt'), 'w') as f:
-        f.write(f'# kitgen --export-challenge {kit}: etcd-grove {head}, Perennial {pin}\n')
-        f.write(f'# {len(out)} Lean modules; Go: {" ".join(gdirs)}\n')
-        f.write('# the kit\'s modules exported (the allow-list): the statement\'s closure (spec/defs only)\n'
-                '# and gen-init\'s generated package initializers and tables\n')
-        for m in tree_files:
-            f.write(f'allow {m} {"statement" if m in allow else "generated"} {tiers[m]}\n')
-        for m, miss in dropped:
-            f.write(f'dropped {m} (imports {", ".join(miss[:3])})\n')
-    return out, tree_files, dropped
+    open(os.path.join(c, 'Challenge.lean'), 'w').write(
+        f'/-\nThe comparator\'s challenge: `{thm}.spec`, its proof a `sorry` (the exported tree\'s\n'
+        f'`Dsverify/Proof/{pp}/TopLevelRobustness.lean`). Written by {ME} --export-challenge {kit}.\n-/\n'
+        + PROOF_STUB.format(spec=stmt, pkg=pkg, thm=thm, spec_file=f'Dsverify/Spec/{pp}/TopLevelRobustness.lean'))
+    with open(os.path.join(lab, 'MANIFEST.txt'), 'w') as fh:
+        fh.write(f'# kitgen --export-challenge {kit} {dest}: etcd-grove {head}, Perennial {pin}\n')
+        for m, why in sorted(allow.items()):
+            fh.write(f'allow {m} {why} {tiers[m]}\n')
+        for m, why in sorted(others.items()):
+            fh.write(f'other {m} {why} {tiers[m]}\n')
+        for f, why in sorted(left.items()):
+            fh.write(f'left {f} ({why})\n')
+    return allow, others, left, omitted
 
 
-SORRY = re.compile(r'\bsorry\b')
-GOOSE_SORRY = re.compile(r'(?m)^  sorry -- axiomatized type$')
-IMP = re.compile(r'^\s*(?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?(\S+)', re.M)
-
-
-def leak_check(kit, kg, dest):
-    """After an export: no module of the kit's tree but the allow-list's, every exported module's
-    imports of this repository's modules exported, and no `sorry` in the statement's closure.
-    Returns (failures, modules, the statement closure's size)."""
-    out, allow, gen, dropped, in_tree, stmt, tiers = challenge_sets(kit, kg)
-    ok_tree = allow | gen
+def lean_modules(dest):
     present = set()
     for dp, dirs, fs in os.walk(dest):
         if dp == dest:
-            dirs[:] = [d for d in dirs if d not in ('.lake', '.git', 'examples', 'models', 'third_party', 'challenge')]
+            dirs[:] = [d for d in dirs if d not in ('.lake', '.git', 'examples', 'models', 'third_party',
+                                                    'old', 'etc', 'notes', 'issues', 'nonissues', '.claude')]
         for f in fs:
             if f.endswith('.lean'):
                 present.add(os.path.relpath(os.path.join(dp, f), dest)[:-5].replace(os.sep, '.'))
-    bad = [f'leak: {m} (the kit\'s, not on the allow-list)' for m in sorted(present)
-           if in_tree(m) and m not in ok_tree]
-    texts = {m: open(os.path.join(dest, m.replace('.', '/') + '.lean')).read() for m in present}
+    return present
+
+
+def leak_check(kit, kg, dest):
+    """After an export, on the tree as written: (1) of the kit's trees only the allow-list (and the
+    goal's stub); (2) of the other kits' trees only what the plan keeps; (3) no notes, no
+    `old/dsverify`, nothing of `.claude` but the skill, no other kit's tcb baseline; (4) every import
+    of a module this repository has is present (or reported); (5) no `sorry` in the statement's
+    closure but Goose's instances of axiomatized types. Returns (failures, warnings, counts)."""
+    allow, others, roots, other_roots, stmt, tiers, imports = challenge_plan(kit, kg)
+    present = lean_modules(dest)
+    goal = proof_module(kg)
+    bad, warn = [], []
+    for m in sorted(present):
+        if in_roots(m, roots) and m not in allow and m != goal:
+            bad.append(f'leak: {m} (the kit\'s, not on the allow-list)')
+        elif in_roots(m, other_roots) and not in_roots(m, roots) and m not in others:
+            bad.append(f'leak: {m} (another kit\'s)')
+    for p in ('notes', 'old/dsverify'):
+        if os.path.exists(os.path.join(dest, p)):
+            bad.append(f'leak: {p}/')
+    cl = os.path.join(dest, '.claude')
+    if os.path.isdir(cl):
+        for dp, _, fs in os.walk(cl):
+            for f in fs:
+                rel = os.path.relpath(os.path.join(dp, f), dest)
+                if not rel.startswith(SKILL + '/'):
+                    bad.append(f'leak: {rel}')
+    tc = os.path.join(dest, 'etc', 'tcb-collections')
+    if os.path.isdir(tc):
+        bad += [f'leak: etc/tcb-collections/{f}' for f in os.listdir(tc)
+                if f.startswith('dsv-') and f != f'dsv-{kit}.txt']
+    texts = {m: open(os.path.join(dest, mod_path(m)), errors='replace').read() for m in present}
     for m, t in sorted(texts.items()):
         for i in IMP.findall(t):
-            if i not in present and os.path.exists(os.path.join(ROOT, i.replace('.', '/') + '.lean')):
-                bad.append(f'open import: {m} imports {i}, which is not exported')
+            if i not in present and os.path.exists(os.path.join(ROOT, mod_path(i))):
+                (bad if (in_roots(m, roots) or m in others) else warn).append(
+                    f'open import: {m} imports {i}, not exported')
     cs = closure([stmt], {m: [i for i in IMP.findall(texts[m]) if i in present] for m in present})
-    com = re.compile(r'/-.*?-/|--[^\n]*', re.S)
     goose_sorry = 0
     for m in sorted(cs):
         t = texts[m]
         if '.GeneratedProof.' in f'.{m}.':
-            # Goose's instances of an axiomatized type (`sorry -- axiomatized type`): the
-            # translation's, in the landed trust base (counted, not refused)
-            n0 = len(GOOSE_SORRY.findall(t))
-            goose_sorry += n0
+            goose_sorry += len(GOOSE_SORRY.findall(t))
             t = GOOSE_SORRY.sub('', t)
-        if SORRY.search(com.sub('', t)):
+        if SORRY.search(COMMENT.sub('', t)):
             bad.append(f'sorry: {m} (in the statement\'s closure)')
-    return bad, len(present), len(cs), goose_sorry
+    return bad, warn, (len(present), len(cs), goose_sorry)
 
 
 def main():
@@ -1046,6 +1161,10 @@ def main():
     ap.add_argument('--no-codecs', action='store_true')
     ap.add_argument('--export-challenge', metavar='DIR')
     ap.add_argument('--leak-check', metavar='DIR')
+    ap.add_argument('--no-skill', action='store_true', help='export without the dsverify skill (the control arm)')
+    ap.add_argument('--skill-from', metavar='REV', help="the skill as of REV's .claude/skills/dsverify")
+    ap.add_argument('--code-changes', default='allowed', choices=['allowed', 'not allowed'])
+    ap.add_argument('--allow-dirty', action='store_true')
     a = ap.parse_args()
     kits = load_kits()
     for k in a.kits:
@@ -1057,16 +1176,22 @@ def main():
             sys.exit('kitgen: --export-challenge/--leak-check take one kit')
         k = a.kits[0]
         if a.export_challenge:
-            out, tree, dropped = export_challenge(k, kits[k], a.export_challenge)
-            print(f'kitgen: exported {k} to {a.export_challenge}: {len(out)} Lean modules, '
-                  f'{len(tree)} of the kit\'s own (the allow-list), {len(dropped)} dropped')
+            allow, others, left, omitted = export_challenge(
+                k, kits[k], a.export_challenge, skill=not a.no_skill, skill_from=a.skill_from,
+                code_changes=a.code_changes, allow_dirty=a.allow_dirty)
+            print(f'kitgen: exported {k} to {a.export_challenge} ({"no skill" if a.no_skill else "with the skill"}): '
+                  f'{len(allow)} of the kit\'s modules (the allow-list), {len(others)} of other kits\', '
+                  f'{len(left)} tracked files left out, {len(omitted)} generated files omitted; '
+                  f'the lab\'s files in {a.export_challenge.rstrip("/")}.lab')
         d = os.path.abspath(a.export_challenge or a.leak_check)
-        bad, n, ns, gs = leak_check(k, kits[k], d)
+        bad, warn, (n, ns, gs) = leak_check(k, kits[k], d)
         for b in bad:
             print(f'kitgen: {b}')
-        print(f'kitgen: leak check {"FAILED" if bad else "ok"} ({n} modules; the statement\'s closure {ns} '
+        for w in warn:
+            print(f'kitgen: warning: {w}')
+        print(f'kitgen: leak check {"FAILED" if bad else "ok"} ({n} Lean modules; the statement\'s closure {ns} '
               f'modules, {"not " if any(b.startswith("sorry") for b in bad) else ""}sorry-free but Goose\'s '
-              f'{gs} instances of axiomatized types)')
+              f'{gs} instances of axiomatized types; {len(warn)} warnings)')
         sys.exit(1 if bad else 0)
     if a.audit:
         for k in names:
@@ -1084,8 +1209,10 @@ def main():
                     print(f'kitgen: wrote the scaffold {f}')
         return
     bad, nfiles = [], 0
+    ch = os.path.join(ROOT, 'CHALLENGE.txt')  # an exported challenge: its omitted generated files
+    omitted = set(re.findall(r'(?m)^omitted: (\S+)$', open(ch).read())) if os.path.exists(ch) else set()
     for k in names:
-        files = generated(k, kits[k])
+        files = {f: t for f, t in generated(k, kits[k]).items() if f not in omitted}
         for f, txt in sorted(files.items()):
             nfiles += 1
             p = os.path.join(ROOT, f)

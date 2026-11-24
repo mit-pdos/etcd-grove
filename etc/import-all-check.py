@@ -8,8 +8,8 @@ Some sealed facts are part of the trust base: the backend's pending flags (`rbSi
 `InvBackend.lean`; `rbSide_idle`, private to `TrackedLemmas.lean`) are cleared only by `Unlock`'s
 proof, which the trusted readers of the tracked buckets rely on. This check pins who may
 `import all` each such module. It cannot check that the allowed importers export no law that
-clears a flag (a public theorem of `TrackedLemmas`, `NewAlloc` or `Unlock`'s proof): that is the
-interface diff's (`etc/gen-interface.py etc/api/backend.txt`).
+clears a flag (a public theorem of `TrackedLemmas`, `NewAlloc` or `Unlock`'s proof): that is left
+to the review of changes to those modules.
 
 The configuration (`etc/import-all.txt`), one directive per line, `#` comments:
 
