@@ -585,7 +585,7 @@ theorem RunConcurrent.wp_proof
       ihave #Htl' : isTraceLogger tn.tr (tcConfig k ms «$v1_ptr»).TraceLogger' $$ []
       · rw [Htn]; iexact Htl
       have Hbln : boot.length = nv := by rw [Hbf.1]; exact tcVoters_length nv
-      ihave Hsp := probeA_startPre nv γ tcRaftN γd tn (tcConfig k ms «$v1_ptr») Htr Hvoters rfl rfl
+      ihave Hsp := probeA_startPre nv H5 γ tcRaftN γd tn (tcConfig k ms «$v1_ptr») Htr Hvoters rfl rfl
         (by simp) (by rw [Hbl, Hbln]; omega) $$ Hvk Hdir Hsim Htl'
       icases Hsp with ⟨#Hnb, Hvac, Hrs0, Hstc⟩
       -- (2026-11-21, the crash invariant) the vacancy armed (the harness never crashes)

@@ -181,7 +181,7 @@ theorem probeA_alloc (N : Namespace) (n : Nat) (h1 : 1 ≤ n) (h5 : n ≤ tracec
 /-- **A voter's `StartNode` precondition from its part** (`voterStart`, `startTraceC_intro`): the
 `nodeBoot`, durable state and vacant slot `StartNode.tracedSpec` takes, and its `startTraceC γ vs cv`
 for a configuration of the voter's id logging to the names' trace. -/
-theorem probeA_startPre (n : Nat) (γ : Cluster) (N : Namespace) (γd : GName) (tn : TraceNames) (cv : Config)
+theorem probeA_startPre (n : Nat) (h5 : n ≤ tracecheck.maxNodes) (γ : Cluster) (N : Namespace) (γd : GName) (tn : TraceNames) (cv : Config)
     (Htr : Cluster.trace γ = some γd) (Hvs : tn.voters = tcVoters n) (Hpv : cv.PreVote' = false)
     (Hcq : cv.CheckQuorum' = false) (Hnil : cv.TraceLogger' ≠ interface.nil)
     (Hfit : receiptBound GF + max γ.bootLen 2 ≤ 2 ^ 61) :
@@ -193,7 +193,8 @@ theorem probeA_startPre (n : Nat) (γ : Cluster) (N : Namespace) (γd : GName) (
   unfold voterStart
   icases Hv with ⟨#Hb, ⟨Hrs, Hvac⟩, Hsh, Hbt⟩
   iframe Hb Hrs Hvac
-  iapply startTraceC_intro γ γd tn (tcVoters n) cv Htr Hvs Hpv Hcq (by simp) Hnil N Hfit
+  iapply startTraceC_intro γ γd tn (tcVoters n) cv Htr Hvs Hpv Hcq
+    (by rw [tcVoters_length]; unfold tracecheck.maxNodes at h5; omega) Hnil N Hfit
     $$ Hd Hinv Hlog Hsh Hbt
 
 /-- **The end of the run** (§2.2's last row): the `StartNode`s' `startDone`s, one voter's

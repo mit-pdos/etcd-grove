@@ -42,7 +42,11 @@ theorem workload_defaultCConfig [GooseExts] : Workload 3 defaultCConfig := by
 workload at the `nv` voters drawn. -/
 theorem workload_nodes [GooseExts] (b : w64) (nv : Nat) (hnv : W64 1 + b = W64 nv) (h1 : 1 ≤ nv)
     (h5 : nv ≤ tracecheck.maxNodes) :
-    Workload nv { defaultCConfig with Nodes' := W64 1 + b } :=
+    Workload nv
+      { Nodes' := W64 1 + b, ExtraNodes' := 0, Proposals' := W64 60, ConfChanges' := 0,
+        ProposeGap' := W64 10 * W64 1000000, Settle' := W64 150 * W64 1000000,
+        Tick' := W64 10 * W64 1000000, MaxDelay' := W64 10 * W64 1000000, DropPct' := W64 5,
+        SnapshotEvery' := 0, Isolations' := W64 3, IsolateFor' := W64 200 * W64 1000000 } :=
   have h := workload_defaultCConfig
   ⟨hnv, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1, h.2.2.2.2.2.2.1, h1, h5⟩
 
@@ -86,7 +90,7 @@ theorem Main.wp_proof
   ihave #Hpn : tracecheck.premises (GF := GF) nv (tracecheck.bootLog nv) $$ []
   · iapply Hprem; ipureintro; exact ⟨H1, H5⟩
   wp_apply (wp_RunConcurrent Hrb nv (tracecheck.bootLog nv) (tracecheck.bootLogFacts_bootLog nv H61)
-      { defaultCConfig with Nodes' := W64 1 + b } (workload_nodes b nv Hnv H1 H5)) $$ [Hcc Hpn]
+      _ (workload_nodes b nv Hnv H1 H5)) $$ [Hcc Hpn]
     as %c Hrun
   · iframe Hcc Hpn
   iunfold runOver at Hrun
