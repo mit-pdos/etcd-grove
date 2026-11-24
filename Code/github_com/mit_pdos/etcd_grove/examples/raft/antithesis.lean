@@ -1356,15 +1356,20 @@ noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "inp" (App (Val (GoInstruction (GoAlloc input.ty))) (App (Val (GoInstruction (GoZeroVal input.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef input.ty go!"kind"))) (Var "inp"))) (Val inMsg))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (StructFieldRef input.ty go!"msg"))) (Var "inp")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (StructFieldRef input.ty go!"msg"))) (Var "inp")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef node.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
+  (App (App (App (Val (GoInstruction (FuncResolve msgOf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "cause" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Var "cause")
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (StructFieldRef input.ty go!"msg"))) (Var "inp")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty) go!"Step"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"rn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (Val UntypedNil))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))
   (Let "$a1" (Val #(go!"recv"))
@@ -1372,7 +1377,9 @@ noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Var "$r0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty))) (Pair (Var "cause") (Var "$r0")))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef input.ty go!"data"))) (Var "inp")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty) go!"Propose"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"rn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1393,25 +1400,23 @@ noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- reportCause is rawnode's: the message being handled is reported once, before the first report
     that follows from it.
 
-    go: harness.go:434:19 -/
+    go: harness.go:435:19 -/
 noncomputable def Cluster.reportCause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (Var "c"))
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (Var "n"))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (Val UntypedNil))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event.ty))) (Let "$v0" (Val #(go!"recv"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef node.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
   (Let "$v2" (Val #(W32 8192))
-  (Let "$v3" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef node.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
-  (App (App (App (Val (GoInstruction (FuncResolve msgOf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n")))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"E")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Node")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Has")) (ElementExpression go.uint32 (Var "$v2"))), (KeyedElement (some (KeyField go!"Msg")) (ElementExpression _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty (Var "$v3")))])))))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Recorder.ty) go!"record"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Recorder.ty)))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"rec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))) (Var "$a0")))))
   (App (Val doExecute)
@@ -1421,7 +1426,7 @@ noncomputable def Cluster.reportCause.impl [GooseExts] [GoGlobalContext] : val :
 /-- drain is rawnode's drain in its default mode: for each Ready, the write (announced, then made),
     the messages, the committed entries, Advance.
 
-    go: harness.go:443:19 -/
+    go: harness.go:444:19 -/
 noncomputable def Cluster.drain.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1647,7 +1652,7 @@ noncomputable def Cluster.drain.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- send delivers m after a random delay, or drops it, from a goroutine of its own.
 
-    go: harness.go:500:19 -/
+    go: harness.go:501:19 -/
 noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "m"
@@ -2122,7 +2127,7 @@ noncomputable instance node.zero_val [GooseExts] : ZeroVal node :=
 (go.field_decl.FieldDecl go!"term" go.uint64),
 (go.field_decl.FieldDecl go!"vote" go.uint64),
 (go.field_decl.FieldDecl go!"commit" go.uint64),
-(go.field_decl.FieldDecl go!"cause" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)),
+(go.field_decl.FieldDecl go!"cause" (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)),
 (go.field_decl.FieldDecl go!"applied" go.uint64)]
 
 @[irreducible] noncomputable def node.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=

@@ -277,8 +277,8 @@ type node struct {
 	in      chan input
 
 	role               string
-	term, vote, commit uint64      // the HardState on disk
-	cause              *pb.Message // the message being handled, not reported yet
+	term, vote, commit uint64     // the HardState on disk
+	cause              *check.Msg // the report of the message being handled, not recorded yet
 	applied            uint64
 }
 
@@ -416,8 +416,9 @@ func (c *Cluster) run(n *node) {
 		case inp := <-n.in:
 			if inp.kind == inMsg {
 				// rawnode's Step: the message is reported (`recv`) before the first report it
-				// causes, if any.
-				n.cause = inp.msg
+				// causes, if any. Its report is made before Step, which takes the message over.
+				cause := msgOf(inp.msg, n.id)
+				n.cause = &cause
 				_ = n.rn.Step(inp.msg)
 				c.drain(n, "recv")
 				n.cause = nil
@@ -433,7 +434,7 @@ func (c *Cluster) run(n *node) {
 // that follows from it.
 func (c *Cluster) reportCause(n *node) {
 	if n.cause != nil {
-		c.rec.record(&check.Event{E: "recv", Node: n.name, Has: check.FMsg, Msg: msgOf(n.cause, n.id)})
+		c.rec.record(&check.Event{E: "recv", Node: n.name, Has: check.FMsg, Msg: *n.cause})
 		n.cause = nil
 	}
 }
