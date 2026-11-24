@@ -543,8 +543,6 @@ theorem EtcdServer.applySnapshot.wp_proofKeep
   (try wp_auto)
   wp_apply HDec
   (try wp_auto)
-  imodintro
-  wp_pures
   iapply HΦ
   iexists spc
   iframe
