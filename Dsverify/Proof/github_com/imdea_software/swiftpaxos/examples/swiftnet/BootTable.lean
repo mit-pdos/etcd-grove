@@ -398,7 +398,7 @@ theorem wf_github_com_imdea_software_swiftpaxos_rpc {G : GoString → IProp GF} 
 
 theorem wf_github_com_imdea_software_swiftpaxos_client {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.client G :=
-  And.intro h.e_github_com_imdea_software_swiftpaxos_client ⟨wf_errors h, wf_math_rand h, wf_net h, wf_sync h, wf_time h, wf_github_com_google_uuid h, wf_github_com_imdea_software_swiftpaxos_replica_defs h, wf_github_com_imdea_software_swiftpaxos_state h, wf_bufio h, wf_encoding_binary h, wf_fmt h, wf_net_rpc h, wf_strings h, wf_github_com_imdea_software_swiftpaxos_dlog h, wf_github_com_imdea_software_swiftpaxos_rpc h, wf_github_com_goose_lang_primitive h, True.intro⟩
+  And.intro h.e_github_com_imdea_software_swiftpaxos_client ⟨wf_errors h, wf_math_rand h, wf_net h, wf_sync h, wf_time h, wf_github_com_google_uuid h, wf_github_com_goose_lang_primitive h, wf_github_com_imdea_software_swiftpaxos_replica_defs h, wf_github_com_imdea_software_swiftpaxos_state h, wf_bufio h, wf_encoding_binary h, wf_fmt h, wf_net_rpc h, wf_strings h, wf_github_com_imdea_software_swiftpaxos_dlog h, wf_github_com_imdea_software_swiftpaxos_rpc h, True.intro⟩
 
 theorem wf_github_com_imdea_software_swiftpaxos_config {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.config G :=
@@ -434,7 +434,7 @@ theorem wf_github_com_imdea_software_swiftpaxos_hook {G : GoString → IProp GF}
 
 theorem wf_github_com_imdea_software_swiftpaxos_swift {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.swift G :=
-  And.intro h.e_github_com_imdea_software_swiftpaxos_swift ⟨wf_github_com_imdea_software_swiftpaxos_rpc h, wf_github_com_imdea_software_swiftpaxos_client h, wf_github_com_imdea_software_swiftpaxos_replica h, wf_github_com_imdea_software_swiftpaxos_replica_defs h, wf_github_com_imdea_software_swiftpaxos_state h, wf_bufio h, wf_encoding_gob h, wf_fmt h, wf_io h, wf_sync h, wf_time h, wf_bytes h, wf_crypto_sha256 h, wf_slices h, wf_encoding_binary h, wf_log h, wf_github_com_orcaman_concurrent_map h, wf_sync_atomic h, wf_github_com_imdea_software_swiftpaxos_config h, wf_github_com_imdea_software_swiftpaxos_dlog h, wf_github_com_imdea_software_swiftpaxos_hook h, wf_errors h, True.intro⟩
+  And.intro h.e_github_com_imdea_software_swiftpaxos_swift ⟨wf_github_com_imdea_software_swiftpaxos_rpc h, wf_github_com_imdea_software_swiftpaxos_client h, wf_github_com_imdea_software_swiftpaxos_replica h, wf_github_com_imdea_software_swiftpaxos_replica_defs h, wf_github_com_imdea_software_swiftpaxos_state h, wf_bufio h, wf_encoding_gob h, wf_fmt h, wf_io h, wf_sync h, wf_time h, wf_bytes h, wf_crypto_sha256 h, wf_slices h, wf_encoding_binary h, wf_log h, wf_github_com_goose_lang_primitive h, wf_github_com_orcaman_concurrent_map h, wf_sync_atomic h, wf_github_com_imdea_software_swiftpaxos_config h, wf_github_com_imdea_software_swiftpaxos_dlog h, wf_github_com_imdea_software_swiftpaxos_hook h, wf_errors h, True.intro⟩
 
 theorem wf_github_com_mit_pdos_etcd_grove_examples_lib_lintest {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest G :=
