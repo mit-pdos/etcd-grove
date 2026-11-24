@@ -503,3 +503,62 @@ linking `S` to the campaign, it has to be added to `durPers` and kept by every `
 layer, plus the API statement and its interface (`etc/gen-interface.py etc/api/raft.txt`), the RaftTla
 copies (`etc/gen-raft-tla.py`) and, if `RaftNoAx`'s closure reaches `InvNode`, `etc/copy-part.py`. Not
 started in this session: its context is spent on scoping (items 1-4 above).
+
+**2026-11-24, the leader-completeness law: item (i) answered, and the stated form is false (nothing
+written in Lean).**
+
+*(i): no.* `durPers γ id S E` relates `S`'s log to nothing of `id`'s campaign: `E.camps` enters only as
+a term bound (`∀ T, camps T isSome → T ≤ S.term`), the vote-time logs (`E.vlogs`) only to the
+acknowledgements' histories, `klOkD` gives the term's winner without its log, `commitIn`/`isCommitted`
+only bound `S`'s committed prefix. With `isLeader γ id S.term` nothing says `S`'s full log reaches the
+last entry of `F0` (`isCamp γ id S.term F0`). So a campaign link has to be added to `durPers` (below).
+
+*The stated form is false.* `raftState γ id S ∗ isCommittedLogLb γ l ⊢ raftState γ id S ∗ □
+(snapshotLeader γ id S.term -∗ ⌜DurAgrees S l⌝)`, witness at `raftState`'s time: a leader commits
+entries of its own term before it persists them (raft v3.7: its own `MsgAppResp` waits in
+`msgsAfterAppend` until its storage append, `raft.go:855-863`, so two followers' acks commit an entry in
+a 3-voter cluster), and `node.run` steps those acks while a `Ready` is pending. Run: `id` campaigns at
+`T`; the `Ready` with hard-state term `T` and log `F0` is entered (`raftState γ id S`, `S.term = T`,
+`S`'s log `F0`); `id` wins, appends `e` at `n = |F0|+1`, sends the `MsgApp`s with the next `Ready`; the
+followers ack; `id` commits `e` before that `Ready` is entered. Now `isCommittedLogLb γ l` with
+`l[n-1] = e`, `raftState γ id S` still, `snapshotLeader γ id T`, and `S`'s log ends at `n-1`:
+`DurAgrees S l` is false. Leader completeness covers only entries committed at terms **below** `T`
+(`lc_core`'s `t < T`; for `t = T`, `cq_agree` compares two leader logs, and `S`'s is not one that
+contains the commit).
+
+*What the server's use has.* `rnReplayJob_of_history`'s `a0` was committed **before the restart**, and
+`rt` is a term this node leads **after** it, so `a0`'s certificates are at terms the node cannot lead
+any more. A sound pair of laws (to decide; not started):
+
+- (L1, at the witness) `raftState γ id S0 ∗ isCommittedLogLb γ l ⊢ |={E}=> raftState γ id S0 ∗
+  cmtBefore γ id S0.term l`, `cmtBefore` sealed and persistent: `l` is a prefix of a commit quorum's
+  log `cq γ t n G` (or within the bootstrap log), and every campaign of `id` existing now is at a term
+  `≤ S0.term` (the camp fragments are minted only at *enter*, so `ghostMapAuth γc ½ E.camps` bounds
+  them).
+- (L2) `cmtBefore γ id T0 l ∗ raftState γ id S ∗ snapshotLeader γ id S.term ∗ ⌜T0 < S.term⌝ ⊢
+  |={E}=> raftState γ id S ∗ ⌜DurAgrees S l⌝` (raft-side: `DurAgrees` is the server's, so restated over
+  `plogTermAt S.base S.ents`).
+
+L2's proof: `t < T` is `lc_core` plus `full_match`, given (i'); `t = T` is excluded by L1's campaign
+bound (`T`'s leader is `id`, `isLeader_unique`, whose campaign at `T > T0` did not exist at the
+witness); **`t > T` needs a new protocol lemma**: a commit quorum at `t` existing before `id`'s
+campaign at `T < t` excludes `id` winning `T` (a voter of both acked `(t, n)` before voting at `T`;
+its event history is sorted by term, `EvsOk`/`voteEv`), which no existing lemma states (`tbl_voter` and
+`lc_core` take `t < T` only). The server must also supply `T0 < rt` (its restart's durable term below
+the term it leads after the restart): a third fact, or L1's campaign bound read with a
+`snapshotLeader` obtained later.
+
+(i') The campaign link: a `durPers` conjunct `∀ F0 k, E.camps !! S.term = some (F0, k) → F0 <+: fp ++
+S.ents` (or: `S`'s full log has `F0`'s last entry), kept by every *enter* (`cut_durPers`,
+`Protocol/Enter.lean`: the cut's log is the node's in-memory log, which for a candidate or leader of
+its term extends its campaign log, a volatile-side fact to find in `ownRaftGhost` or add), by
+`durPers_rebase`, the restart (`raft_restart`) and the allocation (`RaftState.init`).
+
+*Estimate.* (i') a few hundred lines in `Protocol/GhostState.lean`/`Enter.lean` (one `durPers`
+conjunct reaches every proof that rebuilds `durPers`), the `t > T` lemma a few hundred in
+`Protocol/LeaderCompleteness.lean`, L1/L2 with sealing in a defs module beside `InvNode` (as
+`DurableLogView.lean`), plus the interface, RaftTla copies and RaftNoAx copies. Needs a decision on
+the form (L1/L2, and how the server gets `T0 < rt`) before writing it.
+
+Checkpoint 2026-11-24: leader-completeness law stopped at the design (above); no Lean changed; last
+green build still `fec7d8cf82`.
