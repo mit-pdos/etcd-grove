@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.crypto.sha1
+public import Perennial.GeneratedProof.encoding.binary
 public import GeneratedProof.encoding.json
 public import Perennial.GeneratedProof.errors
 public import GeneratedProof.github_com.Masterminds.semver.v3

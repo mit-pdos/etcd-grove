@@ -14702,6 +14702,8 @@ one index") is gone with the single deposit.
 
 ## D26: the bridge is part of the network: trust-boundary specs, its code not verified (2026-10-21 · decided by the user; `notes/client-cut-plan.md` K1)
 
+*Superseded in part* (2026-11-24): `bridge.New`'s spec also consumes `netAddrLeft a` ("`bridge.New` consumes what sets the bridged address's protocols", below).
+
 **Problem.** linkv3p's clients reach their members through a copy of etcd's test bridge
 (`third_party/bridge`): a TCP proxy that accepts at a bridge address `a`, dials the member's client
 address `b` once per accepted connection, and copies bytes both ways, or drops them (`Blackhole`),
@@ -42329,4 +42331,20 @@ connection could otherwise change the deadline the token records); a write deadl
 it, so `deadline_w_au` needs only `connIs`. `readDead` also covers a closed end (a counter per end,
 `c s`): a reader whose end may be closed by another thread has no exclusive knowledge that it is
 not, and `closed` is as sticky as EOF, so the witness says "reads nothing more" for either reason.
+
+## `bridge.New` consumes what sets the bridged address's protocols (2026-11-24 · the coordinator, trust-shrinking, the owner informed · branch `bridge-new-addrleft/2026-11-24`)
+
+**Problem.** D26's `bridge.New` took only the listener (`netListenerAt l a`). Since phase 7 S2's interface,
+`net.Listen` also returns `netAddrLeft a`, from which a program sets `a`'s protocols itself (`addr_set_proto_tok`;
+`grpc.start'` sets a grpc table that way). So a program could listen at `a`, give `a` a grpc table of its choosing,
+and bridge `a` to a server that meets none of its specs; a client axiom over the table then proves a false result.
+Found against etcd-dist's interim `Client_Get_dist` (review 4 of `notes/putget-dist-plan.md` §12; Go: a `Get` through
+the bridge returns a value the real store lacks, and the program's check panics, 5/5 runs).
+
+**Choice.** `New` also consumes `netAddrLeft a`: a bridged address's protocols are its target's, so the program that
+bridges `a` keeps nothing to set them with. Trust-shrinking (a stronger precondition of an axiom); its one caller,
+`cluster3.StartBridge`, passes `Listen`'s `netAddrLeft`, its own spec unchanged. A second review found the hole on
+`lean` itself, with no interim axiom: the table set to etcd's own KV entries at fabricated read names, and the proved
+`client_Get_own` (over `grpc.ClientConn.Invoke`) promises a value the real store lacks (`examples/axiomcx/bridgeinvoke/`);
+with the fix it found no route (`notes/axiom-review/bridge-addrleft.md`).
 

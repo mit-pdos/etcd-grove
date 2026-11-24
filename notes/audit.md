@@ -666,3 +666,10 @@ The remaining baseline and the two generated admissions have not been discharged
 | axiom | verdict | reason |
 |---|---|---|
 | `slices.Concat.wp_proof` (`Proof/slices/Concat.lean`) | **false**; **fixed** (`fix-slices-concat/2026-11-22`) | No premise, but Go sums the lengths and panics ("len out of range") once the sum overflows `int`, before `Grow`; aliased inputs reach it (`examples/premisefix/concatlen`). Now takes `(xss.map List.length).sum < 2 ^ 63` (exact: Go's check fires iff the total is `≥ 2 ^ 63`), the string instance of PR #670's theorem. `collectReasonsAndErrors` discharges it through `Dec.depth` (ledger 2026-11-22). |
+
+### `bridge.New` and `netAddrLeft` (2026-11-24; review `notes/axiom-review/bridge-addrleft.md`; Go: `examples/axiomcx/bridgeaddrleft/`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `bridge.New.wp_proof` (D26) | **false before 2026-11-24**, with `grpc.ClientConn.Invoke.wp_proof` alone (the proved `client_Get_own`, `examples/axiomcx/bridgeinvoke/`) and with etcd-dist's interim `Client_Get_dist`; **fixed**: its precondition also consumes `netAddrLeft a` | A program listened at `a`, set `a`'s grpc table from `net.Listen`'s `netAddrLeft a` (`addr_set_proto_tok`) and bridged `a` to a server meeting none of the table's specs (`TestMainPanics`). With the fix the bridging program has spent what sets `a`'s protocols. |
+

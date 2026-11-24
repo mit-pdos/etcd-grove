@@ -1,5 +1,6 @@
 /-
-`hashStorage.Store` (`hash.go`): the trust boundary.
+`hashStorage.Store` (`hash.go`): proved (sortslice, 2026-11-24) over the fork's `slices.SortFunc`;
+until then the trust boundary.
 -/
 module
 
@@ -23,7 +24,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `hs.Store(hash)` of a hash storage with a logger (`hashStorageOk`: `Store` logs first, a nil
-logger panics; audit B4b, 2026-10-18) returns (the stored hashes are not modelled). -/
+logger panics; audit B4b, 2026-10-18) and `hashMu`'s guard over the stored hashes returns (their
+contents are not tracked by the spec). -/
 abbrev mvcc.hashStorage.Store.spec : Prop :=
   ∀ (hp : Loc) (h : KeyValueHash),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.hashStorageOk hp }}
