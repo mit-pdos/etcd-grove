@@ -11,7 +11,7 @@ takes it (`echo_outcome_*`).
 -/
 module
 
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Codec
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.CodecProof
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.check
 
 @[expose] public section
@@ -58,7 +58,7 @@ def echoTheta (pr : Loc) (id : w64) (data : List w8) (fail : GoString) (rep : Li
 /-- The request's encoding carries `echoSpec`'s deposit (the id's token). -/
 theorem echo_enc (L : CodecLaws (GF := GF)) (γid : GName) (pa : Loc) (id : w64) (dsl : GoSlice)
     (data : List w8) (fail : GoString) (hlen : data.length ≤ 64) (hfail : fail = [] ∨ fail ∈ failList) :
-    pa ↦ service.Args.mk id dsl fail ∗ dsl ↦* data ∗ idTok γid id ⊢
+    (pa ↦ service.Args.mk id dsl fail ∗ dsl ↦* data ∗ idTok γid id : IProp GF) ⊢
       drvCodec.enc (ptrIface service.Args.ty pa) (fun bs => iprop(⌜bs.length ≤ net.rpc.maxFrameN⌝ ∗
         echoSvc γid go!"Echo" bs (echoPhi id data fail) ∗ echoRargs pa id dsl data fail)) := by
   iintro ⟨Ha, Hd, Htok⟩
@@ -72,13 +72,19 @@ theorem echo_enc (L : CodecLaws (GF := GF)) (γid : GName) (pa : Loc) (id : w64)
       · simp
       · simp only [failList, List.mem_cons, List.not_mem_nil, or_false] at h
         rcases h with rfl | rfl | rfl <;> decide
-    simp only [encArgs, tagged, strct, fU64, fBytes, fStr, fld, encStr, encBytes,
-      List.flatten_cons, List.flatten_nil, List.length_append, List.length_cons, List.append_nil,
-      u64Le_length, net.rpc.maxFrameN, tArgs]
-    have hm : ((data.map (fun b => u64Le (W64 (uint.Z b)))).flatten).length = 8 * data.length := by
-      rw [List.length_flatten]
-      simp [u64Le_length, List.sum_replicate]
-    split <;> split <;> split <;> simp_all <;> omega
+    have hm := len_flatten_encU8 data
+    have hfs : (fStr fail).length ≤ 1 + (8 + fail.length) := by
+      unfold fStr fld encStr; split <;> simp [u64Le_length] <;> omega
+    have hfb : (fBytes data).length ≤ 1 + (8 + 8 * data.length) := by
+      unfold fBytes fld; rw [encBytes_eq]; split <;> simp [u64Le_length, hm] <;> omega
+    have hfi : (fU64 id).length ≤ 9 := by
+      unfold fU64 fld; split <;> simp [u64Le_length] <;> omega
+    simp only [encArgs, tagged, strct, encStr, List.flatten_cons, List.flatten_nil,
+      List.length_append, List.length_cons, List.append_nil, u64Le_length, net.rpc.maxFrameN, tArgs,
+      List.length_nil]
+    have : (go!"github.com/mit-pdos/etcd-grove/examples/net/rpcdriver/service.Args").length ≤ 100 := by
+      decide
+    omega
   isplitr [Ha Hd]
   · unfold echoSvc
     simp only [↓reduceIte]
