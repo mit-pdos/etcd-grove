@@ -38,10 +38,10 @@ and the start's net protocol names `π`):
   of the real library in its docstring;
 * the package initializers without a proof here (`InitHyp`, `etc/dsv/README.md`): net/rpc's,
   net/http's, encoding/gob's, os/signal's, google/uuid's (encoding/json's is the main tree's proved
-  `wp_initialize'`, math/rand's Perennial's since math-rand-isinit, 2026-11-24);
+  `wp_initialize'`, math/rand's is Perennial's);
 * the library specs (`SwiftHyps`, `Hyps.lean`: gob, bufio's lab lemmas, uuid's `ID`;
   `math.rand.Hyps`, dsv-rabia's `math/rand` specs of `NewSource`/`New`/`Rand.Intn`; the
-  package-level `Intn` is Perennial's proved spec since math-rand-isinit), the environment (`os.signal.NoSignals usr1Sigs`,
+  package-level `Intn` is Perennial's proved spec), the environment (`os.signal.NoSignals usr1Sigs`,
   dsv-rabia's class at SIGUSR1: no SIGUSR1 is sent; `SwiftOsRandom`: the OS's randomness does not
   fail, uuid's `New`);
 * net/rpc over HTTP (`lib/RpcHttpHyps.lean`; Net's `models-rpc-http`, not landed, named after its

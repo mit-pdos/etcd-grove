@@ -16,11 +16,11 @@ this says porcupine accepts every history, under every fault the net extension a
 machine's heap `heapAt G L`, or for the global ghost state `G`; notes/dsv-quepaxa.md, "Hypotheses"):
 * the initializers of the libraries with no translation or model here (`InitHyp`: yaml.v2, go-redis
   v8, io/ioutil, encoding/gob, grpc, grpc/codes: each runs without panicking; math/rand's is
-  Perennial's proved `wp_initialize'` since math-rand-isinit, 2026-11-24);
+  Perennial's proved `wp_initialize'`);
 * `qv : hyp.QpVocab remoteGF`, the abstract vocabulary of the gRPC and `sync.Map` hypotheses (any:
   the premises below are about it);
 * protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages (`hyp.PbHyp`), math/rand's `Seed`
-  (`hyp.RandHyp`; the package-level `Intn` is Perennial's proved spec since math-rand-isinit), `time.Time.UTC` (`hyp.UtcHyp`), `sort.Ints`
+  (`hyp.RandHyp`; the package-level `Intn` is Perennial's proved spec), `time.Time.UTC` (`hyp.UtcHyp`), `sort.Ints`
   (`hyp.SortHyp`), `fmt.Println` (`hyp.PrintlnHyp`), gRPC's unary path over `qv.grpc` and the codec
   `hyp.qpCodec` (`hyp.grpc.GrpcHyp`, for every heap and every protocol registry `NetProtoGS`), a gRPC
   world's registry can be allocated (`hyp.grpc.GrpcWorldHyp`, over the global ghost state), and
