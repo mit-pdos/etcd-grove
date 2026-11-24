@@ -700,11 +700,9 @@ underlying`: `uid`, the UDP extension's socket id; `laddr`; `net`), and its own 
 methods a program over UDP calls: `ListenUDP`, `WriteToUDP`, `ReadFromUDP`. Its other methods have
 no model, so a program calling one is stuck (U12): `ReadFrom`, `WriteTo`, `ReadMsgUDP`, ...; and
 `conn`'s methods, promoted to `*UDPConn` (`Close`, `Read`, `Write`, the deadlines, `LocalAddr`,
-...), which goose resolves through the embedded field `conn` (`UDPConn.TypeAssumptions.
-ptr_Close_unfold`) that this layout does not have: the field's address is uninterpreted (not a
-plain type, outside the layout's typed points-to), so `conn`'s models' first load there has no proof
-and a call of one is an unprovable path, never TCP's model acting on a UDP socket
-(`notes/net-udp.md`). A program over UDP keeps its socket until its process ends (U7: the kernel
+...): the translation emits no unfold of them for this trusted type (`UDPConn.TypeAssumptions` has
+only `ptr_ReadFromUDP_unfold` and `ptr_WriteToUDP_unfold`), so a call of one has no step: an
+unprovable path, never TCP's model acting on a UDP socket (`notes/net-udp.md`). A program over UDP keeps its socket until its process ends (U7: the kernel
 closes it). Only the network `"udp4"` is modeled (an IPv4 socket, `AF_INET`: Go's
 `favoriteAddrFamily` for `"udp4"`); any other panics. Errors (U9) are Go's `*OpError`s, `Net` the
 socket's network, `Err` an `*os.SyscallError` with an arbitrary nonzero `Errno` for `sys` (`model.udpSysErr`, the extension's
@@ -764,8 +762,10 @@ noncomputable def model.udpErr : val :=
 (`AF_INET`, `SOCK_DGRAM`) and `bind(2)` to `laddr`: the extension's `"Listen"` of `laddr`'s `IP` and
 `Port` (a panic unless they make a valid address, U1). A `*UDPConn` with the socket's id, a new
 local address and the network; an error is `&OpError{Op: "listen", Net: network, Source: nil,
-Addr: laddr, Err: <the system call's error>}` with a nil `*UDPConn` (the failing call's name
-arbitrary: `"socket"`, `"setsockopt"`, `"bind"`). A `nil` `laddr` (Go: a wildcard address with a
+Addr: laddr, Err: e}` with a nil `*UDPConn`, `e` the system call's error (an `*os.SyscallError`, the
+failing call's name arbitrary: `"socket"`, `"setsockopt"`, `"bind"`), or a bare nonzero
+`syscall.Errno`: `listenDatagram` returns `fd.init()`'s error unwrapped (`sock_posix.go`), the
+`ENOMEM`/`ENOSPC` of registering the socket with epoll (the review's finding 3). A `nil` `laddr` (Go: a wildcard address with a
 port the kernel picks) and any network but `"udp4"`: a panic of the model (not modeled, U12). -/
 noncomputable def ListenUDP.impl : val :=
   λ: "network" "laddr",
@@ -783,7 +783,9 @@ noncomputable def ListenUDP.impl : val :=
         ("c", #GoInterface.nil)
       else (#(null : Loc), model.opError #(go!"listen") "network" #GoInterface.nil
         (Convert (go.PointerType model.UDPAddr) model.Addr "laddr")
-        (model.udpKindErr (Snd "r") (ExternalOp Udp.udpExt.name "AnyString" #())))
+        (if: ExternalOp Udp.udpExt.name "AnyBool" #() then
+          Convert model.Errno go.error (ExternalOp Udp.udpExt.name "AnyErrno" #())
+        else model.udpKindErr (Snd "r") (ExternalOp Udp.udpExt.name "AnyString" #())))
     else Panic "net: ListenUDP of a network but udp4 not modelled"
 
 /-- U2, U3. `(*UDPConn).WriteToUDP(b []byte, addr *UDPAddr) (int, error)` (`udpsock.go`,
@@ -809,9 +811,10 @@ noncomputable def UDPConn.WriteToUDP.impl : val :=
 /-- U4. `(*UDPConn).ReadFromUDP(b []byte) (int, *UDPAddr, error)` (`udpsock.go`'s
 `readFromUDP`, `udpsock_posix.go`'s `readFrom`, `poll.FD.ReadFromInet4`): one `recvfrom(2)`,
 waiting for a datagram: the extension's `"Recv"` of `len(b)`, the bytes copied into `b`. `(n,
-addr, nil)` with `addr` a new `*UDPAddr` (the sender's in Go; arbitrary here, U10); or `(0, addr,
-&OpError{Op: "read", Net, Source: laddr, Addr: nil, Err})` (Go returns its non-nil, zero `addr`
-then: arbitrary here too), `Err` the kind's (`"recvfrom"` for a system call's). A zero `UDPConn`:
+addr, nil)` with `addr` a new `*UDPAddr` (the sender's in Go; arbitrary here, U10); or `(0, nil,
+&OpError{Op: "read", Net, Source: laddr, Addr: nil, Err})`, the `*UDPAddr` nil (Go's `readFrom`
+sets `addr = nil` on an error, `udpsock_posix.go`; reachable, e.g. a socket aborted by `ss -K`: the
+review's finding 1), `Err` the kind's (`"recvfrom"` for a system call's). A zero `UDPConn`:
 `0`, `nil`, `syscall.EINVAL`. -/
 noncomputable def UDPConn.ReadFromUDP.impl : val :=
   λ: "c" "b",
@@ -823,7 +826,7 @@ noncomputable def UDPConn.ReadFromUDP.impl : val :=
       ((FuncResolve go.copy [go.GoType.SliceType go.byte]) #() "b"
         (Convert go.string (go.GoType.SliceType go.byte) (Fst "r")), model.anyUDPAddr #(),
         #GoInterface.nil)
-    else (#(W64 0), model.anyUDPAddr #(),
+    else (#(W64 0), #(null : Loc),
       model.udpErr #(go!"read") "c" #GoInterface.nil (Snd "r") #(go!"recvfrom"))
 
 /-- No type of `net` is named `_`: goose takes every trusted name for a possible type too, and the

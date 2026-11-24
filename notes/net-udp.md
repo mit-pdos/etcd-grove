@@ -39,18 +39,12 @@ program over UDP keeps its socket for its process's life (the kernel closes it a
 U7). Modeling `Close` would need `conn.Close`'s TCP model to dispatch on the network: an edit of
 the TCP models, left for when a program needs it.
 
-**`Close` is an unprovable path, not a no-op and not TCP's `Close`.** Goose emits
-`UDPConn.TypeAssumptions.ptr_Close_unfold`: `(*UDPConn).Close` is `λ r. MethodResolve (*conn)
-"Close" (StructFieldRef UDPConn.ty "conn" r)` (Go's promotion through the embedded field). The
-`StructFieldRef` steps to the address `structFieldRef UDPConn "conn" c`, which the semantics leaves
-uninterpreted: `UDPConn` is not a plain type (it holds an interface and a string), so no offset
-axiom (`structFieldRef_plain`, `Perennial/Golang/Defn/Plain.lean`) applies, and the typed points-to
-of the trusted layout covers only its fields `uid`, `laddr`, `net`. TCP's `conn.Close.impl` then
-starts with a load of `id` at `structFieldRef conn "id"` of that address, for which no proof can own
-a points-to (the theorems hold for every interpretation of `structFieldRef`). So a WP of a `Close`
-call cannot be proved: a program over UDP that calls `Close` has no proof, whatever it relies on.
-The same holds for every other promoted `conn` method (`Read`, `Write`, the deadlines,
-`LocalAddr`, ...).
+**`Close` is an unprovable path, not a no-op and not TCP's `Close`.** With `UDPConn` trusted and
+`UDPConn.Close` not listed, goose emits no unfold of the promoted `conn` methods for it
+(`UDPConn.TypeAssumptions` has only `ptr_ReadFromUDP_unfold` and `ptr_WriteToUDP_unfold`; an earlier
+regeneration, with `UDPConn.Close` listed as trusted, had emitted `ptr_Close_unfold` through the
+embedded field, and was dropped). So a call of `Close`, `Read`, `Write`, the deadlines, `LocalAddr`
+on a `*UDPConn` has no step: no WP of it can be proved, whatever the program relies on.
 
 **The network is the datagrams sent to each address, never consumed** (as Perennial's Grove
 extension, `GroveGlobalState.groveNet`, Perennial's model of a datagram network since the Rocq
@@ -63,13 +57,15 @@ which in a model without time is every datagram sent (a duplicate may come arbit
 delays duplicates independently).
 
 **Integrity of small datagrams; any bytes for large ones.** A datagram whose payload is at most
-1472 bytes (an MTU of 1500, minus the IPv4 and UDP headers) arrives byte for byte as sent: it is
-never fragmented by IP on the target configuration (every interface's MTU is at least 1500), the
+524 bytes (Linux's floor on a path MTU, `net.ipv4.route.min_pmtu` = 552, minus the IPv4 and UDP
+headers) arrives byte for byte as sent: it is never fragmented by IP, whatever ICMP "fragmentation
+needed" message lowers the path MTU (the review found that 1472, argued from the interface MTU of
+1500, is refuted by one forged ICMP message), the
 links of the configuration (veth, loopback) do not corrupt, and the UDP checksum (always computed
 by Linux for IPv4) guards a real link. A larger datagram is fragmented by IP (or refused with
 `EMSGSIZE`); fragments of distinct datagrams can be misassembled (RFC 4963), so the model lets a
 large send deliver any bytes, of any length, to its destination. A program that wants integrity
-sends at most 1472 bytes per datagram (the raft transport sends fragments of at most 1200).
+sends at most 524 bytes per datagram (the raft transport's datagrams are at most 524 bytes).
 
 **Addresses** are the TCP extension's valid strings (`addrOk`, D20: canonical IPv4 unicast
 `a.b.c.d:p`, the port outside the ephemeral range), reused as they are (one audited definition). The

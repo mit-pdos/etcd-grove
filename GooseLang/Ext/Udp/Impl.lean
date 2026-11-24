@@ -54,15 +54,21 @@ ephemeral range). Any other address panics (U13): a use the deployment excludes 
   stutter). A send to an address no socket is bound to succeeds as any other (Linux sends it and
   the destination drops it; an ICMP error is not reported to an unconnected socket, and would be a
   `sys` failure, which the model allows anyway).
-* U3 `Intact bs d` (integrity): a payload of at most `intactMax = 1472` bytes is delivered byte for
-  byte (`d = bs`); a larger one may be delivered as any bytes. Why: 1472 is an MTU of 1500 less the
-  IPv4 (20) and UDP (8) headers; every interface of the target configuration (veth, loopback,
-  Ethernet) has an MTU of at least 1500, so such a datagram is one IP packet, never fragmented; the
-  links do not corrupt it (veth and loopback copy memory; no `netem corrupt`), and Linux always
+* U3 `Intact bs d` (integrity): a payload of at most `intactMax = 524` bytes is delivered byte for
+  byte (`d = bs`); a larger one may be delivered as any bytes. Why: what decides IP fragmentation is
+  the path MTU, which an ICMP "fragmentation needed" message (from anywhere: no closed-world
+  assumption excludes it) can lower, but never below Linux's floor `net.ipv4.route.min_pmtu`, 552 by
+  default (a smaller MTU is clamped to it, `mtu lock 552`); 524 is 552 less the IPv4 (20) and UDP (8)
+  headers, so such a datagram is one IP packet, never fragmented, whatever ICMP arrives
+  (`TestUDPNetnsPmtuFloor`: a forged MTU of 68 leaves 524 bytes whole and fragments 525). The links
+  do not corrupt a packet (veth and loopback copy memory; no `netem corrupt`), and Linux always
   computes the UDP checksum of an IPv4 datagram, which a real link's corruption would have to pass.
-  A larger datagram is fragmented by IP (or refused, `EMSGSIZE`), and fragments of distinct
-  datagrams with one IP id may be reassembled together (RFC 4963), with a checksum that matches
-  with probability 2^-16: so any bytes, of any length.
+  A larger datagram may be fragmented by IP (at the interface MTU, 1500 in the target
+  configuration, or at a path MTU an ICMP message lowered; or refused, `EMSGSIZE`), and fragments of
+  distinct datagrams with one IP id may be reassembled together (RFC 4963), with a checksum that
+  matches with probability 2^-16: so any bytes, of any length. (Until the review of 2026-11-24 this
+  was 1472, argued from the interface MTU alone: refuted by a forged ICMP message, the review's
+  finding 2.)
 * U4 `"Recv"` of at most `n` bytes at the socket `s` (Go's `ReadFromUDP(b)`, `n = len(b)`, one
   `recvfrom(2)`): the first `min n |d|` bytes of a datagram
   `d` sent to the socket's address (Linux copies what fits and discards the rest of the datagram;
@@ -92,14 +98,29 @@ ephemeral range). Any other address panics (U13): a use the deployment excludes 
   an unknown operation.
 
 **The deployment** (D13 of the TCP extension, for UDP). *Valid addresses* as above. *A closed
-world* (stated in prose only): no process other than the deployment's nodes, on any machine, sends a
-datagram to an address a node's socket is bound to (an outside sender would add datagrams no node
-sent). *The target configuration*: Linux 7.0 with its default sysctls and every interface's MTU at
-least 1500, no `netem corrupt`, Go 1.27.3, measured in `examples/net/semantics/`.
+world* (stated in prose only): no sender other than the deployment's nodes (no process and no kernel
+sender: netconsole, a UDP tunnel), on any machine, sends a datagram to an address a node's socket is
+bound to (an outside sender would add datagrams no node sent), and none was sent before the
+deployment started (nothing queued in a qdisc from an earlier run with the same addresses); no
+packet filter or routing rule rewrites a datagram's destination (NAT, `REDIRECT`, `TPROXY`, policy
+routing), so delivery is by the destination address as sent; no process outside the deployment acts
+on a node's sockets (`ss -K`, `pidfd_getfd`: their effects are `sys` failures, which the model
+allows anyway). *The target configuration*: Linux 7.0 with its default sysctls (among them
+`net.ipv4.route.min_pmtu` = 552, U3), no `netem corrupt`, Go 1.27.3, measured in
+`examples/net/semantics/`. The no-corruption assumption also covers the bytes of the receive buffer
+beyond the count a receive returns: Linux's `udp_recvmsg` copies a datagram whose checksum fails into
+the buffer before dropping it and retrying (`csum_copy_err`), which the specs' "the rest of `b` is
+unchanged" would not survive; with no corruption no checksum fails.
+
+**Known limitation** (as the TCP extension's, the review's finding 4): Go's `fdMutex` panics ("too
+many concurrent operations on a single file or socket") when more than 1048575 calls wait for one
+socket's read or write lock; the model lets them wait. A program with more than 2^20 goroutines
+blocked on one socket can panic in Go where the model says it cannot.
 
 **What is not modeled** (U12): `Close` and every other method of `conn` promoted to `*UDPConn`
-(goose resolves them through the embedded `conn`, which the model's `UDPConn` does not have; Go's
-`Close`, which a program over UDP need not call: its process's end closes the socket, U7), deadlines on a `UDPConn`, connected UDP sockets (`DialUDP`, `Read`,
+(the translation has no unfold of them for the trusted `UDPConn`, `UDPConn.TypeAssumptions` lists
+only `ReadFromUDP` and `WriteToUDP`, so a call is stuck; Go's `Close`, which a program over UDP need
+not call: its process's end closes the socket, U7), deadlines on a `UDPConn`, connected UDP sockets (`DialUDP`, `Read`,
 `Write`), `ListenPacket`, wildcard and IPv6 addresses, the networks `"udp"` and `"udp6"`,
 broadcast, multicast, `ReadMsgUDP`/`WriteMsgUDP`, socket options and buffer sizes, `LocalAddr`,
 `RemoteAddr`. Their methods have no model, so a program calling one is stuck (no proof).
@@ -186,7 +207,7 @@ def ValidDest (ip : List w8) (port : w64) (a : GoString) : Prop :=
 /-! ## Outcomes -/
 
 /-- U3. The payload at most this long is delivered intact. -/
-def intactMax : Nat := 1472
+def intactMax : Nat := 524
 
 /-- U3. A datagram `d` the network may deliver for a send of the bytes `bs`. -/
 def Intact (bs d : List w8) : Prop := bs.length ≤ intactMax → d = bs
