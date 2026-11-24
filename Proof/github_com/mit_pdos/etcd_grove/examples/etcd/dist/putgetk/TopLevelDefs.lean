@@ -71,7 +71,7 @@ variable [GoGlobalContext]
 
 /-- **The Go slice literal `[]string{l₀, …, lₙ}`** (goose's translation of a composite literal of
 `[]string` whose elements are the constant strings `l`: a new slice of them). -/
-def strSliceLit [GooseExts] (l : List GoString) : Expr :=
+def strSliceLit [GooseExts] [GoGlobalContext] (l : List GoString) : Expr :=
   App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string))))
     (LiteralValue (l.map (fun s => KeyedElement none (ElementExpression go.string (Val #s)))))
 

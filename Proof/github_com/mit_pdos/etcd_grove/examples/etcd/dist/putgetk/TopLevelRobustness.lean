@@ -67,7 +67,7 @@ def PutgetKBoot : Prop :=
           [∗list] i ↦ _m ∈ system σs σc, Ps i
 
 /-- Every machine of the system starts with its files as on disk (`MemberFiles`, `ClientFiles`). -/
-theorem system_fsInit [GoGlobalContext] {σs : List state} {σc : state}
+theorem system_fsInit [GoGlobalContext] [GoSemanticsFunctions] {σs : List state} {σc : state}
     (Hm : ∀ (i : Nat) (σ : state), σs[i]? = some σ → MemberFiles i σ) (Hc : ClientFiles σc)
     (m : Expr × state) (hm : m ∈ system σs σc) : Fs.FsInit (extLocal Fs.fsExt m.2.world) := by
   simp only [system, List.mem_append, List.mem_singleton] at hm
