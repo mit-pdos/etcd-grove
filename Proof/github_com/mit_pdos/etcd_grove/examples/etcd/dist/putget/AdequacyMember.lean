@@ -90,8 +90,6 @@ def putgetRegKeys : List w64 :=
    0x1de4f1c3b13fe482, 0xe4ccc50c7daf4c9c, 0x9b8a677c6e6c1ef8, 0x7133d22463246355,
    0xaa607cdd4f5c0a9a, 0xb0bfadd1258d120e, 0xe5bc0e939f7dd45d, 0x35c8acd42298ce6b]
 
-/-- **The registering packages' IDs can have their rights** (prom-registry, route (b)): decided by the
-kernel once, over the IDs as literals (`mvccfull_regQsOk`). -/
 /-- A valid address is within etcd's URL bounds (`etcdstart.addrFits`, `Member.spec`'s premise): `http://`
 and it is a plain peer URL (`etcd_dist.addrOk_plainPeerURL`) of at most `7 + 21` bytes
 (`etcd_dist.addrOk_length_le`). -/
@@ -102,6 +100,8 @@ theorem addrOk_addrFits {a : GoString} (h : Net.addrOk a = true) : etcdstart.add
   have : (go!"http://").length = 7 := rfl
   omega
 
+/-- **The registering packages' IDs can have their rights** (prom-registry, route (b)): decided by the
+kernel once, over the IDs as literals (`mvccfull_regQsOk`). -/
 theorem putget_regQsOk :
     prometheus.regQsOk github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.regQs :=
   prometheus.regQsOk_of_keys _ putgetRegKeys (by decide +kernel) (by decide +kernel) (by decide +kernel)

@@ -242,7 +242,7 @@ theorem wf_internal_oserror {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_syscall {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.syscall G :=
-  And.intro h.e_syscall ⟨wf_sync h, wf_errors h, wf_internal_oserror h, True.intro⟩
+  And.intro h.e_syscall ⟨wf_sync h, wf_errors h, wf_internal_strconv h, wf_internal_oserror h, True.intro⟩
 
 theorem wf_io_fs {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.io.fs G :=
@@ -590,7 +590,7 @@ theorem wfO_internal_oserror {G : GoString → IProp GF} (h : KitG G) (S : List 
 theorem wfO_syscall {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.syscall (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.syscall ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_syscall) ⟨wfO_sync h S hS, wfO_errors h S hS, wfO_internal_oserror h S hS, True.intro⟩
+    h.e_syscall) ⟨wfO_sync h S hS, wfO_errors h S hS, wfO_internal_strconv h S hS, wfO_internal_oserror h S hS, True.intro⟩
 
 theorem wfO_io_fs {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.io.fs (gOff S G) :=
