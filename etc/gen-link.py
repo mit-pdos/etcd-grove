@@ -72,6 +72,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
        etc/gen-link.py --tracecheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link.lean
        etc/gen-link.py --antcheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Link.lean
+       etc/gen-link.py --antithesis > Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
        etc/gen-link.py --kvnet > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Link.lean
@@ -203,6 +204,10 @@ and `Result.TLCOK`'s results from it.
 `--antcheck` links the proofs of Antithesis's model's checker (`examples/raft/antithesis/check`,
 #33 S3b, `notes/antithesis-check-design.md` §10), from etc/link-lean-first-antcheck.txt: every
 callee is in the package.
+`--antithesis` links the Antithesis harness's proofs (`examples/raft/antithesis`, #33 S4,
+`notes/antithesis-s4-design.md`), from etc/link-lean-first-antithesis.txt: the checker's results
+(`@`, `--antcheck`'s Link), raft's storage and getters (`@`), Perennial's `sync`, `time` and
+`strconv` (`=`); a function not proved yet is pending (`?`).
 `--raft-witness` and `--kvwitness` link the same in the parallel tree `RaftWitness/` (raft's
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
@@ -616,6 +621,14 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions",
                    "The proofs of the checker of Antithesis's model of raft (`examples/raft/antithesis/"
                    "check`, the Go transcription of `EtcdRaft.tla` and `EtcdBinding.tla`)", [""]),
+    # the Antithesis harness (examples/raft/antithesis, #33 S4): over the checker's results, raft's
+    # and Perennial's
+    "--antithesis": ("link-lean-first-antithesis.txt",
+                     "github_com.mit_pdos.etcd_grove.examples.raft.antithesis",
+                     "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions",
+                     "The Antithesis harness's proofs (`examples/raft/antithesis`: three verified raft "
+                     "`RawNode`s run concurrently, their reports checked against Antithesis's model)",
+                     [""]),
 }
 # The GooseLang extensions a mode's specs assume (their binders, after the semantics variables): the
 # Linux file extension's specs are over any semantics of it with `FsSemOk`
@@ -748,6 +761,9 @@ EXTRA_IMPORTS.setdefault("--linkv3p", []).append(
 # the checker of Antithesis's model: the budget laws (pure, defs modules) its proofs take (`=AntCheck.State.*`)
 EXTRA_IMPORTS["--antcheck"] = ["Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within." + m
                                for m in ["Combined", "GC", "ActionCfg", "Init0"]]
+# the Antithesis harness: Perennial's `sync`, `time` and `strconv` results (`=` callees)
+EXTRA_IMPORTS["--antithesis"] = ["Perennial.Proof.sync.Link", "Perennial.Proof.time.Link",
+                                 "Perennial.Proof.strconv.Link"]
 EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
                               "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
@@ -1272,6 +1288,16 @@ variable [sem : go.Semantics]
                 csrc = open(spec_file(c)).read()
             except Exception:
                 continue
+            # (2026-11-24, the Antithesis harness) an `@` callee whose result in its Link is at any
+            # `[StorageModel GF]` (raft's `MemoryStorage` methods: their specs do not name it, their
+            # proofs do), in a mode with no storage model of its own (`LOCAL_INSTANCES`)
+            if (c in external and sys.argv[1] not in LOCAL_INSTANCES
+                    and os.path.exists(os.path.join(root, *external_link(c).split(".")) + ".lean")
+                    and re.search(r"^theorem " + re.escape(result(c)) + r" \[StorageModel GF\]",
+                                  open(os.path.join(root, *external_link(c).split(".")) + ".lean").read(),
+                                  re.M)):
+                r = True
+                break
             if (not any(r in csrc for r in STOR_REGS)
                     and ("[StorageModel GF]" in csrc or needs_sm(c, depth + 1))):
                 r = True

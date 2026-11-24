@@ -1,0 +1,64 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Link.lean`
+# (the Antithesis harness, #33 S4, notes/antithesis-s4-design.md; all Lean-first, no Rocq
+# counterpart), read by `etc/gen-link.py --antithesis`: `<fn>: <callees in the order of
+# <fn>.wp_proof's hypotheses>`; `@`: linked in its package's `Link.lean` (the checker's, raft's);
+# `=term`: a term given as is (Perennial's `sync`, `time`, `strconv` results); `?`: specified, not
+# proved yet (a hypothesis of the results reaching it).
+#
+# Not listed yet: `Cluster.run`, whose proof takes `Cluster.drain`'s spec (pending) and raft's
+# `RawNode.{Tick,Step,Propose}.apiSpec`, which raft's Link does not link yet (their `wp_absProof`s,
+# `apiSpec_of_abs`); listed once raft links them.
+#
+# the checker (examples/raft/antithesis/check)
+check_Run: @
+check_SetOf: @
+# raft's storage and protobuf getters
+MemoryStorage__Entries: @
+MemoryStorage__FirstIndex: @
+MemoryStorage__InitialState: @
+MemoryStorage__LastIndex: @
+MemoryStorage__Snapshot: @
+MemoryStorage__Term: @
+raftpb_Entry__GetData: @
+raftpb_Entry__GetTerm: @
+raftpb_Entry__GetType: @
+raftpb_Message__GetCommit: @
+raftpb_Message__GetEntries: @
+raftpb_Message__GetFrom: @
+raftpb_Message__GetIndex: @
+raftpb_Message__GetLogTerm: @
+raftpb_Message__GetReject: @
+raftpb_Message__GetRejectHint: @
+raftpb_Message__GetTerm: @
+raftpb_Message__GetTo: @
+raftpb_Message__GetType: @
+raftpb_SnapshotMetadata__GetIndex: @
+raftpb_Snapshot__GetMetadata: @
+# the harness (examples/raft/antithesis)
+antithesis_Cluster__Events: antithesis_Recorder__Events
+antithesis_Cluster__Servers: antithesis_names check_SetOf
+antithesis_Cluster__deliver:
+antithesis_Cluster__isolate: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+antithesis_Cluster__isolatedNow: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+antithesis_Cluster__node:
+antithesis_Cluster__reportCause: antithesis_Recorder__record
+antithesis_Cluster__send: antithesis_Cluster__deliver antithesis_Cluster__node antithesis_Cluster__isolatedNow antithesis_below =_root_.Perennial.time.wp_Sleep raftpb_Message__GetType raftpb_Message__GetTo raftpb_Message__GetFrom =_root_.Perennial.sync.WaitGroup.wp_Add =_root_.Perennial.sync.WaitGroup.wp_Done
+antithesis_DefaultConfig:
+antithesis_Main: antithesis_DefaultConfig antithesis_RunCluster antithesis_Cluster__Servers antithesis_Cluster__Events check_Run
+antithesis_Name: =_root_.Perennial.strconv.wp_FormatUint
+antithesis_Recorder__Events: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+antithesis_Recorder__record: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+antithesis_RunCluster: ?
+antithesis_below:
+antithesis_bootStorage__Entries: MemoryStorage__Entries
+antithesis_bootStorage__FirstIndex: MemoryStorage__FirstIndex
+antithesis_bootStorage__InitialState: MemoryStorage__InitialState MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
+antithesis_bootStorage__LastIndex: MemoryStorage__LastIndex
+antithesis_bootStorage__Snapshot: MemoryStorage__Snapshot
+antithesis_bootStorage__Term: MemoryStorage__Term
+antithesis_entriesOf: antithesis_entryOf
+antithesis_entryOf: raftpb_Entry__GetType raftpb_Entry__GetData raftpb_Entry__GetTerm
+antithesis_msgOf: antithesis_msgType antithesis_Name antithesis_entriesOf raftpb_Message__GetIndex raftpb_Message__GetLogTerm raftpb_Message__GetType raftpb_Message__GetFrom raftpb_Message__GetTerm raftpb_Message__GetEntries raftpb_Message__GetCommit raftpb_Message__GetReject raftpb_Message__GetRejectHint
+antithesis_msgType:
+antithesis_names: antithesis_Name
+antithesis_roleOf:
