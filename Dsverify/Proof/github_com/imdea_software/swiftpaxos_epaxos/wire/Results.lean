@@ -43,6 +43,7 @@ public import Proof.bufio.NewReaderOk
 public import Proof.bufio.NewReaderSize
 public import Proof.bufio.NewWriter
 public import Proof.bufio.NewWriterSize
+public import Proof.bufio.NewWriterSizeRep
 
 @[expose] public section
 
@@ -103,7 +104,8 @@ theorem epBufioDeps_holds : EpBufioDeps GF where
   readOk := EtcdGrove.bufio.Reader.Read.wp_proofOk
   newReaderOk := EtcdGrove.bufio.NewReader.wp_proofOk
     (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE)
-  newWriter := EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof
+  newWriter := EtcdGrove.bufio.NewWriter.wp_proof
+    (EtcdGrove.bufio.NewWriterSize.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep)
 
 attribute [local instance] epBufioDeps_holds
 
