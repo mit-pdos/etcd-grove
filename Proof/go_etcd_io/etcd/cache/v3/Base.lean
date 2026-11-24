@@ -53,6 +53,19 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace go_etcd_io.etcd.cache.v3
 
+section grpcStatus
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- **`err` carries a gRPC status** (pure; grpc-trusted-T, T3, 2026-11-24): a non-nil error whose
+dynamic type has grpc's `GRPCStatus() *Status` method, so that `status.FromError` takes it as a status
+error (`ok = true`, given `statusErrOk`'s non-nil status: grpc v1.84.0 `status.go:96-127`). What a
+caller tells grpc's own errors apart by (the gRPC driver's `errOk`); `*status.Error` is such a type. -/
+def hasGRPCStatus (err : GoInterface) : Prop :=
+  ∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ methodSet e.ty !! go!"GRPCStatus" =
+    some (go.Signature [] false [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
+
+end grpcStatus
+
 section desc
 
 -- An error's description (D29): the per-run relation `descIs err m` below (errdesc stage 2b, 2026-11-21;
@@ -587,14 +600,6 @@ def statusErrOk (err : GoInterface) : IProp GF :=
 
 instance statusErrOk_persistent (err : GoInterface) : Persistent (statusErrOk (GF := GF) err) := by
   unfold statusErrOk; infer_instance
-
-/-- **`err` carries a gRPC status** (pure; grpc-trusted-T, T3, 2026-11-24): a non-nil error whose
-dynamic type has grpc's `GRPCStatus() *Status` method, so that `status.FromError` takes it as a status
-error (`ok = true`, given `statusErrOk`'s non-nil status: grpc v1.84.0 `status.go:96-127`). What a
-caller tells grpc's own errors apart by (the gRPC driver's `errOk`); `*status.Error` is such a type. -/
-def hasGRPCStatus (err : GoInterface) : Prop :=
-  ∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ methodSet e.ty !! go!"GRPCStatus" =
-    some (go.Signature [] false [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
 
 /-- **The gRPC status code of `err` is `c`** (persistent; errdesc stage 2a, 2026-11-20: until then the
 pure `statusCode err`): what `status.FromError(err).Code()` and `status.Code(err)` return. `nil`:
