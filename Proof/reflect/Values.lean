@@ -41,12 +41,9 @@ section vocab
 variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `v` is the addressable `reflect.Value` of the `T` at `p` (`Elem()` of the `Value` of a non-nil
-`*T`): it holds `any(p)` (a `*T`), and its flag is `T`'s kind with `flagIndir` (128) and `flagAddr`
-(256). Perennial's `reflect.reflElem` (`reflElem_iff`), over fewer instances. -/
-def reflElem (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : Prop :=
-  ∃ k : Nat, go.kindOf (underlying T) = some k ∧
-    v = _root_.Perennial.reflect.Value.mk (go.tok T) (interface.mkOk (go.PointerType T) #p)
-      (W64 k ||| W64 128 ||| W64 256)
+`*T`): Perennial's `reflect.reflElem`. -/
+abbrev reflElem (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : Prop :=
+  _root_.Perennial.reflect.reflElem v T p
 
 /-- `w` is the `reflect.Value` of the pointer `p : *T` (`reflect.ValueOf(any(p))`): Perennial's
 `reflect.reflPtr`. -/
@@ -94,9 +91,6 @@ opaque reflSliceV (w : _root_.Perennial.reflect.Value) (T : go.GoType) (s : GoSl
 points-to at each Lean type `V` that represents `T`. -/
 abbrev reflNew (T : go.GoType) (p : Loc) : IProp GF :=
   _root_.Perennial.reflect.reflNew (GF := GF) T p
-
-theorem reflElem_iff (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) :
-    reflElem v T p ↔ _root_.Perennial.reflect.reflElem (GF := GF) v T p := Iff.rfl
 
 /-- **`reflect.New`'s allocation is a zero value** of any Lean type representing `T`. -/
 theorem reflNew_pointsto (T : go.GoType) (p : Loc) {V : Type} [ZeroVal V]
