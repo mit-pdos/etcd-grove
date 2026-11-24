@@ -113,6 +113,11 @@ translate = ["!*",
   # (claim #34 stage 4, 2026-11-23) the snapshot directory's and the backend's bootstrap, over
   # `RemoveMatchFile`, `snap.New`, `OpenBackend` (its axiom), `CreateMetaBucket`
   "bootstrapSnapshot", "bootstrapBackend",
+  # (claim #34 stage 4, 2026-11-25) the WAL's and the raft record's bootstrap at a first start, over
+  # `wal.Create` (its no-error spec), `MustMarshalMessage`, the cluster's `MemberIDs`/`MemberByName`/
+  # `Member`, `json.Marshal`, `MemoryStorage` and `NewRaftLoggerZap`
+  "bootstrapStorage", "bootstrapNewWAL", "bootstrapRaft", "bootstrapRaftFromCluster", "raftConfig",
+  "maxSizePerMsg", "maxInflightMsgs",
   # the client lease (item 1, branch `lease-client`): v3_server.go's lease grant and revoke
   "EtcdServer.LeaseGrant", "EtcdServer.LeaseRevoke", "EtcdServer.requireAuthInfo",
   # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go); their

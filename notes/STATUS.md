@@ -26,6 +26,45 @@ that moved, so a reference `notes/STATUS.md, "..."` to one of them resolves ther
 record is `notes/decisions.md`; the Rocq development's notes are on branch `main`
 (`git show main:notes/STATUS.md`).
 
+## `bootstrap`'s stage 4: the WAL's and the raft record's callees (claim #34, 2026-11-25, branch `bootstrap-stage4/2026-11-25`)
+
+Translated with their bodies (`etcdserver.toml`): `bootstrapStorage`, `bootstrapNewWAL`, `bootstrapRaft`,
+`bootstrapRaftFromCluster`, `raftConfig` (and the constants `maxSizePerMsg`, `maxInflightMsgs`); the type
+`etcdserverpb.Metadata` (`etcdserverpb.toml`). Proved (server `Link.lean`): `bootstrapStorage`,
+`bootstrapNewWAL`, `bootstrapRaft`, `bootstrapRaftFromCluster`, `raftConfig`, `bootstrappedWAL.MemoryStorage`
+of a fresh WAL record (`specFresh`), `RaftCluster.ID` at a fraction (`specFrac`), `json.Marshal` of a
+`*Member` (`MarshalMemberPtr`, over the encoding/json model). `bootGo.memberJSON` is now the model's bytes
+(`membership.memberJson`, `memberJSON_eq`), and `MemberIDs()` is `bootGo.ps` (`bootGo.ids_eq_ps`).
+
+**Hypotheses left** (`?` in the server's `Link.lean`; no axiom, no trust change: `bootstrap` is not linked to
+a top-level result), each with what it needs in its spec file:
+- `wal.Create.specSrv` (#15, the WAL plan's L5): `Create` from `walAreaFresh` succeeds and opens the WAL.
+  Found: no spec of `Create` excludes its error (its error arms carry no `¬ FsNoErrOn` witness); `Create.spec`
+  gives `walOpenWF` without the fresh room `walOpenWS_alloc` needs under `walCov`; and `walAreaFresh` covers by
+  path only `dir` and below, not `dir.tmp` or the area `r`, which `Create.spec`'s `FsNoErrOn` premise names
+  (the slot's body must grow).
+- `pbutil.MustMarshalMessage.specMeta`: the WAL metadata's bytes (`walMetaEnc`); needs `etcdserverpb.Metadata`
+  registered as a protobuf type (`pbModelOf`, a trusted schema and encoder, as `walpb.Snapshot`'s).
+- `zap.Logger.Named`, `NewRaftLoggerZap` (`isLogger` of zap's sugared logger): names-only (zap's `Named`,
+  etcd's `zap_raft.go`, zap's `SugaredLogger`).
+- `RaftCluster.MemberIDs.specMem`, `MemberByName.specMem` (stage 2's functions, names-only) and
+  `Member.specMem` (needs a `Clone` spec giving the clone's values, not only its id).
+
+**Spec changes** (ledger, 2026-11-25): `bootstrapStorage.spec`/`bootstrap.spec` take `cfg.UnsafeNoFsync =
+false`; `bootstrapRaft.spec`/`bootstrap.spec` take `bootGo.idRaftOk` (this member's id is not one of raft's
+local targets) and `bootGo.urlsNe` (every initial-cluster entry has a peer URL); pure facts of each example's
+configuration, for the final stage.
+
+### `bootstrapContract` and `UnsafeNoFsync` (found 2026-11-25; not fixed)
+
+`bootstrapContract` (trusted, `InvBoot.lean`, a premise of `NewServer.spec` through `bootPremise`) covers
+`cfg.UnsafeNoFsync = true`, where `bootstrapNewWAL` sets the new WAL's `unsafeNoSync` and the open WAL of
+`bootOk`'s `Hwal` (`wal.bootOk`: its handle holds `unsafeNoSync ↦ false`) is not the WAL Go has: the contract
+is false of Go at such configurations (the examples' configurations set it false, so no conclusion is known
+wrong). The fix is a conjunct `cfg.UnsafeNoFsync' = false` of `bootCfgOk` (the examples' `bootCfgOk_of` proves
+it by `rfl`), for the owner with the final stage. Likewise `bootOk`'s `rnStartCfg` holds `ConfigValid`, false
+at an id raft refuses (`bootGo.idRaftOk`).
+
 ## Snapshot guard removal (2026-11-20)
 
 The server follows the elected sender and snapshot source through Raft's

@@ -48,9 +48,20 @@ error after `bootstrapBackend` (`bootstrapCluster`'s, `Finalize`'s) `bootstrap` 
 
 The thread and receipt bounds (`ThreadBoundLe GF (2 ^ 29)`, `ReceiptBoundLe GF (2 ^ 60)`) are
 `storage.OpenBackend.spec`'s (through `bootstrapBackend.spec`), which is stated under them; NewServer's
-context derives them. -/
+context derives them.
+
+(Claim #34 stage 4, 2026-11-25; ledger, "`bootstrapStorage.spec` without `UnsafeNoFsync = false`") With
+`cfg.UnsafeNoFsync` false: otherwise `bootstrapNewWAL` sets the new WAL's `unsafeNoSync`, and the open WAL
+of `bootOk`'s `Hwal` (`wal.bootOk`, whose `Sync`s fsync) is not the WAL Go has. `bootstrapContract` (a
+trusted premise) does not have this condition yet: `notes/STATUS.md`, "`bootstrapContract` and
+`UnsafeNoFsync`". And (the same day; ledger, "`bootstrapRaft.spec`: an id raft refuses") with this
+member's id not one of raft's local targets (`bootGo.idRaftOk`): raft's `StartNode` refuses it, and
+`bootOk`'s `Hraft` (`rnStartCfg`'s `ConfigValid`) excludes it; a pure fact of the URLs and the token.
+And with every initial-cluster entry holding a peer URL (`bootGo.urlsNe`; ledger, "`bootstrapRaftFromCluster`: a
+member with no peer URL"): the contexts `bootGo.ctxs` write each member's peer URLs as an array. -/
 abbrev bootstrap.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft) (N : Nat),
+  cfg.UnsafeNoFsync' = false → bootGo.idRaftOk cfg U → bootGo.urlsNe U →
   bootGo.bootURLsPlain U →
   γ.vs = bootGo.ps U cfg.InitialClusterToken' →
   (∃ bl : List LogEntry, BootLog (bootGo.ps U cfg.InitialClusterToken')

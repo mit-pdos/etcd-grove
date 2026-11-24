@@ -240,17 +240,23 @@ public import Proof.golang_org.x.crypto.bcrypt.GenerateFromPassword
 public import Proof.encoding.binary.ReadUint64
 public import Proof.encoding.binary.WriteUint64
 public import Proof.encoding.binary.WriteUint8
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapNewWAL
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapRaft
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapRaftFromCluster
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapStorage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedServer__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedStorage__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorageFresh
 public import Proof.github_com.jonboulle.clockwork.NewRealClock
 public import Proof.github_com.jonboulle.clockwork.realClock__After
 public import Proof.github_com.jonboulle.clockwork.realClock__Now
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__PeerDialTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
+public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__WALDir
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetBackend
@@ -313,6 +319,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.NewLimitedBufferReader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isPriorityRequest
 public import Proof.encoding.json.MarshalConfigChangeContext
 public import Proof.encoding.json.MarshalMember
+public import Proof.encoding.json.MarshalMemberPtr
 public import Proof.encoding.json.Unmarshal
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Init
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Len
@@ -371,6 +378,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.newLessor
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP
 public import Proof.math.Ceil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IDFrac
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Member
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Recover
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetBackend
@@ -417,6 +425,7 @@ public import Proof.google_golang_org.protobuf.proto.UnmarshalPb
 public import Proof.google_golang_org.protobuf.proto.UnmarshalRole
 public import Proof.google_golang_org.protobuf.proto.UnmarshalUser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.quorum
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftConfig
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__advanceTicks
@@ -728,6 +737,13 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked
 public import Proof.encoding.json.Results
 public import Net.Proof.models_lab.jsoncodec.Linked
 public import Proof.bytes.BufferLinked
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZap
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__MemberMem
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__MemberByNameMem
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__MemberIDsMem
+public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessageMeta
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.CreateSrv
+public import Spec.go_uber_org.zap.Logger__Named
 public import Proof.context.Link
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
@@ -1709,6 +1725,14 @@ theorem auth.authStore.wp_setupMetricsReporter :
 theorem auth.tokenSimple.wp_genTokenPrefix :
     auth.tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG) :=
   auth.tokenSimple.genTokenPrefix.wp_proof _root_.Perennial.math.big.wp_NewInt _root_.Perennial.crypto.rand.wp_Int _root_.Perennial.math.big.Int.wp_Int64
+
+theorem membership.RaftCluster.wp_IDFrac :
+    membership.RaftCluster.ID.specFrac (GF := GF) (hG := hG) :=
+  membership.RaftCluster.ID.wp_proofFrac
+
+theorem config.ServerConfig.wp_WALDir :
+    config.ServerConfig.WALDir.spec (GF := GF) (hG := hG) :=
+  config.ServerConfig.WALDir.wp_proof
 
 theorem config.ServerConfig.wp_PeerDialTimeout :
     config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) :=
@@ -3277,6 +3301,14 @@ theorem auth.authStore.wp_UserRevokeRole :
     auth.authStore.UserRevokeRole.spec (GF := GF) (hG := hG) :=
   auth.authStore.UserRevokeRole.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error zap.Logger.wp_Info
 
+theorem encoding.json.wp_MarshalMemberPtr :
+    encoding.json.MarshalMemberPtr.spec (GF := GF) (hG := hG) :=
+  encoding.json.MarshalMemberPtr.wp_proof _root_.Perennial.encoding.json.Marshal.wp membership.Member.wp_JSONModelMarshalPtr
+
+theorem bootstrappedWAL.wp_MemoryStorageFresh :
+    bootstrappedWAL.MemoryStorage.specFresh (GF := GF) (hG := hG) :=
+  bootstrappedWAL.MemoryStorage.wp_proofFresh srvApi_wp_NewMemoryStorage
+
 theorem bootstrappedBackend.wp_Close :
     bootstrappedBackend.Close.spec (GF := GF) (hG := hG) :=
   bootstrappedBackend.Close.wp_proof backend.backend.wp_Close
@@ -3566,6 +3598,45 @@ theorem wait.waitWithResponse.wp_Trigger :
   wait.waitWithResponse.Trigger.wp_proof
 
 end links_hasLC
+
+/-! The results that reach a function specified but not proved yet (a later unit's):
+its spec is a hypothesis (`h_<fn>`) of each of them. -/
+section links_pending
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable (h_NewRaftLoggerZap : NewRaftLoggerZap.spec (GF := GF) (hG := hG))
+variable (h_membership_RaftCluster__Member_Mem : membership.RaftCluster.Member.specMem (GF := GF) (hG := hG))
+variable (h_membership_RaftCluster__MemberByName_Mem : membership.RaftCluster.MemberByName.specMem (GF := GF) (hG := hG))
+variable (h_membership_RaftCluster__MemberIDs_Mem : membership.RaftCluster.MemberIDs.specMem (GF := GF) (hG := hG))
+variable (h_pbutil_MustMarshalMessage_Meta : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specMeta (GF := GF) (hG := hG))
+variable (h_wal_Create_Srv : wal.Create.specSrv (GF := GF) (hG := hG))
+variable (h_zap_Logger__Named : zap.Logger.Named.spec (GF := GF) (hG := hG))
+include h_NewRaftLoggerZap h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named
+
+theorem wp_bootstrapNewWAL :
+    bootstrapNewWAL.spec (GF := GF) (hG := hG) :=
+  bootstrapNewWAL.wp_proof h_pbutil_MustMarshalMessage_Meta membership.RaftCluster.wp_IDFrac config.ServerConfig.wp_WALDir h_wal_Create_Srv zap.Logger.wp_Panic zap.wp_Error
+
+theorem wp_raftConfig :
+    raftConfig.spec (GF := GF) (hG := hG) :=
+  raftConfig.wp_proof h_zap_Logger__Named h_NewRaftLoggerZap
+
+theorem wp_bootstrapRaftFromCluster [MemStorReg GF] :
+    bootstrapRaftFromCluster.spec (GF := GF) (hG := hG) :=
+  bootstrapRaftFromCluster.wp_proof h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__Member_Mem encoding.json.wp_MarshalMemberPtr types.ID.wp_String_ptr types.ID.wp_String membership.RaftCluster.wp_ID zap.wp_String zap.Logger.wp_Info zap.Logger.wp_Panic zap.wp_Error bootstrappedWAL.wp_MemoryStorageFresh (wp_raftConfig h_NewRaftLoggerZap h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+
+theorem wp_bootstrapRaft [MemStorReg GF] :
+    bootstrapRaft.spec (GF := GF) (hG := hG) :=
+  bootstrapRaft.wp_proof h_membership_RaftCluster__MemberIDs_Mem (wp_bootstrapRaftFromCluster h_NewRaftLoggerZap h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+
+theorem wp_bootstrapStorage :
+    bootstrapStorage.spec (GF := GF) (hG := hG) :=
+  bootstrapStorage.wp_proof (wp_bootstrapNewWAL h_NewRaftLoggerZap h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+
+end links_pending
 
 end EtcdGrove
 end Perennial
