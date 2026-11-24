@@ -25,13 +25,17 @@ tree's `Unmarshal.spec` (`Unmarshal.wp`) and `SetCodec.spec` (`SetCodec.wp`), an
   - `codec`: `vsrnet.registeredCodecOk` (`Spec/json.lean`): the kit's registered codec
     (`jsonMarshal`, `jsonUnmarshal`, jsongen's, for the unnamed roots) meets
     `codecPart vsrnet.jsonCodec`, and `jsoncodec.Scan` computes `scanF` (`codecOkWith`).
-  - `types`: `vsrnet.TypeCodecs` (`Spec/json.lean`): the 14 named types' own `JSONModel*` methods
-    (jsongen's same-package mode) meet `vsrnet.jsonCodec` (`typeCodecOk`), one field per type.
+  - `types`: `vsrnet.TypeCodecs` (`Spec/json.lean`): the kit's named types' own `JSONModel*`
+    methods (jsongen's same-package mode) meet `vsrnet.jsonCodec` where it gives a deposit (13
+    fields: `*Event`'s `JSONModelMarshalPtr`, the 11 payloads' and `Frame`'s
+    `JSONModelUnmarshal`); the rest of the main tree's `typeCodecOk` for the 14 types (`log.Logs`
+    whole) is proved (`Proof/vsrnetjson/Vacuous.lean`).
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.json
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Vacuous
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.events
 public import Spec.encoding.json.Codec.NewEncoder
 public import Spec.encoding.json.Codec.Unmarshal

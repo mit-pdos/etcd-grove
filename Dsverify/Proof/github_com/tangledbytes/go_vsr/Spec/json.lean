@@ -90,84 +90,70 @@ def vsrnet.registeredCodecOk : Prop :=
   ⊢ encoding.json.codecOkWith (jc := encoding.json.codecPart (vsrnet.jsonCodec (GF := GF)))
       vsrnet.scanF (encoding.json.kitFn go!"jsonMarshal") (encoding.json.kitFn go!"jsonUnmarshal")
 
-/-- **Premise** (#24 J3, one field per type of `encoding.json.kitTypes`): the methods jsongen
-generated into each kit type's own package (`JSONModelMarshal`, `JSONModelMarshalPtr`,
-`JSONModelUnmarshal`) meet `vsrnet.jsonCodec`, the scanner `scanF` (the main tree's
-`typeCodecOk`).
+/-- **Premise** (#24 J3): the substantive part of the main tree's `typeCodecOk vsrnet.jsonCodec
+scanF T` for the kit's types (`encoding.json.kitTypes`), one field per method/type pair where the
+kit's contract gives a deposit: `(*events.Event).JSONModelMarshalPtr`, and `JSONModelUnmarshal` of
+each payload type and of `vsrwire.Frame`. Every other part of `typeCodecOk` (a value type's
+`JSONModelMarshal`, the other types' `JSONModelMarshalPtr`, `*Event`'s `JSONModelUnmarshal`, all of
+`log.Logs`) holds because `jsonCodec` gives no deposit there, and is proved
+(`Proof/vsrnetjson/Vacuous.lean`: `vsrnet.codecOk_of`).
 
-True of the code: `typeCodecOk J F T` constrains a method only where `J` gives a deposit for
-its value (`marshalAt`/`unmarshalAt` take `J.enc v Ψ`/`J.dec bs ptr Ψ` first). `vsrnet.jsonCodec`
-(`encP`, `decP`) gives one for: a `*events.Event` of a message with plain strings (encoded,
-never an error, as `VsrWire.encEvent m`: `jenc_Event` writes `{"@type":N,"data":…}` with the
-payload by `jencAny`, a `Logs` by its `MarshalJSON`, i.e. `json.Marshal([]Log)` through the
-registered codec, which `encP`'s `codecSet` registers and `registeredCodecOk` covers: real
-encoding/json's output, which jsongen's same-package tests (`json_model_gen_test.go`, run by
-`jsonmodel_forks.py`) compare it with, and which `encEvent` is); a `*vsrwire.Frame` holding a
-nil `Data`, on whitespace and a line's value (decoded as `Frame{typeOf m, encPayload m}`, the
-raw payload in a fresh slice); a `*events.<T>` zero payload, on `encPayload m` (decoded as `m`'s
-payload, its numbers below `2^64` (`MsgBound`), a `Logs` through its `UnmarshalJSON`, i.e. the
-registered codec). Every other method/value pair has no deposit (the value types `T`, `*T`
-marshalled for `T ≠ Event`, `*Event` unmarshalled, `log.Logs` at all), so its part holds
-trivially. -/
+True of the code (jsongen's same-package methods): `marshalAt`/`unmarshalAt` constrain a method
+only at `J`'s deposits. `event`: on a `*events.Event` of a message with plain strings
+(`encP`), `JSONModelMarshalPtr` encodes, never failing, `VsrWire.encEvent m`: `jenc_Event`
+writes `{"@type":N,"data":…}`, the payload by `jencAny`, a `Logs` by its `MarshalJSON`, i.e.
+`json.Marshal([]Log)` through the registered codec, which `encP`'s `codecSet` registers and
+`registeredCodecOk` covers; this is real encoding/json's output (jsongen's same-package tests,
+`json_model_gen_test.go`, run by `jsonmodel_forks.py`, compare the methods with it), which
+`encEvent` is. `frame`: on whitespace and a line's value `encEvent m` into a `Frame` with a nil
+`Data` (`decP`), `JSONModelUnmarshal` (valid, so it decodes) gives `Frame{typeOf m, data}`, `data`
+a fresh slice of the raw payload `encPayload m`. The payloads: on `encPayload m` into a zero
+payload (`decP`; numbers below `2^64`, `MsgBound`), the payload `m`'s, a `Logs` through its
+`UnmarshalJSON`, i.e. the registered codec. -/
 structure vsrnet.TypeCodecs : Prop where
-  event : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.Event.ty
-  request : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.Request.ty
-  reply : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.Reply.ty
-  prepare : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.Prepare.ty
-  prepareOK : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.PrepareOK.ty
-  commit : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.Commit.ty
-  startViewChange : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.StartViewChange.ty
-  doViewChange : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.DoViewChange.ty
-  startView : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.StartView.ty
-  getState : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.GetState.ty
-  newState : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.NewState.ty
-  heartbeat : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.events.Heartbeat.ty
-  frame : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    vsrwire.Frame.ty
-  logs : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
-    pkg.log.Logs.ty
+  event : ∀ l : Loc, ⊢ encoding.json.marshalAt (vsrnet.jsonCodec (GF := GF))
+    #(methods (go.GoType.PointerType pkg.events.Event.ty) go!"JSONModelMarshalPtr" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.Event.ty) #l)
+  request : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.Request.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.Request.ty) #l)
+  reply : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.Reply.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.Reply.ty) #l)
+  prepare : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.Prepare.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.Prepare.ty) #l)
+  prepareOK : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.PrepareOK.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.PrepareOK.ty) #l)
+  commit : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.Commit.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.Commit.ty) #l)
+  startViewChange : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.StartViewChange.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.StartViewChange.ty) #l)
+  doViewChange : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.DoViewChange.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.DoViewChange.ty) #l)
+  startView : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.StartView.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.StartView.ty) #l)
+  getState : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.GetState.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.GetState.ty) #l)
+  newState : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.NewState.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.NewState.ty) #l)
+  heartbeat : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType pkg.events.Heartbeat.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType pkg.events.Heartbeat.ty) #l)
+  frame : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+    #(methods (go.GoType.PointerType vsrwire.Frame.ty) go!"JSONModelUnmarshal" #l)
+    (interface.mkOk (go.GoType.PointerType vsrwire.Frame.ty) #l)
 
 /-- The kit's JSON facts at the kit's codec and scanner (what the proofs take; the lab's theorem
-`codec_ok`), from the two premises: `vsrnet.codecOk_of`. -/
+`codec_ok`), from the two premises: `vsrnet.codecOk_of` (`Proof/vsrnetjson/Vacuous.lean`). -/
 def vsrnet.codecOk : Prop := ⊢ encoding.json.kitCodecOk (GF := GF) vsrnet.scanF
-
-theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
-    (ht : vsrnet.TypeCodecs (GF := GF)) : vsrnet.codecOk (GF := GF) := by
-  unfold vsrnet.codecOk encoding.json.kitCodecOk
-  unfold vsrnet.registeredCodecOk at hc
-  ihave #Hc := hc
-  isplitr
-  · iexact Hc
-  imodintro
-  iintro %T %hT
-  simp only [encoding.json.kitTypes, List.mem_cons, List.not_mem_nil, or_false] at hT
-  rcases hT with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · iapply ht.event
-  · iapply ht.request
-  · iapply ht.reply
-  · iapply ht.prepare
-  · iapply ht.prepareOK
-  · iapply ht.commit
-  · iapply ht.startViewChange
-  · iapply ht.doViewChange
-  · iapply ht.startView
-  · iapply ht.getState
-  · iapply ht.newState
-  · iapply ht.heartbeat
-  · iapply ht.frame
-  · iapply ht.logs
 
 end premises
 

@@ -9,7 +9,10 @@ payload and a `*[]log.Log`. So:
 * `marshal_ptr_none`: `(*T).JSONModelMarshalPtr` for `T ≠ events.Event`;
 * `unmarshal_ptr_none`: `(*T).JSONModelUnmarshal` for `T` neither `vsrwire.Frame` nor a payload;
 * `typeCodecOk_logs`: all of `log.Logs` (the kit's code never hands a `Logs` to encoding/json:
-  `DoViewChange`'s generated methods call its `MarshalJSON`/`UnmarshalJSON` directly).
+  `DoViewChange`'s generated methods call its `MarshalJSON`/`UnmarshalJSON` directly);
+* `typeCodecOk_of_unmarshal`, `typeCodecOk_event`, and `codecOk_of`: the kit's JSON facts
+  (`vsrnet.codecOk`) from the premises `registeredCodecOk` and `TypeCodecs` (which state only the
+  substantive parts).
 -/
 module
 
@@ -147,6 +150,72 @@ theorem vsrnet.typeCodecOk_logs :
   · iintro %l
     iapply (vsrnet.unmarshal_ptr_none _ _ _ l (by vr_ty_ne) (fun m => by cases m <;> vr_ty_ne)
       (by vr_ty_ne))
+
+/-- `typeCodecOk` of a kit type whose substantive part is `JSONModelUnmarshal` (no deposit for
+its marshalling). -/
+theorem vsrnet.typeCodecOk_of_unmarshal (T : go.GoType)
+    (hv1 : T ≠ go.GoType.PointerType pkg.events.Event.ty)
+    (hv2 : T ≠ go.GoType.SliceType pkg.log.Log.ty) (hp : T ≠ pkg.events.Event.ty)
+    (hu : ∀ l : Loc, ⊢ encoding.json.unmarshalAt (vsrnet.jsonCodec (GF := GF)) vsrnet.scanF
+      #(methods (go.GoType.PointerType T) go!"JSONModelUnmarshal" #l)
+      (interface.mkOk (go.GoType.PointerType T) #l)) :
+    ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF T := by
+  unfold encoding.json.typeCodecOk
+  iintro !>
+  isplitr
+  · iintro %x
+    iapply (vsrnet.marshal_val_none _ _ x hv1 hv2)
+  isplitr
+  · iintro %l
+    iapply (vsrnet.marshal_ptr_none _ _ l hp)
+  · iintro %l
+    iapply (hu l)
+
+/-- `typeCodecOk` of `events.Event`: its substantive part is `JSONModelMarshalPtr`. -/
+theorem vsrnet.typeCodecOk_event
+    (hm : ∀ l : Loc, ⊢ encoding.json.marshalAt (vsrnet.jsonCodec (GF := GF))
+      #(methods (go.GoType.PointerType pkg.events.Event.ty) go!"JSONModelMarshalPtr" #l)
+      (interface.mkOk (go.GoType.PointerType pkg.events.Event.ty) #l)) :
+    ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF pkg.events.Event.ty := by
+  unfold encoding.json.typeCodecOk
+  iintro !>
+  isplitr
+  · iintro %x
+    iapply (vsrnet.marshal_val_none _ _ x (by vr_ty_ne) (by vr_ty_ne))
+  isplitr
+  · iintro %l
+    iapply (hm l)
+  · iintro %l
+    iapply (vsrnet.unmarshal_ptr_none _ _ _ l (by vr_ty_ne) (fun m => by cases m <;> vr_ty_ne)
+      (by vr_ty_ne))
+
+/-- **The kit's JSON facts, from the two premises** (`vsrnet.registeredCodecOk`,
+`vsrnet.TypeCodecs`) and the vacuous parts above. -/
+theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
+    (ht : vsrnet.TypeCodecs (GF := GF)) : vsrnet.codecOk (GF := GF) := by
+  unfold vsrnet.codecOk encoding.json.kitCodecOk
+  unfold vsrnet.registeredCodecOk at hc
+  ihave #Hc := hc
+  isplitr
+  · iexact Hc
+  imodintro
+  iintro %T %hT
+  simp only [encoding.json.kitTypes, List.mem_cons, List.not_mem_nil, or_false] at hT
+  rcases hT with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · iapply (vsrnet.typeCodecOk_event ht.event)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.request)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.reply)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.prepare)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.prepareOK)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.commit)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.startViewChange)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.doViewChange)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.startView)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.getState)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.newState)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.heartbeat)
+  · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.frame)
+  · iapply vsrnet.typeCodecOk_logs
 
 end proof
 

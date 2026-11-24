@@ -24,7 +24,8 @@ mit-pdos/etcd-grove#24, and its first run on a machine (the registry fresh, `Boo
   `NewEncoder`, `Encoder.Encode_conn` (the main tree's statements), `NewDecoder`/`Decode` of a
   frame (over the dispatch `unmarshalVia`; the main tree has no `Decoder` spec yet), the kit's
   registered codec's correctness for the values the dispatch sends it (`registeredCodecOk`) and
-  the 14 named types' own generated methods' (`TypeCodecs`, the main tree's `typeCodecOk`).
+  the named types' own generated methods' where the kit's contract has a deposit (`TypeCodecs`,
+  13 parts of the main tree's `typeCodecOk`; the rest is proved).
   `Unmarshal`, `SetCodec` are the main tree's proofs and `RegisterJSON()` is proved from the boot.
 Proved in `Dsverify/Proof/github_com/tangledbytes/go_vsr/examples/vsrnet/TopLevelRobustness.lean`.
 -/
