@@ -4,7 +4,7 @@ module
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.cmp.Base
-public import SpecPlan.Spec.PkgInit.hash
+public import Perennial.Proof.hash.Base
 public import SpecPlan.Spec.PkgInit.hash.crc32
 public import Perennial.Proof.slices.Base
 public import Perennial.Proof.sync.Base

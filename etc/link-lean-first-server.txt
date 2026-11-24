@@ -383,6 +383,7 @@ Member__JSONModelMarshal: membership_jenc_Member
 Member__JSONModelMarshalPtr: membership_jenc_Member
 ConfigChangeContext__JSONModelMarshal: membership_jenc_ConfigChangeContext
 json_MarshalMember: =_root_.Perennial.encoding.json.Marshal.wp Member__JSONModelMarshal
+json_MarshalMemberPtr: =_root_.Perennial.encoding.json.Marshal.wp Member__JSONModelMarshalPtr
 json_MarshalConfigChangeContext: =_root_.Perennial.encoding.json.Marshal.wp ConfigChangeContext__JSONModelMarshal
 EtcdServer__AddMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
 EtcdServer__UpdateMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
@@ -930,6 +931,30 @@ bootstrappedCluster__Finalize: membership_RaftCluster__ID+O membership_RaftClust
 # (restart S3, D2 (b), 2026-11-11) the restarted raft storage (bootstrap.go), with its body, over
 # raft's storage methods: the restart contract's `memStorRestarted` is its post
 bootstrappedWAL__MemoryStorage: =srvApi_wp_NewMemoryStorage MemoryStorage__ApplySnapshot =srvApi_wp_MemSetHardState =srvApi_wp_MemAppend
+# (claim #34 stage 4, 2026-11-25) `bootstrap`'s WAL and raft callees at a first start, with their bodies
+# (`notes/bootstrap-proof-plan.md` §7.4): `bootstrapStorage` over `bootstrapNewWAL`, over the WAL
+# metadata's marshal and `wal.Create` in the fresh area (hypotheses: the metadata's protobuf type is not
+# registered; `Create`'s no-error spec, its fresh room and the area's paths are #15's, the WAL plan's
+# L5: their spec files say what each needs); `bootstrapRaft` over `MemberIDs` (stage 2's, a hypothesis)
+# and `bootstrapRaftFromCluster` (a hypothesis: `MemberByName`, `Member`'s value and its peer URLs'
+# nil-ness, `notes/STATUS.md`); `raftConfig` over zap's `Named` and `NewRaftLoggerZap` (hypotheses,
+# names-only)
+membership_RaftCluster__ID+Frac:
+config_ServerConfig__WALDir:
+wal_Create+Srv: ?
+pbutil_MustMarshalMessage+Meta: ?
+zap_Logger__Panic: pool_Pool__Get
+bootstrapNewWAL: pbutil_MustMarshalMessage+Meta membership_RaftCluster__ID+Frac config_ServerConfig__WALDir wal_Create+Srv zap_Logger__Panic zap_Error
+bootstrapStorage: bootstrapNewWAL
+zap_Logger__Named: ?
+NewRaftLoggerZap: ?
+raftConfig: zap_Logger__Named NewRaftLoggerZap
+membership_RaftCluster__MemberIDs+Mem: ?
+membership_RaftCluster__MemberByName+Mem: ?
+membership_RaftCluster__Member+Mem: ?
+bootstrappedWAL__MemoryStorage+Fresh: =srvApi_wp_NewMemoryStorage
+bootstrapRaftFromCluster: membership_RaftCluster__MemberByName+Mem membership_RaftCluster__Member+Mem json_MarshalMemberPtr types_ID__String_ptr types_ID__String membership_RaftCluster__ID zap_String zap_Logger__Info zap_Logger__Panic zap_Error bootstrappedWAL__MemoryStorage+Fresh raftConfig
+bootstrapRaft: membership_RaftCluster__MemberIDs+Mem bootstrapRaftFromCluster
 # (the import tiers, 2026-11-18) the node's start over raft's linked results, a hypothesis of the
 # proof since (`NodeStartLaws.lean`): `=`, `NodeStartLinked.lean`'s law
 etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Stop =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider =mvcc.api.mvccApi_New_wp_proof =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccImage_fresh_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccStorageFor_rest_law_holds newCorruptionChecker =mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID RaftCluster__Version rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer rafthttp_peer__stop rafthttp_remote__stop =mvcc.api.mvccApi_watchableStore_Close_wp_api schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_MemInitialState =srvApi_wp_MemLastIndex =srvApi_wp_MemFirstIndex =srvApi_wp_MemTerm =srvApi_wp_MemEntries =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete batchTxBuffered__UnsafePut EtcdServer__Compact lease_lessor__Revoke AlarmStore__Get bootstrappedServer__Close =raftNode_of_StartNode_law_holds

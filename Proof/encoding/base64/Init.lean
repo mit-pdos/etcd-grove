@@ -21,6 +21,7 @@ public import Proof.encoding.base64.Base
 public import Perennial.Proof.internal.byteorder.Link
 public import Perennial.Proof.strconv.Link
 public import Proof.encoding.base64.InitFacts
+public import Perennial.Proof.internal.byteorder.Link
 
 @[expose] public section
 

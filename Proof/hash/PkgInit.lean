@@ -1,19 +1,19 @@
 /-
 The package-initialization instance of `hash/fnv` (a standard-library package Perennial does not
-translate: the etcd project's names- and types-only translation; `hash`'s is Perennial's since claim #34
-stage 2, 2026-11-25), for every
-package of this repository that imports them: mvcc (the type of `kvHasher`'s `hash` field), the
-DaemonSet controller (`controller.ComputeHash`) and bbolt (`Meta.Sum64`). Moved out of
+translate: the etcd project's names- and types-only translation), for every package of this
+repository that imports it: the DaemonSet controller (`controller.ComputeHash`) and bbolt
+(`Meta.Sum64`); and, through `Perennial.Proof.hash.Base`, `hash`'s (Perennial's translation since its
+pin b3f2fc485, for `crypto/sha1`; this repository's, types only, until 2026-11-24), for mvcc (the
+type of `kvHasher`'s `hash` field) and the importers of `hash/fnv` and `hash/crc32`. Moved out of
 `storage/mvcc/Base.lean` and `k8s_io/kubernetes/Base.lean` (2026-11-03) so that bbolt can import
 them alone: `IsPkgInit` must have one instance per package. Both facts are `True`.
 -/
 module
 
 public import GeneratedProof.hash.fnv
+public import Perennial.Proof.hash.Base
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.io
--- (claim #34 stage 2, 2026-11-25) `hash` is Perennial's now (`crypto/sha1` imports it): its instance
-public import Perennial.Proof.hash.Base
 
 @[expose] public section
 

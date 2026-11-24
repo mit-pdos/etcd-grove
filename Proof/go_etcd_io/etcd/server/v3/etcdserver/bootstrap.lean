@@ -92,7 +92,7 @@ theorem bootstrap.wp_proof
     (hInt : zap.Int'.spec (GF := GF) (hG := hG))
     (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG)) :
     bootstrap.spec (GF := GF) (hG := hG) := by
-  intro _ _ cfg U γ N HU Hfips HiOk Hvs Hlog Hmem
+  intro _ _ cfg U γ N Hnf Hidr Hune HU Hfips HiOk Hvs Hlog Hmem
   wp_start as ⟨%Hpure, #Hzlg, Hfg, Hvoff, #Hro, Hrauth, Hres⟩
   obtain ⟨Hcok, Hfresh, Hwb, Hdb⟩ := Hpure
   wp_auto
@@ -244,7 +244,7 @@ theorem bootstrap.wp_proof
   iunfold clusterBuilt at Hcb
   icases Hcb with ⟨%ms, %lgc, %rp, %dp, Hclg, #Hlgok, Hlid, Hcid, Hcbe, Hmu, Hver, Hmem0, Hrm,
     Hrmm, Hdg, Hdgv, Hml, Hvc⟩
-  wp_apply (hStor cfg bkl c bc (DFrac.own 1) (DFrac.own 1) (bootGo.cid U cfg.InitialClusterToken'))
+  wp_apply (hStor cfg bkl c bc (DFrac.own 1) (DFrac.own 1) (bootGo.cid U cfg.InitialClusterToken') Hnf)
     $$ [Hwp Hc Hcid] as %sl ⟨%sto, %bw, Hs, Hbw, %Hsto, Hwal, Hc, Hcid⟩
   · iframe Hwp Hc Hcid; iframe #
   -- `cluster.Finalize(cfg, s)`
@@ -286,7 +286,7 @@ theorem bootstrap.wp_proof
   · iexact Hzlg
   iunfold bootClusterDone at Hdone
   iNamed Hdone
-  wp_apply (hRaft cfg U c sto.wal' bc bw (DFrac.own 1) (DFrac.own 1) Hfresh.1 Hcok Hbc.2.2 hhw hst
+  wp_apply (hRaft cfg U c sto.wal' bc bw (DFrac.own 1) (DFrac.own 1) Hfresh.1 Hcok Hbc.2.2 Hidr Hune hhw hst
       hents hsnap) $$ [Hc Hbw Hrauth Hmem] as %rl ⟨%bv, Hr, Hraft, Hc, Hbw, Hmem⟩
   · iframe Hc Hbw Hrauth Hmem; iframe #
   -- the record, and `bootOk` from its parts

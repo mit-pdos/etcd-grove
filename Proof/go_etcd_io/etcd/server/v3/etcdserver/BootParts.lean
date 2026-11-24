@@ -36,13 +36,11 @@ The states:
   slot's body must grow by it), and (2) `dataAreaFresh` quantifies the file extension's instances
   existentially, where the file claims `bootOk` gives (`backend.fileFree`, `backend.bPath`) are at the
   program's (`backend.onFs`): its body must say they are the program's;
-- `bootFs.walExist.law`: unprovable under the trusted semantics as it stands (2026-11-23): `open` of an
-  absent path may fail with any nonzero errno (`Impl.lean`'s `Open`), and `NoIoErr`'s `PathErrno` names no
-  errno for `open` (only `unlink`/`rmdir`), so `ReadDir`'s error need not be `ENOENT` and `Exist` may answer
-  `true`; and `walAreaFresh`'s area covers by path the paths below the WAL directory (`covP`), not the
-  directory itself. Before: `wal.Exist.spec` gives `false → no WAL`, not the converse (its `false` arm
-  rests on `ENOENT`, `ExistCallees.lean`): `Exist` of a fresh area's absent directory reads `ENOENT`
-  and answers `false` in Go (`server/storage/wal/util.go`), so the restart branch is not taken.
+- `bootFs.walExist.law`: **proved** (2026-11-23), `bootFs.walExist_law_holds` (`BootFsLaws.lean`), from
+  `wal.Exist.spec` (whose post since then answers `false` with no WAL when the file system does not fail
+  on the directory, `FsNoErrAt`): `ReadDir`'s `open` of the absent directory fails with `ENOENT`
+  (`NoIoErr`'s `PathErrno`, its `open` case, the user's approval of 2026-11-23), at the area's no-I/O-error
+  and no-lock-error instances, which cover every inode and (`a.Sio.path a.dir`) the WAL directory by path.
 
 **The rows.** `bootOk`'s rows by the callee that makes them:
 
@@ -107,6 +105,186 @@ theorem withMemBkts_lookup [GooseExts] (D : backend.Data) (n : GoString) :
   have h : ¬ (n = go!"cluster" ∨ n = go!"members_removed" ∨ n = go!"members") := by
     rintro (h | h | h) <;> simp_all
   simp only [h1, h2, h3, h, ite_false]
+
+/-! ### `MemberIDs()` is `ps` (claim #34 stage 4, 2026-11-25; pure) -/
+
+theorem foldl_insert_isSome [GooseExts] (l : List apply.MemberM) (acc : GMap w64 apply.MemberM) (k : w64) :
+    ((l.foldl (fun mem m => mem.insert m.id m) acc) !! k).isSome ↔
+      (acc !! k).isSome ∨ k ∈ l.map (·.id) := by
+  induction l generalizing acc with
+  | nil => simp
+  | cons m l ih =>
+    rw [List.foldl_cons, ih]
+    by_cases h : m.id = k
+    · subst h; simp
+    · have h' : k ≠ m.id := fun e => h e.symm
+      simp [h, h']
+
+/-- The members map's keys are the peers. -/
+theorem memMap_isSome [GooseExts] (U : BootURLs) (t : GoString) (k : w64) :
+    ((memMap U t) !! k).isSome ↔ k ∈ ps U t := by
+  unfold memMap ps
+  rw [foldl_insert_isSome]
+  simp
+
+/-- The peers are sorted (`mergeSort` by the ids' values). -/
+theorem ps_sorted [GooseExts] (U : BootURLs) (t : GoString) :
+    (ps U t).Pairwise (fun a b => a.toNat ≤ b.toNat) := by
+  unfold ps members
+  rw [List.pairwise_map]
+  have h := List.pairwise_mergeSort (le := fun a b : apply.MemberM => decide (a.id.toNat ≤ b.id.toNat))
+    (fun a b c hab hbc => by simp only [decide_eq_true_eq] at hab hbc ⊢; omega)
+    (fun a b => by
+      by_cases hab : a.id.toNat ≤ b.id.toNat
+      · simp [hab]
+      · have : b.id.toNat ≤ a.id.toNat := by omega
+        simp [this])
+    ((U.initMap.domList.map (memberOf U t)))
+  exact h.imp (fun hab => by simpa using hab)
+
+/-- With distinct peers, strictly increasing. -/
+theorem ps_lt [GooseExts] (U : BootURLs) (t : GoString) (hnd : (ps U t).Nodup) :
+    (ps U t).Pairwise (fun a b => uint.Z a < uint.Z b) := by
+  refine (ps_sorted U t).imp₂ (fun a b hab hne => ?_) (show (ps U t).Pairwise (· ≠ ·) from hnd)
+  have hne' : a.toNat ≠ b.toNat := fun e => hne (BitVec.eq_of_toNat_eq e)
+  simp only [uint.Z]
+  omega
+
+/-- Two strictly increasing lists of the same elements are equal. -/
+theorem eq_of_pairwise_lt {l1 l2 : List w64} (h1 : l1.Pairwise (fun a b => uint.Z a < uint.Z b))
+    (h2 : l2.Pairwise (fun a b => uint.Z a < uint.Z b)) (h : ∀ k, k ∈ l1 ↔ k ∈ l2) : l1 = l2 := by
+  induction l1 generalizing l2 with
+  | nil =>
+    cases l2 with
+    | nil => rfl
+    | cons b l2 => exact absurd ((h b).2 (by simp)) (by simp)
+  | cons a l1 ih =>
+    cases l2 with
+    | nil => exact absurd ((h a).1 (by simp)) (by simp)
+    | cons b l2 =>
+      rw [List.pairwise_cons] at h1 h2
+      have hab : a = b := by
+        apply Classical.byContradiction
+        intro hne
+        have ha : a ∈ b :: l2 := (h a).1 (by simp)
+        have hb : b ∈ a :: l1 := (h b).2 (by simp)
+        rcases List.mem_cons.1 ha with e | ha'
+        · exact hne e
+        rcases List.mem_cons.1 hb with e | hb'
+        · exact hne e.symm
+        have x1 := h2.1 a ha'
+        have x2 := h1.1 b hb'
+        omega
+      subst hab
+      congr 1
+      apply ih h1.2 h2.2
+      intro k
+      constructor
+      · intro hk
+        rcases List.mem_cons.1 ((h k).1 (List.mem_cons_of_mem _ hk)) with e | e
+        · subst e; have := h1.1 k hk; omega
+        · exact e
+      · intro hk
+        rcases List.mem_cons.1 ((h k).2 (List.mem_cons_of_mem _ hk)) with e | e
+        · subst e; have := h2.1 k hk; omega
+        · exact e
+
+/-- **`MemberIDs()` of the new cluster is `ps`**: the strictly increasing list of the members map's keys. -/
+theorem ids_eq_ps [GooseExts] (U : BootURLs) (t : GoString) (hnd : (ps U t).Nodup) (ids : List w64)
+    (hs : ids.Pairwise (fun a b => uint.Z a < uint.Z b))
+    (hk : ∀ k, k ∈ ids ↔ ((memMap U t) !! k).isSome) : ids = ps U t :=
+  eq_of_pairwise_lt hs (ps_lt U t hnd) (fun k => (hk k).trans (memMap_isSome U t k))
+
+/-! ### The members map's entries (claim #34 stage 4, 2026-11-25; pure) -/
+
+theorem foldl_insert_notin [GooseExts] (l : List apply.MemberM) (acc : GMap w64 apply.MemberM) (k : w64)
+    (hk : k ∉ l.map (·.id)) :
+    (l.foldl (fun mem m => mem.insert m.id m) acc) !! k = acc !! k := by
+  induction l generalizing acc with
+  | nil => rfl
+  | cons m l ih =>
+    rw [List.foldl_cons, ih]
+    · have h : m.id ≠ k := fun e => hk (by simp [e])
+      simp [h]
+    · intro h; exact hk (by simp [h])
+
+theorem foldl_insert_mem [GooseExts] (l : List apply.MemberM) (acc : GMap w64 apply.MemberM)
+    (hnd : (l.map (·.id)).Nodup) (m : apply.MemberM) (hm : m ∈ l) :
+    (l.foldl (fun mem m => mem.insert m.id m) acc) !! m.id = some m := by
+  induction l generalizing acc with
+  | nil => simp at hm
+  | cons a l ih =>
+    rw [List.foldl_cons]
+    rw [List.map_cons, List.nodup_cons] at hnd
+    rcases List.mem_cons.1 hm with rfl | hm'
+    · rw [foldl_insert_notin _ _ _ hnd.1]; simp
+    · exact ih _ hnd.2 hm'
+
+theorem foldl_insert_some [GooseExts] (l : List apply.MemberM) (acc : GMap w64 apply.MemberM) (k : w64)
+    (mm : apply.MemberM) (h : (l.foldl (fun mem m => mem.insert m.id m) acc) !! k = some mm) :
+    acc !! k = some mm ∨ (mm ∈ l ∧ mm.id = k) := by
+  induction l generalizing acc with
+  | nil => left; exact h
+  | cons a l ih =>
+    rw [List.foldl_cons] at h
+    rcases ih _ h with h1 | ⟨h1, h2⟩
+    · rw [GMap.lookup_insert_eq_iff] at h1
+      by_cases e : a.id = k
+      · rw [if_pos e] at h1; cases h1; right; exact ⟨by simp, e⟩
+      · rw [if_neg e] at h1; left; exact h1
+    · right; exact ⟨by simp [h1], h2⟩
+
+/-- A member of the initial cluster is its entry's `memberOf`. -/
+theorem mem_members [GooseExts] (U : BootURLs) (t : GoString) (m : apply.MemberM) :
+    m ∈ members U t ↔ ∃ name, (U.initMap !! name).isSome ∧ m = memberOf U t name := by
+  unfold members
+  rw [List.mem_mergeSort, List.mem_map]
+  constructor
+  · rintro ⟨name, hn, rfl⟩; exact ⟨name, (GMap.mem_dom_list _ _).1 hn, rfl⟩
+  · rintro ⟨name, hn, rfl⟩; exact ⟨name, (GMap.mem_dom_list _ _).2 hn, rfl⟩
+
+theorem memMap_lookup [GooseExts] (U : BootURLs) (t : GoString) (hnd : (ps U t).Nodup)
+    (m : apply.MemberM) (hm : m ∈ members U t) : memMap U t !! m.id = some m := by
+  unfold memMap
+  exact foldl_insert_mem _ _ hnd m hm
+
+theorem memMap_some [GooseExts] (U : BootURLs) (t : GoString) (k : w64) (mm : apply.MemberM)
+    (h : memMap U t !! k = some mm) : mm ∈ members U t ∧ mm.id = k := by
+  unfold memMap at h
+  rcases foldl_insert_some _ _ _ _ h with h1 | h1
+  · simp at h1
+  · exact h1
+
+/-- The members' names are distinct (each is its entry's key). -/
+theorem memMap_names [GooseExts] (U : BootURLs) (t : GoString) (k1 k2 : w64) (m1 m2 : apply.MemberM)
+    (h1 : memMap U t !! k1 = some m1) (h2 : memMap U t !! k2 = some m2) (hn : m1.name = m2.name) :
+    k1 = k2 := by
+  obtain ⟨hm1, rfl⟩ := memMap_some U t k1 m1 h1
+  obtain ⟨hm2, rfl⟩ := memMap_some U t k2 m2 h2
+  obtain ⟨n1, -, rfl⟩ := (mem_members U t m1).1 hm1
+  obtain ⟨n2, -, rfl⟩ := (mem_members U t m2).1 hm2
+  have : n1 = n2 := by simpa [memberOf] using hn
+  subst this; rfl
+
+/-- This member's entry. -/
+theorem memMap_self [GooseExts] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
+    (h : membersOk cfg U) :
+    memMap U cfg.InitialClusterToken' !! id cfg U =
+      some (memberOf U cfg.InitialClusterToken' cfg.Name') := by
+  unfold id
+  exact memMap_lookup U _ h.2.1 _ ((mem_members U _ _).2 ⟨_, h.1, rfl⟩)
+
+/-- A boot member has a peer URL. -/
+theorem members_urls [GooseExts] (U : BootURLs) (t : GoString) (hU : urlsNe U) (m : apply.MemberM)
+    (hm : m ∈ members U t) : m.peerURLs ≠ [] := by
+  obtain ⟨n, hn, rfl⟩ := (mem_members U t m).1 hm
+  simpa [memberOf] using hU n hn
+
+/-- A boot member is a voter with no client URLs, named by its entry. -/
+theorem members_shape [GooseExts] (U : BootURLs) (t : GoString) (m : apply.MemberM)
+    (hm : m ∈ members U t) : m.isLearner = false ∧ m.clientURLs = [] := by
+  obtain ⟨n, -, rfl⟩ := (mem_members U t m).1 hm
+  exact ⟨rfl, rfl⟩
 
 end bootGo
 
@@ -292,6 +470,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
+
+/-- **The raft configuration `raftConfig(cfg, id, s)` builds** (`bootstrap.go:584-596`; claim #34 stage
+4, 2026-11-25): `ID` the member's id, `ElectionTick` the configuration's, `HeartbeatTick` `1`, the
+storage the `MemoryStorage` `s` (as raft's `Storage` interface), `MaxSizePerMsg` `maxSizePerMsg`
+(`2 ^ 20`, `raft.go:38`), `MaxInflightMsgs` `maxInflightMsgs` (`512`, `raft.go:41`), `CheckQuorum`,
+`PreVote` the configuration's, the logger `lok` (`NewRaftLoggerZap`'s), every other field zero. -/
+def raftCfgOf (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64) (s : Loc)
+    (lok : GoInterfaceOk) : Config :=
+  { (zero_val Config) with
+    ID' := id, ElectionTick' := cfg.ElectionTicks', HeartbeatTick' := W64 1,
+    Storage' := memStorIface s, MaxSizePerMsg' := W64 1048576, MaxInflightMsgs' := W64 512,
+    CheckQuorum' := true, PreVote' := cfg.PreVote', Logger' := interface.ok lok }
 
 /-- **The raft record `bv` as `bootstrapRaftFromCluster` makes it** (`bootstrap.go:548-572`,
 `raftConfig` `:584-596`): `bootOk`'s `Hraft` but its facts of the peers and of `γ`, and `Hc Hlok Hreg

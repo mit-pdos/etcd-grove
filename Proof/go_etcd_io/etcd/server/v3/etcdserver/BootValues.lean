@@ -16,8 +16,8 @@ is a definition, and which Go function computes it is proved in the stage named.
 - `cid`: `genID()`: the first eight bytes, big-endian, of `sha1` of the sorted ids' big-endian bytes.
 - `memberJSON`: the bytes `json.Marshal(*Member)` writes for a member (`Member`'s tags: `id`, then the
   embedded `RaftAttributes` `peerURLs`, `isLearner,omitempty`, then `Attributes` `name,omitempty`,
-  `clientURLs,omitempty`; `encoding/json`'s string escaping), for strings of valid UTF-8 (the only
-  ones `bootCfgFresh` and plain URLs admit). Stage 4 relates it to Go (stop S1 of the plan).
+  `clientURLs,omitempty`): since stage 4 (2026-11-25) the encoding/json model's bytes
+  (`membership.memberJson`, #24 J2) at a non-nil peer-URL slice (`memberJSON_eq`).
 
 A peer URL's string is `url.URL.String()` of it, which this repository specifies for a URL of only the
 scheme `http` and a plain host (`http.urlRootPlain`: `http://` and the host); `bootURLsPlain` is that
@@ -27,6 +27,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Perennial.TrustedCode.crypto.fips140
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Json
 
 @[expose] public section
 
@@ -166,6 +167,23 @@ def initMapOk [GooseExts] (U : BootURLs) (token : GoString) : Prop :=
     W64 0 ∉ U.initMap.domList.map (fun k => (memberOf U token k).id) ∧ GMap.size U.initMap ≤ 2 ^ 58 ∧
     (U.initMap.domList.map (fun k => (U.initURLs k).length)).sum ≤ 2 ^ 62
 
+/-- **This member's id is not one of raft's local targets** (claim #34 stage 4, 2026-11-25; ledger,
+"`bootstrapRaft.spec`: an id raft refuses"): raft v3.7's `Config.validate` refuses an id that
+`IsLocalMsgTarget` names (`LocalAppendThread`, `math.MaxUint64`, and `LocalApplyThread`,
+`math.MaxUint64 - 1`: `raft.go`, `StartNode` panics on the error), which `ConfigValid` (`rnStartCfg`, in
+`bootOk`'s `Hraft`) excludes; etcd's `NewClusterFromURLsMap` checks only `0`. A pure fact of the
+configuration's URLs and token (a SHA-1 of them), settled per example by evaluation. -/
+def idRaftOk [GooseExts] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) : Prop :=
+  id cfg U ≠ W64 18446744073709551615 ∧ id cfg U ≠ W64 18446744073709551614
+
+/-- **Every initial-cluster entry has a peer URL** (claim #34 stage 4, 2026-11-25; ledger,
+"`bootstrapRaftFromCluster`: a member with no peer URL"): then each member's peer-URL slice is not nil, and
+`json.Marshal` writes its `peerURLs` as an array (`memberJSON`), which `bootstrapRaftFromCluster`'s proof needs
+of the cluster's clone (`Member.specMem` keeps no slice's nil-ness). Go's `types.NewURLsMap` gives every
+entry at least one URL; a pure fact of each example's configuration. -/
+def urlsNe [GooseExts] (U : BootURLs) : Prop :=
+  ∀ k, (U.initMap.lookup k).isSome → U.initURLs k ≠ []
+
 /-- **The cluster's id** (`genID()`). -/
 noncomputable def cid [GooseExts] (U : BootURLs) (token : GoString) : w64 :=
   be64 (sha1 ((ps U token).flatMap bytes64))
@@ -178,50 +196,31 @@ noncomputable def dir [GooseExts] (U : BootURLs) (token : GoString) (i : w64) : 
 
 /-! ### `json.Marshal(*Member)` -/
 
-/-- The bytes of an ASCII string. -/
-def ascii (s : String) : List w8 := s.toList.map (fun c => BitVec.ofNat 8 c.toNat)
+/-- **`json.Marshal` of a member** (claim #34 stage 4, 2026-11-25: the encoding/json model's bytes,
+`membership.memberJson`, at a non-nil peer-URL slice; until then a hand-written FIPS-style rendering
+`ascii "{\"id\":" ++ …`, cross-checked against Go, which no spec produced): `{"id":N,"peerURLs":[...]`,
+then `"isLearner":true` if a learner, `"name":"..."` if named, `"clientURLs":[...]` if any, then `}`
+(`memberJSON_eq`). The claim that these are real encoding/json's bytes is the model's (`models/json`,
+`Proof/.../membership/Json.lean`). -/
+def memberJSON [GooseExts] (m : apply.MemberM) : List w8 :=
+  [W8 123] ++ go!"\"id\":" ++ models_lab.jsoncodec.decU64 m.id ++ go!",\"peerURLs\":" ++
+    membership.jsonStrSlice false m.peerURLs ++
+    (if m.isLearner then go!",\"isLearner\":true" else []) ++
+    (if m.name = [] then [] else go!",\"name\":" ++ models_lab.jsoncodec.jsonQuote m.name) ++
+    (if m.clientURLs = [] then [] else go!",\"clientURLs\":" ++
+      membership.jsonStrSlice false m.clientURLs) ++ [W8 125]
 
-/-- A hex digit. -/
-def hexDigit (n : Nat) : w8 := BitVec.ofNat 8 (if n < 10 then 48 + n else 87 + n)
-
-/-- `\u00XX` for a byte below `0x20`. -/
-def uEsc (b : Nat) : List w8 := ascii "\\u00" ++ [hexDigit (b / 16), hexDigit (b % 16)]
-
-/-- The body of `encoding/json`'s string encoding (`appendString` with HTML escaping, the default) of
-a valid UTF-8 string: `"` and `\` backslashed, `\b \f \n \r \t`, other control bytes and `<`, `>`,
-`&` as `\u00XX`, U+2028 and U+2029 as ` `/` `, everything else as is. -/
-def jsonStrBody : List w8 → List w8
-  | [] => []
-  | b :: rest =>
-    let n := b.toNat
-    if n = 0xE2 ∧ rest.take 2 = [BitVec.ofNat 8 0x80, BitVec.ofNat 8 0xA8] then
-      ascii "\\u2028" ++ jsonStrBody (rest.drop 2)
-    else if n = 0xE2 ∧ rest.take 2 = [BitVec.ofNat 8 0x80, BitVec.ofNat 8 0xA9] then
-      ascii "\\u2029" ++ jsonStrBody (rest.drop 2)
-    else
-      (if n = 34 then ascii "\\\"" else if n = 92 then ascii "\\\\"
-        else if n = 8 then ascii "\\b" else if n = 12 then ascii "\\f"
-        else if n = 10 then ascii "\\n" else if n = 13 then ascii "\\r" else if n = 9 then ascii "\\t"
-        else if n < 32 ∨ n = 60 ∨ n = 62 ∨ n = 38 then uEsc n
-        else [b]) ++ jsonStrBody rest
-termination_by l => l.length
-decreasing_by all_goals simp_wf <;> omega
-
-/-- A JSON string. -/
-def jsonStr (s : GoString) : List w8 := ascii "\"" ++ jsonStrBody s ++ ascii "\""
-
-/-- A JSON array of strings (a non-nil slice). -/
-def jsonStrs (ss : List GoString) : List w8 :=
-  ascii "[" ++ ((ss.map jsonStr).intersperse (ascii ",")).flatten ++ ascii "]"
-
-/-- **`json.Marshal` of a member** (see the file header): `{"id":N,"peerURLs":[...]`, then
-`"isLearner":true` if a learner, `"name":"..."` if named, `"clientURLs":[...]` if any, then `}`. -/
-def memberJSON (m : apply.MemberM) : List w8 :=
-  ascii "{\"id\":" ++ ascii (toString m.id.toNat) ++ ascii ",\"peerURLs\":" ++ jsonStrs m.peerURLs ++
-    (if m.isLearner then ascii ",\"isLearner\":true" else []) ++
-    (if m.name = [] then [] else ascii ",\"name\":" ++ jsonStr m.name) ++
-    (if m.clientURLs = [] then [] else ascii ",\"clientURLs\":" ++ jsonStrs m.clientURLs) ++
-    ascii "}"
+/-- **The model's bytes of a member record are `memberJSON` of its value**, when its peer-URL slice is
+not nil and its client-URL slice is not nil when it holds some. -/
+theorem memberJSON_eq [GooseExts] (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member)
+    (ps cs : List GoString) (hp : v.RaftAttributes'.PeerURLs' ≠ slice.nil)
+    (hc : cs ≠ [] → v.Attributes'.ClientURLs' ≠ slice.nil) :
+    membership.memberJson v ps cs =
+      memberJSON ⟨v.ID', ps, v.RaftAttributes'.IsLearner', v.Attributes'.Name', cs⟩ := by
+  unfold membership.memberJson membership.memberFieldsJson memberJSON
+  by_cases hcs : cs = []
+  · subst hcs; simp [hp]
+  · simp [hp, hc hcs, hcs]
 
 /-- **The peers' contexts** (`bootstrapRaftFromCluster`'s `json.Marshal(cl.Member(id))`, in `ps`
 order). -/
