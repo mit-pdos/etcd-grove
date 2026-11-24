@@ -3,7 +3,7 @@ net/http's `mapping[string, *routingNode]` (`mapping.go`), the children of a nod
 routing tree: a slice of entries while it has few (`maxSlice`), then a Go map.
 
 * `MapSt`: its physical state (the two fields, the slice's entries, the map's contents).
-* `mapRep dq h st kids`: the mapping at `h` holds the pairs `kids` (distinct keys), at fraction
+* `mapRep dq h st kids`: the mapping at `h` (its whole struct, so `h ≠ null`) holds the pairs `kids` (distinct keys), at fraction
   `dq`; the slice's entries are never written again once appended (`↦*□`), and the map is owned
   at `dq`. Fixed `st`, so it is fractional (`mapRep_fractional`), for the ServeMux's `RWMutex`.
 * `wp_mapping_find`, `wp_mapping_add`: `find` and `add` (a key not yet in `kids`).
@@ -75,8 +75,7 @@ variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
 
 /-- The mapping at `h` holds `kids` (see the file header). -/
 def mapRep (dq : DFrac) (h : Loc) (st : MapSt) (kids : List (GoString × Loc)) : IProp GF :=
-  iprop(structFieldRef (net.http.mapping GoString Loc) go!"s" h ↦{dq} st.s ∗
-    structFieldRef (net.http.mapping GoString Loc) go!"m" h ↦{dq} st.m ∗
+  iprop(h ↦{dq} ({ s' := st.s, m' := st.m } : net.http.mapping GoString Loc) ∗
     ⌜(kids.map Prod.fst).Nodup⌝ ∗
     (if st.m = map.nil then
       st.s ↦*□ st.es ∗ ownSliceCap (net.http.entry GoString Loc) st.s dq ∗ ⌜entPairs st.es = kids⌝
@@ -84,14 +83,16 @@ def mapRep (dq : DFrac) (h : Loc) (st : MapSt) (kids : List (GoString × Loc)) :
 
 /-- `h.find(k)` (see the file header). -/
 theorem wp_mapping_find (h : Loc) (dq : DFrac) (st : MapSt) (kids : List (GoString × Loc))
-    (k : GoString) (hnn : h ≠ null) :
+    (k : GoString) :
     {{ mapRep (GF := GF) (hG := hG) dq h st kids }}
       (App (Val (h @!! go.GoType.PointerType kidsTy @!! go!"find")) (Val #k))
     {{ RET (PairV #((map.lookupL k kids).getD null) #(decide ((map.lookupL k kids).isSome)));
         mapRep dq h st kids }} := by
   by_cases hm : st.m = map.nil
   · simp only [mapRep, hm, ↓reduceIte]
-    wp_start as ⟨Hs, Hm, %Hnd, #Hes, Hcap, %Hkids⟩
+    wp_start as ⟨Hh, %Hnd, #Hes, Hcap, %Hkids⟩
+    ihave %hnn := typedPointsto_not_null _ _ _ $$ Hh
+    iStructNamedPrefix Hh "H"
     wp_auto
     rw [decide_eq_false hnn]
     wp_auto
@@ -117,6 +118,8 @@ theorem wp_mapping_find (h : Loc) (dq : DFrac) (st : MapSt) (kids : List (GoStri
         rw [Hkids] at hl
         rw [hl]
         simp only [Option.getD_some, Option.isSome_some, decide_true]
+        ihave Hh := typedPointsto_combine h ({ s' := st.s, m' := map.nil } : net.http.mapping GoString Loc) dq hnn $$ [Hs Hm]
+        · simp only [TypedPointsto.typedPointstoDef]; iframe
         iapply HΦ
         iframe; iframe #; ipureintro; exact ⟨Hnd, Hkids⟩
       · wp_for_post
@@ -138,10 +141,14 @@ theorem wp_mapping_find (h : Loc) (dq : DFrac) (st : MapSt) (kids : List (GoStri
       rw [hnone]
       simp only [Option.getD_none, Option.isSome_none, Bool.false_eq_true, decide_false]
       rw [show (null : Loc) = zero_val Loc from rfl]
+      ihave Hh := typedPointsto_combine h ({ s' := st.s, m' := map.nil } : net.http.mapping GoString Loc) dq hnn $$ [Hs Hm]
+      · simp only [TypedPointsto.typedPointstoDef]; iframe
       iapply HΦ
       iframe; iframe #; ipureintro; exact ⟨Hnd, Hkids⟩
   · simp only [mapRep, hm, ↓reduceIte]
-    wp_start as ⟨Hs, Hm, %Hnd, HM, %HMk⟩
+    wp_start as ⟨Hh, %Hnd, HM, %HMk⟩
+    ihave %hnn := typedPointsto_not_null _ _ _ $$ Hh
+    iStructNamedPrefix Hh "H"
     wp_auto
     rw [decide_eq_false hnn]
     wp_auto
@@ -149,6 +156,8 @@ theorem wp_mapping_find (h : Loc) (dq : DFrac) (st : MapSt) (kids : List (GoStri
     wp_auto
     wp_apply wp_map_lookup2 go.string (go.GoType.PointerType net.http.routingNode.ty) st.m st.M k dq $$ HM with HM
     rw [HMk k, show (zero_val Loc) = null from rfl]
+    ihave Hh := typedPointsto_combine h ({ s' := st.s, m' := st.m } : net.http.mapping GoString Loc) dq hnn $$ [Hs Hm]
+    · simp only [TypedPointsto.typedPointstoDef]; iframe
     iapply HΦ
     iframe
     ipureintro; exact ⟨Hnd, HMk⟩
