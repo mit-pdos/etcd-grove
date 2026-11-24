@@ -25,8 +25,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.kindNames.wp_proof :
-    etcd_dist.deployment.kindNames.spec (GF := GF) (hG := hG) := by
+theorem kindNames.wp_proof :
+    etcd_dist.kindNames.spec (GF := GF) (hG := hG) := by
   wp_start
   wp_auto
   wp_apply wp_slice_literal (V := GoString) kindNameList

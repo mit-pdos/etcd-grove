@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- `nameOk(n)` is `typed.nameOk n`. -/
-abbrev deployment.nameOk.spec : Prop :=
+abbrev nameOk.spec : Prop :=
   ∀ (n : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (Val (@! deployment.nameOk)) (Val #n))

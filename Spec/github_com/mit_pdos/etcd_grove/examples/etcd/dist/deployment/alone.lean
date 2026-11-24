@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- `alone(k)` is `kindAlone k`. -/
-abbrev deployment.alone.spec : Prop :=
+abbrev alone.spec : Prop :=
   ∀ (k : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (Val (@! deployment.alone)) (Val #k))

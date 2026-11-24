@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- `boundsOk(w)` decides `w.goBoundsOk`. -/
-abbrev deployment.boundsOk.spec : Prop :=
+abbrev boundsOk.spec : Prop :=
   ∀ (w : Workload),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (Val (@! deployment.boundsOk)) (Val #w.val))

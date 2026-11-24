@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedSimpArgs false
 
 noncomputable section
 
@@ -25,8 +26,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.writesKeys.wp_proof :
-    etcd_dist.deployment.writesKeys.spec (GF := GF) (hG := hG) := by
+theorem writesKeys.wp_proof :
+    etcd_dist.writesKeys.spec (GF := GF) (hG := hG) := by
   intro k
   by_cases h7 : k = W64 7
   · subst h7
@@ -46,10 +47,10 @@ theorem deployment.writesKeys.wp_proof :
     wp_start
     wp_auto
     wp_end
-  rw [show kindWritesKeys k = true by simp [kindWritesKeys, h7, h8, h9]]
+  rw [show kindWritesKeys k = true by simp only [kindWritesKeys, ne_eq, h7, h8, h9, not_false_eq_true, and_self, or_self, decide_true, decide_false]]
   wp_start
   wp_auto
-  repeat (simp only [h7, h8, h9, decide_false, Bool.not_false, Bool.not_true, Bool.false_eq_true, ↓reduceIte]; wp_auto)
+  repeat (simp only [h7, h8, h9, decide_false, Bool.not_false, Bool.not_true, Bool.false_eq_true, ↓reduceIte]; try wp_auto)
   wp_end
 
 end proof

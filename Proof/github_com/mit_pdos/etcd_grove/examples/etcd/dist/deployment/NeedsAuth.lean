@@ -26,8 +26,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.NeedsAuth.wp_proof (hAlone : etcd_dist.deployment.alone.spec (GF := GF) (hG := hG)) :
-    etcd_dist.deployment.NeedsAuth.spec (GF := GF) (hG := hG) := by
+theorem NeedsAuth.wp_proof (hAlone : etcd_dist.alone.spec (GF := GF) (hG := hG)) :
+    etcd_dist.NeedsAuth.spec (GF := GF) (hG := hG) := by
   intro k
   wp_start
   wp_auto

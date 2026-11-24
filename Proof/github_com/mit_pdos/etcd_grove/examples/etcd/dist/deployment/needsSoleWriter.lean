@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedSimpArgs false
 
 noncomputable section
 
@@ -25,8 +26,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.needsSoleWriter.wp_proof :
-    etcd_dist.deployment.needsSoleWriter.spec (GF := GF) (hG := hG) := by
+theorem needsSoleWriter.wp_proof :
+    etcd_dist.needsSoleWriter.spec (GF := GF) (hG := hG) := by
   intro k
   by_cases h0 : k = W64 0
   · subst h0
@@ -58,10 +59,10 @@ theorem deployment.needsSoleWriter.wp_proof :
     wp_start
     wp_auto
     wp_end
-  rw [show kindNeedsSoleWriter k = false by simp [kindNeedsSoleWriter, h0, h1, h2, h5, h6]]
+  rw [show kindNeedsSoleWriter k = false by simp only [kindNeedsSoleWriter, ne_eq, h0, h1, h2, h5, h6, not_false_eq_true, and_self, or_self, decide_true, decide_false]]
   wp_start
   wp_auto
-  repeat (simp only [h0, h1, h2, h5, h6, decide_false, Bool.not_false, Bool.not_true, Bool.false_eq_true, ↓reduceIte]; wp_auto)
+  repeat (simp only [h0, h1, h2, h5, h6, decide_false, Bool.not_false, Bool.not_true, Bool.false_eq_true, ↓reduceIte]; try wp_auto)
   wp_end
 
 end proof
