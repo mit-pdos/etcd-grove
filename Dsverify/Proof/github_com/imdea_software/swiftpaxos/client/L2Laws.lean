@@ -565,6 +565,7 @@ theorem l2_accept (x : CmdId) (v : List w8) (Ψ : List w8 → IProp netDistGF) (
   unfold inv doneRes pend
   iintro ⟨#Hinv, #Hd, ⟨%c, %γΨ, Hx, #HΨ⟩, Hlc, Hw⟩
   iinv Hinv with Hi Hclose
+  · exact spN_prophN
   unfold invBody
   icases Hi with ⟨%S, %mC, %mL, %mS, %mA, %mP, %mCo, %mR, %mN, %sh, %mD, %mQ, %mK, %mPa, HC, HL, HS, HA, HP, HCo, HRp, HN, >HH, ⟨>HD, HDs⟩, Hown, HQ, HK, HPa, HRepr, Hnodes, Hproto, HQs, >%Hcl, >%Hdom, Hcmds, Hconns, HNu⟩
   unfold l2Inv
