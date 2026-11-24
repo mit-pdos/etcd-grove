@@ -13,9 +13,7 @@ error: `WellFormed.spec` returns `nil` only for a well-formed deployment.
 * `Hctx`: `ContextReadErrs` at every ghost state over the statement's local context (as `putget`'s
   `member_boot`): the packages' initializers need it (`server.wp_initialize'`, `client.wp_initialize'`). To
   be discharged by the per-function context axioms (premises-to-axioms), not a top-level premise.
-* `HWF`: `deployment.WellFormed.spec`, the deployment check's spec (its proof is `etcd-safe-wf`'s).
-* The packages' `Assumptions` (`server`, `client`): instance binders of `EtcdBootNCBad` itself, as
-  `putget_safe`'s statement takes `putget.Assumptions`; `etcd_safe`'s statement does not take them yet.
+The deployment check is `deployment`'s linked `wp_WellFormed` (`deployment/Link.lean`).
 -/
 module
 
@@ -25,7 +23,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Ini
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PkgTable
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.WellFormed
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 public import Proof.go_uber_org.zap.NewNop
 
@@ -69,14 +67,28 @@ theorem machines_prog [GoGlobalContext] [GoSemanticsFunctions] {d : Deployment}
   · exact .inr (.inl ⟨j, _, rfl⟩)
   · exact .inr (.inr ⟨n, _, rfl⟩)
 
+-- Finish a program after the deployment's check failed (`WellFormed`'s error `hne` not `nil`).
+set_option hygiene false in
+local macro "bad_finish" hne:ident : tactic => `(tactic|
+  repeat' (first
+    | (ipureintro; rfl)
+    | (wp_if_destruct <;> try (exfalso; exact $hne (by simpa using Hif)))
+    | (wp_func_call; wp_call)
+    | progress wp_auto))
+
+/-- `ContextReadErrs` at a ghost state over the local context `lctx`. -/
+abbrev CtxErrsAt [GoGlobalContext] [go.Semantics] (lctx : GoLocalContext)
+    (hG : HeapGS .hasLC etcdDistGF) : Prop :=
+  ContextReadErrs (GF := etcdDistGF)
+    (hG := ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩)
+
 section boot
 variable [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
   [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions] [log.NewModel]
 
 /-- **A member's machine on a malformed deployment** (see the file header). -/
 theorem serverBootBad [srv_sem : server.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, ContextReadErrs (GF := etcdDistGF) (hG := hG))
-    (HWF : ∀ hG : HeapGS .hasLC etcdDistGF, deployment.WellFormed.spec (GF := etcdDistGF) (hG := hG))
+    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt lctx hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (k : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
     Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (serverProg d k) σ (iprop(True) : IProp etcdDistGF) := by
@@ -111,17 +123,105 @@ theorem serverBootBad [srv_sem : server.Assumptions]
   wp_func_call
   wp_call
   wp_auto
-  wp_apply (HWF hG v d Hfips) $$ [Hrepr] as %err %Herr
+  wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
   · iframe #
   have hne : err ≠ interface.nil := fun h => Hd (Herr h)
+  bad_finish hne
+  all_goals (trace_state; sorry)
+
+/-- **A workload's orchestrator machine on a malformed deployment** (see the file header). -/
+theorem clientBootBad [cl_sem : client.Assumptions]
+    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt lctx hG)
+    (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat)
+    (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
+    Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (clientProg d j) σ (iprop(True) : IProp etcdDistGF) := by
+  intro hG hGG hL hlo hrb hT
+  obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
+  simp only at hGG hL
+  subst hGG hL
+  letI hG : HeapGS .hasLC etcdDistGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
+  haveI := Hctx hG
+  haveI := etcdFsSemOk
+  iintro - Hls Hgs Htok
+  imod (prometheus.regKeys_alloc (GF := etcdDistGF) client.regQs client_regQsOk) with ⟨%γreg, Hregs⟩
+  letI : prometheus.PromRegGS etcdDistGF := ⟨γreg⟩
+  ihave Hns := prometheus.idToks_regsFree (GF := etcdDistGF) client.regQs $$ Hregs
+  ihave Hown := ownInitializing_of_empty (client.getIsPkgInit (GF := etcdDistGF)) $$ Hgs
+  imodintro
+  unfold clientProg
+  wp_apply (client.wp_initialize' _ client.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
+  · iframe
+  first
+    | wp_bind (deploymentLit d)
+    | (wp_pure; wp_bind (deploymentLit d))
+  iapply wp_deploymentLit
+  iintro %v #Hrepr
+  -- `Orchestrator(d, j)`
+  wp_func_call
+  wp_call
   wp_auto
-  repeat' wp_if_destruct
-  all_goals (try (exfalso; exact hne (by assumption)))
-  all_goals wp_auto
-  all_goals (try (ipureintro; rfl))
+  -- `MainDeployment(d, j, func() {})`
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
+  · iframe #
+  have hne : err ≠ interface.nil := fun h => Hd (Herr h)
+  bad_finish hne
+  all_goals (trace_state; sorry)
+
+/-- **A client machine on a malformed deployment** (see the file header). -/
+theorem nodeBootBad [cl_sem : client.Assumptions]
+    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt lctx hG)
+    (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat)
+    (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
+    Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (nodeProg d n) σ (iprop(True) : IProp etcdDistGF) := by
+  intro hG hGG hL hlo hrb hT
+  obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
+  simp only at hGG hL
+  subst hGG hL
+  letI hG : HeapGS .hasLC etcdDistGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
+  haveI := Hctx hG
+  haveI := etcdFsSemOk
+  iintro - Hls Hgs Htok
+  imod (prometheus.regKeys_alloc (GF := etcdDistGF) client.regQs client_regQsOk) with ⟨%γreg, Hregs⟩
+  letI : prometheus.PromRegGS etcdDistGF := ⟨γreg⟩
+  ihave Hns := prometheus.idToks_regsFree (GF := etcdDistGF) client.regQs $$ Hregs
+  ihave Hown := ownInitializing_of_empty (client.getIsPkgInit (GF := etcdDistGF)) $$ Hgs
+  imodintro
+  unfold nodeProg
+  wp_apply (client.wp_initialize' _ client.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
+  · iframe
+  first
+    | wp_bind (deploymentLit d)
+    | (wp_pure; wp_bind (deploymentLit d))
+  iapply wp_deploymentLit
+  iintro %v #Hrepr
+  -- `NodeDeployment(d, n)`
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
+  · iframe #
+  have hne : err ≠ interface.nil := fun h => Hd (Herr h)
+  bad_finish hne
   all_goals (trace_state; sorry)
 
 end boot
+
+/-- **`EtcdBootNCBad`**: on a malformed deployment every machine's boot program is safe from `True`
+(`serverBootBad`, `clientBootBad`, `nodeBootBad`). `Hctx` (`context`'s errors as Go defines them,
+`ContextReadErrs`, at every ghost state over the statement's local context) is a named hypothesis, not
+a top-level premise: it is to be discharged by the per-function context axioms. -/
+theorem etcdBootNCBad_holds
+    (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
+      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt lctx hG) :
+    EtcdBootNCBad := by
+  intro _ lctx _ _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hlo hb i m hm
+  rcases machines_prog hm with ⟨k, σ, rfl⟩ | ⟨j, σ, rfl⟩ | ⟨n, σ, rfl⟩
+  · exact serverBootBad (fun hG => Hctx hG) d Hd Hfips k σ
+  · exact clientBootBad (fun hG => Hctx hG) d Hd Hfips j σ
+  · exact nodeBootBad (fun hG => Hctx hG) d Hd Hfips n σ
 
 end etcd_dist
 end EtcdGrove
