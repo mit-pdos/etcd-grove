@@ -5837,3 +5837,41 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
   No top-level statement changes (the tokens come from the backend's constructor inside the proof).
 - **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.
+
+## 2026-11-24: net/rpc model's `rerr` removed, a request frame over `maxFrame` the stuck point; `Client.Call.spec`'s request bound, the frame reads' `F`, the server codec's read specs, `hijackOk`'s read-deadline token (net-rpc part 2, `notes/net-sticky-read.md`)
+
+- **Spec.** Changed: `Client.Call.spec`, `Client.Go.spec`, `Client.send.spec` (premise `⌜sm.length + 16 ≤ maxFrameN⌝`,
+  and the arguments' encoding continuation `⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs`, returned as it was on an
+  unsent call); `clientCodec.WriteRequest.spec` (the same premise on `rv.ServiceMethod'`, the encoding's continuation
+  `⌜eb.length ≤ maxFrameN⌝ ∗ Ψ0 eb`; `reqUpd`'s pure premise `≤ maxFrameN` for `< 2 ^ 63`); `reqOk` (`Proto.lean`: a
+  request's payloads at most `maxFrameN`); `readFull.spec`, `readFrame.spec` (a parameter `F`: the accessor returns
+  `P (got ++ r.got) ∗ (⌜∀ bs, r ≠ .bytes bs⌝ -∗ F)` and a `readErr` comes with `F`; `readFrame`'s `errFrame` after a
+  length beyond `maxFrame` gives those 8 bytes); `serverCodec.ReadRequestHeader.spec`, `ReadRequestBody.spec` (no `rerr`
+  resource, the `r0 ≠ nil` case gone, `F` as `readFrame`'s; the body's `errFrame` with its 8 bytes);
+  `newServerCodec.spec` (no `rerr`); `Server.readRequestHeader.spec` (no `rerr` in its post); the server's vocabulary
+  (`ServerDefs.lean`: `rdrOwn W a cn`, no codec argument, the live reader with `rdlTok cn true false` or a dead one with
+  `readDead cn true`; `rdrMid` with `rdlTok`; `rpcAccepted` with `rdlTok cn true false ∨ readDead cn true`;
+  `srvCodecOwn` without `rerr`); `net.http.hijackOk` (the continuation also gets `∃ b, rdlTok cn true b ∗ (⌜b = false⌝ ∨
+  readDead cn true)`), `hjDone` (without the token), `conn.hijackLocked.spec` (its post's token likewise). New:
+  `deadline_dead_au` (`GooseLang/Ext/Net/Proto.lean`: `deadline_au`, and `readDead` when the setting fails on a closed
+  end), `readAcc_true` (`Net/Proof/net/rpc/ReadAcc.lean`), `rd_acc_dead`, `rd_acc_after`, `req_len_fit`,
+  `framesOf_next_len`, `reqPlsFrom_fit`, `rdErr_readF`, `rdErr_readE` (`ServerGhost.lean`); `rd_acc_srv` removed.
+  Kits: swiftpaxos's `client.Client.call.specI` gains `Call`'s two bounds (its callers prove them of their concrete
+  arguments: `Client__callMaster.lean`, `examples/swiftnet/Register.lean`'s `reg_args_fit`, `master/RunLoop.lean`);
+  epaxos's `wp_Call_simple` likewise (`NetRpc/Calls.lean`, `regArgs_fit`). No top-level statement changes.
+- **Defect.** The model's `serverCodec.rerr` made every frame read error sticky, timeouts included, where Go reads on:
+  the model was narrower than Go for a server with a read deadline (its claim excluded those programs). Removing it
+  (the net extension's semantics now makes non-timeout read errors sticky, D1 v3.5) exposed two things the proofs need:
+  (1) the failed read's `readDead` through the frame readers (the old specs forgot the read's result); (2) Go's gob
+  reads on after a too-long message (`errBadCount`) and `ServeCodec` reads on after a body's error, parsing a payload as
+  frames, so a frame over `maxFrame` must not reach the server. Over HTTP, (3) the hijacked connection's read deadline
+  was unknown (`∃ b`), so no read could be shown not to time out.
+- **Evidence.** `models/net/rpc/codec.go` (Go 1.27.3 `net/rpc/server.go` `ServeCodec`/`readRequest`,
+  `encoding/gob/decoder.go` `recvMessage`, `encoder.go` `writeMessage`'s `tooBig`); the model's `hijackLocked`
+  clears both deadlines (`SetDeadline(time.Time{})`), which fails only on a closed end (`DeadlineOutcome`).
+- **Proposed change.** As above. A frame over `maxFrame` in `clientCodec.WriteRequest` calls the model's stuck point
+  `stuck` (trusted: `Net/TrustedCode/net/rpc.lean`, Perennial's `internal.gomodel.Stuck.impl`), not a silent refusal
+  (gob leaves the header buffered for the next flush, which a refusal would not model): so the bound is `Call`'s
+  caller's, proved from its own encoding (the user's choice, option (B) on #24; the bound on `Call`, coordinator,
+  2026-11-24).
+- **Decision.** Applied (branch `net-rpc-rerr`).

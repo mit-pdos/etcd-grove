@@ -56,7 +56,8 @@ write meeting the protocol), `read_au` (`Conn.Read.spec`), `close_au`, `closeWri
 `read_dead_au` (`read_au` with the end's `rdlTok`, when the read returns EOF, `sys` or `closed`),
 and `read_after_dead_au` (a read then returns no byte); `rdlTok cn s b` (exclusive: the end's read
 deadline is `b`), given by `dial_rdl_au`, `accept_rdl_au` and `accept_shared_rdl_au` (`dial_au` and
-the `accept_*au` laws are the same without it), taken and given back by `deadline_au`; with
+the `accept_*au` laws are the same without it), taken and given back by `deadline_au` (and
+`deadline_dead_au`, which also gives `readDead` when the setting fails on a closed end); with
 `b = false` a read does not time out (`readOutcome_no_timeout`). `deadline_w_au` sets the write
 deadline only, without the token.
 
@@ -2119,6 +2120,50 @@ theorem deadline_au (cn : Nat) (s : Bool) (k : w64) (set : Bool) (b : Bool) :
   · ipureintro; exact ⟨st, Hc⟩
   · iexists γ
     iframe He Hreg Hb
+
+/-- `deadline_au`, and a setting that fails because the end is closed (`DeadlineOutcome`: the end
+then stays as it was, closed) leaves the end's reading dead (`readDead`: closed, for good). So a
+caller that clears the read deadline has the token at `false`, or a dead end. -/
+theorem deadline_dead_au (cn : Nat) (s : Bool) (k : w64) (set : Bool) (b : Bool) :
+    rdlTok (Gg := Gg) cn s b ⊢
+      |={⊤,∅}=> ∃ st, netEnd NG cn s st ∗
+        ∀ res st', ⌜DeadlineOutcome st k set res st'⌝ -∗ netEnd NG cn s st' ={∅,⊤}=∗
+          ⌜∃ st, DeadlineOutcome st k set res st'⌝ ∗ rdlTok cn s st'.rdl ∗
+          (⌜st'.closed = true⌝ -∗ readDead cn s) := by
+  unfold rdlTok
+  iintro ⟨%γ, #He, #Hreg, Hb⟩
+  imod reg_open_full cn γ s s $$ Hreg He
+    with ⟨%st, %d, %W, %R, %x, %c, Hend, Hdir, HwQ, Hr, Hrd, Hx, Hcc, %Hok, Hcl⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists st
+  iframe Hend
+  iintro %res %st' %Hc Hend
+  imod Hmask
+  imod ghostVar_update_halves st'.rdl (γ.d s) _ _ $$ Hb Hrd with ⟨Hb, Hrd⟩
+  imod mono_nat_own_update (GF := GF) (max c (if st'.closed = true then 1 else 0))
+    (Nat.le_max_left _ _) $$ Hcc with ⟨Hcc, #Hclb⟩
+  have hp : DirOk d W R ∧ (1 ≤ x → d.dead) ∧
+      (1 ≤ max c (if st'.closed = true then 1 else 0) → st'.closed = true) := by
+    refine ⟨Hok.1, Hok.2.1, fun hc => ?_⟩
+    by_cases hcl : st'.closed = true
+    · exact hcl
+    · simp only [hcl, ↓reduceIte, Nat.max_zero] at hc
+      exact (deadlineOutcome_closed Hc).trans (Hok.2.2 hc)
+  imod Hcl $$ Hend Hdir HwQ Hr Hrd Hx Hcc %hp with -
+  imodintro
+  isplitr
+  · ipureintro; exact ⟨st, Hc⟩
+  isplitl [Hb]
+  · iexists γ
+    iframe He Hreg Hb
+  · iintro %hcl
+    unfold readDead
+    iexists γ
+    iframe He
+    iright
+    iapply monoNatLbOwn_le 1 ?_ $$ Hclb
+    rw [if_pos hcl]; exact Nat.le_max_right _ _
 
 /-- The update `net.Conn.SetWriteDeadline.spec` takes (the write deadline, kind `2`, which leaves
 the read deadline as it is: no `rdlTok`). -/
