@@ -178,5 +178,13 @@ Off `premise-witness/2026-11-24` `b3ead60186` (lean `366ab8486d`), untrusted and
   opaque environment props.
 - lean (`4da2e64008`, 316 commits ahead) changes none of these statements' premises (bboltfs's step
   bound only), so the witnesses should survive the land queue's merge.
+- Built on the VM: `Robustness.PremiseSat`, `Robustness.FsStart`, `WalAreasInitSat` and all 29
+  `*TopLevelWitness` modules, exit 0 (5530 jobs), no `sorry` (`b5.log`); source gates ok
+  (premise-witness --check, import-all, tier). No axiom, no statement touched. Next: land queue (untrusted).
 - Pitfall: `omega` ignores atoms of type `Ino` (an abbrev of `Nat`): state arithmetic lemmas over `Nat`.
+- Pitfall: `Option.noConfusion h` no longer elaborates to `False` here (its type is `_ ≍ _ → …`):
+  use `absurd h (by simp)`. `decide` refuses goals with free variables (the intro'd instances inside
+  `freshState`): `show` the closed goal first, or `simp`.
+- Pitfall: vmlake's gc deleted this sync dir while idle; the next sync retried and the build restarted
+  from scratch (~1 h with the cache).
 - Not done (as asked): P7 putget (question to the coordinator), P8 kvnet.
