@@ -17,6 +17,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### goose passes a non-`int` size to `make` unconverted, which makes the call stuck (2026-11-24, kvudp)
+
+- **Limitation.** Go accepts a size of any integer type in `make` (`make([][]byte, d.total)`, where `d.total`
+  is a `uint32`). goose translates it as `FuncResolve go.make2 [st] #() (load uint32 ...)` and passes the w32
+  value unconverted. `make2_slice` unfolds to `make3_slice` (`Golang/Defn/Slice.lean:130`), which compares
+  its arguments with `<⟨go.int⟩`, and `lt_int` (`Predeclared.lean:284`) is defined only on w64 values. So
+  the call is stuck: a correct Go program has no proof.
+- **Who.** kvudp's `reassembler.add` (`examples/raft/kvnet/udptransport.go`).
+- **Workaround here.** The Go code converts the size itself: `make([][]byte, int(d.total))` (same behaviour).
+- **Proposed change.** goose converts every `make` size and capacity argument whose type is not `int` to
+  `int` (`Convert t go.int`), as the Go spec's conversion of a typed integer size to `int` does. An untyped
+  constant needs no conversion.
+- **Status.** Open.
+
 ### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
 ### `runtime.callers` may fill its buffer every time: `zap.Stack` cannot be proved (2026-11-23, zap-z2, claim #40)
 

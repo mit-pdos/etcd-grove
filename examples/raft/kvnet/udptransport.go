@@ -244,7 +244,7 @@ func (r *reassembler) add(d datagram) (body []byte, complete bool, reack bool) {
 			r.stats.add(StUDPReassembliesEvicted)
 			ps = append([]*partial(nil), ps[1:]...)
 		}
-		p = &partial{id: id, chunks: make([][]byte, d.total), top: d.index}
+		p = &partial{id: id, chunks: make([][]byte, int(d.total)), top: d.index}
 		ps = append(ps, p)
 		r.pending[d.from] = ps
 	}

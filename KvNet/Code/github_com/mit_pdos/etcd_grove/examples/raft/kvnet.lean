@@ -10587,7 +10587,7 @@ noncomputable def reassembler.add.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType «partial».ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType «partial».ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType «partial».ty)))) (Val UntypedNil)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc «partial».ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad msgID.ty))) (Var "id"))
-  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef datagram.ty go!"total"))) (Var "d"))))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (App (Val (GoInstruction (Convert go.uint32 go.int))) (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef datagram.ty go!"total"))) (Var "d")))))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef datagram.ty go!"index"))) (Var "d")))
   (App (Val (GoInstruction (CompositeLiteral «partial».ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression msgID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"chunks")) (ElementExpression (go.GoType.SliceType (go.GoType.SliceType go.byte)) (Var "$v1"))), (KeyedElement (some (KeyField go!"top")) (ElementExpression go.uint32 (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
