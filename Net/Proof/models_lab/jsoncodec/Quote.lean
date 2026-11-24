@@ -33,6 +33,11 @@ theorem hexIdx (n : Nat) (h : n < 16) :
 
 theorem uintZ_w8 (x : w8) : uint.Z x = ((x.toNat : Nat) : Int) := rfl
 
+theorem lt128_of_uintZ (x : w8) (h : uint.Z x < uint.Z (W8 128)) : x.toNat < 0x80 := by
+  rw [uintZ_w8, uintZ_w8] at h
+  have h128 : (W8 128 : w8).toNat = 128 := rfl
+  omega
+
 theorem shr4_toNat (x : w8) : (x >>> W64 4).toNat = x.toNat / 16 := by
   simp [BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow]
 
