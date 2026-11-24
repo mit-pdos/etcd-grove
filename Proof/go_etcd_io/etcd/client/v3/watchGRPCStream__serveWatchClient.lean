@@ -31,7 +31,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 theorem watchGRPCStream.serveWatchClient.wp_proof :
     watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG) := by
   intro V G callSl wc γs Dn cd' e γc i sent0 tok
-  wp_start as ⟨Hlt, #Hpkg, #Hwgs, #Hcs, #Hspec, Htok, #Hep, Hprod, Hcnt⟩
+  wp_start as ⟨Hlt, #Hwgs, #Hcs, #Hspec, Htok, #Hep, Hprod, Hcnt⟩
   ihave #Hwgs' := Hwgs
   iunfold isWGS at Hwgs'
   icases Hwgs' with ⟨%Hwnn, -, #Hfacts, -, -, -, -, -, -, -, -, #Frespc, #Fdonec, #Ferrc, -, -,

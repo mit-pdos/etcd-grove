@@ -38,7 +38,7 @@ theorem kv.Do.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci om cd opv o Sp Qp Sr Qr Sd Qd Ψr
-  wp_start as ⟨Hlt, #Hpkg, #Hkv, #Hom, #Hctx, #Hce, #Hat, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hkv, #Hom, #Hctx, #Hce, #Hat, Hrun, %Hsz⟩
   iunfold kvObjAtC at Hkv
   icases Hkv with ⟨%rkv, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco

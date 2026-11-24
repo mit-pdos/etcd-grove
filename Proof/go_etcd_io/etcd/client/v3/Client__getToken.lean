@@ -35,7 +35,7 @@ theorem Client.getToken.wp_proof
     (wp_Is : errors.IsStatusErr.spec (GF := GF) (hG := hG)) :
     Client.getToken.spec (GF := GF) (hG := hG) := by
   intro c conn eps ctx cd
-  wp_start as ⟨Hlt, #Hpkg, #Hrc, #Hready, Hconn, #Hctx⟩
+  wp_start as ⟨Hlt, #Hrc, #Hready, Hconn, #Hctx⟩
   iunfold retryClientOk at Hrc
   icases Hrc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb, -⟩
   iunfold clientReady at Hready

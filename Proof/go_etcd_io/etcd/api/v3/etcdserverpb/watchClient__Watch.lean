@@ -34,7 +34,7 @@ theorem watchClient.Watch.wp_proof
     (wp_Context : grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG)) :
     watchClient.Watch.spec (GF := GF) (hG := hG) := by
   intro wc conn addrs ics Up Spec ctx cd om opts vs
-  wp_start as ⟨Hlt, #Hpkg, #Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hom, #Hopts, #Hok⟩
+  wp_start as ⟨Hlt, #Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hom, #Hopts, #Hok⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]

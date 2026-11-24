@@ -38,7 +38,7 @@ theorem Client.dialWithBalancer.wp_proof
     (wp_dial : Client.dial.spec (GF := GF) (hG := hG)) :
     Client.dialWithBalancer.spec (GF := GF) (hG := hG) := by
   intro c cfg cr r esl eps atb P
-  wp_start as ⟨Hlt, #Hpkg, #Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
+  wp_start as ⟨Hlt, #Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
   obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
     cases eps with
     | nil => exact absurd rfl Hplain.1

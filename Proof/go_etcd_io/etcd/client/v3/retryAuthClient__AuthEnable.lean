@@ -27,7 +27,7 @@ theorem retryAuthClient.AuthEnable.wp_proof
     (wp_authClient_AuthEnable : etcdserverpb.authClient.AuthEnable.spec (GF := GF) (hG := hG)) :
     retryAuthClient.AuthEnable.spec (GF := GF) (hG := hG) := by
   intro rac conn addr Spec Q ctx om cd inp m opts vs
-  wp_start as ⟨Hlt, #Hpkg, #Hrac, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hopts, #Hok⟩
+  wp_start as ⟨Hlt, #Hrac, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hopts, #Hok⟩
   iunfold retryAuthAt at Hrac
   icases Hrac with ⟨%ac, #Hac, #Hstub⟩
   wp_auto

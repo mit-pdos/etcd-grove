@@ -36,7 +36,7 @@ theorem lessor.resetRecv.wp_proof
     (wp_send : lessor.sendKeepAliveLoop.spec (GF := GF) (hG := hG)) :
     lessor.resetRecv.spec (GF := GF) (hG := hG) := by
   intro l addr
-  wp_start as ⟨Hlt, #Hpkg, #Hl, #Hstr⟩
+  wp_start as ⟨Hlt, #Hl, #Hstr⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,

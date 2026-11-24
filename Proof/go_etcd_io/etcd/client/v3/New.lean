@@ -32,7 +32,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
     clientv3.New.spec (GF := GF) (hG := hG) := by
   intro _ cfg eps V P
-  wp_start as ⟨Hlt, #Hpkg, #Hpkg2, #Hcfg, #Hauth⟩
+  wp_start as ⟨Hlt, #Hcfg, #Hauth⟩
   ihave #Hcfg' := Hcfg
   iunfold clientCfgOk at Hcfg'
   icases Hcfg' with ⟨#Heps, -, %Hpure, -⟩

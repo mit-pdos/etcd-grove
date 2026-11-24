@@ -138,15 +138,14 @@ theorem grpcInvokerOk_of_chainRes (conn : Loc) (addr : List GoString) (inv inv' 
   subst HR
   iapply wp_wand_r
   isplitl [HRr Hpre HΨ]
-  · iapply Hw $$ %_ %_ %_ %_ %_ %(fun v => iprop(levelTok 0 -∗ Ψ v)) [Hpre HΨ] HRr
+  · iapply (Hw $$ %_ %_ %_ %_ %_ %(fun v => iprop(levelTok 0 -∗ Ψ v)) [Hpre HΨ] HRr)
     iintro Htok
-    iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs
-      %ps %(levelTok 0) %(fun v => iprop(levelTok 0 ∗ (levelTok 0 -∗ Ψ v))) [Htok Hpre]
+    iapply (Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs
+      %ps %(levelTok 0) %(fun v => iprop(levelTok 0 ∗ (levelTok 0 -∗ Ψ v))) [Htok Hpre])
     · iframe
       ipureintro; rfl
     · inext
       iintro %err ⟨Htok, Hpost⟩
-      dsimp only
       iframe Htok
       iintro Htok
       iapply HΨ

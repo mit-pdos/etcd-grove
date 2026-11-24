@@ -66,7 +66,7 @@ theorem newClient.wp_proof
     (wp_NewBundle : credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG)) :
     newClient.spec (GF := GF) (hG := hG) := by
   intro _ p cfg eps V P
-  wp_start as ⟨Hlt, #Hpkg, #Hpkg2, #Hp, #Hcfg, #Hauth⟩
+  wp_start as ⟨Hlt, #Hp, #Hcfg, #Hauth⟩
   ihave #Hvars : (clientNewVars : IProp GF) $$ []
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg

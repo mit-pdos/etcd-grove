@@ -36,7 +36,7 @@ theorem lessor.Leases.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     lessor.Leases.spec (GF := GF) (hG := hG) := by
   intro l conn addr Spec Q ctx om cd
-  wp_start as ⟨Hlt, #Hpkg, #Hrem, #Hrpc, #Hom, #Hpre, #Hctx, #Hce⟩
+  wp_start as ⟨Hlt, #Hrem, #Hrpc, #Hom, #Hpre, #Hctx, #Hce⟩
   iunfold lessorRemoteAtC at Hrem
   icases Hrem with ⟨%rlc, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
