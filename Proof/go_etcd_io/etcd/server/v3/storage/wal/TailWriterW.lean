@@ -470,7 +470,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
                 off.toNat + data.length ≤ max m.size maxBytes ∧ LoWr m' (off.toNat + data.length)⌝) ∨
          (⌜err ≠ interface.nil⌝ ∗ osFd fd dq d ∗ errOkOrNil err)) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
+  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -673,7 +673,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
           wp_auto
           simp only [decide_eq_false he0, Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hpe
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hpe
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
@@ -709,7 +709,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
         · rw [decide_eq_false he0]
           simp only [Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hpe
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hpe
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
@@ -755,7 +755,7 @@ theorem wp_tailWriteW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   wp_auto

@@ -58,6 +58,55 @@ instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.syscall :=
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.syscall :=
   build_get_is_pkg_init_wf
 
+/-! `internal/strconv`'s package fact is timeless (its own fact is `True`; it imports `math/bits`,
+whose fact is a persistent points-to of a table, which imports `unsafe`): `os.ownFile` carries it
+(`errnoOk`), and bbolt's invariants need its timelessness. -/
+
+instance isPkgInit_unsafe_timeless : Timeless (isPkgInit (PROP := IProp GF) pkg_id.«unsafe») := by
+  rw [isPkgInit_unfold]
+  unfold named
+  simp only [IsPkgInit.isPkgInitDeps, IsPkgInit.isPkgInitDef]
+  infer_instance
+
+instance isPkgInit_bits_timeless : Timeless (isPkgInit (PROP := IProp GF) pkg_id.math.bits) := by
+  rw [isPkgInit_unfold]
+  unfold named
+  simp only [IsPkgInit.isPkgInitDeps, IsPkgInit.isPkgInitDef]
+  infer_instance
+
+instance isPkgInit_strconv_timeless :
+    Timeless (isPkgInit (PROP := IProp GF) pkg_id.internal.strconv) := by
+  rw [isPkgInit_unfold]
+  unfold named
+  simp only [IsPkgInit.isPkgInitDeps, IsPkgInit.isPkgInitDef]
+  infer_instance
+
+/-- What `Errno.Error` needs (`Proof/syscall/ErrorOk.lean`): the error table (`errorsOk`) and
+`internal/strconv`'s package fact (`Itoa`). Persistent and timeless; `os.ownFile` carries it. -/
+def errnoOk : IProp GF :=
+  iprop(errorsOk ∗ isPkgInit (PROP := IProp GF) pkg_id.internal.strconv)
+
+instance errnoOk_persistent : Persistent (errnoOk (GF := GF)) := by
+  unfold errnoOk; infer_instance
+
+instance errnoOk_timeless : Timeless (errnoOk (GF := GF)) := by
+  unfold errnoOk errorsOk; infer_instance
+
+/-- `syscall`'s package fact. -/
+theorem errorsOk_of_isPkgInit :
+    isPkgInit (PROP := IProp GF) pkg_id.syscall ⊢ errorsOk (GF := GF) := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.syscall
+
+/-- `errnoOk` from `syscall`'s package fact. -/
+theorem errnoOk_of_isPkgInit :
+    isPkgInit (PROP := IProp GF) pkg_id.syscall ⊢ errnoOk (GF := GF) := by
+  iintro #H
+  ihave #Hs : isPkgInit (PROP := IProp GF) pkg_id.internal.strconv $$ [H]
+  · iPkgInit
+  ihave #He := errorsOk_of_isPkgInit $$ H
+  unfold errnoOk
+  iframe He Hs
+
 end syscall
 
 end init

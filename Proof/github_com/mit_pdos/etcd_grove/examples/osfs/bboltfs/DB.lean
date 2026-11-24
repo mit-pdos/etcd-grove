@@ -330,7 +330,7 @@ theorem ownFile_fractional (f : Loc) (fd : w64) (p : GoString) :
     refine ⟨?_, ?_⟩
     · iintro H
       unfold os.ownFile
-      icases H with ⟨%inner, #Hf, Hfd, #Hn⟩
+      icases H with ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩
       icases ((typedPointsto_frac (GF := GF) (structFieldRef os.file go!"fd" inner) fd).fractional
         q1 q2).1 $$ Hfd with ⟨H1, H2⟩
       isplitl [H1]
@@ -338,8 +338,8 @@ theorem ownFile_fractional (f : Loc) (fd : w64) (p : GoString) :
       · iexists inner; iframe; iframe #
     · iintro ⟨H1, H2⟩
       unfold os.ownFile
-      icases H1 with ⟨%inner, #Hf, Hfd1, #Hn⟩
-      icases H2 with ⟨%inner2, #Hf2, Hfd2, #Hn2⟩
+      icases H1 with ⟨%inner, #Hf, Hfd1, #Hn, #Hsys⟩
+      icases H2 with ⟨%inner2, #Hf2, Hfd2, #Hn2, #Hsys2⟩
       icombine Hf Hf2 gives %Heq
       cases Heq
       iexists inner

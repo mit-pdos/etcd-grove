@@ -115,12 +115,16 @@ theorem os.model.wp_stat_aboveS (op p : GoString) (R : Roots) (hp : RootsAbove R
 variable [os.file.FieldAssumptions] in
 /-- `os.OpenFile(p, O_RDONLY, perm)` of a strict ancestor of a root: an outside fd, or an error. -/
 theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : RootsAbove R p) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv }}
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
+
   wp_start as ⟨#Hos, #Hsi, #Hab⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing HΦ
   wp_apply wp_osCallBeginAboveS R _ hp 0 CoPset.subseteq_top CoPset.subseteq_top CoPset.subseteq_top
@@ -152,7 +156,7 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
     unfold os.ownFile
     iexists inner_ptr
     iframe
-    isplitl [] <;> iassumption
+    (repeat' isplitl []) <;> iassumption
   · iclear Hfd
     rw [decide_eq_false he0]
     wp_auto
@@ -174,12 +178,16 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
 variable [os.file.FieldAssumptions] in
 /-- `os.Open(p)` of a strict ancestor of a root: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_aboveS (p : GoString) (R : Roots) (hp : RootsAbove R p) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv }}
       (App (Val (@! os.Open)) (Val #p))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
+
   wp_start as ⟨#Hinv, #Hsi, #Hab⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   wp_auto
   wp_apply os.OpenFile.wp_aboveS p (W32 0) R hp $$ [] as %f %err Hr
   · isplitl [] <;> try isplitl []
@@ -193,7 +201,7 @@ theorem os.File.Sync.wp_outS (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
     {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osOutFd fd }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -216,13 +224,13 @@ theorem os.File.Sync.wp_outS (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     wp_auto
     iapply HΦ
     iframe
-    isplitl [] <;> iassumption
+    (repeat' isplitl []) <;> iassumption
   · simp only [decide_eq_false he, Bool.not_false]
     wp_auto
     wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
     iapply HΦ
     iframe
-    isplitl [] <;> iassumption
+    (repeat' isplitl []) <;> iassumption
 
 /-- `f.Close()` of an outside fd: any error; the fd gone. -/
 theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
@@ -230,7 +238,7 @@ theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
     {{ (err : GoInterface), RET #err; emp }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf

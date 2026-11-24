@@ -159,7 +159,7 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) (bs.map (fun x => durB x.1))) ∨
          ⌜err ≠ interface.nil⌝) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfo, #Hn⟩, Hosfd, Hk, Hv, Hcf, Hm, Hbs⟩
+  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfo, #Hn, #Hsys⟩, Hosfd, Hk, Hv, Hcf, Hm, Hbs⟩
   ihave #Hos := walAreaOk_osInv walCodec Mr R jr r $$ Harea
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
@@ -190,7 +190,7 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
   · have he0' : ¬ e = W64 0 := he.1
     simp only [decide_eq_false he0', Bool.not_false]
     wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
     iapply HΦ
     iframe
     isplitl []

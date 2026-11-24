@@ -55,7 +55,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent
   isplitr
   · ipureintro; exact herr
   isplitl []
-  · iapply (os.errnoPathErr_fmtErrorOkOrNil _ e he.1) $$ Herr
+  · iapply (os.errnoPathErr_fmtErrorOkOrNil _ e he.1) $$ Hsys Herr
   · iapply (wp_Term _ e he.1) $$ Hosp Herr
 
 end proof

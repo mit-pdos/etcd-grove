@@ -124,7 +124,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
     · iPkgInit
     icases Herr with (⟨%e, %he, #Herr⟩ | ⟨%e, %he, #Herr⟩) <;>
     · isplitl []
-      · iapply (os.errnoPathErr_fmtErrorOkOrNil err e he) $$ Herr
+      · iapply (os.errnoPathErr_fmtErrorOkOrNil err e he) $$ Hsys Herr
       · iapply (wp_Term err e he) $$ Hosp Herr
 
 end proof

@@ -217,7 +217,7 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
                 m'.size = max m.size (off.toNat + data.length) ∧
                 off.toNat + data.length ≤ max m.size maxBytes ∧ LoWr m' (off.toNat + data.length)⌝ }} := by
   unfold os.ownFile
-  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
+  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -465,7 +465,7 @@ theorem wp_tailWriteWNE [os.file.FieldAssumptions] (hS0 : ∀ st i, Sio.ino st i
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   wp_auto
