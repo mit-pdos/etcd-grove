@@ -18,8 +18,8 @@ of the invariant's half (`osCrash_take_runs_keep`), so `DataGood`, and there if 
 
 **What is assumed**, as for `examples/osfs/crashlog`: the package initializer (`Hinit_wp`, which
 needs `wp_initialize'` of this repository's `os` and `syscall`), the hand-written `os.file` field
-facts, and the Goose-generated package facts of the packages it calls (`[os.Assumptions]`, as
-`package_sem` is the program's own) (instance hypotheses). The trust base is otherwise the extension's semantics
+facts, and the program's Goose-generated package facts (`package_sem`, which gives those of the
+packages it imports, `os.Assumptions` among them) (instance hypotheses). The trust base is otherwise the extension's semantics
 (`GooseLang/Ext/Fs/Impl.lean`) and the trusted models of `os` and `syscall`
 (`TrustedCode/os.lean`, `TrustedCode/syscall.lean`).
 -/
@@ -337,7 +337,7 @@ particular whenever one interrupts `commit` (after the create, the write, the `f
 rename or the directory's sync). It assumes that the package's initializer runs (`Hinit_wp`, the
 module docstring). (`crash_safety_bounded` with the ghost state `fsGF`.) -/
 theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.Assumptions] [os.file.FieldAssumptions]
+    [os.file.FieldAssumptions]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
         (App (Val initialize') (Val #()))

@@ -48,7 +48,6 @@ is stuck and none has an unrecovered panic. -/
 def mvccfull_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
-    [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions]
     [os.fileStat.FieldAssumptions] (r : GoString)

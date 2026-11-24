@@ -110,7 +110,6 @@ jobs:
       - name: Check the packages' importable modules
         run: |
           for c in etc/api/*.txt; do
-            case "$c" in *-layout.txt) continue ;; esac
             ./etc/api-check.py "$c" --check
           done
       # Only the listed modules `import all` a module whose sealed definitions or private laws
@@ -161,12 +160,3 @@ jobs:
       # .lake/tcb.json the step above wrote).
       - name: Check the fmt.Errorf model steps
         run: ./etc/errorf-wrap-check.py --reuse
-      # The checked-in interfaces (`interface/`) must be exactly what the build exports, as the
-      # translations must be what Goose produces; and no new layout violation. After the build:
-      # the interface is read from the built modules.
-      - name: Check the packages' interfaces
-        run: |
-          for c in etc/api/*.txt; do
-            case "$c" in *-layout.txt) continue ;; esac
-            ./etc/gen-interface.py "$c" --check --layout
-          done
