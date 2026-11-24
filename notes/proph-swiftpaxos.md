@@ -211,3 +211,15 @@ must be empty. Builds: `/shared/tmp/fklean1-check.sh /shared/etcd-grove-prophswi
   prophcheck ok; goose --check ok; gen-init/copy-part need `PERENNIAL_DIR=/shared/perennial-resolve-any`.
 - The statement: `git diff $(git merge-base HEAD origin/lean) HEAD -- Dsverify/Spec/.../swiftnet/TopLevelRobustness.lean`
   is empty (against today's origin/lean only the docstring differs: lean moved on, gods-verified).
+
+### 2026-11-24 ~02:40Z
+- Boot builds (BootLinked: `wp_func_call; wp_call` enters `init.0`; `swiftnet/BootTable.lean` regenerated with
+  `etc/dsv/_swiftpaxos_boot.py` after `PERENNIAL_DIR=/shared/perennial-resolve-any etc/gen-init.py`).
+- **All six landed TopLevelRobustness build on fk-lean1** (scratch `Dsverify/Scratch/Axioms.lean`, commit
+  3944814521, then dropped): rabia, quepaxa, epaxos, paxos, remote counter: `[propext, Classical.choice,
+  Quot.sound]`; **swiftpaxos: `[propext, sorryAx, Classical.choice, Quot.sound]`**, the `sorry` being
+  `swift.wp_resolveReport` (GhostSteps2.lean), the only one left.
+- **Next (the last item)**: prove `swift.wp_resolveReport` (see the 02:10Z entry for the recipe; the old proof
+  is `git show origin/lean:Dsverify/Proof/github_com/imdea_software/swiftpaxos/swift/GhostSteps2.lean`,
+  `wp_ghostReport`). Then re-run the axioms scratch (re-add the file from 3944814521), drop it, and run the
+  checks. Optional: `γ.pred` over `List val`.
