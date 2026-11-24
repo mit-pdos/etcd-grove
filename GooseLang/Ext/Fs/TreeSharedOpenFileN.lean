@@ -47,12 +47,9 @@ theorem wp_osOpenFileSN' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) 
   icases osPathS_callKey R d dq j $$ Hp with ⟨Hp, %hkd⟩
   iapply wp_fs_stepM "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h0 Hw Ht
-  unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
-  icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_callS_excl st k s0 (child d b) q $$ Hk Hm
-  unfold treeShared
-  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
+  icases (treeCtx_eq _ _).1 $$ Ht with ⟨Ht, Hcm⟩
+  unfold treeCtxT
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -118,17 +115,17 @@ theorem wp_osOpenFileSN' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) 
     iexists Γb, Γm, <[fd := openFd i fl]> Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-    · try unfold treeCtx
+    isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+    · iapply (treeCtx_eq _ _).2
       isplitr [Hcm]
       rotate_left
       · iapply commitRes_grow (gooseOsGS (L := L)) (st := st)
           (st' := (st.metaEnd k).setProc { (st.metaEnd k).proc with
             fds := <[fd := openFd i fl]> (st.metaEnd k).proc.fds }) (commitGrows_of_eq rfl) $$ Hcm
-      iright
+      try unfold treeCtxT
       simp only [OsState.metaEnd, OsState.setProc]
-      try unfold treeShared
-      iexists V0, s1, Γdf, GMap.delete k Γc, Γg
+      iexists Γdf, GMap.delete k Γc, Γg
+      try unfold callResS
       iframe
       ipureintro
       exact ⟨fsTreeWf_addFd (fsTreeWf_metaEnd hw k) hdfn,
@@ -149,16 +146,16 @@ theorem wp_osOpenFileSN' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) 
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-    · try unfold treeCtx
+    isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+    · iapply (treeCtx_eq _ _).2
       isplitr [Hcm]
       rotate_left
       · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st.metaEnd k)
           (commitGrows_of_eq rfl) $$ Hcm
-      iright
+      try unfold treeCtxT
       simp only [OsState.metaEnd]
-      try unfold treeShared
-      iexists V0, s1, Γdf, GMap.delete k Γc, Γg
+      iexists Γdf, GMap.delete k Γc, Γg
+      try unfold callResS
       iframe
       ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k hk⟩
     iapply wp_value'

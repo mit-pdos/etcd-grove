@@ -381,7 +381,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk))
       γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvMonitorRes s ∗
-    srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
+    srvReadyCloser s E ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     memberPeerServeRes γn τ served ∗
     srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 

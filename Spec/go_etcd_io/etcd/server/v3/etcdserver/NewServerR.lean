@@ -143,7 +143,7 @@ abbrev NewServer.specR : Prop :=
           srvServeBuilt srv E cfg ∗
           srvSVRes srv E ∗
           srvMonitorCfg srv cfg ∗
-          srvReadyCloser srv ∗
+          srvReadyCloser srv E ∗
           srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
           -- the lease subsystem's part, its lessor's history from the snapshot `NewLessor` recovers

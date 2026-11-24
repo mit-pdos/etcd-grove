@@ -693,6 +693,10 @@ end states
 /-- The namespace of the database file's crash invariant. -/
 def dbCrashN : Namespace := nroot .@ "minibolt_crash"
 
+/-- The tree's shared invariant is outside the database file's crash invariant. -/
+theorem dbCrashN_disjS : ↑osShN ⊆ (⊤ : CoPset) \ ↑dbCrashN :=
+  mask_ndot_ne' nroot "osfsShared" "minibolt_crash" (by decide)
+
 /-- minibolt's obligation on the states of its file: every crash of the state is `Good`. -/
 abbrev dbOk [GooseExts] : CState → Prop
   | none => True

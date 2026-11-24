@@ -48,12 +48,9 @@ theorem wp_osCallBeginGuardS' (R : Roots) (p : GoString) (g : Qp) (n : Nat) (hE 
   iintro #Hinv #Hsi Hq #Hlb HΦ
   iapply wp_fs_stepM "CallBegin" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
-  unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
-  icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_perm_excl st _ g $$ Hq Hm
-  unfold treeShared
-  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
+  icases (treeCtx_eq _ _).1 $$ Ht with ⟨Ht, Hcm⟩
+  unfold treeCtxT
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -99,18 +96,20 @@ theorem wp_osCallBeginGuardS' (R : Roots) (p : GoString) (g : Qp) (n : Nat) (hE 
   dsimp only
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hq Hcm]
-  · isplitr [Hcm]
+  isplitl [Has Hadfs Hacs Hcr HAg Hgr Hq Hcm]
+  · iapply (treeCtx_eq _ _).2
+    isplitr [Hcm]
     rotate_left
     · iapply commitRes_setProc $$ Hcm
-    iright
+    unfold treeCtxT
     simp only [OsState.setProc]
-    iexists V0, s0, Γdf, Γc, <[t' := (((st.fs.metaLog.length, p), g) : CallV)]> Γg
-    iframe HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg
+    iexists Γdf, Γc, <[t' := (((st.fs.metaLog.length, p), g) : CallV)]> Γg
+    try unfold callResS
+    iframe Has Hadfs Hacs Hcr HAg
     isplitr
     · ipureintro
       exact ⟨⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩, treeCohS_beginGuard hc t' p g h1'⟩
-    · unfold callResS
+    · try unfold callResS
       iapply (BigSepM.bigSepM_insert (Φ := fun (_t : Nat) (x : CallV) =>
         gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hΓg).2
       iframe Hgr
@@ -118,14 +117,6 @@ theorem wp_osCallBeginGuardS' (R : Roots) (p : GoString) (g : Qp) (n : Nat) (hE 
   iapply wp_value'
   unfold osGuardS
   iapply HΦ $$ %t' %st.fs.metaLog.length %hn.2 Hk Hlb'
-
-/-- A guard excludes the legacy mode. -/
-theorem legacy_guardS_excl (st : OsState) (t s0 : Nat) (p : GoString) (g : Qp) :
-    ⊢ osGuardS (L := L) t s0 p g -∗ treeLegacy (gooseOsGS (L := L)) st -∗ False := by
-  unfold treeLegacy legacyHolds osGuardS
-  iintro Hk ⟨%V0, %Γdf, %Γc, %hns, -, -, -, -, -, -, -, -, -, -, -, -, HAg⟩
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAg Hk with %hl
-  simp at hl
 
 theorem wp_osLstatDirGuardS' (R : Roots) (p : GoString) (t sg : Nat) (g : Qp)
     (hp : ∃ r j0 cs, (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs)
@@ -137,12 +128,9 @@ theorem wp_osLstatDirGuardS' (R : Roots) (p : GoString) (t sg : Nat) (g : Qp)
   iintro #Hinv #Hsi Hk HΦ
   iapply wp_fs_stepM "LstatDir" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
-  unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
-  icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_guardS_excl st t sg p g $$ Hk Hm
-  unfold treeShared
-  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
+  icases (treeCtx_eq _ _).1 $$ Ht with ⟨Ht, Hcm⟩
+  unfold treeCtxT
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -192,16 +180,16 @@ theorem wp_osLstatDirGuardS' (R : Roots) (p : GoString) (t sg : Nat) (g : Qp)
   iexists Γb, Γm, Γf, Γt
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-  · try unfold treeCtx
+  isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+  · iapply (treeCtx_eq _ _).2
     isplitr [Hcm]
     rotate_left
     · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st.metaEnd t)
         (commitGrows_of_eq rfl) $$ Hcm
-    iright
+    try unfold treeCtxT
     simp only [OsState.metaEnd]
-    try unfold treeShared
-    iexists V0, s1, Γdf, Γc, GMap.delete t Γg
+    iexists Γdf, Γc, GMap.delete t Γg
+    try unfold callResS
     iframe
     ipureintro; exact ⟨fsTreeWf_metaEnd hw t, treeCohS_guardEnd hc t hk⟩
   iapply wp_value'

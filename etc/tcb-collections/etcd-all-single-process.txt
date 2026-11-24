@@ -17,7 +17,6 @@ axiom Client.streamClientInterceptor.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
-axiom EtcdServer.publishV3.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
@@ -142,7 +141,6 @@ axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
-axiom monitorFileDescriptor.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof

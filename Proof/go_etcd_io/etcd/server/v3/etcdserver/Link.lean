@@ -537,6 +537,8 @@ public import Proof.golang_org.x.time.rate.Reservation__CancelAt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__after
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__covers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
+public import Proof.go_etcd_io.etcd.pkg.v3.runtime.FDLimit
+public import Proof.go_etcd_io.etcd.pkg.v3.runtime.FDUsage
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.BackendMemberKey
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeGetAllLeases
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
@@ -1529,6 +1531,14 @@ theorem zap.Logger.wp_Fatal :
 theorem wp_tickToDur :
     tickToDur.spec (GF := GF) (hG := hG) :=
   tickToDur.wp_proof
+
+theorem runtime.wp_FDUsage :
+    runtime.FDUsage.spec (GF := GF) (hG := hG) :=
+  runtime.FDUsage.wp_proof
+
+theorem runtime.wp_FDLimit :
+    runtime.FDLimit.spec (GF := GF) (hG := hG) :=
+  runtime.FDLimit.wp_proof
 
 theorem TxnRequest.wp_GetCompare :
     TxnRequest.GetCompare.spec (GF := GF) (hG := hG) :=
@@ -3051,7 +3061,7 @@ theorem EtcdServer.wp_adjustTicks :
 
 theorem EtcdServer.wp_publishV3 :
     EtcdServer.publishV3.spec (GF := GF) (hG := hG) :=
-  EtcdServer.publishV3.wp_proof
+  EtcdServer.publishV3.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_Logger EtcdServer.wp_raftRequest types.ID.wp_String membership.RaftCluster.wp_ID zap.wp_String zap.wp_Duration zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn _root_.Perennial.fmt.wp_Sprintf _root_.Perennial.strings.wp_Join
 
 theorem EtcdServer.wp_purgeFile :
     EtcdServer.purgeFile.spec (GF := GF) (hG := hG) :=
@@ -3059,7 +3069,7 @@ theorem EtcdServer.wp_purgeFile :
 
 theorem wp_monitorFileDescriptor :
     monitorFileDescriptor.spec (GF := GF) (hG := hG) :=
-  monitorFileDescriptor.wp_proof
+  monitorFileDescriptor.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop runtime.wp_FDUsage runtime.wp_FDLimit zap.Logger.wp_Warn zap.wp_Error zap.wp_Uint64
 
 theorem EtcdServer.wp_monitorClusterVersions :
     EtcdServer.monitorClusterVersions.spec (GF := GF) (hG := hG) :=

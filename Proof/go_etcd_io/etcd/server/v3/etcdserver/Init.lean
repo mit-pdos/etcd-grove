@@ -37,6 +37,7 @@ public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
 public import Perennial.Proof.math.Link
 public import Perennial.Proof.strconv.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
@@ -55,6 +56,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
+public import Proof.go_etcd_io.etcd.pkg.v3.runtime.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Init

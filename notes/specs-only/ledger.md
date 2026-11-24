@@ -5934,6 +5934,39 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `grpc.model.Serve` (its theorem), `grpcAccepted`, `grpcReplyTo`, `grpcConnsLink` deleted;
   `TrustedCode/google_golang_org/grpc.lean` keeps the model's code (no proof uses it).
 - **Decision.** Applied.
+## 2026-11-24: `monitorFileDescriptor.spec` takes `done`'s stop channel (#42)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/monitorFileDescriptor.lean`: the premise gains
+  `stopChan done`. Until now the spec was a names-only trust-boundary axiom whose only premises were the package
+  and `zapLoggerOk lg`.
+- **Defect.** The axiom said nothing about `done`. Proving the body needs it: the loop's `select` receives on
+  `done`, and a receive needs the channel's protocol. This is no defect of the Go code: `Start` passes
+  `s.stopping`, which the server's read view already holds as a `stopChan`.
+- **Evidence.** The proof `monitorFileDescriptor.wp_proof` (`Proof/.../etcdserver/monitorFileDescriptor.lean`)
+  over the body. The spec's one caller, `EtcdServer.Start.wp_proof`, discharges the premise from
+  `isServerReadM`'s `srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping`. No other caller; no top-level
+  statement changed.
+- **Proposed change.** As above. `SpecPlan`'s statement already takes the channel's predicate (`stoppingCh`).
+- **Decision.** Applied (branch `prove-ps2-srvgoroutines/2026-11-24`, Upamanyu's decision (b) on etcd-grove#42
+  for the leaves).
+
+## 2026-11-24: `publishV3`'s resources: `srvReadyCloser s E`, the read view, the request names' credential (#42)
+
+- **Spec.** `EtcdServer.publishV3.spec`: the premise takes `⌜E.authOn = on⌝`, `isServerReadM on s E γr`
+  and `□ (|==> idCred ρ.ids 1)`, and `srvReadyCloser s E` (the predicate gains `E`: the channel, now
+  `srvReadyCh s`, the server's attributes read-only, `srvAttrsRO s`, and one `srvLeadTimeReader s ∗ E.RD`).
+  `NewServer.spec`/`NewServerR.spec`'s posts and `Start.spec`'s premise name `srvReadyCloser srv E`;
+  `NewServer`/`NewServerR` carve the extra slots from the stocks they dropped after the revocation's pool.
+  `srvLeadCheckOk`'s `s.ctx` part gains `ctxValueFrom backgroundCtxVal ctx` (from
+  `traceutil.wp_WithCancelBackground_noTrace`, whose post gains it).
+- **Defect.** The axiom said nothing of what `raftRequest` needs (its reader slots, the context's facts, the
+  request's model), nor of `s.attributes`. No defect of the Go code.
+- **Evidence.** `EtcdServer.publishV3.wp_proof` over the body (the fork's bc2b5f4d0, `%+v` of the attributes
+  formatted field by field). Every caller discharges the new premises: `Start` from `start`'s read view and
+  `srvStarted`'s credential, and `NewServer`'s post; the examples pass `srvReadyCloser` through
+  (`etcdstart`'s `memberBuilt`, `Restart`). No top-level statement changed.
+- **Proposed change.** As above.
+- **Decision.** Applied (branch `prove-ps2-publishv3/2026-11-24`, #42 items 2 and 3, approved there).
 ## 2026-11-23: `json.Marshal` of a membership record names its bytes (#24 J2, batch 2)
 
 - **Spec.** `encoding.json.MarshalMember.spec` and `MarshalConfigChangeContext.spec`
