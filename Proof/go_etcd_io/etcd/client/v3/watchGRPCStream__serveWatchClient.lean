@@ -30,7 +30,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem watchGRPCStream.serveWatchClient.wp_proof :
     watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG) := by
-  intro V G callSl wc γs Dn cd' e γc i sent0 tok
+  intro V G callSl wc γs Dn cd' e γc sent0
   wp_start as ⟨#Hwgs, #Hcs, #Hspec, Htok, #Hep, Hprod, Hcnt⟩
   ihave #Hwgs' := Hwgs
   iunfold isWGS at Hwgs'
@@ -62,7 +62,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
     iexact Htok
   inext
   iintro %resp %err ⟨-, Hr⟩
-  icases Hr with (⟨%Herr0, %m, Hm, HDn, Htok⟩ | ⟨%Hrn, #Heofe, %Hen, Htok, -⟩ | ⟨%Hrn, #Hse, Htok⟩)
+  icases Hr with (⟨%Herr0, %a, %md, %m, #HMd, #Hdisp, Hm, HDn, Htok⟩ | ⟨%Hrn, #Heofe, %Hen, Htok, -⟩ | ⟨%Hrn, #Hse, Htok⟩)
   · subst Herr0
     ihave ⟨Htok, #Hlb⟩ := cliRecvTok_lb $$ Htok
     -- (D25) the epoch's count past the response
@@ -80,19 +80,22 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       · ihave #H := Hspsc
         unfold isSspsc
         icases H with ⟨$, -⟩
-      iunfold v3rpc.watchSpec at Hspec
-      iunfold v3rpc.watchStreamSpec at Hspec
-      ihave Hwd := Hspec $$ %L.length %m
+      -- (SW1, R2) the specification at the response's dispatch
+      ihave #Hsp := Hspec $$ %a %md HMd
+      iunfold v3rpc.watchSpec at Hsp
+      iunfold v3rpc.watchStreamSpec at Hsp
+      ihave Hwd := Hsp $$ %L.length %m
       icases Hwd with ⟨Hto, -⟩
       ihave HDn := Hto $$ HDn
       iapply sspsc_send_au G.γr G.respc _ _ sent resp _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hm HDn]
       · iframe
         iunfold respcE
-        iexists e, sent0.length, γs, γc, i, tok
+        iexists e, sent0.length, γs, γc, a, md
         simp only [Int.toNat_natCast]
         iframe Hep Hcl
         isplitr
         · ipureintro; omega
+        iframe Hdisp HMd
         iunfold respcElem
         iexists m, L
         have Hk : (((sent.length - sent0.length : Nat) : Int)).toNat = L.length := by
@@ -156,7 +159,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
           ihave %Hp := Hep0 $$ %(GoInterface.ok ei) Heofe
           iapply (closeErrOk_intro _ ⟨fun _ => Hok.2, Hp⟩) $$ Hst
         iunfold prodBack
-        iexists e, sent0.length, γs, γc, i, tok, sent
+        iexists e, sent0.length, γs, γc, sent
         iframe Hep Hprod Hcnt
         ipureintro; omega
       inext
@@ -206,7 +209,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
         isplitr
         · iapply cliStreamErr_closeErrOk $$ Hse
         iunfold prodBack
-        iexists e, sent0.length, γs, γc, i, tok, sent
+        iexists e, sent0.length, γs, γc, sent
         iframe Hep Hprod Hcnt
         ipureintro; omega
       inext
