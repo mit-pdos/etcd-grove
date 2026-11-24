@@ -479,10 +479,15 @@ A proof that needs a prophecy the Go code does not have gets it from a **prophec
 `etc/proph-patches/<project>/*.patch`, which `etc/goose.py` applies to a copy of the source before
 translating (and `etc/verified-code.py` reads): it may only add `primitive.NewProph()`, its
 `ResolveBool`/`ResolveU64` calls (which do nothing in Go) on read-only expressions, and `if`s on
-read-only conditions holding only such statements; `etc/prophcheck` checks it on syntax trees (the
-patched file with those statements erased must be the original). A read-only expression may fail,
-which only adds failing behaviors the proof rules out. Never put anything else in such a patch; a
-code change goes to the fork (`notes/decisions.md`, "Prophecies as patches of the Go code").
+read-only conditions holding only such statements. The rule widens (Upamanyu, #24):
+- a patch may add prophecy-only declarations: a `ProphId` field or package variable initialized only by `NewProph`, and helper functions whose bodies hold only read-only computation plus `Resolve*`;
+- it may add calls to them at statement level or inside `if`s on read-only conditions;
+- `etc/prophcheck` checks that erasing every added declaration and call gives back the original files, and refuses an added field in a struct the program compares with `==`, uses as a map key, or reflects on.
+
+A read-only expression may fail, which only adds failing behaviors the proof rules out. The exact
+checks: `notes/proph-patch-rule.md` and `etc/prophcheck/main.go`'s doc comment. Never put anything
+else in such a patch; a code change goes to the fork (`notes/decisions.md`, "Prophecies as patches
+of the Go code").
 
 goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the
