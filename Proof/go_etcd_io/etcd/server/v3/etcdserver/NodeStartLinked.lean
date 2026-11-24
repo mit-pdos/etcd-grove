@@ -302,6 +302,10 @@ theorem raftNode_of_RestartNode
     iExactEq Himage
     simp [srvLE]
   iapply wp_fupd
+  -- (2026-11-24, D6 T4 option (a), item 1) raft's L1 at the restored durable state: `A₀` committed
+  -- before every campaign so far (`rnRestartOk`'s mark)
+  imod raftState_cmtBefore γr.cl srvClusterN ⊤ (by simp) cv.ID' S (A₀.map EntryModel.toLE)
+    $$ [$HrS $Hclu $Himage] with ⟨HrS, #Hcb⟩
   imod replaySeed_facts γr.cl cv.ID' srvClusterN S σ (A₀.map EntryModel.toLE)
       Hhold (by simp; exact Nat.le_trans Hac Hhold.2.2.2.2.2.2.2.1) $$ [$Hclu $HrS $Himage]
     with ⟨HrS, %hseed⟩
@@ -478,7 +482,9 @@ theorem raftNode_of_RestartNode
       isplitr
       · rw [Hsrv, Hwa0]; iexact HA0
       -- (2026-11-24, the lifetime law) the node's start term, the restored term (`StorageHolds`)
-      rw [Hwnl, Hwt0, Hhold.2.2.2.1]; iexact Hst0
+      isplitr
+      · rw [Hwnl, Hwt0, Hhold.2.2.2.1]; iexact Hst0
+      rw [Hwnode, Hwid, Hwt0, Hhold.2.2.2.1, Hwa0]; iexact Hcb
     simp only [Hrvcfg]
     iframe Hidri Hsti Htri Hmsi
     isplitr

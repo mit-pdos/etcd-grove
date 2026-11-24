@@ -46,7 +46,7 @@ theorem rnReplayJob_lifetime (γ : RNNames GF) (sm : MsgSt) (ml : Loc) :
   letI := srvStor (GF := GF) γ.node
   iintro ⟨#Hrok, #Hsrc⟩
   iunfold rnRestartOk at Hrok
-  icases Hrok with (%h0 | ⟨-, -, #Hst⟩)
+  icases Hrok with (%h0 | ⟨-, -, #Hst, -⟩)
   · ipureintro; intro _ hne; exact absurd h0.1 hne
   iunfold rnMessageSource at Hsrc
   icases Hsrc with ⟨%term, %ms, %bound, %inst, %hq, #Hss⟩

@@ -523,16 +523,32 @@ need it (the loop's fact, row 2's `commit0 < snapIdx`) is stated with it.
 
 (2026-11-24, the lifetime law: `notes/etcd-dist-d6.md`, T4 round 5) At a restart, the node's start
 term is `t0` (`nodeStartTerm`, `RestartNode`'s post): every `MsgSnap` its `Ready`s hand out is past it
-(`readySnapSources_startTerm`; row 4's fact, now raft's law, not a premise). -/
+(`readySnapSources_startTerm`; row 4's fact, now raft's law, not a premise).
+
+(2026-11-24, D6 T4 option (a), item 1) And raft's L1 mark at the restart: `a0` committed before every
+campaign of the node up to its restored term `t0` (`cmtBefore`, made by `raftState_cmtBefore` where the
+restart holds the durable state at `t0`, `NodeStartLinked`), which `raftState_leadAgree` takes at each
+*enter*. -/
 def rnRestartOk (γ : RNNames GF) : IProp GF :=
   iprop(⌜γ.a0 = [] ∧ γ.t0 = W64 0 ∧ γ.commit0 = 0 ∧ γ.snap0 = 0⌝ ∨
     -- (auth-lease S4, 2026-11-16) a restart only outside the cluster's no-snapshot mode
     -- (`RestartNode`'s)
     (⌜γ.pre = [] ∧ γ.snap0 ≤ γ.a0.length ∧ γ.a0.length ≤ γ.commit0 ∧ ¬ clusterNoSnap γ.node.cl⌝ ∗
-      srvRLogLb γ.srv γ.a0 ∗ nodeStartTerm γ.nl γ.t0))
+      srvRLogLb γ.srv γ.a0 ∗ nodeStartTerm γ.nl γ.t0 ∗
+      cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map EntryModel.toLE)))
 
 instance rnRestartOk_persistent (γ : RNNames GF) : Persistent (rnRestartOk (GF := GF) γ) := by
   unfold rnRestartOk; infer_instance
+
+/-- (2026-11-24, D6 T4 option (a), item 1) **L1's mark at a restart**: a restarted node's backend log
+`a0` is marked committed before its campaigns up to the restart's term (raft's `cmtBefore`). -/
+theorem rnRestart_cmtBefore (γ : RNNames GF) :
+    rnRestartOk (GF := GF) γ ⊢ ⌜γ.a0 ≠ []⌝ -∗ cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map EntryModel.toLE) := by
+  unfold rnRestartOk
+  iintro #Hr %hne
+  icases Hr with (%Ha | ⟨-, -, -, #Hcb⟩)
+  · exact absurd Ha.1 hne
+  · iexact Hcb
 
 /-- (S1, 2026-11-11) **The restart point's backend log at or below raft's commit**: from the restart
 data and the loop's fact `commit0 ≤ c` (`rnLoopTokP`), `|a0| ≤ c`; at a first start (`a0 = []`)
