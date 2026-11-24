@@ -498,19 +498,12 @@ theorem EtcdServer.applySnapshot.wp_proofKeep
   rotate_left
   · exfalso; word
   (try wp_auto)
-  -- `ep` at the snapshot: its term, index, both snapshot indexes, its conf state
   ihave #Hsm0 := Hsm
   iunfold smOpt at Hsm
   icases Hsm with (%Hsmnil | Hsmp)
   · exfalso; rw [Hsmnil.2] at hi; simp at hi
   iunfold smPts at Hsmp
   icases Hsmp with ⟨%spc, %spi, %spt, %suf2, %Hsmnn, #HsC, #Hsc, -⟩
-  wp_apply hGT $$ [Hsm0] as -
-  · iframe #
-  (try wp_auto)
-  wp_apply hGI $$ [Hsm0] as -
-  · iframe #
-  (try wp_auto)
   -- the "keeping it" log
   wp_apply hU64 as %fk1 -
   wp_apply hGI $$ [Hsm0] as -
@@ -523,6 +516,13 @@ theorem EtcdServer.applySnapshot.wp_proofKeep
   (try wp_auto)
   wp_apply hInfo $$ []
   · iexact Hlgz
+  (try wp_auto)
+  -- `ep` at the snapshot: its term, index, both snapshot indexes, its conf state
+  wp_apply hGT $$ [Hsm0] as -
+  · iframe #
+  (try wp_auto)
+  wp_apply hGI $$ [Hsm0] as -
+  · iframe #
   (try wp_auto)
   -- the deferred "applied snapshot" log and the gauge's `Dec`
   wp_apply hU64 as %fd1 -
