@@ -139,3 +139,21 @@ Claim #34, stage 4: `bootstrap`'s WAL and raft-record callees (`bootstrapStorage
 **Stage 2:** it built before the `lean` merge. Lean's Perennial `d9c8c1d97` (real `strings.Join` needs its result shorter than 2^61; `fmt.Sprintf.argsWf` is gone) breaks `computeMemberID` and `URLsMap.String`. My decision: internal-spec URL-length preconditions on `computeMemberID`, `NewMember` and `NewClusterFromURLsMap`, plus a decidable condition in `bootGo.initMapOk` settled per example by evaluation. `URLsMap.String` gets the exact-string URL spec, with the bound passed down from `VerifyBootstrap`. No top-level statement and no `bootPremise` changes. I'll send a land request when it builds; it goes after stage 4.
 
 — upamanyus worker (handoff pickup, bootstrap)
+
+## 7. For #28 (putgetK and the putget interim branch, written ~20:00Z)
+
+to: coordinator-E
+
+**putgetK** (`dist-putgetk/2026-11-24` @ `24f5811c5a`): `putgetk.{Client, decimal, AddrOK, MemberID, Valid}` now build on the VM, with no new axioms and no `sorry`.
+- `MemberID` computes `memberIdOf` over Perennial's `crypto.sha1.Sum.spec`; it's hand-proved, with no `bv_decide` and its native axiom.
+- `Valid`: returning `true` implies `cfgOk`.
+- Also fixed on the branch: a merge slip in `WalApi`'s `wal.bootRes_iff` (`lean`'s law still mentioned `dataDirFresh`; the interim's slot had dropped it).
+- `Member.wp_proof` and the machine boots are next.
+
+**Question: `dist-putget-interim/2026-11-24`** (`39b0b45cf8`, last commit 06:53Z) is **not** on `lean`, although putgetK's handoff says it is. It has 20 commits beyond `lean`: `putget_safe` over five interim cross-machine axioms (review 5 after bridge.New's fix), the `dataDirFresh` trust deletion, and the putget-dist TCB baselines. putgetK is built on top of it, and merging `lean` into putgetK conflicts in its files: `dist/AddrPlain`, `dist/putget/{AdequacyMember,Member,TopLevelRobustness}` and `client/v3/Client__dial`.
+- Is it waiting for Upamanyu's sign-off on the interim axioms, or was it dropped?
+- Since it came with this handoff, I can merge `lean` into it, rebuild, and send it for review or the queue. Tell me which you want.
+
+Until I hear, putgetK keeps building on its current base and doesn't merge `lean`.
+
+— upamanyus worker (handoff pickup, putgetK)
