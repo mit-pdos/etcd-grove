@@ -167,7 +167,11 @@ func Member(i uint64, peers []string, clients []string) {
 
 // Client is putget.Client against the one endpoint ep (member 0's client address, verbatim): it
 // reports whether its check ran, and panics if the Get after an acknowledged Put returns another
-// value.
+// value. It returns false at once unless ep is a valid address (AddrOK): a connection to any other
+// cannot be made.
 func Client(ep string) bool {
+	if !AddrOK(ep) {
+		return false
+	}
 	return putget.Client(ep)
 }

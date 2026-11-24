@@ -191,6 +191,9 @@ func TestValidSeeds(t *testing.T) {
 			t.Errorf("Valid(%v, %v) = true", c[0], c[1])
 		}
 	}
+	if Client("") || Client("localhost:2379") {
+		t.Errorf("Client of an invalid endpoint checked")
+	}
 	if !Valid(ok, okc) {
 		t.Errorf("Valid(%v, %v) = false", ok, okc)
 	}

@@ -528,14 +528,16 @@ noncomputable def Member.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Client is putget.Client against the one endpoint ep (member 0's client address, verbatim): it
     reports whether its check ran, and panics if the Get after an acknowledged Put returns another
-    value.
+    value. It returns false at once unless ep is a valid address (AddrOK): a connection to any other
+    cannot be made.
 
-    go: putgetk.go:171:6 -/
+    go: putgetk.go:172:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ep"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "ep" (App (Val (GoInstruction (GoAlloc go.string))) (Var "ep"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "ep"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Client []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -543,6 +545,16 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "ep"))
+  (App (App (Val (GoInstruction (FuncResolve AddrOK []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk where
