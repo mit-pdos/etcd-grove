@@ -187,7 +187,10 @@ abbrev RawNode.Tick.form (R : RaftNames → Loc → w64 → RNState → PState �
   {{ (t : w64) (ps' : PState) (ip' : Nat), RET #();
       "Hrn" ∷ R γ rn id { rs with term := t } ps' qs ip' ∗
       "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
-      "%Hend" ∷ ⌜S → TickEnd (rnCfg γ) id ps ps' ∧ ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
+      -- (the scope's exact effect at an untraced node only: the traced tick carries no `StepEnd`;
+      -- the harness's cluster is untraced, `NewRawNode.emptyStartForm`)
+      "%Hend" ∷ ⌜S → γ.reTrace = none → TickEnd (rnCfg γ) id ps ps' ∧
+        ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
 
 /-- **`RawNode.Tick`, strengthened**. -/
 abbrev RawNode.Tick.absSpec : Prop :=
@@ -343,7 +346,8 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → PStat
         (rs.mode = .static → ca = rs.capplied)⌝ ∗
       ⌜rs.slent = none → rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length⌝ ∗
       -- (#33 S3c) the exact effect
-      ⌜S → AdvanceEnd (rnCfg γ) id ps qs ps' ∧ ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
+      ⌜S → γ.reTrace = none → AdvanceEnd (rnCfg γ) id ps qs ps' ∧
+        ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
 
 /-- **`RawNode.Advance`, strengthened**. -/
 abbrev RawNode.Advance.absSpec : Prop :=
