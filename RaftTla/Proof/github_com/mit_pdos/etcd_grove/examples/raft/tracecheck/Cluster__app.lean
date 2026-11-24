@@ -214,9 +214,15 @@ theorem Cluster.app.wp_proof
     -- `Advance`, with the claim: the messages' tokens
     ihave Hrcpt' : advReceipt st.storage (st.delivered ++ ce).length es none $$ [Hrcpt]
     · rw [Hst.2.1]; iexact Hrcpt
-    have Hsk := skippedIn_noConf (GF := GF) W.cl (st.delivered ++ ce) v1.applied
-      (st.delivered ++ ce).length Hv1.2.2
-    ihave #Hsk' := Hsk
+    -- (2026-11-24, option D) the view's membership at the committed log delivered (no conf entry
+    -- past the view), where `Advance` moves the view
+    have Hva : v1.applied ≤ (st.delivered ++ ce).length := Hv1.2.1
+    icases nodeConfig_confAt n W.cl tcRaftN v1 $$ Hcfg with ⟨Hcfg, #Hca⟩
+    ihave #Hsk' : confAt W.cl (max v1.applied (st.delivered ++ ce).length) v1.membership $$ []
+    · rw [Nat.max_eq_right Hva]
+      iapply confAt_noConf W.cl (st.delivered ++ ce) v1.applied _ v1.membership Hv1.2.2 Hva
+        (Nat.le_refl _)
+      iframe Hcomm Hca
     wp_apply wp_AdvanceT n W.cl tcRaftN id (st.afterReady ce es h none ss) es none v1 qs rfl
         (fun _ h => by cases h) $$ [Hdrv Hrcpt' Hcfg Hcl] as Hpost
     · iframe Hclu Hnode Hcfg Hcl
@@ -289,13 +295,16 @@ theorem Cluster.app.wp_proof
         ipureintro; exact ⟨Hs0, Hs2⟩
       · wp_for_post
         iframe
-        iexists _, v1, hs1
+        iexists _, ⟨max v1.applied (st.delivered ++ ce).length, v1.membership⟩, hs1
         iframe Hdrv
         isplitl [Hrs]
         · iExactEq Hrs; rfl
         iframe Hcfg Hrun Hown Hmeta Had Htt
         ipureintro
-        exact ⟨rfl, Hst.2.1, Hv1⟩
+        refine ⟨rfl, Hst.2.1, ?_⟩
+        simp only [NodeDriverState.afterReady]
+        rw [Nat.max_eq_right Hva]
+        exact ⟨Hv1.1, Nat.le_refl _, fun _ _ h1 h2 _ => absurd h2 (by simp only at h1; omega)⟩
     · iexfalso
       iapply nodeRunning_stopped n W.cl tcRaftN 1
       iframe Hrun Hstop

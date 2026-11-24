@@ -228,6 +228,14 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
   `restartNames` keeps it; a crash's new heap needs a fresh registry (or a proof that a registry naming
   dead locations is harmless). `memberRestart` leaves the registry name free (`γ' = {C.γ with reg := r}`);
   T4 decides.
+  **Decided (T4, 2026-11-24): a fresh registry name per generation, at `M = ∅`.** The crash law
+  (`memberGen_crash.law`, T7) allocates `memStorRegAuth ∅` at a fresh `r` and the generation runs at
+  `γ' = {C.γ with reg := r}`; the old generation's authority is not carried across the crash (it names
+  dead locations, and keeping it would need it inside the run's crash invariant). `NewServer.specC` is
+  unchanged: it quantifies over `γ` and `M`, and its post is at `γ`, whatever its `reg`. What this
+  asks of T7: the global facts it hands `specC` (`srvRaftLogInv`, `kvInvM`, `srvPropMint`,
+  `srvRdCtxInv`, the image's `srvRLogLb`/`confAt`/`walSnapCert`, `restartNames ρo ρ`) at `γ'`, i.e. their
+  bodies must not read `reg` (the cluster's facts are already per-member-registry: `memberGOk`).
 * **Q5**: D4b's crash interpretation (§5).
 
 ## §Q2 packet: `W1` as `etcdFsSem`'s crash premise (for the owner, 2026-11-24)
@@ -262,3 +270,230 @@ handling). It covers every `.wal` file on a member's machine, so it is a claim a
 **Recommendation.** Accept for `etcd_safe` as the WAL tester's premise reused (rule: reuse audited premises), and keep
 the planned restatement to the CRC-only target (*no CRC-32C collision on the `Data` of a frame over zeros*,
 `notes/wal-fsext-plan.md`, "W1's target") as the follow-up that removes the two excluded real-crash classes.
+
+## 9. T4 status (2026-11-24, branch `etcd-safe-d6t4/2026-11-24`)
+
+`NewServer.wp_proofC` (`Proof/.../etcdserver/NewServerCrash.lean`), WIP, not linked (built on the VM 2026-11-24 with `NewServerR`, the only `sorry` the case below): over
+`NewServer.specRAt` (`NewServerRAt.lean`: `specR` with `bootstrap`'s contract at the image,
+`bootstrapAtR`; `NewServer.wp_proofRG` now proves it, and `specR` follows, `NewServer.specR_of_RAt`).
+
+* `i ≤ σ.commit`: proved (`srvCrashImageAt_disk`, `bootstrapAtR_of_crash`).
+* `σ.commit < i`: `sorry`. Where the graceful proof needs `|A| ≤ σ.commit` (`|A| = i`):
+  `restart_idx` → `NodeStartSpecR`'s `A₀.length ≤ σ.commit` and `bootLen ≤ σ.commit` →
+  `rnBootPre .restart` (`bootstrappedRaft.newRaftNode.spec`), `replaySeed_facts` (needs `|A₀| ≤ σ.last`),
+  and `isRaftNode`'s `rnRestartOk` (`|a0| ≤ commit0`), used by `raftNode.start` (`rnRestartOk_a0_le` →
+  `rnStopImage`'s `a0 ≤ σ.commit`, `onStop`) and by the apply side (`rnRestartOk_winAbove` →
+  `EtcdServer.run`/`applyAll`'s "a `Ready`'s snapshot is above the backend's log").
+* The last is **false after a crash** (inference from the code, not tested): a follower applies
+  committed entries before its `Save` (raft v3.7 hands unstable committed entries; `raft.go`'s `applyc`
+  before `Save`), so its backend can be past even the WAL's last index `σ.last`; restarted, a leader's
+  snapshot at `k ∈ (σ.last, i]` is restorable (raft's `restore` rejects only a snapshot whose entry it
+  holds), `applySnapshot` checks only `k > appliedi` (and `appliedi` restarts at `σ.b`), so the backend
+  goes back from `i` to `k` (`OpenSnapshotBackend`, `kv.Restore`). Probably not a linearizability bug
+  (a linearizable read waits for `appliedi ≥` the leader's commit `≥ i`), but the apply-side window
+  must admit it. Plan: drop `|a0| ≤ commit0` from `rnRestartOk` (keep `snap0 ≤ |a0|`), restate the
+  window as "snapshot above `appliedi`, possibly at or below the backend's index" through
+  `applyAll`/`ApplyAllSnap` (the backend's index may move down at a snapshot inside the replay window),
+  `replaySeed_*` over `min(|A₀|, σ.last)`, `rnStopImage` without `a0 ≤ σ.commit` (so the graceful stop
+  image drops `i ≤ σ.commit` too: one image), then `specRAt` over the crash image.
+* `specR` from `specC`: **not as stated**. `specC` needs `walReadFacts σ` in the image (the graceful
+  image lacks it: the restart contract promises it after `bootstrap`) and the crash contract, which is
+  stronger than the restart one (all `i`, not only `i ≤ σ.commit`); and the graceful image's vacancy
+  is armed (`nodeVacantA`), which cannot be unarmed into the crash image's `nodeVacant`. `specR`
+  derives from `specC` once `wal.stopImage` carries `walReadFacts`, #34 proves `bootstrapCrashContract`
+  (giving the restart one), and the crash image holds the vacancy armed (next bullet). Today both are
+  instances of `specRAt` instead.
+* Vacancy: `specC` arms the image's `nodeVacant` with `nodeVacant_armD`, dropping raft's crash token,
+  as the graceful boot does; a generation that must survive its own crash needs that token kept (T2/T7:
+  arm in the crash law and keep the token in the generation's invariant, i.e. the image carries
+  `nodeVacantA`, or `specC`'s post returns `nodeCrashTok`).
+
+### T4 round 2 (2026-11-24)
+
+* `specC`'s post returns raft's crash token (`∃ x, nodeCrashTok γ.cl id x`, beside the old post;
+  lead's decision): the proved case arms with `nodeVacant_arm`. `MemberGen` names `specC` only in
+  prose; T7 takes the token into the generation's invariant.
+* `NewServer.wp_proofRAt` (`NewServerR.lean`) is linked (`etcdserver_NewServer+RAt`, server `Link.lean`
+  regenerated); `wp_proofC` gets its `NewServer+C` entry once its `sorry` is gone.
+* **The backend-ahead case, scoped (not started).** The snapshot regression is a non-issue for clients
+  (`nonissues/etcd-crash-backend-ahead-snapshot-regress.md`, branch `etcd-safe-snapreg`), but the proof
+  must model it, and the apply side's ghost state is monotone where Go's backend is not:
+  `applyAll.specSnapM` takes the snapshot strictly above the ghost applied index `g` (`= |a0|` in the
+  window) and installs the snapshot's image as the KV state at `g`; the mvcc API's history
+  (`mvccImage`, `kv.Restore`'s spec) and the ghost applied log `A` (`srvAppliedOwn`, lower bounds given
+  to readers) only grow. Admitting a snapshot at `k ∈ (ai, g]` means a second ghost track for the
+  backend (its index `ci ≤ g` and data `model(A.take ci)`, regressing at such a snapshot, re-applied
+  up to `g` before the ghost moves) through `applyAll`, `ApplyAllSnap`, `applyEntries`/`applyEntryNormal`
+  (the skip `index ≤ ci` now against the backend's track), `kv.Restore`/`lessor.Recover` at a lower
+  revision, and `rnRestartOk`/`raftNode.start` (`|a0| ≤ commit0` dropped), `replaySeed_*` (`|A₀|` may
+  pass `σ.last`), `NodeStartSpecR`/`rnBootPre`, `rnStopImage` (then the graceful stop image drops
+  `i ≤ σ.commit` too). Estimate: several thousand lines over the server's largest proofs.
+* **Recommended instead (a fork change, proof-driven, rule 14):** in `applySnapshot`, when the
+  snapshot's index is at or below the backend's consistent index (only inside a restart window, after a
+  crash), do not swap the backend: advance `appliedi`/`appliedt`/`confState` to the snapshot's and
+  keep the backend, which already holds every entry up to `ci ≥ k` (the replay skips them). Go then
+  never regresses the backend, `specSnapM`'s branch at `k ≤ g` is a skip (as `applyEntryNormal`'s
+  `index ≤ ci`), and the monotone ghost state stays. What remains after it is the raft-side
+  generalization (`rnRestartOk`, `replaySeed`, `NodeStartSpecR`, `rnStopImage`), smaller. Needs the
+  lead's decision (a fork change, with a `nonissues/` cross-reference).
+
+### T4 round 3 (2026-11-24): the fork guard
+
+**Packet (changes verified etcd behavior; untrusted, a fork change under rule 14).**
+* *Today* (pin `6b942d23f`): after a crash left a follower's backend ahead of its WAL, `applySnapshot`
+  installs a leader snapshot at `k ≤ ci` like any other: it swaps in the snapshot's database and
+  recovers lease, mvcc, alarm, auth and membership from it, moving the backend from `ci` back to `k`
+  (not client-visible: `nonissues/etcd-crash-backend-ahead-snapshot-regress.md`).
+* *With this change* (fork `goose-lean-slicessort-on-fmtattrs-snapguard` @ 8aa40fd5c, on `6b942d23f`):
+  ```go
+  <-toApply.notifyc
+  if ci := s.consistIndex.ConsistentIndex(); toApply.snapshot.Metadata.GetIndex() <= ci {
+      lg.Info("backend already covers the snapshot; keeping it", ...)
+      ep.appliedt = toApply.snapshot.Metadata.GetTerm()
+      ep.appliedi = toApply.snapshot.Metadata.GetIndex()
+      ep.diskSnapshotIndex = ep.appliedi
+      ep.memorySnapshotIndex = ep.appliedi
+      ep.confState = toApply.snapshot.Metadata.ConfState
+      return
+  }
+  ```
+  Not done on this path, and why not needed: the backend swap and the stores' recovery (the backend
+  and the stores built from it already hold every entry up to `ci ≥ k`); `storage.Release` (only
+  frees older WAL files and `.snap.db`s; the next snapshot releases them); `cluster.Recover` and the
+  transport's peers (the membership is the backend's); `NewUberApplier` (nothing it reads changed);
+  `ep.replayConf` stays (the backend is still the bootstrap one, which is what it describes). Raft's
+  storage applied the snapshot in the raft loop as before.
+* *Why*: the proof's apply-side ghost state (the applied log, mvcc's history) is monotone; Go no longer
+  moves the backend back, so the crash restart needs no regressing ghost track.
+* *Risk*: a snapshot at `k ≤ ci` with a conf state different from the backend's membership at `ci`
+  (conf changes in `(k, ci]`): `ep.confState` takes the snapshot's, and the replay of those entries'
+  conf changes (applied to raft regardless of `ci`) brings it to `ci`'s, as at any restart. Tests:
+  `TestApplySnapshotBelowBackend` (new; fails without the guard), the etcdserver snapshot unit tests
+  (`TestSnapshot*`, `TestMergedSnapshot*`, `TestPurge*`, `TestConcurrentApplyAndSnapshotV3`) and the
+  integration tests `TestSnapshotAndRestartMember`, `TestRestartMember`, `TestV3StorageQuotaAfterSnapshot`,
+  `TestV3AlarmsDuringSnapshotInstall`, `TestV3AuthSerializableGetDuringSnapshotRestore` pass (go1.27.3).
+* *Recommendation*: keep (pin bumped); combine with the WAL torn-save fork fix (`goose-lean-fmtattrs-tornsave`
+  @ 768ecf158) when that lands.
+
+**Proof plan after the guard.** `applySnapshot.specSnapM` keeps its meaning with `hle` made strict
+(`ciEff < k`, which its callers have: `ci ≤ g < k` in `applyAll.specSnapM`), the new branch refuted
+there (needs `ConsistentIndex`'s spec in the walk, reading `ciEff γ st.k`). A second spec
+`applySnapshot.specKeep` for `k ≤ ci` (post: `ep` moved, everything else kept) serves the crash
+window: `applyAll.specSnapM`'s premise `g < k` gets a sibling case `ai < k ≤ ciEff` (then `g` stays,
+the snapshot is a skip). Then the raft side: `rnRestartOk` without `|a0| ≤ commit0`, `rnRestartOk_winAbove`
+weakened to "above `appliedi`, or at or below the backend's index" (both cases now handled),
+`replaySeed_*` over `min(|A₀|, σ.last)`, `NodeStartSpecR`/`rnBootPre` without `|A₀| ≤ σ.commit`,
+`rnStopImage` without `a0 ≤ σ.commit` (and `wal.stopImage` without `i ≤ σ.commit`), then
+`specRAt` over the crash image and `wp_proofC`'s `sorry` gone.
+
+**Build after the pin bump (VM, 2026-11-24):** every server module up to `SnapApplyWalk` builds; the
+only break is `SnapApplyWalk.lean:308` (`applySnapshot_walk`), at the guard's new code after
+`<-toApply.notifyc`: it must read `s.consistIndex.ConsistentIndex()` (as `applyEntryNormal`'s
+`tail_skip` does, `wp_ci_get hC γ ci b st Hp`, with the apply state's `Pci`/`Hci`/`Hinv`/`Hst`/`Hbe`)
+and refute `k ≤ ciEff γ st.k` from a strict `hle`. So `applySnapshot_walk` and `wp_proof_snapM` take
+`consistentIndex.ConsistentIndex.spec` (Link: `consistentIndex__ConsistentIndex` in
+`EtcdServer__applySnapshot`'s line) and `specSnapM`'s `hle` becomes `<` (its callers' `ci ≤ g < k`).
+
+### T4 round 4 (2026-11-24): `applySnapshot.wp_proofKeep` builds; the remaining steps scoped
+
+**Built (VM, `fec7d8cf82`):** the server's `Link` and `Results` with the fork guard: `applySnapshot`'s
+`specSnapM` (strict `ciEff < k`) and `specKeep`, both proved. `NewServer.wp_proofC` keeps its one
+`sorry` (`NewServerCrash.lean`, the case `σ.commit < i`).
+
+**What the five steps of "Proof plan after the guard" turn out to need** (read off the code, nothing
+written yet). Each item is more than its line in the plan says:
+
+1. **`applyAll`'s keep case is not only `applySnapshot.specKeep`.** After the guard, `applyAll` runs its
+   whole tail at `k`: `applyEntries` (nil), `Trigger(k)`, both `notifyc` receives, `raftAdvancedC`,
+   `snapshotIfNeededAndCompactRaftLog` (`specNoop`: disk = memory = applied = `k`, which `specKeep`
+   gives), and the `msgSnapC` merge. The merge is reachable: the snapshot's `Ready` can also carry this
+   node's election in a later term (`node.run` keeps stepping while a `Ready` is pending), so
+   `m.GetTerm() == apply.raftTerm` can hold. With `ci > k`, `createMergedSnapshotMessage` takes its
+   window branch (`replayConf != nil`, the bootstrap backend: `specKeep` leaves `replayConf`), which
+   needs the payload's `replayTerms` facts (`replayImageMetadata`, `rnReplayJob γ terms rt n`), as the
+   batch's merge does (`mergedCreate_window_replay`). **`rnApSnap` carries only `taReplayField`**, so
+   `raftNode.start`'s snapshot hand-off must also give `rnReplayJob` for the snapshot payload
+   (`terms = nil.appendEntries(rd.Entries)`, `raft.go:232-236`). The keep tail is then the batch's tail
+   (`wp_proofBatch`, ~600 lines, its merge branch included) at `ms = []`, `ai = k`, with the payload's
+   two-receive `notifyc` and its `srvFrozenAt`/`srvFrozenBelow` in place of `srvFrozenTerms`. Two ways
+   to write it: a copy of that tail in a new `applyAll.specKeep`; or one proof, `specBatch` taking
+   either no snapshot or a kept one with no entries. The second needs the run's keep arm to rebuild
+   `specBatch`'s precondition at `A'` (as `run_job_body` does) and a receive lemma over either notify.
+   The run's side is simple: in the window (`|A| < k ≤ |A₀|`) the ghost log stays `A₀`
+   (`ghostOf_in`, `A' <+: A₀`), so `applyResR … A'` differs from `applyResR … A` only in Go's rows
+   (`ai`, the term, `ep.confState`, `srvSnapState`, the cursor, `epReplayCfg`, whose second disjunct
+   holds in the window).
+2. **`rnRestartOk`'s `|a0| ≤ commit0`** feeds `rnRestartOk_winAbove` (the run's `hwin`) and
+   `raftNode.start`'s `rnStopImage` (`rnRestartOk_a0_le`, two uses). With item 1 the run needs no
+   `hwin` (`k ≤ |ghost|` is the keep case), and `rnStopImage`/`wal.stopImage` drop their commit bound
+   (item 4), so the conjunct can go.
+3. `replaySeed_*`: not yet read beyond its header (`replaySeed_facts` reads the replayed terms off
+   the WAL's entries up to `|A₀|`, which may pass `σ.last`).
+4. **`NodeStartSpecR`/`rnBootPre`'s `|A₀| ≤ σ.commit` is raft's.** It is the configuration point of
+   raft's own `RestartNode.spec` (`a ≤ σ.commit`, `Spec/go_etcd_io/raft/v3/RestartNode.lean`), which a
+   backend ahead of the WAL breaks (etcd hands raft the backend's conf state at `i`). Changing raft's
+   spec is not needed: the server's membership is fixed (`srv_confAt_simple`: the configuration
+   after any committed prefix is `Membership.simple cfg`), so the composition can give `RestartNode`
+   the point `a' = min |A₀| σ.commit` (the conf state reports the same `m`; `confAt γ a' m` from
+   `srv_confAt_simple` over the committed `A₀`). What then moves is the driver's view index:
+   `nodeConfig ⟨a', m⟩`, not `⟨|A₀|, m⟩`. The conf entries in `(a', |A₀|]` come back from raft and
+   are re-applied to raft (`ApplyConfChange` at or past the view's index) instead of skipped: the
+   view's bridge (`NodeBridge`, `rnView`, `applyConfChange`) must accept that, over the same `m`.
+   Then `rnStopImage` drops `a0 ≤ σ.commit` and `wal.stopImage` drops `i ≤ σ.commit` (whose
+   consumers are the restart proofs: item 5).
+5. `specRAt` over the crash image: `srvCrashImageAt_disk` without `hc`, then `wp_proofC` is
+   `specRAt`'s instance in both cases (the proved case's pattern), and the `NewServer+C` Link entry.
+
+**Size.** Item 1 is a new proof of about the batch tail's size plus a change to `raftNode.start` (its
+snapshot hand-off); item 4 reaches the node bridge's view proofs. This is several sessions of work,
+not one: the plan's "smaller" was against the regressing-ghost alternative (several thousand lines).
+
+**2026-11-24, step 1 (`rnApSnap`'s replay terms): blocked on a raft law.** What the snapshot payload
+must carry is `rnReplayJob γ terms rt k`: for a `MsgSnap` this node sent at the payload's term `rt`,
+with `k < |a0|`, the payload's `terms` cover `|a0|` with `a0`'s last term. At a snapshot `Ready`
+`raftNode.start` resets `terms` to `nil.appendEntries(rd.Entries)` (`raft.go:232-236`). Until now it got
+the fact from `rnReplayState.empty` (`|a0| ≤ k`, i.e. `rnRestartOk_winAbove`), which a kept snapshot
+(`k < |a0|`) breaks. The tool for the other case exists, `ReplayJob.lean`'s `rnReplayJob_of_history`
+(the runs describe the durable state `S`'s entries above `k`, which after the reset they do: `S` is the
+snapshot at `k` and `rd.Entries`), but its premise is raft's leader completeness through the node API:
+`sentMsg … sm` (a `MsgSnap` at term `rt`, from this node) `⊢ ⌜DurAgrees S (a0.map toLE)⌝`, for `S` the
+node's durable state at the `Ready` whose `HardState` term is `rt`, `a0` committed. No API law says
+this: the raft proof has leader completeness at the protocol level (`TraceSimFacts.allFacts_leaderCompleteness`,
+`TracedRaftStepRecvUT.leaderComplete_of`), and the API only `snapshotLeader` (`sentMsg_localSnapshotLeader`,
+`snapshotLeader_terms_ne`). It is true of Go: a leader at `rt` holds every committed entry, and its log
+at a `Ready` of term `rt` is its log at its election (a candidate's log does not change during its
+term; a node elected in a later `Ready` of the same term was a candidate at this one). Without it the
+fact is false of a follower: after a power loss its log can hold, at an index the backend applied, an
+entry that a later leader overwrote (the overwrite applied before its WAL `Save`, `raft.go:240` before
+`:264`).
+
+The same law is what step 3 needs: after a crash the initial replay terms come from the WAL's entries
+up to `σ.last`, which may hold such a stale entry at an index `≤ |a0|`, so `replaySeed_facts`'s
+"`terms` give `a0`'s last term" is false without the same-term-leader premise.
+
+**Next:** a raft API law, proved in the raft proof, roughly
+`raftState γ id S ∗ isCommittedLogLb γ l ∗ snapshotLeader γ id S.hs.term ⊢ ⌜DurAgrees S l⌝` (or
+in the form `rnReplayJob_of_history` takes, over the `Ready` whose hard-state term the leader's), with
+its interface regenerated (`etc/api/raft.txt`). Then steps 1 and 3 discharge `rnReplayJob` by
+`rnReplayJob_of_history`. Needs a decision: who proves it (raft-proof work), and its exact form.
+
+**2026-11-24, step 3 (the configuration point `a' = min |A₀| σ.commit`): does not work; blocked on raft's
+`RestartNode`.** Round 4's item 4 assumed that giving raft an earlier configuration point only makes the
+conf entries in `(a', |A₀|]` re-applied to raft. Go does not re-apply them: `applyConfChange` calls
+`s.r.ApplyConfChange(cc)` only when `shouldApplyV3` (`server.go:2078`), false at or below the
+consistent index, so in the replay window raft's view stays at `a'`. The next conf entry `k > |A₀|`
+then needs `node.ApplyConfChange.spec`'s `skippedIn γ l a' k` (`InvNodeRule.lean:594`): every conf
+entry in `(a', k)` decided `.skip`. The ones in `(a', |A₀|]` were decided `.apply` (the server's rule
+applies every v1 conf entry, `srvRule`; conf entries are not confined to the boot log, `ccBootOk`
+only makes them no-op adds), so the premise is false. The view has to be at `|A₀|`, as etcd's
+`bootstrap` makes it (the backend's conf state at `i`), so raft's `RestartNode.spec` must take
+`a ≤ |l|` for a committed log `l` (the backend's, `confAt γ a m` already names it) in place of
+`a ≤ σ.commit`. Inside the raft proof that premise is `RInv`'s `a ≤ commit` and its
+`cfgFold … ((fp ++ log).take a) = some (stOf m)` (`RestartNode.lean:795-810`): the configuration is a fold of the node's
+own log up to `a`, which a node whose log ends below `a` (`σ.last < |A₀|` after a power loss) does not
+hold. Changing it means changing raft's dynamic-configuration invariant (the configuration point
+ahead of the node's own log), not a local edit: a raft-proof design task of its own.
+
+**State of the five steps:** step 1 needs the leader-completeness law (above); step 3 needs raft's
+restart with a configuration point past its stored log (this entry); steps 2, 4 and 5 depend on them.
+Nothing else landed this round; the last green build is `fec7d8cf82`.

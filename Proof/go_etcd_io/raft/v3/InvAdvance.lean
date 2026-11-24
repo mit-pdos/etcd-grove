@@ -58,15 +58,15 @@ receipt is the loan's (`snapReceipt`), which passes to `run` for `RawNode.Advanc
 `loanRet`), and no floor is raised; after one without, the floor is raised also when a snapshot
 was restored since (`RNState.psnap`; D22 S-d4 item 3, the storage's extent `StorExtOk`). -/
 theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List EntryM)
-    (L : Option SnapLoan) (x : Nat × CCState) :
-    ⊢ dlvLb (GF := GF) γ ds -∗ advDep0 γ rn id -∗ advanceP γ L x ==∗
-      advRet0 γ rn id ∗ reqWit γ (reqOf L ds) ∗ capAns γ (loanReq γ.mode L x) := by
+    (L : Option SnapLoan) (x : Nat × CCState) (n : Nat) :
+    ⊢ dlvLb (GF := GF) γ ds -∗ advDep0 γ rn id -∗ advanceP γ L x n ==∗
+      advRet0 γ rn id ∗ reqWit γ (reqOf L ds) ∗ capAns γ (loanReq γ.mode L x n) := by
   iintro #Hlb Hdep HP
   iunfold advDep0 at Hdep
   icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, Hbw, %Hrs⟩
   obtain ⟨Hstor, Hunst, Hdel⟩ := Hrs
   iunfold advanceP at HP
-  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, Hback, %ca_d, #Hcamlb, #HA⟩
+  icases HP with ⟨%d', %ce', %es', %p', %Hn, Hdlv, Hrof', Hrcpt, Hpay, Hback, #HA⟩
   icases bw_back γ rs.bw (rs.dur, rs.role) $$ Hbw Hback with ⟨Hdur, Hbw1, #Hfr, Hfree⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hrof Hrof'
   simp only [Prod.mk.injEq] at Heq
@@ -77,22 +77,76 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
   iunfold dlvLb at Hlb
   icases Hlb with ⟨#Hlb, -⟩
   ihave %Hpfx := mono_list_auth_lb_valid _ _ _ _ $$ Hdlm Hlb
-  ihave %Hcle := monoNatLbOwn_valid _ _ _ _ $$ Hcam Hcamlb
   obtain ⟨Hmd, Hflw, Hpre, Hsnm⟩ := Hm0
   cases L with
   | none =>
     have Hsl : rs.slent = none := HL
-    ihave Hcfg : runCfg γ rs $$ [Hdlm Hcap_r Hcam]
-    · iunfold runCfg
-      iframe Hdlm Hdk
-      isplitr
-      · ipureintro; exact ⟨Hmd, Hflw, Hpre, Hsnm⟩
-      iexists ca_r
-      iframe Hcap_r Hcam Hinv2
-      ipureintro; exact Hinv
+    have Hdn : rs.delivered.length = n := by rw [Hdel, ← Hn]; rfl
+    -- (2026-11-24, option D) dynamically the driver's view moves to the committed log handed out,
+    -- the configuration kept up to it (its A1), `run`'s index still behind
+    ihave Hupd : iprop(|==> ∃ ca_d : Nat, runCfg γ rs ∗ monoNatLbOwn γ.cam ca_d ∗
+        ⌜rs.mode.isDyn = true → rs.delivered.length ≤ ca_d⌝ ∗ capAns γ (loanReq γ.mode none x n))
+      $$ [Hdlm Hcap_r Hcam Hpay]
+    · have Hrd : rsDlv rs = rs.delivered := rsDlv_none Hsl
+      cases hd : γ.mode.isDyn with
+      | false =>
+        ihave #Hcl := monoNatLbOwn_get _ _ _ $$ Hcam
+        imodintro
+        iexists ca_r
+        iframe Hcl
+        isplitl [Hdlm Hcap_r Hcam]
+        · iunfold runCfg
+          iframe Hdlm Hdk
+          isplitr
+          · ipureintro; exact ⟨Hmd, Hflw, Hpre, Hsnm⟩
+          iexists ca_r
+          iframe Hcap_r Hcam Hinv2
+          ipureintro; exact Hinv
+        isplitr
+        · ipureintro; intro h; rw [Hmd, hd] at h; cases h
+        simp only [loanReq, hd, capAns, Bool.false_eq_true, ↓reduceIte]
+        itrivial
+      | true =>
+        simp only [capPay, hd, ↓reduceIte]
+        ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hcap_r Hpay
+        subst Hx
+        have Hle : ca_r ≤ max ca_r n := Nat.le_max_left _ _
+        imod dghostVar_update_halves (max ca_r n, rs.cfg) γ.cap _ _
+          $$ Hcap_r Hpay with ⟨Hcap_r, Hpay⟩
+        imod mono_nat_own_update (max ca_r n) Hle $$ Hcam with ⟨Hcam, #Hcl⟩
+        ihave #HAn := HA $$ %trivial
+        imodintro
+        iexists max ca_r n
+        iframe Hcl
+        isplitl [Hdlm Hcap_r Hcam]
+        · iunfold runCfg
+          iframe Hdlm Hdk
+          isplitr
+          · ipureintro; exact ⟨Hmd, Hflw, Hpre, Hsnm⟩
+          iexists max ca_r n
+          iframe Hcap_r Hcam
+          isplitr
+          · ipureintro
+            rw [Hrd] at Hinv ⊢
+            refine ⟨Nat.le_trans Hinv.1 Hle, fun h => ?_⟩
+            rcases Nat.le_total ca_r n with h' | h'
+            · rw [Nat.max_eq_right h']; omega
+            · rw [Nat.max_eq_left h'] at h ⊢; exact Hinv.2 h
+          rcases Nat.le_total ca_r n with h' | h'
+          · rw [Nat.max_eq_right h', Hrd]
+            iapply cfgKeepIn_trans γ.raft γ.mode rs.delivered rs.capplied ca_r n rs.cfg Hinv.1 h'
+            isplitl []
+            · iExactEq Hinv2; rfl
+            rw [Hdel]; iExactEq HAn; rfl
+          · rw [Nat.max_eq_left h']; iexact Hinv2
+        isplitr
+        · ipureintro; intro _; rw [Hdn]; exact Nat.le_max_right _ _
+        simp only [loanReq, loanCfg, hd, ↓reduceIte, capAns]
+        iframe Hpay Hcl
+    imod Hupd with ⟨%ca_d, Hcfg, #Hcamlb, %HA', Hans⟩
     rw [rsDlv_none Hsl] at Hpfx
     rw [Hsl]
-    simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, Option.map_none, capAns]
+    simp only [advReceipt, reqOf, dlvAfter, reqWit]
     -- the receipt: the `Ready`'s entries are appended
     icases Hrcpt with ⟨%a, Hrcpt, %Ha⟩
     ihave Hrcpt' : appendReceipt rs.storage rs.unpersisted a $$ [Hrcpt]
@@ -100,9 +154,9 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     imod ownRawNode_appended γ.raft rn id rs Hsl a (fun hne e0 he => by
         have := Ha hne e0 he; rw [Hdel]; simpa [dlvAfter] using this) $$ Hrn Hrcpt' with Hrn
     imod ownRawNode_raise_floor γ.raft rn id { rs with unpersisted := [] } rfl Hsl
-      $$ Hrn with ⟨Hrn, %x, %Hx, #Hfw⟩
+      $$ Hrn with ⟨Hrn, %xf, %Hx, #Hfw⟩
     imodintro
-    isplitr [Hfw]
+    isplitr [Hfw Hans]
     · iunfold advRet0
       iexists { { rs with unpersisted := [] } with flw := true }, ca_d
       iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
@@ -121,31 +175,25 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       · simp only [loanRet, Hsl]; iempintro
       isplitr
       · ipureintro; exact ⟨Hstor.1, Hunst, fun _ => rfl⟩
-      ihave #HA0 := HA $$ %trivial
-      imodintro
-      iintro -
-      simp only; rw [Hdel]; iexact HA0
+      ipureintro; exact fun _ h => HA' h
     isplitr
-    · iexists x
+    · iexists xf
       isplitr
       · simp only; rw [← Hstor.2]; iexact Hfw
       ipureintro
       have := Hpfx.2.length_le
       simp only at Hx
       omega
-    itrivial
+    iexact Hans
   | some l =>
     have Hsl : rs.slent = some l := HL
     have Hdp := Hpre l Hsl
     rw [Hsl]
     simp only [rsDlv, Hsl] at Hpfx Hinv ⊢
-    simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, Option.map_some, capAns, capPay]
+    simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, capAns, capPay]
     ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hcap_r Hpay
     subst Hx
     -- (raft-final phase 2: the design's A1) no A1 after a snapshot `Ready`
-    ihave #HA' : □ (⌜rs.slent = none⌝ -∗
-        undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length) $$ []
-    · imodintro; iintro %h; rw [Hsl] at h; cases h
     cases hd : γ.mode.isDyn with
     | false =>
       have Hst : rs.mode.isDyn = false := by rw [Hmd, hd]
@@ -163,8 +211,8 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       imodintro
       isplitl [Hrn Hcfg Hdlv Hrof Hrof' Hrcpt Hdur Hbw1 Hfree]
       · iunfold advRet0
-        iexists rs, ca_d
-        iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
+        iexists rs, ca_r
+        iframe Hrn Htlb Hcl Hdur Hbw1 Hfr Hfree
         isplitl [Hcfg]
         · iapply (runCfgR_of_runCfg (GF := GF) γ rs (.inr Hst)).2
           iapply (runCfg_congr (GF := GF) γ (rs := rs) (rs' := { rs with flw := false })
@@ -177,8 +225,9 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         isplitl [Hrcpt]
         · simp only [loanRet, Hsl]; rw [Hstor.1]; iexact Hrcpt
         have H1 : rs.slent = none → rs.unpersisted = [] := fun h => by rw [Hsl] at h; cases h
-        iframe HA'
-        ipureintro; exact ⟨Hstor.1, Hunst, H1⟩
+        isplitr
+        · ipureintro; exact ⟨Hstor.1, Hunst, H1⟩
+        ipureintro; exact fun h => by rw [Hsl] at h; cases h
       isplitr
       · itrivial
       iframe Hpay Hcl
@@ -186,19 +235,22 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       have Hdy : rs.mode.isDyn = true := by rw [Hmd, hd]
       -- (2026-11-02, stage II (u)) the lent snapshot at or past the configuration index (`CapOk`)
       icases ownRawNode_capLoan γ.raft rn id rs $$ Hrn with ⟨%Hcl0, Hrn⟩
-      have Hle : ca_r ≤ l.dlv.length := Nat.le_trans Hinv.1 (Hcl0 l Hsl)
+      have Hle : ca_r ≤ l.dlv.length := by
+        rcases Nat.eq_or_lt_of_le Hinv.1 with h | h
+        · rw [← h]; exact Hcl0 l Hsl
+        · exact Hinv.2 h
       imod dghostVar_update_halves (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) γ.cap _ _
         $$ Hcap_r Hpay with ⟨Hcap_r, Hpay⟩
       imod mono_nat_own_update l.dlv.length Hle $$ Hcam with ⟨Hcam, #Hcl⟩
-      have Hlc : loanCfg γ.mode (some l) (ca_r, rs.cfg) =
+      have Hlc : loanCfg γ.mode (some l) (ca_r, rs.cfg) n =
           (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) := by
         simp only [loanCfg, hd, ↓reduceIte, Hmd]
       rw [Hlc]
       imodintro
       isplitl [Hrn Hdlm Hcap_r Hcam Hdlv Hrof Hrof' Hrcpt Hdur Hbw1 Hfree]
       · iunfold advRet0
-        iexists rs, ca_d
-        iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
+        iexists rs, l.dlv.length
+        iframe Hrn Htlb Hcl Hdur Hbw1 Hfr Hfree
         isplitl [Hdlm Hcap_r Hcam]
         · iapply (runCfgR_loan (GF := GF) γ rs l Hsl Hdy).2
           iunfold runCfgLoan
@@ -213,8 +265,9 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         isplitl [Hrcpt]
         · simp only [loanRet, Hsl]; rw [Hstor.1]; iexact Hrcpt
         have H1 : rs.slent = none → rs.unpersisted = [] := fun h => by rw [Hsl] at h; cases h
-        iframe HA'
-        ipureintro; exact ⟨Hstor.1, Hunst, H1⟩
+        isplitr
+        · ipureintro; exact ⟨Hstor.1, Hunst, H1⟩
+        ipureintro; exact fun h => by rw [Hsl] at h; cases h
       isplitr
       · itrivial
       iframe Hpay Hcl
@@ -272,10 +325,10 @@ theorem adv_recv_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc)
   case SndPending =>
     iintro H
     imod Hmask with -
-    icases Hi with ⟨⟨%L, %x, HP, %ds, Hreq, #Hlb⟩, Hpay⟩
+    icases Hi with ⟨⟨%L, %x, %n, HP, %ds, Hreq, #Hlb⟩, Hpay⟩
     iunfold advDep at Hdep
     icases Hdep with ⟨Hdep, Hrun⟩
-    imod advance_complete γ rn id ds L x $$ Hlb Hdep HP with ⟨Hret, #Hw, Hans⟩
+    imod advance_complete γ rn id ds L x n $$ Hlb Hdep HP with ⟨Hret, #Hw, Hans⟩
     -- (2026-11-12, trace-check implementation step 1) at a traced node, `run`'s answer to the
     -- driver's escrow request (`rtkInv` opened inside `advInv`)
     imod esc_recv_commit γ.raft γ.esc (⊤ \ ↑advN) rtkN_sub_advN $$ Hrtk Hrun Hpay
@@ -286,7 +339,7 @@ theorem adv_recv_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc)
       isplitl [H]
       · iexact H
       isplitl [Hreq Hans]
-      · iexists ((reqOf L ds, loanReq γ.mode L x) : AdvReq)
+      · iexists ((reqOf L ds, loanReq γ.mode L x n) : AdvReq)
         iframe Hreq Hw Hans
       iexact Hpay
     imodintro
@@ -299,20 +352,21 @@ theorem adv_recv_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc)
 `L`, its lower bound `ds` on the committed log and its request: back with `run`'s answer for `ds`
 (`reqWit`: the floor's witness after a `Ready` without a snapshot, D22 S-d4). -/
 theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List EntryM)
-    (L : Option SnapLoan) (x : Nat × CCState) (q0 : AdvReq) (ms : List QMsg) (Φ : IProp GF) :
-    ⊢ £ 1 ∗ £ 1 ∗ £ 1 -∗ isAdvChan γ rn id ch -∗ advanceP γ L x -∗ dlvLb γ ds -∗
+    (L : Option SnapLoan) (x : Nat × CCState) (n : Nat) (q0 : AdvReq) (ms : List QMsg)
+    (Φ : IProp GF) :
+    ⊢ £ 1 ∗ £ 1 ∗ £ 1 -∗ isAdvChan γ rn id ch -∗ advanceP γ L x n -∗ dlvLb γ ds -∗
       dghostVar γ.req (DFrac.own (1 : Qp).half) q0 -∗ dghostVar γ.req (DFrac.own (1 : Qp).half) q0 -∗
       -- (2026-11-12, trace-check implementation step 1) at a traced node, the escrow's request and
       -- the driver's claim on the messages `ms`
       gateTr γ.raft.reTrace (escReq γ.esc) -∗ gateTr γ.raft.reTrace (rtkClaim γ.esc ms) -∗
-      ▷ (reqWit γ (reqOf L ds) -∗ capAns γ (loanReq γ.mode L x) -∗
+      ▷ (reqWit γ (reqOf L ds) -∗ capAns γ (loanReq γ.mode L x n) -∗
           (∃ q : AdvReq, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
             dghostVar γ.req (DFrac.own (1 : Qp).half) q) -∗
           gateTr γ.raft.reTrace (escReq γ.esc) -∗ ([∗list] q ∈ ms, trTokR γ.raft q.st) -∗ Φ) -∗
       sendAu γ.advancec () Φ := by
   unfold isAdvChan sendAu
   iintro ⟨Hlc1, Hlc2, Hlc3⟩ ⟨#Hchan, #Hinv, #Hrtk⟩ HP #Hlb Hr1 Hr2 Hesc Hcl Hau
-  imod dghostVar_update_halves ((reqOf L ds, loanReq γ.mode L x) : AdvReq) γ.req q0 q0
+  imod dghostVar_update_halves ((reqOf L ds, loanReq γ.mode L x n) : AdvReq) γ.req q0 q0
     $$ Hr1 Hr2 with ⟨Hr1, Hr2⟩
   imod esc_send_prep γ.raft.reTrace γ.esc ms $$ Hcl Hesc with ⟨Hpay, Hheld⟩
   iapply ncfupd_of_fupd
@@ -336,7 +390,7 @@ theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List
       isplitl [H]
       · iexact H
       isplitl [HP Hr1]
-      · iexists L, x
+      · iexists L, x, n
         isplitl [HP]
         · iexact HP
         iexists ds
@@ -379,7 +433,7 @@ theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List
     imod Hmask with -
     iunfold advDep at Hi
     icases Hi with ⟨Hi, Hrun⟩
-    imod advance_complete γ rn id ds L x $$ Hlb Hi HP with ⟨Hret, #Hw, Hans⟩
+    imod advance_complete γ rn id ds L x n $$ Hlb Hi HP with ⟨Hret, #Hw, Hans⟩
     -- (2026-11-12) at a traced node, the driver's swap with `run`'s lent half, inside `advInv`
     imod esc_send_rcvPending γ.raft γ.esc ms (⊤ \ ↑advN) rtkN_sub_advN $$ Hrtk Hrun Hpay Hheld
       with ⟨Hrun, Ht, Hesc⟩

@@ -134,48 +134,40 @@ theorem gset_size_delete_le (W : GSet w64) (y : w64) :
 
 /-- **The node API's `ApplyConfChange`'s premise, at the rule `r`** (2026-10-30, the repair:
 `node.ApplyConfChange.spec`'s, the decision `apply o'` the rule's, `confPolicy_decide`; until then
-the dynamic spec's at a decoder, `srvDynCCPre`): the change of the next conf entry `e` at position
-`k` of the committed log `l` past the view (no conf entry between: `skippedIn_noConf`), as the rule
-decides it at the log before it and the view's membership, or `o`, its effect on the view's
-membership `m'`. -/
+the dynamic spec's at a decoder, `srvDynCCPre`): the change of the conf entry `e` at position `k`
+of the committed log `l`, at or past the view, as the rule decides it at the log before it and the
+view's membership, or `o`, its effect on the view's membership `m'`. (2026-11-24, raft's option D:
+until then also no conf entry between the view and `k`, for raft's `skippedIn`; raft now takes the
+membership at `k`, `confAt`, which the server's static membership gives at every committed index,
+`srv_confAt_simple`, so the conf entries a restart's replay skips may lie between.) -/
 def srvCCPre (r : ConfRule) (l : List LogEntry) (v : ConfigView)
     (o : ConfChangeIM) (k : Nat) (e : LogEntry) (m' : Membership) : Prop :=
-  v.applied ≤ k ∧ l[k]? = some e ∧ e.isConfChange ∧ NoConfChangeIn l v.applied k ∧
+  v.applied ≤ k ∧ l[k]? = some e ∧ e.isConfChange ∧
   ∃ o', r (l.take k) v.membership e = some o' ∧ Membership.applyChange o' v.membership = some m' ∧
     Membership.applyChange o v.membership = some m' ∧ m'.autoLeave = false
 
-/-- The pure part of the view: after the log `D`, the configuration index past every conf entry
-of it, the membership a simple one of voters `W` of `V`, each voter of `V` out of `W` removed by a
-`RemoveNode` of `D`, `W` within raft's bounds. -/
+/-- The pure part of the view: after the log `D`, the configuration index within it, the
+membership a simple one of voters `W` of `V`, each voter of `V` out of `W` removed by a `RemoveNode`
+of `D`, `W` within raft's bounds. (2026-11-24, raft's option D: until then the index past every conf
+entry of `D`, `NoConfChangeIn`, which a restart's replay window breaks: the backend's conf entries
+between raft's configuration point and the consistent index are skipped, not applied to raft.) -/
 def srvCfgOk (V : GSet w64) (D : List EntryModel) (v : ConfigView) : Prop :=
-  v.applied ≤ D.length ∧ NoConfChangeIn (D.map EntryModel.toLE) v.applied D.length ∧
+  v.applied ≤ D.length ∧
   ∃ W : GSet w64, v.membership = Membership.simple W ∧ (∀ x, x ∈ W → x ∈ V) ∧
     (∀ x, x ∈ V → x ∉ W → RemovedIn D x) ∧ W64 0 ∉ W ∧ GMap.size W < 2 ^ 62
 
 /-- The view at the start: nothing handed out, the voters' membership. -/
 theorem srvCfgOk_nil (V : GSet w64) (h0 : W64 0 ∉ V) (hs : GMap.size V < 2 ^ 62) :
     srvCfgOk V [] ⟨0, Membership.simple V⟩ :=
-  ⟨Nat.le_refl _, fun _ _ _ h2 _ => absurd h2 (by simp),
+  ⟨Nat.le_refl _,
     ⟨V, rfl, fun _ h => h, fun _ h1 h2 => absurd h1 h2, h0, hs⟩⟩
 
 /-- An entry that is no conf entry keeps the view. -/
 theorem srvCfgOk_snoc_noConf {V : GSet w64} {D : List EntryModel} {v : ConfigView}
-    (h : srvCfgOk V D v) (m : EntryModel) (hm : ¬ m.toLE.isConfChange) :
+    (h : srvCfgOk V D v) (m : EntryModel) (_hm : ¬ m.toLE.isConfChange) :
     srvCfgOk V (D ++ [m]) v := by
-  obtain ⟨h1, h2, ⟨W, h3, h3a, h3b, h3c⟩⟩ := h
-  refine ⟨by simp; omega, ?_, ⟨W, h3, h3a, fun x hx hw => RemovedIn_snoc (h3b x hx hw) m, h3c⟩⟩
-  intro k e hk1 hk2 he
-  rw [List.length_append, List.length_singleton] at hk2
-  rw [List.map_append] at he
-  by_cases hk : k < D.length
-  · rw [List.getElem?_append_left (by simpa using hk)] at he
-    exact h2 k e hk1 hk he
-  · have hk' : k = D.length := by omega
-    subst hk'
-    rw [List.getElem?_append_right (by simp), List.length_map, Nat.sub_self] at he
-    simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, Option.some.injEq] at he
-    subst he
-    exact hm
+  obtain ⟨h1, ⟨W, h3, h3a, h3b, h3c⟩⟩ := h
+  exact ⟨by simp; omega, ⟨W, h3, h3a, fun x hx hw => RemovedIn_snoc (h3b x hx hw) m, h3c⟩⟩
 
 /-- **A conf entry of the server's, applied** (D43 M5d: with `RemoveNode`): the entry `m` after
 `D` (consecutive from index `1`), a `ConfChange` whose bytes decode to a change `applyConfChange`
@@ -193,7 +185,7 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : ConfigView}
       srvCCPre (srvRule c0 boot) ((D ++ m :: rest).map EntryModel.toLE) v
         (.v1 (membership.ccRaftEff (restModel c0 boot D).bk cm)) D.length m.toLE m' ∧
       srvCfgOk V (D ++ [m]) ⟨D.length + 1, m'⟩ := by
-  obtain ⟨h1, h2, ⟨W, hcfg, hWV, hrem, hW0, hsz⟩⟩ := h
+  obtain ⟨h1, ⟨W, hcfg, hWV, hrem, hW0, hsz⟩⟩ := h
   have hmD : (D ++ [m])[D.length]? = some m := by simp
   have hpm := hpol D.length m cm hmD (by rw [Hty]; decide) Hdec
   have hpD : ∀ p e cc, D[p]? = some e → e.typ ≠ W32 0 → ccDecodeV1 e.data = some cc →
@@ -256,10 +248,6 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : ConfigView}
   rw [← hcfg] at hs
   have hk : ((D ++ m :: rest).map EntryModel.toLE)[D.length]? = some m.toLE := by
     rw [List.map_append, List.getElem?_append_right (by simp), List.length_map, Nat.sub_self]; rfl
-  have hnc : NoConfChangeIn ((D ++ m :: rest).map EntryModel.toLE) v.applied D.length := by
-    intro k e hk1 hk2 he
-    rw [List.map_append, List.getElem?_append_left (by simpa using hk2)] at he
-    exact h2 k e hk1 hk2 he
   have htake : ((D ++ m :: rest).map EntryModel.toLE).take D.length = D.map EntryModel.toLE := by
     rw [List.map_append, List.take_left' (by simp)]
   have hdec : srvRule c0 boot (((D ++ m :: rest).map EntryModel.toLE).take D.length)
@@ -267,8 +255,8 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : ConfigView}
     rw [htake]
     unfold srvRule
     simp only [EntryModel.toLE, Hty, ↓reduceIte, Hdec, Option.map_some, Hwi, heff]
-  refine ⟨Membership.simple W', ⟨h1, hk, .inl Hty, hnc, ⟨_, hdec, hs, hs, rfl⟩⟩, ?_⟩
-  refine ⟨by simp, fun _ _ h1 h2 _ => absurd h2 (by simp at h1 ⊢; omega),
+  refine ⟨Membership.simple W', ⟨h1, hk, .inl Hty, ⟨_, hdec, hs, hs, rfl⟩⟩, ?_⟩
+  refine ⟨by simp,
     ⟨W', rfl, fun x hx => hWV x (hW'W x hx), fun x hx hw => ?_,
       fun h0 => hW0 (hW'W _ h0), hsz'⟩⟩
   by_cases hxW : x ∈ W
@@ -289,7 +277,7 @@ theorem srvCfgOk_ccS {V : GSet w64} {D : List EntryModel} {v : ConfigView}
       srvCCPre (srvRule c0 boot) ((D ++ m :: rest).map EntryModel.toLE) v
         (.v1 (membership.ccRaftEff (restModel c0 boot D).bk cm)) D.length m.toLE m' ∧
       srvCfgOk V (D ++ [m]) ⟨D.length + 1, m'⟩ := by
-  obtain ⟨h1, h2, ⟨W, hcfg, hWV, hrem, hW0, hsz⟩⟩ := h
+  obtain ⟨h1, ⟨W, hcfg, hWV, hrem, hW0, hsz⟩⟩ := h
   have hVW : ∀ x, x ∈ V → x ∈ W := fun x hx =>
     Classical.byContradiction fun hn => Hnr x (hrem x hx hn)
   obtain ⟨hct, hcin, -⟩ := Hcm
@@ -304,10 +292,6 @@ theorem srvCfgOk_ccS {V : GSet w64} {D : List EntryModel} {v : ConfigView}
   rw [← hcfg] at hs
   have hk : ((D ++ m :: rest).map EntryModel.toLE)[D.length]? = some m.toLE := by
     rw [List.map_append, List.getElem?_append_right (by simp), List.length_map, Nat.sub_self]; rfl
-  have hnc : NoConfChangeIn ((D ++ m :: rest).map EntryModel.toLE) v.applied D.length := by
-    intro k e hk1 hk2 he
-    rw [List.map_append, List.getElem?_append_left (by simpa using hk2)] at he
-    exact h2 k e hk1 hk2 he
   have htake : ((D ++ m :: rest).map EntryModel.toLE).take D.length = D.map EntryModel.toLE := by
     rw [List.map_append, List.take_left' (by simp)]
   have hdec : srvRule c0 boot (((D ++ m :: rest).map EntryModel.toLE).take D.length)
@@ -315,8 +299,8 @@ theorem srvCfgOk_ccS {V : GSet w64} {D : List EntryModel} {v : ConfigView}
     rw [htake]
     unfold srvRule
     simp only [EntryModel.toLE, Hty, ↓reduceIte, Hdec, Option.map_some, Hwi, heff]
-  refine ⟨v.membership, ⟨h1, hk, .inl Hty, hnc, ⟨_, hdec, hs, hs, by rw [hcfg]; rfl⟩⟩, ?_⟩
-  refine ⟨by simp, fun _ _ h1 h2 _ => absurd h2 (by simp at h1 ⊢; omega),
+  refine ⟨v.membership, ⟨h1, hk, .inl Hty, ⟨_, hdec, hs, hs, by rw [hcfg]; rfl⟩⟩, ?_⟩
+  refine ⟨by simp,
     ⟨W, hcfg, hWV, fun x hx hw => absurd (hVW x hx) hw, hW0, hsz⟩⟩
 
 end pure

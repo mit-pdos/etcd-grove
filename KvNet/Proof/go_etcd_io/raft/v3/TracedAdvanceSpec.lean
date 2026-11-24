@@ -40,14 +40,14 @@ abbrev node.Advance.tracedSpec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗ isNode n γ N id ∗
       nodeDriver n γ N st ∗ advReceipt st.storage st.delivered.length es L ∗ nodeConfig n γ N v ∗
       (match L with
-       | none => skippedIn γ st.delivered v.applied st.delivered.length
+       | none => confAt γ (max v.applied st.delivered.length) v.membership
        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) ∗
       readyToksClaim n γ N ms }}
     (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
       nodeAppliedLb γ st.key st.delivered.length ∗
       (match L with
-      | none => nodeConfig n γ N v
+      | none => nodeConfig n γ N ⟨max v.applied st.delivered.length, v.membership⟩
       | some l => ∃ m : Membership,
           nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
           confAt γ (uint.nat l.snap.Metadata'.Index') m ∗

@@ -25,6 +25,51 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-24: node.ApplyConfChange, node.Advance -- `skippedIn` is false after a restart at `min |A₀| σ.commit` and after a kept snapshot in the replay window; D (`confAt`) instead of the plan's RestartNode (A)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/node__ApplyConfChange.lean`, `node.ApplyConfChange.spec` (premise
+  `skippedIn γ l v.applied k`), and `Spec/go_etcd_io/raft/v3/node__Advance.lean`, `node.Advance.spec`
+  (no-snapshot arm, `skippedIn γ st.delivered v.applied st.delivered.length`); the plan's
+  `SpecPlan/Spec/go_etcd_io/raft/v3/node__ApplyConfChange.lean`/`node__Advance.lean` (`confSkipped`, the
+  same premise) and `SpecPlan/Spec/go_etcd_io/raft/v3/RestartNode.lean` (round 1: the configuration point
+  `a` unbounded by the stored commit). `RestartNode.spec` (`Spec/`) is unchanged.
+- **Defect.** Too strong (a premise etcd cannot meet). After a power loss the server restarts raft with
+  the backend's configuration at `|A₀|`, which may be past the WAL's commit; `RestartNode.spec` needs
+  `a ≤ σ.commit`, and lowering the point to `a' = min |A₀| σ.commit` makes the next conf entry
+  `k > |A₀|` need `skippedIn γ l a' k`, false: the replayed conf entries of `(a', |A₀|]` were decided
+  `.apply` before the crash, and etcd skips them on replay (no `ApplyConfChange`). The same for a kept
+  snapshot at `k ≤ ci` installed in the window (`node.Advance`'s snapshot arm puts the view at `k`).
+- **Evidence.** `notes/raft-restart-confpoint.md` (section "The problem, restated"); etcd
+  `server.go:2063-2065` (`ApplyConfChange` only when `shouldApplyV3`), `cluster.go:307-309`;
+  `notes/etcd-dist-d6.md`, T4 round 4, step 3.
+- **Proposed change.** (Option D of the note.) `node.ApplyConfChange.spec`: `skippedIn γ l v.applied k`
+  becomes `confAt γ k v.membership`. `node.Advance.spec`, no-snapshot arm: the premise becomes
+  `confAt γ (max v.applied st.delivered.length) v.membership`, and the post's view moves to
+  `⟨max v.applied st.delivered.length, v.membership⟩` (a view left below the delivered log would let a
+  later `ApplyConfChange` take raft's configuration below its applied index,
+  `issues/raft-advance-before-applyconfchange.md`). Both premises are weaker than the old ones
+  (`confAt_skipped` derives them), so every client changes by one lemma application per call (plus the
+  view index after `Advance`). Raft internally: `RInv_cidxJump`, `undecFree` replaced by the fold fact,
+  `runCfg` simplified. The server restarts at `a'` with `confAt γ a' m` from `srv_confAt_simple`; its
+  `srvCfgOk`/`srvCCPre` drop their `NoConfChangeIn` conjuncts.
+
+  **Divergence from the plan's `RestartNode` (option A), kept on purpose.** The plan lets `RestartNode`
+  take any committed point `a ≤ |l|` (its `confAt γ a m` alone). D keeps the real `RestartNode.spec` at
+  `a ≤ σ.commit` instead, because (1) the etcd proof's membership is static (`srv_confAt_simple`, the
+  server's D3), so the configuration at `a'` and at `|A₀|` is the same and D covers both instances;
+  (2) A's argument (a node restarted with a configuration past its log cannot win before holding the
+  committed log through the configuration's last conf entry: the term case `T ≤ t_w` of the note's
+  section 1, `lc_far_newer` with the candidate's log short of `n`) is unchecked, and the proof needs new
+  leader-completeness reasoning (a per-voter durable term lower bound from acknowledgements) over
+  `RInv`, `dynEnv`, the winners table, `Refinement.lean`: several thousand lines of affected proof.
+  (3) D's premises stay valid under A (they are weaker than the skips), so A can come later, when the
+  server's membership changes are verified, without undoing D. The plan's `node.ApplyConfChange`/
+  `node.Advance` should take the same `confAt` premises (and `Advance`'s moved view) whether or not A
+  lands; the plan's `RestartNode` keeps A as raft's open obligation (`req/go_etcd_io_raft_v3.md`, item 8).
+- **Decision.** Accepted for `Spec/` (option D, coordinator, 2026-11-24; branch
+  `raft-restart-confpoint/2026-11-24`). The plan's `node.*` premises: pending (to apply with the plan's
+  next raft round); the plan's `RestartNode` (A): unchanged, open.
+
 ## 2026-11-23: rafthttp.NewRoundTripper -- the post doesn't say the round tripper is a `*http.Transport`, which `bootOk`'s Hprt needs
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`,

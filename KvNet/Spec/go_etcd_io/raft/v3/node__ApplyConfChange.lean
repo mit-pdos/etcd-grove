@@ -36,7 +36,11 @@ membership, an auto-leave joint configuration included (2026-10-29, stage U5: un
 `m'.autoLeave = false`, raft's automatic leave being out of `raft.Step`'s scope). (2026-10-28, the conf-change decision switch,
 §4) The conf entries between the view and `k` decided `.skip` (`skippedIn`; until then none at all,
 `NoConfChangeIn`). (2026-11-12, trace-check step 4) At a traced cluster (`Cluster.trace γ ≠ none`) only a
-change that keeps the view's membership (`m' = v.membership`); vacuous at every other cluster. -/
+change that keeps the view's membership (`m' = v.membership`); vacuous at every other cluster.
+(2026-11-24, option D of `notes/raft-restart-confpoint.md`; ledger entry of that date) The membership just
+before the entry is the view's (`confAt γ k v.membership`), in place of the skips between the view and
+`k` (`skippedIn γ l v.applied k`, which gives it by `confAt_skipped`): etcd skips the conf entries it
+replays after a restart, which were decided to apply. -/
 abbrev node.ApplyConfChange.spec : Prop :=
   ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o o' : ConfChangeIM)
     (l : List LogEntry) (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
@@ -49,7 +53,7 @@ abbrev node.ApplyConfChange.spec : Prop :=
   (Cluster.trace γ ≠ none → m' = v.membership) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
       isCluster γ N ∗ confDecided γ k (.apply o') ∗ ownConfChangeI c DFrac.discard (some o) ∗
-      nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k }}
+      nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ confAt γ k v.membership }}
     (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
   {{ (csp : Loc) (cs : ConfStateM), RET #csp; (csPts csp (DFrac.own 1) cs true ∗
       nodeConfig n γ N ⟨k + 1, m'⟩ ∗ ⌜confStateIs cs m'⌝) ∨

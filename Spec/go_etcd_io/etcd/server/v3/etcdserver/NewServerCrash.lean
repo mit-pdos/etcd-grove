@@ -6,7 +6,8 @@ phase, 2026-11-24; `notes/etcd-dist-d6.md` §2). A third spec of `NewServer` (`e
 replaced by the crash image `srvCrashImageAt` (`InvCrashImage.lean`: the backend's index may be above
 the WAL's commit, the WAL's read facts carried, the id's vacancy unarmed, any storage registry) and
 `bootstrapRestartContract` by `bootstrapCrashContract` (its generalization to such images). The post
-is `specR`'s word for word: the restarted incarnation's built part `srvBuiltR` at the restart's apply
+is `specR`'s word for word, beside raft's crash token of the vacancy `NewServer` arms (`nodeCrashTok`,
+T4: the generation keeps it for its next crash, `nodeCrash`): the restarted incarnation's built part `srvBuiltR` at the restart's apply
 state `restartKV ρ.rd.kv A`, the KV model of the backend's applied log `A` (which may now run past the
 WAL's commit: the raft loop's replay of entries at or below the consistent index is skipped by the apply
 thread, `applyEntryNormal`'s `index <= ci`; `notes/etcd-dist-d6.md` §4, the proof's main new step).
@@ -116,7 +117,10 @@ abbrev NewServer.specC : Prop :=
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
-      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      -- (T4, 2026-11-24, lead's decision) raft's crash token of the vacancy `NewServer` arms
+      -- (`nodeVacant_arm`), for this generation's own next crash
+      (∃ x, nodeCrashTok γ.cl id x) ∗
+      ((⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames GF) (b : GoInterface) (γk : GName) (τ : SrvTr GF) (at₀ : w64),
@@ -141,7 +145,7 @@ abbrev NewServer.specC : Prop :=
               ls.length = recs.length⌝ ∗
             lease.srvInvAt false srv E m (lease.recMap (recs.zip ls), ∅, lease.recTTLs mt recs)) ∗
           srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
-          srvStop.keep srv cfg E γrn γk }}
+          srvStop.keep srv cfg E γrn γk) }}
 
 end spec
 

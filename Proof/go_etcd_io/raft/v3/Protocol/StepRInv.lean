@@ -208,6 +208,71 @@ theorem cfgFold_noUndec (dec : CCDec) (c0 : CCState) {l : List EntryM} {lo hi : 
       rw [List.take_of_length_le (by omega)] at ih
       exact ih
 
+/-! ### `CfgKeep` (2026-11-24, option D of `notes/raft-restart-confpoint.md`) -/
+
+theorem take_split_le {α : Type} (l : List α) {lo hi : Nat} (h : lo ≤ hi) :
+    l.take hi = l.take lo ++ (l.take hi).drop lo := by
+  conv => lhs; rw [← List.take_append_drop lo (l.take hi)]
+  rw [List.take_take, Nat.min_eq_left h]
+
+/-- Vacuous over an empty range. -/
+theorem CfgKeep.of_le {dec : CCDec} {l : List EntryM} {lo hi : Nat} {cs : CCState}
+    (h : hi ≤ lo) : CfgKeep dec l lo hi cs := by
+  unfold CfgKeep
+  rw [List.drop_eq_nil_of_le (by rw [List.length_take]; omega)]
+  rfl
+
+/-- The fold at `lo` kept up to `hi`. -/
+theorem CfgKeep.fold {dec : CCDec} {c0 : CCState} {l : List EntryM} {lo hi : Nat} {cs : CCState}
+    (hk : CfgKeep dec l lo hi cs) (hlh : lo ≤ hi) (hf : cfgFold dec c0 (l.take lo) = some cs) :
+    cfgFold dec c0 (l.take hi) = some cs := by
+  rw [take_split_le l hlh, cfgFold_append, hf, Option.bind_some]; exact hk
+
+/-- Two folds to the same configuration. -/
+theorem CfgKeep.of_folds {dec : CCDec} {c0 : CCState} {l : List EntryM} {lo hi : Nat}
+    {cs : CCState} (hlh : lo ≤ hi) (h1 : cfgFold dec c0 (l.take lo) = some cs)
+    (h2 : cfgFold dec c0 (l.take hi) = some cs) : CfgKeep dec l lo hi cs := by
+  rw [take_split_le l hlh, cfgFold_append, h1, Option.bind_some] at h2; exact h2
+
+/-- The range's entries are the same in a comparable log long enough. -/
+theorem CfgKeep.congr {dec : CCDec} {l l' : List EntryM} {lo hi : Nat} {cs : CCState}
+    (ht : l.take hi = l'.take hi) (h : CfgKeep dec l lo hi cs) : CfgKeep dec l' lo hi cs := by
+  by_cases hlh : lo ≤ hi
+  · unfold CfgKeep at h ⊢
+    have e : l.take lo = l'.take lo := by
+      rw [← Nat.min_eq_left hlh, ← List.take_take, ht, List.take_take]
+    rw [← e, ← ht]; exact h
+  · exact CfgKeep.of_le (by omega)
+
+/-- In a log extending `l`, below `l`'s length. -/
+theorem CfgKeep.prefix {dec : CCDec} {l l' : List EntryM} {lo hi : Nat} {cs : CCState}
+    (hp : l <+: l') (hh : hi ≤ l.length) (h : CfgKeep dec l lo hi cs) : CfgKeep dec l' lo hi cs := by
+  obtain ⟨t, rfl⟩ := hp
+  exact h.congr (by rw [List.take_append_of_le_length hh])
+
+/-- In a prefix of `l`, below its length. -/
+theorem CfgKeep.of_prefix {dec : CCDec} {l l' : List EntryM} {lo hi : Nat} {cs : CCState}
+    (hp : l <+: l') (hh : hi ≤ l.length) (h : CfgKeep dec l' lo hi cs) : CfgKeep dec l lo hi cs := by
+  obtain ⟨t, rfl⟩ := hp
+  exact h.congr (by rw [List.take_append_of_le_length hh])
+
+/-- Over two adjacent ranges. -/
+theorem CfgKeep.trans {dec : CCDec} {l : List EntryM} {a b c : Nat} {cs : CCState}
+    (h1 : CfgKeep dec l a b cs) (h2 : CfgKeep dec l b c cs) (hab : a ≤ b) (hbc : b ≤ c) :
+    CfgKeep dec l a c cs := by
+  unfold CfgKeep at *
+  have e1 : (l.take c).drop a = (l.take b).drop a ++ (l.take c).drop b := by
+    by_cases hl : a ≤ l.length
+    · have hb : (l.take c).take b = l.take b := by rw [List.take_take, Nat.min_eq_left hbc]
+      conv => lhs; rw [← List.take_append_drop b (l.take c), hb]
+      rw [List.drop_append_of_le_length (by rw [List.length_take]; omega)]
+    · have h1 : (l.take c).drop a = [] := List.drop_eq_nil_of_le (by rw [List.length_take]; omega)
+      have h2 : (l.take b).drop a = [] := List.drop_eq_nil_of_le (by rw [List.length_take]; omega)
+      have h3 : (l.take c).drop b = [] := List.drop_eq_nil_of_le (by rw [List.length_take]; omega)
+      rw [h1, h2, h3]; rfl
+  rw [e1, cfgFoldFrom_append, h1, Option.bind_some, ← take_split_le l hab]
+  exact h2
+
 /-! ### I1 and I3 -/
 
 theorem ConfI1.mono {l : List EntryM} {c c' : Nat} (h : ConfI1 l c) (hc : c ≤ c') :
@@ -861,7 +926,7 @@ theorem RInv_snapRestore {r : RState} (m : Msg) (fp' : List EntryM)
 a snapshot pending, the entries of a `Ready` handed out before the restore). -/
 theorem RInv_advance {r : RState} (a : w64) (H : RInv dec c0 r)
     (h1 : uint.Z r.applied ≤ uint.Z a) (h2 : uint.Z a ≤ uint.Z r.p.commit)
-    (hn : NoUndecConfIn dec r.full r.cidx (uint.nat a)) :
+    (hn : CfgKeep dec r.full r.cidx (uint.nat a) r.cfg) :
     RInv dec c0 { r with applied := a, cidx := max r.cidx (uint.nat a) } := by
   have h1n := rUnat_le h1
   have h2n := rUnat_le h2
@@ -872,11 +937,20 @@ theorem RInv_advance {r : RState} (a : w64) (H : RInv dec c0 r)
     by_cases ha : uint.nat a ≤ r.cidx
     · rw [Nat.max_eq_left ha]; exact H.cfg
     · rw [Nat.max_eq_right (by omega)]
-      exact cfgFold_noUndec dec c0 hn (by omega) H.cfg
+      exact hn.fold (by omega) H.cfg
   · intro hl
     exact ⟨(H.i3 hl).1, Nat.le_trans (confCount_drop_le _ h1n) (H.i3 hl).2⟩
   · intro hc
     exact ⟨(H.cand hc).1, (H.cand hc).2.mono h1n (Nat.le_refl _)⟩
+
+/-- (2026-11-24, option D of `notes/raft-restart-confpoint.md`) **The configuration index jumps** to
+`b` (within the commit index) over entries that keep the configuration (`CfgKeep`): the fold at `b`
+is the node's configuration. The index is ghost-only; `applied ≤ cidx` only improves. -/
+theorem RInv_cidxJump {r : RState} (b : Nat) (H : RInv dec c0 r) (hb1 : r.cidx ≤ b)
+    (hb2 : b ≤ uint.nat r.p.commit) (hk : CfgKeep dec r.full r.cidx b r.cfg) :
+    RInv dec c0 { r with cidx := b } :=
+  ⟨H.full, H.base_commit, H.commit_last, Nat.le_trans H.applied_cidx hb1, hb2, H.base_applied,
+    H.lead_snap, hk.fold hb1 H.cfg, H.i1, H.i3, H.cand⟩
 
 /-- A snapshot at index `j` (at most the boundary) applied: the configuration now the snapshot's,
 the fold of the full prefix up to `j` (`hcfg`, A3), and the configuration index `j` (2026-10-28,
@@ -906,7 +980,7 @@ theorem RInv_applySnap {r : RState} (j : w64) (sn : Bool) (cs' : CCState) (H : R
 U3: also with a snapshot pending, an entry of a `Ready` handed out before the restore). -/
 theorem RInv_applyConf {r : RState} (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState)
     (H : RInv dec c0 r) (hk : r.cidx ≤ k) (hkc : k < uint.nat r.p.commit)
-    (he : r.full[k]? = some e) (hc : IsConfEnt e) (hn : NoUndecConfIn dec r.full r.cidx k)
+    (he : r.full[k]? = some e) (hc : IsConfEnt e) (hn : CfgKeep dec r.full r.cidx k r.cfg)
     (hd : dec (r.full.take k) e = some (.apply op)) (hst : ccStepB op r.cfg = some cs') :
     RInv dec c0 { r with cidx := k + 1, cfg := cs' } := by
   refine ⟨H.full, H.base_commit, H.commit_last,
@@ -914,7 +988,7 @@ theorem RInv_applyConf {r : RState} (k : Nat) (e : EntryM) (op : CCOp) (cs' : CC
     H.base_applied, H.lead_snap, ?_, H.i1, H.i3, H.cand⟩
   show cfgFold dec c0 (r.full.take (k + 1)) = some cs'
   rw [List.take_add_one, he, Option.toList_some, cfgFold_snoc,
-    cfgFold_noUndec dec c0 hn hk H.cfg, Option.bind_some]
+    hn.fold hk H.cfg, Option.bind_some]
   unfold entStep; rw [ite_eq_left hc, hd, Option.bind_some]; exact hst
 
 end rules

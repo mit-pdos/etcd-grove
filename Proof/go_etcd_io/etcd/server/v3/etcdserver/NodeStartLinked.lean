@@ -273,7 +273,11 @@ theorem raftNode_of_RestartNode
   iintro %Φ Hpre HΦ
   iNamed Hpre
   obtain ⟨Hcfg, Hhb, Hwal, Hfit, H0, Hsz, Hba, Hac, Hboot, Hhold, Hterm, Hcs, Hcsb, Hnsm⟩ := Hraft
-  have Hbc : σ.b ≤ σ.commit := Nat.le_trans Hba Hac
+  have Hbc : σ.b ≤ σ.commit := Hhold.2.2.2.2.2.1
+  -- (2026-11-24, d6 step 3; raft's option D) raft's configuration point, at or below the stored
+  -- commit (`RestartNode.spec`'s): the backend's consistent index, or the stored commit if the WAL's
+  -- ends below it (the server's membership is the voters' at both, `srv_confAt_simple`)
+  have Hba' : σ.b ≤ min A₀.length σ.commit := Nat.le_min.2 ⟨Hba, Hbc⟩
   -- the cluster untraced (`srvClusterOk`'s, in the server's raft-log invariant)
   ihave %HtrC : ⌜Cluster.trace γr.cl = none⌝ $$ []
   · iunfold srvRaftLogInv at Hlinv
@@ -284,6 +288,9 @@ theorem raftNode_of_RestartNode
       (by simp [srvLE]) ⊤ (by simp) (by simp) $$ [$Hlinv $Hconf] with %Hm
   · iunfold srvRLogLb at HA0; icases HA0 with ⟨#H, -⟩; iexact H
   subst Hm
+  imod srv_confAt_simple ⟨γr, [], W64 0⟩ (srvLE ⟨γr, [], W64 0⟩ A₀) (min A₀.length σ.commit)
+      (by simp [srvLE]; omega) ⊤ (by simp) (by simp) $$ [$Hlinv] with #Hconf'
+  · iunfold srvRLogLb at HA0; icases HA0 with ⟨#H, -⟩; iexact H
   -- the restarted storage's snapshot valid (D4) and its persistent part, for the frozen terms
   imod walSnapCS_valid ⟨γr, [], W64 0⟩ σ cs ⊤ (by simp) (by simp) Hterm Hcs Hcsb $$ [$Hlinv $Hcert]
     with Hval
@@ -311,7 +318,7 @@ theorem raftNode_of_RestartNode
   wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv [] ctxs
     (fun K => iprop(memStorInvT bv.storage' γs γr.cl K (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) ∗ memStorMeta bv.storage' γs σ.hs ∗
       memSnapNone γs (walSnapCS σ cs)))
-    (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀) (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
+    (.restart σ cs S (min A₀.length σ.commit) (Membership.simple γr.cfg) A₀) (fun sv => iprop(snapshotValid γr.cl sv ∗ (srvStoredOrigin γr.cl E.γr.cursor pin σ.b) sv)) (fun _ => by iintro ⟨H, -⟩; iexact H))
     $$ [Hb Hc Hrest Hval Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hpeers
@@ -319,7 +326,7 @@ theorem raftNode_of_RestartNode
     · ipureintro; exact ⟨Hhb, Hwal, HtrC⟩
     simp only [rnBootPre]
     isplitr
-    · ipureintro; exact ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold, Hnsm⟩
+    · ipureintro; exact ⟨Hcfg, Hba', Nat.min_le_right _ _, Hboot, Hcs, Hhold, Hnsm⟩
     isplitl [Hrest Hval]
     · iintro %Ψ HΨ
       wp_apply replayTermsFromStorage.wp_proof wp_FirstIndex wp_LastIndex wp_Entries
@@ -340,7 +347,7 @@ theorem raftNode_of_RestartNode
     · iExactEq Hvac; rfl
     isplitl [HrS]
     · iExactEq HrS; rfl
-    iExactEq Hconf; rfl
+    iExactEq Hconf'; rfl
   icases Hpost with ⟨%n, %γw, %f, %st, %terms, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
     #Hseed, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
   simp only [rnBootPost, RNBoot.P]
@@ -402,12 +409,12 @@ theorem raftNode_of_RestartNode
     unfold rnGhost
     rw [Hwpre, Hwa0, List.nil_append, List.length_take, Nat.min_eq_left Hba, List.take_append_drop]
   have hcfgv : srvCfgOk γw.node.cfg (rnGhost γw (A₀.take σ.b))
-      ⟨A₀.length, Membership.simple γr.cfg⟩ := by
+      ⟨min A₀.length σ.commit, Membership.simple γr.cfg⟩ := by
     rw [hghost, Hwnode]
-    exact ⟨Nat.le_refl _, fun _ _ h1 h2 _ => absurd h2 (by simp; omega),
+    exact ⟨Nat.min_le_left _ _,
       ⟨γr.cfg, rfl, fun _ h => h, fun _ h1 h2 => absurd h1 h2, H0, Hsz⟩⟩
   ihave ⟨Hloop, Happly⟩ := rnToks_of_restart γw (A₀.take σ.b) σ.hs S
-      ⟨A₀.length, Membership.simple γr.cfg⟩ Hwpre hidx (by rw [Hwc0]; exact Nat.le_refl _)
+      ⟨min A₀.length σ.commit, Membership.simple γr.cfg⟩ Hwpre hidx (by rw [Hwc0]; exact Nat.le_refl _)
       (by simp [rnLogOf, Hwpre, Hws0, Nat.min_eq_left Hba]) hcfgv
     $$ [Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview Hwok]
   · rw [Hsrv, Hwnode, Hwnl, Hwms, Hwid, Hwwal, Hwγs]

@@ -65,7 +65,7 @@ def GMode.Pre (md : GMode) (m : MessageM) (ents : List EntryM) (s : NState) : Pr
     -- (2026-10-28, the decision switch) A1 over the node's decisions (until then no conf entry)
     (m.Type' = MsgStorageApplyResp →
       ∀ e, ents.getLast? = some e →
-        NoUndecConfIn (effDec dec g.decs) (rOf s g).full g.cidx (uint.nat e.Index')) ∧
+        CfgKeep (effDec dec g.decs) (rOf s g).full g.cidx (uint.nat e.Index') (rOf s g).cfg) ∧
     (m.Type' = MsgProp → plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64)
 
 /-- How a step moves the dynamic mode's ghost part (2026-10-14, stage B7 part 2): only a
@@ -491,8 +491,9 @@ theorem GMode.Pre.dynHyp {md : GMode} {m : MessageM} {ents : List EntryM}
   obtain ⟨h2, h3, h4⟩ := h
   refine ⟨Hns, h2 HI.full.1, HI.full, fun hty => ?_, h4⟩
   have Hac : uint.nat s.logst.applied ≤ g.cidx := HI.applied_cidx
-  have Hempty : ∀ n, n ≤ g.cidx → NoUndecConfIn (effDec dec g.decs) (rOf s g).full g.cidx n :=
-    fun n hn k e hk1 hk2 => absurd (Nat.lt_of_lt_of_le hk2 hn) (Nat.not_lt.2 hk1)
+  have Hempty : ∀ n, n ≤ g.cidx →
+      CfgKeep (effDec dec g.decs) (rOf s g).full g.cidx n (rOf s g).cfg :=
+    fun n hn => CfgKeep.of_le hn
   rcases Hap hty with ha | ⟨e, he, ha⟩
   · rw [ha]; exact Hempty _ Hac
   · rw [ha]

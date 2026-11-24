@@ -1104,7 +1104,7 @@ private theorem wp_RestartNode_impl
         iframe Hcap1 Hcam
         isplitr
         · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
-        iapply undecFree_empty
+        iapply cfgKeepIn_le _ _ _ _ (Nat.le_refl _)
       iexists _; iexact Hbw
     itrivial
   iapply HΦ

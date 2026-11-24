@@ -821,7 +821,7 @@ theorem wp_applyConf_dyn_g
     rw [← ht, List.take_append_of_le_length (Nat.le_of_lt Hk2)]
   have Hkc : k < uint.nat s.logst.committed := by
     have := uint_nat_eq s.logst.committed; omega
-  have Hnoc' : NoUndecConfIn (effDec dec ds) (rOf s g).full g.cidx k :=
+  have Hnoc' : CfgKeep (effDec dec ds) (rOf s g).full g.cidx k (rOf s g).cfg :=
     Hnoc.prefix Hdp (Nat.le_of_lt Hk2)
   -- the configuration the code sees is the model's
   have Hgood : CCGood rs.cfg := cfgFold_good h1 HI.cfg
@@ -882,7 +882,7 @@ theorem wp_applyConf_dyn_g
       cs' := by
     refine ⟨?_, rfl⟩
     unfold AdmFold
-    have H0 := cfgFold_noUndec (effDec dec ds) c0 Hnoc' Hk1 HI.cfg
+    have H0 := Hnoc'.fold Hk1 HI.cfg
     rw [show (rOf s g).full.take (k + 1) = (rOf s g).full.take k ++ [e] by
       rw [List.take_add_one, Hfull_k]; rfl, cfgFold_snoc, H0, Option.bind_some]
     unfold entStep
