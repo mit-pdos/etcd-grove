@@ -33,11 +33,16 @@ result `e'`. -/
 abbrev StepPrem := ∀ [GooseExts] [GoGlobalContext], String → val → OsState → Expr → OsState → Prop
 
 /-- The semantics whose steps are `FsStep`s satisfying `SQ` and whose crashes are `OsCrash`es
-satisfying `Q`. -/
+satisfying `Q`, and whose initial states are `fs_semantics`'s (`FsInit`, its `initLocal`: the
+environment's "durable at first start" and a fresh process's nothing open; since etcd-dist D4a,
+2026-11-24, before which this semantics kept `ExtSemantics`'s default, any state, and its theorems
+stated `FsInit` as a premise). The premises restrict steps and crashes only; they add nothing at the
+start. Satisfiable: `TestsInit.lean`'s `fsInit0`. -/
 @[instance_reducible] def fsSemWithS (SQ : StepPrem) (Q : OsState → OsState → Prop) :
     ExtSemantics fsExt where
   step o v h st g e' h' st' g' := FsStep o v h st g e' h' st' g' ∧ SQ o v st e' st'
   crash st st' := OsCrash st st' ∧ Q st st'
+  initLocal st _ := FsInit st
 
 /-- **SectorWhole** for the files at the paths `covers` holds, at a crash from `st` to `st'`: each
 512-byte sector of such a file that holds a byte below its crash size comes back as one state of
