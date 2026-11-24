@@ -1,10 +1,38 @@
-# Types and names only: function and method bodies are axiomatized (the metrics mvcc's
-# transactions and key index update: Counter, Gauge), but `gauge`'s methods and `ExponentialBuckets`
-# (histogram.go: panics on bad arguments, then a loop of float multiplications; small-leaves-2).
-translate = ["!*", "gauge.Set", "gauge.Add", "gauge.Sub", "gauge.Inc", "gauge.Dec", "ExponentialBuckets"]
+# Types and names only, but for the default registry and `gauge`'s methods and `ExponentialBuckets`
+# (below): the other function and method bodies are axiomatized (the metrics mvcc's transactions and
+# key index update: Counter, Gauge).
+#
+# (prom-registry, route (b), 2026-11-22: notes/prom-registry.md; Upamanyu's decision on
+# mit-pdos/etcd-grove#15) the default registry is client_golang v1.24.1's real code: registry.go's
+# `NewRegistry`, `Registry.Register`, `Registry.MustRegister`, the package-level `Register` and
+# `MustRegister` (calls through `DefaultRegisterer`), the variables `defaultRegistry`,
+# `DefaultRegisterer` and `DefaultGatherer` (their initializers: `NewRegistry()` and two interface
+# conversions), the constants of the descriptor channel, `AlreadyRegisteredError.Error`; desc.go's
+# `Desc` (a type: translate_types) with `NewInvalidDesc` and `Desc.Err`. `Register`'s error paths
+# (`fmt.Errorf` of a `*Desc`, which formats it through its `String` method, names only here; the
+# type switch on `*wrappingCollector`, whose `unwrapRecursively` is names only) are translated but
+# not modeled: a run that reaches them is stuck, and the proofs show it does not.
+# Not translated (no verified code reaches them): `NewDesc`/`V2.NewDesc`/`Desc.String` (they would
+# import common/model, prometheus/internal and xxhash, whose package variables compile regexps:
+# their initializers would join the trust base), `Unregister`, `Gather`/`Collect`/`Describe`.
+# (prove-ps2-metrics, small-leaves-2) `gauge`'s methods and `ExponentialBuckets` (histogram.go:
+# panics on bad arguments, then a loop of float multiplications).
+translate = ["!*", "capMetricChan", "capDescChan", "defaultRegistry", "DefaultRegisterer",
+  "DefaultGatherer", "NewRegistry", "Register", "MustRegister", "Registry.Register",
+  "Registry.MustRegister", "AlreadyRegisteredError.Error", "NewInvalidDesc", "Desc.Err",
+  "gauge.Set", "gauge.Add", "gauge.Sub", "gauge.Inc", "gauge.Dec", "ExponentialBuckets"]
 # `time` for `Opts`'s field `now func() time.Time`, so that `Opts` (`CounterOpts`) translates (a
-# composite literal of it can be stepped: etcd-refimpl's reference implementation).
-imports = ["!*", "time", "math", "sync/atomic", "errors", "github.com/prometheus/client_model/go"]
+# composite literal of it can be stepped: etcd-refimpl's reference implementation); `sync` for
+# `Registry`'s `mtx sync.RWMutex`; `fmt` for `Register`'s `fmt.Errorf`; client_model's `dto` (names
+# only) for `Desc`'s field `constLabelPairs []*dto.LabelPair` and the metrics' `labelPairs`; `math`,
+# `sync/atomic`, `errors` for `gauge`'s methods and `ExponentialBuckets`.
+imports = ["!*", "time", "sync", "fmt", "math", "sync/atomic", "errors", "github.com/prometheus/client_model/go"]
+
+# The package's `init()` (`init.0`: registry.go's, which registers the process and Go collectors) is
+# the one trusted declaration: TrustedCode/github_com/prometheus/client_golang/prometheus.lean
+# replaces it by the state those registrations leave in the default registry (constants measured
+# against v1.24.1 on the pinned toolchain, re-checked by examples/lib/prombuiltins's test).
+trusted = ["init.0"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -16,7 +44,7 @@ translate_types = true
 # initializer is unobservable.
 [[skip]]
 names = ["rmNamesForMemStatsMetrics", "nativeHistogramBounds", "DefBuckets", "separatorByteSlice",
-  "DefaultRegisterer", "DefaultGatherer", "labelsPool", "V2"]
+  "labelsPool", "V2"]
 reason = """
 Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.
@@ -37,13 +65,6 @@ reason = """
 Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
 constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
 variable."""
-
-[[skip]]
-names = ["defaultRegistry"]
-reason = """
-Its initializer calls, besides literals of constants and other variables' values: `NewRegistry`
-allocates an empty `*Registry` (maps and a mutex). So it terminates, cannot panic and has no effect
-beyond its variable."""
 
 [[skip]]
 names = ["CounterMetricTypePtr", "GaugeMetricTypePtr", "UntypedMetricTypePtr"]

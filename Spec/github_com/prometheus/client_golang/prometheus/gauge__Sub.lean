@@ -26,7 +26,7 @@ variable [package_sem : github_com.prometheus.client_golang.prometheus.Assumptio
 /-- `g.Sub(x)` is `g.Add(x * -1)`: it returns, for every float64 `x`. -/
 abbrev prometheus.gauge.Sub.spec : Prop :=
   ∀ (l : Loc) (x : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus ∗
+  {{ isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus ∗
       prometheus.metric.gaugeCell l }}
     (App (Val (l @!! go.GoType.PointerType github_com.prometheus.client_golang.prometheus.gauge.ty @!!
       go!"Sub")) (Val #x))
