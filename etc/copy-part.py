@@ -236,10 +236,18 @@ def strip(mod, src):
     return mod[len(src) + 1:] if src and mod.startswith(src + ".") else mod
 
 
+# raft's API modules that are not about the noax raft: its raftpb has no enum name tables
+# (`ccTypeNames`, `ccTransitionNames`) nor the main raftpb's message decoding (`msgDecodeRaw`), so
+# these do not build in RaftNoAx (VM build, 2026-11-24); KvNet uses none of them.
+NOT_NOAX = {"Proof.go_etcd_io.raft.v3.raftpb.CCEnumName", "Proof.go_etcd_io.raft.v3.PbMessage",
+            "Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String",
+            "Spec.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__String"}
+
+
 def raft_api_roots():
     """Raft's own roots: its `Link` and the modules its clients may import (`importable` in
     etc/api/raft.txt, a trailing `.*` every main-tree module below the prefix), but the trace
-    validation's (`Traced*`)."""
+    validation's (`Traced*`) and `NOT_NOAX`."""
     out = ["Proof.go_etcd_io.raft.v3.Link"]
     with open(os.path.join(ROOT, "etc", "api", "raft.txt")) as fh:
         for line in fh:
@@ -252,7 +260,7 @@ def raft_api_roots():
                               for dp, _, fs in os.walk(d) for x in fs if x.endswith(".lean"))
             else:
                 out.append(w[1])
-    return out
+    return [m for m in out if m not in NOT_NOAX]
 
 
 def raftnoax_roots(part):
