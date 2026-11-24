@@ -3,8 +3,9 @@ Lean-first (no Rocq counterpart).
 
 # A `Ready`'s messages' numbers (#33 S4, drain)
 
-`outNums_reach`: every message a `Ready` hands to another node (but a forwarded proposal, which
-`Cluster.send` drops), taken at the state `ps₁` the node reached (`Reach`), has its index, log term,
+`outNums_reach`: every message a `Ready` hands to another node (a forwarded proposal too: its
+`send` report reads its numbers, though `Cluster.send` drops it; its numbers are the proposal's,
+`propMsg`'s zeros), taken at the state `ps₁` the node reached (`Reach`), has its index, log term,
 commit and entries' terms and indices below any bound `K` that `ps₁`'s own numbers are below
 (`StateNums`: its last index, commit and log entries' terms and indices) and the handled message's
 are (`MsgNums`). What `NetFacts` (`< 2 ^ 61`) and the `send` report's `numBound` ask of a message;
@@ -49,9 +50,9 @@ def StateNums (K : Int) (s : PState) : Prop :=
 echoes the index, its hint term is at most the log term; an acceptance's index is the batch's end). -/
 def InNums (K : Int) (m : Msg) : Prop := uint.Z m.index < K ∧ uint.Z m.logterm < K
 
-/-- Every message of `s`'s outbox to another node, but a forwarded proposal, is `MsgNums K`. -/
+/-- Every message of `s`'s outbox to another node is `MsgNums K`. -/
 def OutNums (K : Int) (id : w64) (s : PState) : Prop :=
-  ∀ q ∈ s.outbox, q.dst ≠ id → q.ty ≠ .propose → MsgNums K q
+  ∀ q ∈ s.outbox, q.dst ≠ id → MsgNums K q
 
 theorem outNums_nil {K : Int} {id : w64} {s : PState} (h : s.outbox = []) : OutNums K id s := by
   intro q hq; rw [h] at hq; cases hq
@@ -97,7 +98,7 @@ theorem appOk_nums {K : Int} {id : w64} {s : PState} {q : Msg} (hs : StateNums K
 theorem outNums_apps {K : Int} {id : w64} {X : PState} {ms : List Msg} (hX : X.outbox = [])
     (hs : StateNums K X) (hms : ∀ x ∈ ms, x.dst ≠ id → AppOk id X x) :
     OutNums K id (psendMsgs X ms) :=
-  fun q hq hne _ => appOk_nums hs (hms q (mem_psend hX hq) hne)
+  fun q hq hne => appOk_nums hs (hms q (mem_psend hX hq) hne)
 
 theorem outNums_sends {K : Int} {id : w64} {X s' : PState} (hX : X.outbox = [])
     (hs : StateNums K s') (h : SendsEnd id X s') : OutNums K id s' := by
@@ -112,8 +113,21 @@ theorem outNums_win {K : Int} {id : w64} {X s' : PState} (hX : X.outbox = [])
   · rw [List.mem_singleton] at hx; subst hx; exact absurd (pselfAck_dst id _) hne
   · exact (hms x hx).1
 
+/-- A proposal's numbers within `K` (`propMsg`'s are zeros). -/
+theorem msgNums_propMsg {K : Int} (hK : 0 < K) (id : w64) (d : List w8) :
+    MsgNums K (propMsg id d) := by
+  have h0 : uint.Z (W64 0) = 0 := rfl
+  refine ⟨?_, ?_, ?_, fun e he => ?_⟩
+  · show uint.Z (W64 0) < K; omega
+  · show uint.Z (W64 0) < K; omega
+  · show uint.Z (W64 0) < K; omega
+  · simp only [propMsg, List.mem_singleton] at he; subst he
+    exact ⟨show uint.Z (W64 0) < K by omega, show uint.Z (W64 0) < K by omega⟩
+
+/-- A proposal's step: its replication (`AppOk`), or its forwarding (the proposal's numbers,
+`hm`). -/
 theorem outNums_propose {K : Int} {id : w64} {X s' : PState} {m : Msg} (hX : X.outbox = [])
-    (hs : StateNums K s') (h : ProposeEnd id X m s') : OutNums K id s' := by
+    (hs : StateNums K s') (hm : MsgNums K m) (h : ProposeEnd id X m s') : OutNums K id s' := by
   unfold ProposeEnd at h
   split at h
   · rcases h with rfl | ⟨es, ms, -, hms, rfl⟩
@@ -124,8 +138,9 @@ theorem outNums_propose {K : Int} {id : w64} {X s' : PState} {m : Msg} (hX : X.o
       · exact (hms x hx).1
   · split at h
     · subst h
-      intro q hq _ hp
-      rw [List.mem_singleton.mp (mem_psend hX hq)] at hp; exact absurd rfl hp
+      intro q hq _
+      rw [List.mem_singleton.mp (mem_psend hX hq)]
+      exact ⟨hm.1, hm.2.1, hm.2.2.1, hm.2.2.2⟩
     · subst h; exact outNums_nil hX
 
 /-- `handleAppendEntries`'s answer at `X` (the sender adopted), the handled append within `K`. -/
@@ -136,10 +151,10 @@ theorem outNums_appEnd {K : Int} {id : w64} {X s' : PState} {m : Msg} (hX : X.ou
   have hz : uint.Z (W64 0) < K := hK
   rcases h with ⟨-, rfl⟩ | ⟨-, lastnewi, es', hma, rfl⟩ |
       ⟨-, -, hint, hintterm, -, hht, rfl⟩
-  · intro q hq _ _
+  · intro q hq _
     rw [List.mem_singleton.mp (mem_psend hX hq)]
     exact ⟨hs.2.2.2.1, hz, hz, fun e he => by cases he⟩
-  · intro q hq _ _
+  · intro q hq _
     rw [List.mem_singleton.mp (mem_psend hX hq)]
     refine ⟨?_, hz, hz, fun e he => by cases he⟩
     show uint.Z lastnewi < K
@@ -164,7 +179,7 @@ theorem outNums_appEnd {K : Int} {id : w64} {X s' : PState} {m : Msg} (hX : X.ou
       obtain ⟨t, ht⟩ := Option.isSome_iff_exists.mp hsome
       have := plogTermAt_le ht
       omega
-  · intro q hq _ _
+  · intro q hq _
     rw [List.mem_singleton.mp (mem_psend hX hq)]
     refine ⟨hm.1, by show uint.Z hintterm < K; have := hm.2; omega, hz, fun e he => by cases he⟩
 
@@ -173,15 +188,15 @@ theorem outNums_handle {K : Int} {c : CfgM} {id : w64} {s1 s' : PState} {m : Msg
     (hX : s1.outbox = []) (hb : s1.base = base0) (hs : StateNums K s') (hm : InNums K m)
     (hpay : m.ty = .app → AppPayloadOk m)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
-      m.ty = .heartbeatResp ∨ m.ty = .propose)
+      m.ty = .heartbeatResp ∨ m.ty = .propose) (hmp : m.ty = .propose → MsgNums K m)
     (h : HandleEnd c id s1 m s') : OutNums K id s' := by
   have hK := hs.1
   unfold HandleEnd at h
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
-    · intro q hq _ _
+    · intro q hq _
       rw [List.mem_singleton.mp (mem_psend hX hq)]; exact msgNums_plain hK _ _ _ _ _
-    · intro q hq _ _
+    · intro q hq _
       rw [List.mem_singleton.mp (mem_psend hX hq)]; exact msgNums_plain hK _ _ _ _ _
   · split at h
     · rcases h with ⟨-, rfl⟩ | ⟨-, hw⟩ | ⟨-, rfl⟩
@@ -202,26 +217,26 @@ theorem outNums_handle {K : Int} {c : CfgM} {id : w64} {s1 s' : PState} {m : Msg
   · split at h
     · subst h; exact outNums_nil hX
     · subst h
-      intro q hq _ _
+      intro q hq _
       rw [List.mem_singleton.mp (mem_psend hX hq)]
       exact msgNums_plain hK .heartbeatResp id m.src s1.term false
   · split at h
     · exact outNums_sends hX hs h
     · subst h; exact outNums_nil hX
-  · exact outNums_propose hX hs h
+  · exact outNums_propose hX hs (hmp hty) h
 
 /-- A received message's step (`RecvEnd`), its term not `0`. -/
 theorem outNums_recv {K : Int} {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
     (hX : s.outbox = []) (hb : s.base = base0) (hm0 : m.term ≠ W64 0) (hs : StateNums K s')
     (hm : InNums K m) (hpay : m.ty = .app → AppPayloadOk m)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
-      m.ty = .heartbeatResp ∨ m.ty = .propose)
+      m.ty = .heartbeatResp ∨ m.ty = .propose) (hmp : m.ty = .propose → MsgNums K m)
     (h : RecvEnd c id s m s') : OutNums K id s' := by
   rcases h with ⟨h0, -⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact absurd h0 hm0
   · exact outNums_nil hX
   · obtain ⟨ho, hb1, -, -, -⟩ := preEnd_facts hpre
-    exact outNums_handle (ho.trans hX) (hb1.trans hb) hs hm hpay hsc hh
+    exact outNums_handle (ho.trans hX) (hb1.trans hb) hs hm hpay hsc hmp hh
 
 /-- A tick's messages: a campaign's vote requests (the last entry id), a leader's heartbeats. -/
 theorem outNums_tick {K : Int} {c : CfgM} {id : w64} {s s' : PState}
@@ -231,7 +246,7 @@ theorem outNums_tick {K : Int} {c : CfgM} {id : w64} {s s' : PState}
   have h0 : uint.Z (W64 0) = 0 := rfl
   rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, hms, rfl⟩
   · exact outNums_nil hX
-  · intro q hq hne _
+  · intro q hq hne
     rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
     · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
     · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
@@ -246,7 +261,7 @@ theorem outNums_tick {K : Int} {c : CfgM} {id : w64} {s s' : PState}
         have := hl e (List.mem_of_getLast? he)
         exact ⟨this.2, this.1⟩
       · exact ⟨hK, hK⟩
-  · intro q hq _ _
+  · intro q hq _
     obtain ⟨hh, hi, hlt, he⟩ := hms q (mem_psend hX hq)
     obtain ⟨-, -, -, -, hc, -⟩ := hh
     refine ⟨by rw [hi, h0]; exact hK, by rw [hlt, h0]; exact hK, ?_, by rw [he]; simp⟩
@@ -260,16 +275,17 @@ theorem outNums_advance {K : Int} {c : CfgM} {id : w64} {s s' : PState} {qs : Li
     (hX : s.outbox = []) (hs : StateNums K s') (hq : ∀ q ∈ qs, SelfMsg id s.term q)
     (h : AdvanceEnd c id s qs s') : OutNums K id s' := by
   have hinv : AdvInv id s.term s.commit s' := adv_run h hq (advInv_nil rfl (Int.le_refl _) hX)
-  intro x hx hne _
+  intro x hx hne
   exact appOk_nums hs ((hinv.2.2 x hx).2.1 hne).1
 
 /-- **The numbers of the messages of the state a `Ready` is taken at**: every message to another
 node but a forwarded proposal is within any bound `K` the state's numbers (`StateNums`) and the
-handled message's index and log term (`InNums`, of the drain's cause) are within. -/
+handled message's index and log term (`InNums`, of the drain's cause, which is no proposal: the
+network carries none, `NetFacts`) are within. -/
 theorem outNums_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeView}
     {ps₁ : PState} {K : Int} (hnet : NetOk S net) (hv : NodeOk S net n v)
     (hr : Reach (nodeId n) net v ps₁) (hs : StateNums K ps₁)
-    (hm : ∀ m, v.cause = some m → InNums K m) : OutNums K (nodeId n) ps₁ := by
+    (hm : ∀ m, v.cause = some m → InNums K m ∧ m.ty ≠ .propose) : OutNums K (nodeId n) ps₁ := by
   obtain ⟨hd, -, -, -, hqs, -, -⟩ := hv
   obtain ⟨-, -, -, -, -, -, hX, hb, -⟩ := hd
   cases hr with
@@ -278,9 +294,10 @@ theorem outNums_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : Nod
     cases inp with
     | recv m =>
       obtain ⟨hmn, -, hm0⟩ := hmm m rfl
-      exact outNums_recv hX hb hm0 hs (hm m hca) (hnet.2.2.1 m hmn).1 (hnet.1 m hmn).1 hst
+      exact outNums_recv hX hb hm0 hs (hm m hca).1 (hnet.2.2.1 m hmn).1 (hnet.1 m hmn).1
+        (fun hp => absurd hp (hm m hca).2) hst
     | tick => exact outNums_tick hX hb hs hst
-    | propose d => exact outNums_propose hX hs hst
+    | propose d => exact outNums_propose hX hs (msgNums_propMsg hs.1 _ d) hst
   | advance _ _ _ _ ha =>
     refine outNums_advance hX hs (fun q hq => ?_) ha
     obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
@@ -290,12 +307,12 @@ theorem outNums_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : Nod
 theorem readyMsgNums {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeView}
     {ps₁ : PState} {rd : ReadyD} {K : Int} (hnet : NetOk S net) (hv : NodeOk S net n v)
     (hr : Reach (nodeId n) net v ps₁) (hro : ReadyOutP (nodeId n) v ps₁ rd)
-    (hs : StateNums K ps₁) (hm : ∀ m, v.cause = some m → InNums K m) :
-    ∀ q ∈ rd.msgs, q.ty ≠ .propose → MsgNums K q := by
-  intro q hq hp
+    (hs : StateNums K ps₁) (hm : ∀ m, v.cause = some m → InNums K m ∧ m.ty ≠ .propose) :
+    ∀ q ∈ rd.msgs, MsgNums K q := by
+  intro q hq
   have hq' := (hro.2.2.2.2.2.2.2.1.mem_iff).mp hq
   rw [List.mem_filter] at hq'
-  exact outNums_reach hnet hv hr hs hm q hq'.1 (of_decide_eq_true hq'.2) hp
+  exact outNums_reach hnet hv hr hs hm q hq'.1 (of_decide_eq_true hq'.2)
 
 end bounds
 
