@@ -4,8 +4,8 @@ to its callees' results. The protocol's laws (`Protocol/`), the codec's laws (`C
 the store, node and coordinator specs, transport/netrpc's clients, the configuration messages over
 Net's `net` specs, Net's `SetCodec`, remote's `Check`/`ServeClient`; then the kit's `Client`,
 `Orch`, `Server`; net/rpc's client over HTTP (`DialHTTP`) is Net's (models-rpc-http's
-`net.rpc.DialHTTP.wp`, in `RpcClientSpecs`, over Perennial's proofs of `strings.Cut`/`TrimLeft`,
-`Proof/strings/FromPerennial.lean`), and the package-level `rpc.RegisterName` is Net's
+`net.rpc.DialHTTP.wp`, in `RpcClientSpecs`, over Perennial's proofs of `strings.Cut`/`TrimLeft`),
+and the package-level `rpc.RegisterName` is Net's
 (`net.rpc.RegisterName.wp`). What is not proved stays an argument: the hypothesis
 classes (instance arguments: `LogHyp`, `RpcHttpServe`, the server side), which the statement takes
 (F1, RemoveNode's obligation: `cnewArg_RemoveNode`; F3, the nodes' `errOk`: `nodeSpec_errOk`).
@@ -28,8 +28,6 @@ public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.Svc
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.Start
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.New
 public import Net.Proof.net.rpc.Results
-public import Proof.strings.FromPerennial
-public import Perennial.Proof.strings.Link
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
@@ -66,8 +64,7 @@ variable [bvi : go.BasicIntoValInj] [NaInvG GF]
 `ReadResponse`, with Perennial's `strings.Cut`/`TrimLeft`). -/
 instance rpcClientSpecs : RpcClientSpecs GF :=
   ⟨net.rpc.Client.Call.wp, net.rpc.Client.Close.wp,
-    net.rpc.DialHTTP.wp (EtcdGrove.strings.Cut.of_perennial _root_.Perennial.strings.wp_Cut)
-      (EtcdGrove.strings.TrimLeft.of_perennial _root_.Perennial.strings.wp_TrimLeft)⟩
+    net.rpc.DialHTTP.wp⟩
 
 /-- The protocol's laws the node's proofs use. -/
 theorem nodeLaws : NodeP.Laws (GF := GF) :=

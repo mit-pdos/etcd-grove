@@ -5,11 +5,11 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State (2026-11-24, eleventh agent, P15: on lean af4fd74b00, Perennial 52d62e83c):** `lean` merged
-(the real-`fmt` pin bump); the proved theorem is the plain **`craq_remote_robust :
+**State (2026-11-24, eleventh agent, P15: on lean b64d2397f8, Perennial d9c8c1d97):** `lean` merged
+(the real-`fmt` pin bump and after); the proved theorem is the plain **`craq_remote_robust :
 craq_remote_robust.spec`** (statement unchanged: `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)`): Net's
-`DialHTTP.wp` gets `strings.Cut`/`TrimLeft` from Perennial's proofs (`strings.wp_Cut`,
-`strings.wp_TrimLeft`) through `Proof/strings/FromPerennial.lean`; `StringsPending`,
+`DialHTTP.wp` takes no strings hypotheses since lean's phase 7 S5 batch 7 (57d66cdcee: Perennial's
+`strings.Cut`/`TrimLeft` proofs, passed in Net's Links); `StringsPending`,
 `stringsPending.spec` and `craq_remote_robust_of_strings` are gone. `#print axioms`: Lean's three.
 Non-vacuity open (below). Ready to land.
 
@@ -562,7 +562,7 @@ against the statement at afff9fd399):
 
 Until P15 the proved theorem also took `stringsPending.spec` (`craq_remote_robust_of_strings`;
 Perennial's `strings.Cut`/`TrimLeft`); since the pin 52d62e83c those are Perennial's proofs
-(`Proof/strings/FromPerennial.lean`) and the theorem is `craq_remote_robust`.
+(passed by Net's own Links since 57d66cdcee) and the theorem is `craq_remote_robust`.
 
 **The removed axiom-based files** are in history: `Dsverify/Proof/github_com/despreston/go_craq/
 examples/craqnet/NonVacuityLinked.lean` (added c17f4f4c68, last at 296417da29) and the scratch
@@ -705,12 +705,12 @@ porcupine replaces it).
   craq_remote_robust_of_strings (fun => ⟨…Cut proof, …TrimLeft proof⟩)`, delete `StringsPending`.
 
 - **P15 (2026-11-24, eleventh agent): onto the real-`fmt` pin.** Merged `lean` af4fd74b00 (Perennial
-  52d62e83c; no conflict); the twelve generated `cmd/*/PkgTable.lean` regenerated (`etc/gen-init.py`:
-  the pin's new packages `internal/abi`, `internal/gomodel`, `reflect` in the closures). New
-  `Proof/strings/FromPerennial.lean` (defs tier, shared with dsv-gryff, identical file):
-  `EtcdGrove.strings.cut_eq` (this repository's `strings.cut` is Perennial's
-  `internal.stringslite.cut`), `strings.Cut.of_perennial`, `strings.TrimLeft.of_perennial` (this
-  repository's specs from Perennial's; `TrimLeft`'s precondition is weaker in Perennial). `Link.lean`'s
-  `rpcClientSpecs` passes them, over `strings.wp_Cut`/`wp_TrimLeft`, to Net's `net.rpc.DialHTTP.wp`;
-  `StringsPending` and `stringsPending.spec` deleted; `craq_remote_robust_of_strings` became
-  `craq_remote_robust` (no hypothesis). The statement is unchanged (its step bound already `2 ^ 63`).
+  52d62e83c), then b64d2397f8 (Perennial d9c8c1d97; no conflict either time); the twelve generated
+  `cmd/*/PkgTable.lean` regenerated (`etc/gen-init.py`: the pins' new packages, `internal/abi`,
+  `internal/gomodel`, `reflect`, in the closures). First (at 52d62e83c) a bridge
+  `Proof/strings/FromPerennial.lean` turned Perennial's `strings.Cut`/`TrimLeft` proofs into the
+  specs Net's `DialHTTP.wp` took as hypotheses; lean's 57d66cdcee then discharged those hypotheses
+  in Net itself (and deleted `Spec/strings/{Cut,TrimLeft}.lean`), so the bridge went and
+  `Link.lean`'s `rpcClientSpecs` passes `net.rpc.DialHTTP.wp` as is. `StringsPending` and
+  `stringsPending.spec` deleted; `craq_remote_robust_of_strings` became `craq_remote_robust` (no
+  hypothesis). The statement is unchanged (its step bound already `2 ^ 63`).
