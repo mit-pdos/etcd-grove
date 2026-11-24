@@ -35,6 +35,7 @@ theorem rnReplayState.job (γ : RNNames GF) (view : GoSlice) (rt : w64) (n : Nat
   iintro ⟨%runs, #Hr, %hp⟩ !> %sm %ci %hc _ %ml _
   obtain ⟨r, hr, ht⟩ := hp.2 ci hc.2.2.1 hc.2.2.2
   obtain ⟨cov, found⟩ := replay_lookup_interval _ _ _ _ hp.1 hr ht
+  imodintro
   iexists runs, r
   iframe Hr
   ipureintro; exact ⟨cov, found, ht.2.2⟩

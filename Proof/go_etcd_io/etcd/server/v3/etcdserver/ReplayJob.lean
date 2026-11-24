@@ -67,7 +67,7 @@ theorem rnReplayJob_of_history (γ : RNNames GF) (view : GoSlice) (runs : List r
     (view ↦*□ runs : IProp GF) ⊢ rnRestartOk γ -∗
       (□ ∀ sm : MsgSt, ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < γ.a0.length ∧
           uint.Z γ.t0 < uint.Z rt⌝ -∗
-        sentMsg γ.node.cl srvClusterN γ.id sm -∗ ⌜DurAgrees S (γ.a0.map EntryModel.toLE)⌝) -∗
+        sentMsg γ.node.cl srvClusterN γ.id sm ={⊤}=∗ ⌜DurAgrees S (γ.a0.map EntryModel.toLE)⌝) -∗
       rnReplayJob γ view rt n := by
   iintro #Hr #Hrok #Hagree
   iunfold rnReplayJob
@@ -77,12 +77,35 @@ theorem rnReplayJob_of_history (γ : RNNames GF) (view : GoSlice) (runs : List r
   · iframe Hrok Hsrc
   have ht0 : uint.Z γ.t0 < uint.Z rt := by
     rw [← hrt]; exact hlt ht (fun h => by rw [h] at hn; exact Nat.not_lt_zero _ hn)
-  ihave %ha := Hagree $$ %sm %(⟨ht, hrt, hn, ht0⟩) Hsent
+  ihave Hag := Hagree $$ %sm %(⟨ht, hrt, hn, ht0⟩) Hsent
+  imod Hag with %ha
   have hd := replayImage_plogTerm γ.a0 S ci (by omega) hci (by omega) ha
   obtain ⟨hc, r, hfound, hterm⟩ := hr ci _ (by have := uint_nat_eq ci; omega) hd
+  imodintro
   iexists runs, r
   iframe Hr
   ipureintro; exact ⟨hc, hfound, hterm⟩
+
+/-- (2026-11-24, option (a): the campaign map's closure) **L2 at the durable state, as the replay job's
+premise**: raft's `raftState_leadAgree` at a durable state `S` of term `rt` (made at the `Ready`'s
+*enter*) gives `rnReplayJob_of_history`'s premise: a `MsgSnap` this node sent at `rt` shows it leads
+`rt` (`sentMsg_localSnapshotLeader`). -/
+theorem rnReplayJob_premise_of_lead (γ : RNNames GF) (S : RaftState) (rt : w64) (n : Nat)
+    (hrt : S.term = rt) :
+    letI := srvStor (GF := GF) γ.node
+    (□ (snapshotLeader γ.node.cl γ.id S.term ={⊤}=∗
+        ⌜durLogAgrees S (γ.a0.map EntryModel.toLE)⌝) : IProp GF) ⊢
+      □ ∀ sm : MsgSt, ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < γ.a0.length ∧
+          uint.Z γ.t0 < uint.Z rt⌝ -∗
+        sentMsg γ.node.cl srvClusterN γ.id sm ={⊤}=∗ ⌜DurAgrees S (γ.a0.map EntryModel.toLE)⌝ := by
+  letI := srvStor (GF := GF) γ.node
+  iintro #Hlaw !> %sm %h #Hsent
+  obtain ⟨ht, htm, -, -⟩ := h
+  ihave #Hsl := sentMsg_localSnapshotLeader γ.node.cl srvClusterN γ.id sm ht $$ Hsent
+  rw [htm, ← hrt]
+  ihave Hl := Hlaw $$ Hsl
+  imod Hl with %ha
+  imodintro; ipureintro; exact ha
 
 /-- (2026-11-24, the lifetime law) **The server's membership is fixed** (raft's L2 premise `confFixed`):
 after every committed log the configuration is the boot one (`srv_confAt_simple`). -/

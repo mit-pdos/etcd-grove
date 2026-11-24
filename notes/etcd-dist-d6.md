@@ -892,3 +892,66 @@ Checkpoint 2026-11-24: (b) blocked as above. **Next statement** (once (a) or (b'
 raft's `readyLeaderMsgs` widened to `⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms ∗
 snapshotLeader γ id (phsNext st.hardState h).Term' ∗ ⌜uint.Z n.names.sn.t0 < uint.Z (phsNext st.hardState
 h).Term'⌝`. For (a), the raft law above.
+
+**2026-11-24, option (a): the campaign map closed up to the durable term; `raftState_leadAgree` proved;
+the replay job's premise in the law's form.** No axiom, no `sorry`, no new top-level premise, no Go change.
+
+*The closure fact (raft, `Protocol/`).* A closure value on the existing campaign map, no new resource:
+- `campNone := ([], W64 (2^64-1))` and `isCampNone γ c T := ∃ γc, ⌜γ.reCamp !! c = some γc⌝ ∗ T ↪[γc]□ campNone`
+  (`Ghost.lean`, persistent): node `c`'s campaign map key `T` is closed, for good. `isCampNone_campK`:
+  `isCampNone γ c T -∗ isCampK γ c T F k -∗ False` (a record's commit index is within its log;
+  `campNone_ne`).
+- A promise `Prom.close T` (`GhostState.lean`): fresh when the key is free, `promNeed` trivial, entering
+  it inserts `campNone` (`mint_one`) and mints `isCampNone`; `durFrags`' camps part is `campFrag`
+  (`isCampK ∨ (⌜x = campNone⌝ ∗ isCampNone)`).
+- The cut closes the node's term's key when it has none (`Enter.lean`: `cutClose V πc s.term`, the
+  pending list with `.close s.term` appended iff `(virt V πc).camps !! s.term = none`; `ownLogGhost_close`,
+  `campOwn_close`, `campLink_close`). This is raft's fact: a node campaigns only at `term + 1`.
+- `durPers γ id S E` gains a last conjunct `⌜uint.Z S.term = 0 ∨ (E.camps !! S.term).isSome⌝`
+  (`cut_durPers` takes `(W.camps !! s.term).isSome`). With the map's fragments (persistent), the key of
+  every durable term is final: a record or `campNone`.
+
+*The law* (`LeaderCompleteLaw.lean`, exposed by `Api.lean`):
+`raftState_leadAgree (γ N E) (HE : ↑N ⊆ E) m0 id T0 S l : uint.Z T0 < uint.Z S.term →
+isCluster γ N ∗ confFixed γ E m0 ∗ cmtBefore γ id T0 l ∗ raftState γ id S ⊢
+|={E}=> raftState γ id S ∗ □ (snapshotLeader γ id S.term ={E}=∗ ⌜durLogAgrees S l⌝)`.
+It reads the key's fragment through the slot (`Enter.durShares_frags`); in the wand, a record is
+the leader's campaign record (`isCampK_agree`) and `campLink` + `cmtBefore_core` (L2's core) give the
+agreement; `campNone` refutes the leadership. **The wand is an update, not pure** (as the notes' form
+had it): L2's core opens the vote table (`lc_core`) and the membership (`confFixed`) at the time the
+leadership is shown, so no pure form is provable.
+
+*Server (built only as far as noted below).* `rnReplayJob`'s conclusion is now `|={⊤}=> ∃ runs r, …`
+(`applyAll` `imod`s it; `rnReplayState.job` `imodintro`s); `rnReplayJob_of_history`'s premise is
+`□ ∀ sm, … -∗ sentMsg … sm ={⊤}=∗ ⌜DurAgrees S (a0.map toLE)⌝`; new `rnReplayJob_premise_of_lead`
+(`ReplayJob.lean`): the law's wand at `S` with `S.term = rt` gives that premise
+(`sentMsg_localSnapshotLeader`).
+
+*Built (VM, raft at `efec220057`):* raft's `Link`, `Linked`, `Results`, `Api`, `DurableLogView`, the
+protocol modules, `RaftTla`/`RaftNoAx` raft `Link`, `RaftNoAx` kvdurablenoax `Link`, `KvNet` kvnet
+`Link`, the server `Link` (before the server edits): 13236 jobs, green. `gen-raft-tla --check`,
+`copy-part --check`, `tier-check --check`, `api-check etc/api/raft.txt --check` pass.
+*Built (VM, with the server edits):* the server's `Link` and `ReplayJob`: 9494 jobs, green.
+
+*Not done (next, in order).* Nothing of `wp_proofC`'s steps closed yet; its `sorry`
+(`NewServerCrash.lean:77`) stays.
+1. **L1 at the restart.** In `raftNode.start` (restart arm, where `rnRestartOk`'s `nodeStartTerm γ.nl γ.t0`
+   and `raftState γ.node.cl γ.id S0` with `S0.term = γ.t0` are in hand): `raftState_cmtBefore` with
+   `l = γ.a0.map EntryModel.toLE` (its `isCommittedLogLb` from `srvRLogLb`; note `srvLE` prefixes `γ.pre`),
+   kept as a persistent `cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map toLE)` in the loop's restart data.
+2. **The law at each *enter*.** After `rn_enter`/`rn_enterS` (`raftNode__start.lean:721, :1540`), with
+   `raftState … S'`: if `uint.Z γ.t0 < uint.Z S'.term`, `raftState_leadAgree` (with `srv_confFixed`) gives
+   `□ (snapshotLeader … S'.term ={⊤}=∗ ⌜durLogAgrees S' (a0.map toLE)⌝)`.
+3. **The deposit.** `rnApR` (batch) and the snapshot's `isNotify2` first-send deposit carry
+   `∃ S, ⌜replayRunsDescribe runs S n ∧ S.term = rt⌝ ∗ (⌜t0 < rt⌝ -∗ law-wand at S)` for the payload's runs;
+   the loop keeps `replayHistoryMatches runs S n` (runs describe the current durable state above the
+   cursor) in place of `replayPending` through `appendEntries`' cut, the snapshot reset and `after`.
+4. `rnReplayJob` then takes the deposit (received before the merge) instead of being a payload
+   field; `applyAll` discharges it with `rnReplayJob_of_history` + `rnReplayJob_premise_of_lead`.
+5. T4 round 4's steps (drop `|A₀| ≤ σ.commit`, step 1, step 2), the merge of
+   `origin/raft-restart-confpoint/2026-11-24`, then `wp_proofC` and its Link entry.
+
+Checkpoint 2026-11-24: raft (a) and the law done; server job in the law's form. **Next statement:** item 1,
+`rnRestart_cmtBefore` (server, `ReplayJob.lean`): `rnRestartOk γ ∗ raftState γ.node.cl γ.id S0 ∗
+⌜S0.term = γ.t0⌝ ∗ srvRaftLogInv … ∗ srvRLogLb γ.srv γ.a0 ⊢ |={⊤}=> raftState … S0 ∗ cmtBefore γ.node.cl
+γ.id γ.t0 (γ.a0.map EntryModel.toLE)`.

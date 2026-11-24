@@ -2154,7 +2154,8 @@ def rnReplayJob (γ : RNNames GF) (terms : GoSlice) (rt : w64) (n : Nat) : IProp
     ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < γ.a0.length ∧ uint.Z ci = γ.a0.length⌝ -∗
     sentMsg γ.node.cl srvClusterN γ.id sm -∗
     ∀ ml : Loc, rnMessageSource γ ⟨ml, sm⟩ -∗
-    ∃ (runs : List replayTermRun) (r : replayTermRun), terms ↦*□ runs ∗
+    -- (2026-11-24, option (a)) an update: raft's `raftState_leadAgree` is one
+    |={⊤}=> ∃ (runs : List replayTermRun) (r : replayTermRun), terms ↦*□ runs ∗
       ⌜replayRunCovers runs ci = true ∧ replayRunAt runs ci = some r ∧
         r.term' = (γ.a0.getLast?.map EntryModel.term).getD (W64 0)⌝)
 
