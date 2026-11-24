@@ -123,7 +123,7 @@ theorem vsrnet.wp_jdec_S_log_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : 
     wp_apply (wp_Empty b dq bs i 93#8 (by omega)
       (by rw [models_lab.jsoncodec.skipEnd_ns' bs _ _ hc1 (by decide)]; exact hc1)) $$ Hs as Hs
     rw [models_lab.jsoncodec.skipEnd_ns' bs _ _ hc1 (by decide)]
-    simp only [show ((93#8 : w8) = W8 93 ∨ (93#8 : w8) = W8 125) from Or.inl rfl, if_true, ite_true]
+    try simp only [show ((93#8 : w8) = W8 93 ∨ (93#8 : w8) = W8 125) from Or.inl rfl, if_true, ite_true]
     try wp_auto
     wp_apply vsrnet.wp_make_empty_logs as %s0 ⟨Hs0, Hcap0, %hs0⟩
     try wp_auto
@@ -148,7 +148,7 @@ theorem vsrnet.wp_jdec_S_log_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : 
     have hc1 : bs[uint.nat i + 1]? = some 123#8 := hidx _ _ _ (by rw [hb1, hY]; rfl)
     wp_apply (wp_Empty b dq bs i 123#8 (by omega)
       (by rw [models_lab.jsoncodec.skipEnd_ns' bs _ _ hc1 (by decide)]; exact hc1)) $$ Hs as Hs
-    simp only [show ¬((123#8 : w8) = W8 93 ∨ (123#8 : w8) = W8 125) by decide, if_false, ite_false]
+    try simp only [show ¬((123#8 : w8) = W8 93 ∨ (123#8 : w8) = W8 125) by decide, if_false, ite_false]
     try wp_auto
     wp_apply vsrnet.wp_make_empty_logs as %s0 ⟨Hs0, Hcap0, %hs0⟩
     try wp_auto
