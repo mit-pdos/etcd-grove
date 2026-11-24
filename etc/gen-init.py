@@ -943,9 +943,22 @@ newvars_cfg(SPECIAL.setdefault('k8s_io.apimachinery.pkg.api.«meta»', {}), ['er
                         errNotObject="object does not implement the Object interfaces"))
 # (#23, 2026-11-22) the cacher's `consistency.PanicOnCacheInconsistency = false` (read by the proved
 # snapshotter, so goose cannot skip it) translated, until then `opaqueInitsOk`
+# (k8s-inits-2, 2026-11-24, #32) and its `init` (`checker.go:50`) translated and proved, until then
+# `initFuncsOk`
+_GETENV_PARSEBOOL = ['wp_apply EtcdGrove.os.Getenv.wp_proof as %_ -', 'try wp_auto',
+                     'wp_apply EtcdGrove.strconv.ParseBool.wp_proof as %_ %_ -', 'try wp_auto']
 SPECIAL['k8s_io.apiserver.pkg.storage.cacher.consistency'] = dict(
+    doc='''Its fact is `True` (its readers, the watch cache's snapshotter and `checkSnapshotResourceVersion`,
+are proved only where they do not reach the load). Its initializer allocates
+`PanicOnCacheInconsistency`, initializes its imports, runs the variable's translated initializer
+(`false`) and its translated `init` (`checker.go:50`), which stores in it whether
+`KUBE_WATCHCACHE_CONSISTENCY_CHECKER` parses as true (`os.Getenv`: the trust-boundary axiom
+`os.Getenv.wp_proof`; `strconv.ParseBool.wp_proof`, proved over Perennial's translation). (Until
+2026-11-24 the `init` was names-only, the trust-boundary axiom `initFuncsOk`.)''',
     alloc_types=_ALLOC_ANY,
+    imports=['Proof.os.Getenv', 'Proof.strconv.ParseBool'],
     before={'$inits': ['try wp_auto']},
+    after={'init.«0»': _GETENV_PARSEBOOL},
 )
 # (#23, 2026-11-22) k8s util/validation's `IsQualifiedName = content.IsLabelKey` (read by the translated
 # `v1helper.IsExtendedResourceName`, so goose cannot skip it) translated, until then `opaqueInitsOk`
@@ -1834,12 +1847,20 @@ of the DaemonSet plan, 2026-10-27): `ErrFIFOClosed` and `errorStopRequested` (un
 `errors.New` calls, `fifo.go`, `reflector.go`) hold some error each, for good: the trust-boundary
 axioms `ErrFIFOClosed_init` and `errorStopRequested_init`. Its initializer allocates its translated
 variables (`informer_metrics.go`: `globalInformerMetricsProvider`, a
-`noopInformerMetricsProvider{}`, and the zero `setInformerMetricsProviderOnce`), initializes its
-imports, runs the other variables' untranslated initializers, which the trust-boundary axiom
-`opaqueInitsOk` says run without panicking, and the translated one, and its untranslated `init`
-functions, which `initFuncsOk` says return.''',
+`noopInformerMetricsProvider{}`, and the zero `setInformerMetricsProviderOnce`;
+`mutation_detector.go`: `mutationDetectionEnabled`, `false`), initializes its imports, runs the
+other variables' untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says run
+without panicking, and the translated ones, and its translated `init` (`mutation_detector.go:35`),
+which stores in `mutationDetectionEnabled` whether `KUBE_CACHE_MUTATION_DETECTOR` parses as true
+(`os.Getenv`: the trust-boundary axiom `os.Getenv.wp_proof`; `strconv.ParseBool.wp_proof`). (Until
+2026-11-24 the `init`, translated but in chunks, was the trust-boundary axiom `initFuncsOk`, and
+`mutationDetectionEnabled`'s initializer untranslated.)''',
     alloc_types={'setInformerMetricsProviderOnce': '_root_.Perennial.sync.Once',
-                 'globalInformerMetricsProvider': 'GoInterface'},
+                 'globalInformerMetricsProvider': 'GoInterface', 'mutationDetectionEnabled': 'Bool'},
+    imports=['Proof.os.Getenv', 'Proof.strconv.ParseBool'],
+    # (k8s-inits-2, 2026-11-24, #32) the translated `init` (`mutation_detector.go:35`), until then
+    # `initFuncsOk` (a translated `init` in chunks kept its axiom)
+    after={'init.«0»': _GETENV_PARSEBOOL},
     custom={'ErrFIFOClosed': dict(
                 doc='/-- `ErrFIFOClosed = errors.New("DeltaFIFO: manipulating with closed queue")` (`fifo.go`): an error. -/',
                 post='∃ e : GoInterface, globalAddr ErrFIFOClosed ↦ e', pat='⟨%e@, H@⟩'),
@@ -4613,15 +4634,13 @@ def exec_order(p):
             items.append(('store', m.group(4)))
         else:
             # a `func init()`, `init.<k>` (as gc names them): unfolded if translated or trusted
-            # (a trusted one's `FuncUnfold` is an `Assumptions` field, in the package's index file when
-            # the translation is in chunks)
-            # (2026-11-07; only a trusted one: a translated one in chunks keeps its axiom, as before)
+            # (its `FuncUnfold` is an `Assumptions` field, in the package's index file when the
+            # translation is in chunks: 2026-11-07 for a trusted one; k8s-inits-2, 2026-11-24, for a
+            # translated one too, which until then kept its axiom)
             idx = re.sub(r'/chunk\d+\.lean$', '.lean', d['file'])
             tg = ''
             if idx != d['file'] and os.path.exists(idx):
-                chunks = ''.join(open(g).read() for g in glob.glob(idx[:-len('.lean')] + '/chunk*.lean'))
-                if f'def {m.group(5)}.impl ' not in chunks:
-                    tg = open(idx).read()
+                tg = open(idx).read()
             kind = 'initfn' if f'FuncUnfold {m.group(5)} [] ' in t + tg else 'opaqueinitfn'
             items.append((kind, m.group(5)))
     items.reverse()
