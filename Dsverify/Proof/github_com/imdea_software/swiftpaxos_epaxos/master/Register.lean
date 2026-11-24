@@ -6,6 +6,8 @@ are registered, else not ready.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.master.Defs
+public import Proof.fmt.SprintfPure
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -67,8 +69,10 @@ theorem masterRegister.wp_proof (γ : EpNames) : masterRegister.spec (GF := GF) 
     · ipureintro; rfl
     iintro %sl_ptr ⟨Hsl, -⟩
     wp_auto
-    wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_int _ _ _
-      (fmt.IntArgValue.int _) fmt.ArgsWf.nil)) $$ [$Hfmt $Hsl] as %ap ⟨-, %Hap⟩
+    wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
+      [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ (.int _ _ _ _
+      (.int _) .nil)) $$ [$Hfmt $Hsl] as %ap ⟨-, %Hap⟩
     have hap := sprintf_str_colon_int _ _ _ Hap
     have hk6 : k ≤ 6 := by
       simp only [replicaNodes, List.mem_cons, List.mem_nil_iff, or_false] at hk; omega
@@ -316,8 +320,10 @@ theorem masterRegister.wp_proof (γ : EpNames) : masterRegister.spec (GF := GF) 
   · ipureintro; rfl
   iintro %sl_ptr ⟨Hsl, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_int _ _ _
-    (fmt.IntArgValue.int _) fmt.ArgsWf.nil)) $$ [$Hfmt $Hsl] as %ap ⟨-, %Hap⟩
+  wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
+      [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ (.int _ _ _ _
+    (.int _) .nil)) $$ [$Hfmt $Hsl] as %ap ⟨-, %Hap⟩
   have hap := sprintf_str_colon_int _ _ _ Hap
   have hk6 : k ≤ 6 := by
     simp only [replicaNodes, List.mem_cons, List.mem_nil_iff, or_false] at hk; omega

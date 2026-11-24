@@ -5837,3 +5837,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
   No top-level statement changes (the tokens come from the backend's constructor inside the proof).
 - **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.
+## 2026-11-24: fmt.Sprintf over the real `fmt` (stage 1): `fmt.Sprintf.spec`, `fmt.SprintfArgs.spec`, `traceutil.fieldsWf` (prove-ps2-fmtstage1, #9)
+
+- **Spec.** This repository's `fmt.Sprintf.spec` (`Spec/fmt/Sprintf.lean`, raft's callee; its copies in
+  `RaftWitness/`, `RaftTla/`, `RaftNoAx/`), `fmt.SprintfArgs.spec` (`Spec/fmt/SprintfArgs.lean`), and
+  `traceutil.fieldsWf` (`Proof/go_etcd_io/etcd/pkg/v3/traceutil/Defs.lean`, the premise of
+  `Field.format`, `writeFields`, `Trace.AddField` and the trace's ownership).
+- **Defect.** All three were stated over Perennial's trusted model of `Sprintf`, which perennial#671 (real `fmt`
+  stage 1, Perennial `50596346c`) replaced by the translated `fmt`, proved for a verified subset only: literal
+  text, `%%`, `%d %v %x %0Nd %0Nx` of a predeclared integer, `%v` of a bool or nil, `%s %v %x` of a string or of a
+  value with `Error()`/`String()`, `%s %v %d %x` of a `[]byte`. Any format with arguments `fmt.ArgsWf`
+  (`fmt.Sprintf.spec`) or `fmt.argsOk` (`SprintfArgs`) is no longer provable: `ArgsWf` admits floats and
+  method-less named types, which Go formats by reflection (`printValue`, not verified), and other verbs (`%q`,
+  `%t`, `%p`, `%X`, precisions) are outside the subset.
+- **Evidence.** `Perennial/Spec/fmt/Sprintf.lean` at `50596346c`; `fmt.wp_Sprintf_argsWf` is gone.
+- **Proposed change.** `fmt.Sprintf.spec`: the format `fmt.encode ps` with `fmt.Fits ps args`, arguments
+  `fmt.PureArgs xs args` (nil, bool, predeclared integer, string), output `fmt.render ps args` (stronger output
+  than `SprintfOut`; premise narrower: every caller, `newRaft` and `stepLeader`, passes `uint64`s).
+  `fmt.SprintfArgs.spec` := Perennial's `fmt.Sprintf.spec` (callers `peerStatus.deactivate`,
+  `snapshotHandler.ServeHTTP` give their `types.ID`/error arguments as `fmt.isArg … (.method _)`, from the method-set
+  facts they already had: `fmt.isArg_stringer`, `fmt.isArg_error`). `traceutil.fieldsWf` := `fmt.PureArgsWf` of the
+  values (no floats, no named types); every producer passes `int`/`int64`/`uint64`/`string`/`bool` values and
+  discharges it unchanged (`fieldsWf_cons_*`). No top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`), for the Perennial pin bump to real `fmt`.

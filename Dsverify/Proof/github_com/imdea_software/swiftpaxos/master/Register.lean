@@ -13,6 +13,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Addr
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Printf
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RegisterDefs
+public import Proof.fmt.SprintfPure
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -58,8 +60,10 @@ theorem master.Master.Register.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_string _ _ (ArgsWf.cons_int _ _ _
-    (IntArgValue.int port) ArgsWf.nil)) $$ [$Hasl] as %str ⟨-, %Hs⟩
+  wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
+      [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ (.int _ _ _ _
+    (.int port) .nil)) $$ [$Hasl] as %str ⟨-, %Hs⟩
   have Hs := master.sprintf_str_d ip port str Hs
   ihave %Hcc := confIs_agree γc cc c $$ [Hc Hconf]
   · iframe Hc Hconf

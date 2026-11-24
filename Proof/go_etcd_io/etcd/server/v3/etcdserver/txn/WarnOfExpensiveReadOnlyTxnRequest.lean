@@ -10,6 +10,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.warnOfExpensiveGener
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.NewLoggableTxnRequest
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse__GetKvs
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -117,11 +119,9 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hasl] as %s0 ⟨-, -⟩
-          case wf =>
-            repeat' first
-              | exact _root_.Perennial.fmt.ArgsWf.nil
-              | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
+          wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"range_response_count:%d"
+            [.lit go!"range_response_count:", .dir none _root_.Perennial.fmt.verb_d] _ _ _ _
+            (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int _) .nil) $$ [$Hasl] as %s0 ⟨-, -⟩
           (try wp_auto)
           wp_apply wp_slice_literal
           isplitr
@@ -162,12 +162,12 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
-      wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hasl] as %s0 ⟨-, -⟩
-      case wf =>
-        repeat' first
-          | exact _root_.Perennial.fmt.ArgsWf.nil
-          | refine _root_.Perennial.fmt.ArgsWf.cons_string _ _ ?_
-          | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
+      wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"responses:<%s> size:%d"
+        [.lit go!"responses:<", .dir none _root_.Perennial.fmt.verb_s, .lit go!"> size:",
+          .dir none _root_.Perennial.fmt.verb_d] _ _ _ _ (by fmt_encode) ?fits ?pa
+        $$ [$Hasl] as %s0 ⟨-, -⟩
+      case pa => (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero]); exact (.str _ _ _ (.int _ _ _ _ (.int _) .nil))
+      case fits => fmt_fits
       (try wp_auto)
       isplitr; · ipureintro; rfl
       iexists _; iframe resp txnResponse HP

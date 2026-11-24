@@ -9,6 +9,7 @@ module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 public import Perennial.Proof.fmt
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -71,27 +72,16 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [go.string ↓u go
 
 theorem sprintf_str_d [go.IntoValInj GoString] [go.IntoValInj w64] (x : GoString) (n : w64)
     (out : GoString)
-    (h : SprintfOut go!"%s:%d" [interface.mkOk go.string #x, interface.mkOk go.int #n] out) :
+    (h : out = _root_.Perennial.fmt.render [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      [.str x, .int (sint.Z n)]) :
     out = x ++ go!":" ++ decimal (sint.Z n) := by
-  have hfmt : go!"%s:%d" = W8 37 :: W8 115 :: W8 58 :: W8 37 :: [W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := SprintfOut.str_inv h
-  obtain ⟨o2, rfl, h2⟩ := SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := SprintfOut.int_inv (w := 0) (rest := []) (by decide) (IntArgValue.int n)
-    (IntArgValue.uniq_int n) h2
-  rw [SprintfOut.done_inv h3, decimalPad_zero]
-  simp
+  rw [h]; simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
 
 theorem sprintf_colon_d [go.IntoValInj w64] (n : w64) (out : GoString)
-    (h : SprintfOut go!":%d" [interface.mkOk go.int #n] out) :
+    (h : out = _root_.Perennial.fmt.render [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      [.int (sint.Z n)]) :
     out = go!":" ++ decimal (sint.Z n) := by
-  have hfmt : go!":%d" = W8 58 :: W8 37 :: [W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o2, rfl, h2⟩ := SprintfOut.byte_inv (by decide) h
-  obtain ⟨o3, rfl, h3⟩ := SprintfOut.int_inv (w := 0) (rest := []) (by decide) (IntArgValue.int n)
-    (IntArgValue.uniq_int n) h2
-  rw [SprintfOut.done_inv h3, decimalPad_zero]
-  simp
+  rw [h]; simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
 
 end sprintf
 

@@ -187,13 +187,14 @@ local macro "cc_pending" ccm:term:max : tactic => `(tactic| (
     iintro %sla Hargs0
     icases Hargs0 with ⟨Hargs, -⟩
     wp_auto
-    wp_apply wp_fmt_Sprintf $$ [$(frameH `Hargs)] as %str ⟨Hargs, %Hout⟩
-    · ipureintro
-      exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _)
-        (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil)
+    wp_apply wp_fmt_Sprintf go!"possible unapplied conf change at index %d (applied to %d)"
+        [.lit go!"possible unapplied conf change at index ",
+        .dir none _root_.Perennial.fmt.verb_d, .lit go!" (applied to ",
+        .dir none _root_.Perennial.fmt.verb_d, .lit go!")"] _ _ _ _ (by fmt_encode) (by fmt_fits)
+        (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil))
+        $$ [$(frameH `Hargs)] as %str ⟨Hargs, %Hout⟩
     have Hstr : str ≠ [] := by
-      obtain ⟨o', rfl, -⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv (by decide) Hout
-      simp
+      simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, Hout, _root_.Perennial.fmt.render]
     have Hstep0 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
         (e, some $ccm) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
       unfold propConfStep

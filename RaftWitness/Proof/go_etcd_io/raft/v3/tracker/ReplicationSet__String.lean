@@ -176,9 +176,8 @@ theorem tracker.ReplicationSet.String.wp_proof
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       wp_auto
-      wp_apply wp_fmt_Sprintf $$ [$Hargs] as %res -
-      · ipureintro
-        exact _root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil
+      wp_apply wp_fmt_Sprintf go!"{%s}" [.lit go!"{", .dir none _root_.Perennial.fmt.verb_s,
+        .lit go!"}"] _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ .nil) $$ [$Hargs] as %res -
       iapply HΦ
       itrivial
 

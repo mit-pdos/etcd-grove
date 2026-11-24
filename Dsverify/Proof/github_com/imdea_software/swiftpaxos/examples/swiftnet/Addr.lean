@@ -9,6 +9,8 @@ module
 
 public import Perennial.Proof.fmt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ServersSpecs
+public import Proof.fmt.SprintfPure
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -70,16 +72,10 @@ theorem IntArgValue.uniq_uint64' [go.IntoValInj w64] (n : w64) :
 /-- `Sprintf("%s:%d", x, n)` for a string `x` and a `uint64` `n` is exactly `x:n`. -/
 theorem SprintfOut.str_colon_d_uint64 [go.IntoValInj GoString] [go.IntoValInj w64]
     (x : GoString) (n : w64) (out : GoString)
-    (h : fmt.SprintfOut go!"%s:%d" [interface.mkOk go.string #x, interface.mkOk go.uint64 #n] out) :
+    (h : out = _root_.Perennial.fmt.render [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      [.str x, .int (uint.Z n)]) :
     out = x ++ go!":" ++ fmt.decimal (uint.Z n) := by
-  have hfmt : go!"%s:%d" = W8 37 :: W8 115 :: W8 58 :: W8 37 :: [W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := fmt.SprintfOut.str_inv h
-  obtain ⟨o2, rfl, h2⟩ := fmt.SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := fmt.SprintfOut.int_inv (w := 0) (rest := []) (by decide)
-    (fmt.IntArgValue.uint64 n) (IntArgValue.uniq_uint64' n) h2
-  rw [fmt.SprintfOut.done_inv h3, fmt.decimalPad_zero]
-  simp
+  rw [h]; simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
 
 end sprintf
 
@@ -223,8 +219,10 @@ theorem wp_at : at.spec (GF := GF) := by
   · ipureintro; rfl
   iintro %lit_ptr ⟨Hlit, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _
-    (fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.uint64 _) fmt.ArgsWf.nil))
+  wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
+      [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) (by fmt_fits)
+    (.str _ _ _ (.int _ _ _ _ (.uint64 _) .nil))
     $$ [$Hlit] as %str ⟨-, %Hout⟩
   rw [SprintfOut.str_colon_d_uint64 _ _ _ Hout,
     show nodeHost (uint.nat id) ++ go!":" ++

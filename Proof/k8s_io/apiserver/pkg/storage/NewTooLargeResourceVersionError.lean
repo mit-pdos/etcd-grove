@@ -12,6 +12,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.NewTooLargeResourceVersionError
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewTimeoutError
 public import Perennial.Proof.fmt.Link
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -48,9 +49,9 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1) (by
-    exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _)
-      (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil)))
+  wp_apply (fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"Too large resource version: %d, current: %d"
+    [.lit go!"Too large resource version: ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", current: ", .dir none _root_.Perennial.fmt.verb_d]
+    _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil)))
     $$ [$Hasl] as %s -
   (try wp_auto)
   wp_apply (wp_NewTimeoutError s retry) as %p ⟨%st, %dv, Hp, Hd, %_, %hst, %hr⟩

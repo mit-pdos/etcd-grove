@@ -352,9 +352,9 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
             · ipureintro; rfl
             iintro %sp ⟨Hs, -⟩
             (try wp_auto)
-            wp_apply (EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ [interface.mkOk go.string #k, interface.mkOk go.string #r0] (DFrac.own 1)
-              (_root_.Perennial.fmt.ArgsWf.cons_string _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-                _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hs] as %str ⟨Hs, -⟩
+            wp_apply (EtcdGrove.fmt.wp_Sprintf_pure wp_Sprintf go!"%s: %s" [.dir none _root_.Perennial.fmt.verb_s, .lit go!": ", .dir none _root_.Perennial.fmt.verb_s]
+              _ [interface.mkOk go.string #k, interface.mkOk go.string #r0] _ (DFrac.own 1)
+              (by fmt_encode) (by fmt_fits) (.str _ _ _ (.str _ _ _ .nil))) $$ [$Hs] as %str ⟨Hs, -⟩
             (try wp_auto)
             wp_apply wp_slice_literal
             isplitr
