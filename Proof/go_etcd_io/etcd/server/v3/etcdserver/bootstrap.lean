@@ -106,7 +106,7 @@ theorem bootstrap.wp_proof
     · iPkgInit
     ihave Hsi : (srvInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    icases Hsi with ⟨-, -, -, -, -, -, -, -, ⟨%rs, #Hrs⟩⟩
+    icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, ⟨%rs, #Hrs⟩⟩
     wp_apply hUint as %f0 -
     wp_apply hBytes as %hs -
     wp_apply hStr as %f1 -
