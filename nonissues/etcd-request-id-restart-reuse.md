@@ -31,7 +31,11 @@ no: the top-level adequacy proof needs no fix on the goosed fork for it; the ids
 `Generator.Next` (`TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`: its Go body, then Perennial's
 `assume` of the issue record's `"Issue"`, `GooseLang/Ext/IdIssue`: no other generator issued the
 id; the cluster's id state keyed by a member's incarnation, `Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`;
-the restart plan's R2c stage 2, `notes/restart-plan.md`), which etcd does not ensure.
+the restart plan's R2c stage 2, `notes/restart-plan.md`), which etcd does not ensure. Across a crash of the member's machine
+(etcd-dist D4b, 2026-11-24): the record keeps the crashed run's ids as an earlier incarnation's, so the
+assumption covers a machine restart too (its clock after the reboot not behind); before D4b, keyed by the
+generator's address alone, the record would have admitted the reissue when the restarted generator sat at
+the old one's address (`notes/axiom-review/idissue-crash.md`, A2).
 
 ## Notes
 

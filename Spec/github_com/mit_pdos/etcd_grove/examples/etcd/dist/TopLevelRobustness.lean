@@ -25,6 +25,11 @@ or has an unrecovered panic**. Each client panics if its check fails, so no chec
   lifetime counters of the Go code: `idutil`'s request ids (a 48-bit suffix: distinct for fewer than
   `2 ^ 48` ids per generator), the mvcc store's changes, and the auth store's admin requests (its fuel).
 
+  The crash statement `etcd_robust.spec` keeps, for now, `2 ^ 28` threads and `2 ^ 28 - 1` steps: its
+  bridge (`robust_of_dist_crash_adequacy_etcdNet`) gives each generation `receiptBound + 1` threads, so
+  its bounds move to `etcdThreads`/`etcdSteps` once the crash bridge separates threads from receipts
+  (issue #50, piece P11).
+
 **The deployment is not a premise.** Every machine's program receives the whole deployment as a Go value
 and checks it first (Go's `deployment.WellFormed`: names, `addrOk` addresses, all distinct, the members'
 ids apart in their low bits, the server configuration in its supported set, the workloads compatible and
@@ -52,7 +57,8 @@ theorem.
 **What the semantics assumes** (not premises: part of the semantics it is stated over):
 - the file extension at `etcdFsSem` (`examples/lib/etcdstart/FsExts.lean`): no file operation fails with
   an I/O error and no `flock`/`mmap` error, on every member's machine; a crash is a power loss, or a kill
-  followed by a sync, unrestricted;
+  followed by a sync, restricted only by the WAL's `W1` (`etcdCQ`: every WAL frame a fresh reader accepts
+  after the crash is as of one change, i.e. no CRC-32C collision on a torn frame; pending review, D6 Q2);
 - the request ids' issue record survives a machine's crash and must tell a restarted member's generator
   from the one before the crash: today it keys generators by heap address and has no crash
   interpretation, so the crash statement is **not provable over today's extension** (stage D4b keys it
@@ -93,7 +99,8 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 /-- **`etcd_safe`** (see the file header): every deployment of an etcd cluster on machines that may
 crash and restart, and of its checking clients on machines that never crash (each workload an
 orchestrator machine and its client machines), is robust: no thread of any machine is stuck or has
-an unrecovered panic. -/
+an unrecovered panic. Its bounds are `2 ^ 28` threads and `2 ^ 28 - 1` steps until the crash bridge
+separates threads from receipts (see the file header). -/
 def etcd_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
@@ -117,8 +124,8 @@ def etcd_robust.spec : Prop :=
     -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
     -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
     (Hfips : crypto.fips140.GodebugFips140Off),
-    Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := etcdThreads)
-      (bound := etcdSteps)
+    Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := 2 ^ 28)
+      (bound := 2 ^ 28 - 1)
 
 /-- **`etcd_safe_nocrash`** (the interim milestone): `etcd_safe`'s deployment with no
 machine crashing (`Robust []` over every machine: members, orchestrators, client machines). The crash

@@ -17,9 +17,11 @@ import (
 // Lean: FsInit (`st.proc = ProcState.empty`, `metaLog = []`, nothing
 // committed, `RootsOk`, `TreeWf`, every file named and on disk), the
 // semantics' initial local state: fs_semantics's initLocal (since
-// 2026-11-22), which Robust assumes of every machine (extsInitLocal).
-// fs_interp's initP is the same predicate, so the ghost state is allocated for
-// every initial state (fs_init_compat).
+// 2026-11-22), and the restricted semantics' (Premises.lean's fsSemWithS's
+// initLocal, since 2026-11-24, etcd-dist D4a: its premises restrict steps and
+// crashes, never the start), which Robust assumes of every machine
+// (extsInitLocal). fs_interp's initP is the same predicate, so the ghost state
+// is allocated for every initial state (fs_init_compat, fs_init_compatS).
 //
 // Excluded: a first Read of an fd the program never opened succeeding (the
 // model has no such fd: the call panics, D22's convention); a lock the

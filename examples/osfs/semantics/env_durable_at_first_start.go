@@ -14,8 +14,10 @@ import (
 //
 // Lean: FsInit (every file `OsFile.ofDisk`: one candidate per byte;
 // `metaLog = []`), the semantics' initial local state (fs_semantics's
-// initLocal, since 2026-11-22: a theorem's premise through Robust's
-// extsInitLocal; before, only the ghost state's initP assumed it).
+// initLocal, since 2026-11-22, and fsSemWithS's, the semantics restricted by a
+// client's premises, since 2026-11-24, etcd-dist D4a: a theorem's premise
+// through Robust's extsInitLocal; before, only the ghost state's initP assumed
+// it, and a theorem over fsSemWithS stated FsInit itself).
 //
 // Excluded (under the assumption): the scenario below, where a crash after
 // the first start loses a file the program saw at start.

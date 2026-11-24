@@ -53,6 +53,12 @@ part of it). -/
     (fun _ hPre hL st st' (hc : OsCrash st st' ∧ Q st st') =>
       os_local_crash hL Q hPre st st' hc.1 hc.2)
 
+/-- The ghost state can be allocated for every initial state of `fsSemWithS SQ Q` (its `initLocal`
+is `fs_semantics`'s, `FsInit`, which is `fs_interp`'s `initP`; `fs_init_compat`'s). -/
+theorem fs_init_compatS (SQ : StepPrem) (Q : OsState → OsState → Prop) :
+    @ExtInitCompat fsExt (fsSemWithS SQ Q) fs_interp :=
+  @ExtInitCompat.mk fsExt (fsSemWithS SQ Q) fs_interp (fun _ _ => trivial) (fun _ _ h => h)
+
 end Fs
 end Perennial
 
