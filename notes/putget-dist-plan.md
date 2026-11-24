@@ -684,3 +684,35 @@ invariant from `etcdKV` and member 0's `Pub`: putget's `putgetPub` needs a `putG
 member, allocates now that the KV state is the cluster's); member `i`'s boot up to the peer transport
 (`memberBoot_of_slice`, `StartMember.spec` from the share, `Serve_dist`, `holdForever`) with `S5Draft`'s
 member-side fields as named hypotheses once agreed; then the statement for any `k`.
+
+### 13b. n members, the configuration validated by the program (Upamanyu's redirect, 2026-11-24; supersedes the k = 3 statement)
+
+**The redirect**: go straight to `n` members; the program takes the configuration as input and validates what
+etcd needs, with an early exit; a Go non-vacuity test over many seeds; the statement has no premise fixing or
+constraining the configuration's values; putgetN's audited per-member trust reused; no new contract premise.
+
+**The program** (`examples/etcd/dist/putgetk/putgetk.go`): `MemberID(peer)` (etcd's id for one peer URL:
+SHA-1 of `"http://"+peer+Token`, first 8 bytes big-endian, as `membership.computeMemberID`), `AddrOK(a)` (the
+net extension's `addrOk`), `Valid(peers, clients)` (a member, equal lengths, every address `AddrOK`, the `2n`
+addresses distinct, the ids' 16 low bits distinct and not 0); `Member` returns at once unless
+`i < len(peers) && Valid(...)`; `Client` returns `false` unless `AddrOK(ep)`. Tests: `TestMemberIDEtcd`
+(`MemberID` = etcd's id, 3000 random configurations), `TestAddrOK`, `TestValidSeeds` (19998 of 20000 random
+configurations of 1-9 members pass; the refused ones have colliding prefixes), `TestNonVacuity` (`DIST_RUN=1`;
+8 seeded configurations of 1-5 members, each run fault-free: every client's check ran, "checked").
+
+**The statement** (`Spec/.../dist/putgetk/TopLevelRobustness.lean`): `∀ peers clients` (any lists); `Hprem` at
+`premises n peers clients ps ctxs boot` (putgetN's form at `membersOf peers clients`, one member per peer, and
+`idsOf peers`, the ids etcd computes, `memberIdOf`, a Lean definition over Perennial's proved `crypto.sha1.sha1`);
+`BootLogFacts (idsOf peers) ps ctxs boot` (`BootCore` but its two id conditions, plus the permutation);
+machines `σs : Nat → state` (no length premise); new environment premise `Hfips : GodebugFips140Off`
+(`crypto/sha1.Sum` panics under `GODEBUG=fips140=only`). The decisions, with alternatives, are in the resume
+file's "Decided overnight" (coordinator notes, `plans/putgetk-resume.md`): ids linked through `memberIdOf`;
+`Hfips` (a new top-level premise: for Upamanyu's review); `BootLogFacts` until bootstrap's contract is an
+axiom; `DistDeploy`'s addresses kept (the bridge's); specs claim only what callers need (`Valid`: `true →
+cfgOk`; `AddrOK`: `"" → false`; `Member`/`Client`: their start shares conditional on `cfgOk`/`ep ≠ ""`, the
+start's case split on `cfgOk`).
+
+**Blocker found (2026-11-24)**: Perennial b3f2fc485 translates `hash` (for `crypto/sha1`); this repository's
+own `hash` translation (types only, `hash=` roots) declares the same names, so a module importing etcd's
+mvcc/wal/bbolt and `crypto/sha1` fails. Fix on branch `hash-perennial/2026-11-24` (off `lean`): use Perennial's
+`hash`, keep the repository's `hash/crc32`, `hash/fnv`.
