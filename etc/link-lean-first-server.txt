@@ -367,8 +367,17 @@ EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
 # auth-mediation M2 (2026-11-20): the other member operations, over the names-only callees taken as
 # contracts (`MemberContracts.lean`), and `json.Marshal`'s trust-boundary specs
-json_MarshalMember:
-json_MarshalConfigChangeContext:
+# (#24 J2, 2026-11-23) proved over the encoding/json model's `Marshal` (its per-type dispatch) and
+# membership's generated `JSONModelMarshal` methods (jsongen, `json_model_gen.go`), over jsoncodec's
+# proved encoders (`Net/Proof/models_lab/Results.lean`)
+membership_jenc_S_string: =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp
+membership_jenc_Member: membership_jenc_S_string =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp =_root_.Perennial.models_lab.jsoncodec.AppendUint.wp =_root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+membership_jenc_ConfigChangeContext: membership_jenc_S_string =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp =_root_.Perennial.models_lab.jsoncodec.AppendUint.wp =_root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+Member__JSONModelMarshal: membership_jenc_Member
+Member__JSONModelMarshalPtr: membership_jenc_Member
+ConfigChangeContext__JSONModelMarshal: membership_jenc_ConfigChangeContext
+json_MarshalMember: =_root_.Perennial.encoding.json.Marshal.wp Member__JSONModelMarshal
+json_MarshalConfigChangeContext: =_root_.Perennial.encoding.json.Marshal.wp ConfigChangeContext__JSONModelMarshal
 EtcdServer__AddMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
 EtcdServer__UpdateMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
 EtcdServer__promoteMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalConfigChangeContext

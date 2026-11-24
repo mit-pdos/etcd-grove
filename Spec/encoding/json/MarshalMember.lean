@@ -21,6 +21,7 @@ one spec per argument shape at this trust boundary, as there).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Json
 
 @[expose] public section
 
@@ -46,8 +47,8 @@ abbrev encoding.json.MarshalMember.spec : Prop :=
       m.RaftAttributes'.PeerURLs' ↦*{dp} ps ∗ m.Attributes'.ClientURLs' ↦*{dc} cs }}
     (App (Val (@! _root_.Perennial.encoding.json.Marshal))
       (Val #(interface.mkOk go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty #m)))
-  {{ (sl : GoSlice) (b : List w8), RET (PairV #sl #GoInterface.nil);
-      m.RaftAttributes'.PeerURLs' ↦*{dp} ps ∗ m.Attributes'.ClientURLs' ↦*{dc} cs ∗ sl ↦* b }}
+  {{ (sl : GoSlice), RET (PairV #sl #GoInterface.nil);
+      m.RaftAttributes'.PeerURLs' ↦*{dp} ps ∗ m.Attributes'.ClientURLs' ↦*{dc} cs ∗ sl ↦* membership.memberJson m ps cs }}
 
 end spec
 
