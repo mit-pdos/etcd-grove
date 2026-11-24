@@ -34,7 +34,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's KV calls and the watch registration at the address** (see the file header); under
 `grpcRepliesFit` (`grpc.start'`'s), the mvcc laws `srvWOk_of_up` reads, and v3rpc's method sets. -/
-theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
+theorem kvWatch_served_tbl (Hp : mvcc.api.persistent.law (GF := GF))
     (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF)
@@ -46,8 +46,8 @@ theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
         kvServeStocks s E γr ∗ grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid ∗
-        watchRegAt addr s E γr R := by
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗
+        tableAt addr (fun a => etcdKVAt a E ρ γr cid mid ∗ watchRegAt a s E γr R) := by
   iintro ⟨#Pv3, #Psrv, #Ppb, #Hreq, #Hrd, #Hsf, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
@@ -73,24 +73,53 @@ theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
       sregs [v3rpc.watchMethod pw R (srvWOf R.E γr false)] Hregs
       (by intro m hm; simp only [List.mem_singleton] at hm; subst hm; exact Hsreg) (by simp)
       Hrf Hnd hρ HL) $$ [Hgsn Hleft]
-      with ⟨Hserv, #Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+      with ⟨Hserv, -, -, -, -, -, -, #Hsat, #Htab⟩
   · iframe; iframe #
     iintro !>
     imodintro
     iunfold idCred
     ipureintro; exact Hrb
-  ihave #Hst := BigSepL.bigSepL_singleton.1 $$ Hss
-  try simp only [v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
   ihave #Hwl := client.srvWLaws_of_ok (srvWOf R.E γr false) R.wsl v3rpc.wsN $$ HWok
   imodintro
   isplitl [Hserv]
   · iexists _; iexact Hserv
+  iunfold tableAt
+  iexists _, _, _, _
+  iframe Hsat
+  iintro !> %a #Ha
+  imod (Htab $$ %a Ha) with ⟨#Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+  ihave #Hst := BigSepL.bigSepL_singleton.1 $$ Hss
+  try simp only [v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
+  imodintro
   isplitr
   · iunfold etcdKVAt
     iframe #
   iunfold watchRegAt
   iframe #
   ipureintro; simp
+
+/-- **etcd's KV calls and the watch registration at the address** (`kvWatch_served_tbl` at the
+address itself). -/
+theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
+    (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) (s : Loc) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF)
+    (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr)
+    (HL : srvLevels (GF := GF)) (Hms : v3rpc.ServerMethodSets)
+    (Htb : threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
+        kvServeStocks s E γr ∗ grpcUp s E ρ γr gs lis addr cid mid R ⊢
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid ∗
+        watchRegAt addr s E γr R := by
+  iintro H
+  imod (kvWatch_served_tbl Hp Hr s E ρ γr cfg gs lis addr cid mid R Hrb Hrf hρ HL Hms Htb) $$ H
+    with ⟨Htok, #Ht⟩
+  imod (tableAt_self addr _ $$ Ht) with ⟨#Hkv, #Hw⟩
+  imodintro
+  iframe Htok Hkv Hw
 
 end served
 

@@ -59,8 +59,9 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
       |={⊤}=> ∃ (Svc : GrpcSvc GF), grpcServeTok gs lis addr Svc ∗ srvGoRes s ∗
         (∃ pw : Loc, ⌜R.s = s ∧ R.E = E⌝ ∗ v3rpc.isWatchServer pw R ∗
-          [∗list] x ∈ Wo.toList.map (fun W => v3rpc.watchMethod pw R W),
-            isGrpcStreamMd addr x.name x.Up x.spec) ∗
+          tableAt addr (fun a => client.etcdLeaseReadAt a ∗ etcdLeaseServedAt m a s E ρ γr cid mid ∗
+            [∗list] x ∈ Wo.toList.map (fun W => v3rpc.watchMethod pw R W),
+              isGrpcStreamMd a x.name x.Up x.spec)) ∗
         client.etcdLeaseReadAt addr ∗ etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro ⟨HWo, #Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Hstk, Hup⟩
   iunfold grpcUp at Hup
@@ -167,28 +168,42 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
           rcases hm with rfl | rfl <;> simp)
         (by intro x hx; simp only [List.mem_map] at hx; obtain ⟨W, -, rfl⟩ := hx; exact Hwreg)
         (by cases Wo <;> simp)
-        Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
+        Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, -, -, -, -, -, -, -, #Hsat, #Htab⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb
-    simp only [client.etcdLeaseReadMethods, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
-    icases Hle with ⟨#H1, #H2, -⟩
-    ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
-    ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
+    -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
+    ihave #Htab' : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys
+        (Wo.toList.map (fun W => v3rpc.watchMethod pw R W)) ={⊤}=∗
+        client.etcdLeaseReadAt a ∗ etcdLeaseServedAt .none a s E ρ γr cid mid ∗
+        [∗list] x ∈ Wo.toList.map (fun W => v3rpc.watchMethod pw R W),
+          isGrpcStreamMd a x.name x.Up x.spec) $$ []
+    · iintro !> %a #Ha
+      imod (Htab $$ %a Ha) with ⟨Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
+      simp only [client.etcdLeaseReadMethods, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
+      icases Hle with ⟨#H1, #H2, -⟩
+      ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
+      ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
+      imodintro
+      iframe Hss
+      simp only [etcdLeaseServedAt]
+      iunfold etcdKVAt
+      iunfold client.etcdLeaseReadAt
+      iframe #
+    imod (Htab' $$ %addr Hsat) with ⟨#HRd, #HSv, -⟩
     imodintro
     iexists _
-    iframe Hserv Hgo
-    isplitl [Hss]
-    · iexists pw
-      isplitr
-      · ipureintro; exact ⟨hRs, hRE⟩
-      iframe Hws Hss
-    simp only [etcdLeaseServedAt]
-    iunfold etcdKVAt
-    iunfold client.etcdLeaseReadAt
-    iframe #
+    iframe Hserv Hgo HRd HSv
+    iexists pw
+    isplitr
+    · ipureintro; exact ⟨hRs, hRE⟩
+    iframe Hws
+    iunfold tableAt
+    iexists _, _, _, _
+    iframe Hsat
+    iexact Htab'
   | mono =>
     -- the monotone mode: the lease reads and the grant at the lessor's history
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
@@ -231,30 +246,44 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
           rcases hm with rfl | rfl | rfl <;> simp)
         (by intro x hx; simp only [List.mem_map] at hx; obtain ⟨W, -, rfl⟩ := hx; exact Hwreg)
         (by cases Wo <;> simp)
-        Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, Hss, -, -, -, -, -, Hle⟩
+        Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, -, -, -, -, -, -, -, #Hsat, #Htab⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb
-    simp only [client.etcdLeaseGrantMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
-    icases Hle with ⟨#H1, #H2, #H3, -⟩
-    ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
-    ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
-    ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
-    ihave #H2a := isGrpcRpc_leaseLeases_any addr (mvcc.api.mvccLeases E.γ) $$ H2'
+    -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
+    ihave #Htab' : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys
+        (Wo.toList.map (fun W => v3rpc.watchMethod pw R W)) ={⊤}=∗
+        client.etcdLeaseReadAt a ∗ etcdLeaseServedAt .mono a s E ρ γr cid mid ∗
+        [∗list] x ∈ Wo.toList.map (fun W => v3rpc.watchMethod pw R W),
+          isGrpcStreamMd a x.name x.Up x.spec) $$ []
+    · iintro !> %a #Ha
+      imod (Htab $$ %a Ha) with ⟨Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
+      simp only [client.etcdLeaseGrantMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
+      icases Hle with ⟨#H1, #H2, #H3, -⟩
+      ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
+      ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
+      ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
+      ihave #H2a := isGrpcRpc_leaseLeases_any a (mvcc.api.mvccLeases E.γ) $$ H2'
+      imodintro
+      iframe Hss
+      simp only [etcdLeaseServedAt]
+      iunfold etcdLeaseGrantAt
+      iunfold client.etcdLeaseReadAt
+      iframe #
+    imod (Htab' $$ %addr Hsat) with ⟨#HRd, #HSv, -⟩
     imodintro
     iexists _
-    iframe Hserv Hgo
-    isplitl [Hss]
-    · iexists pw
-      isplitr
-      · ipureintro; exact ⟨hRs, hRE⟩
-      iframe Hws Hss
-    simp only [etcdLeaseServedAt]
-    iunfold etcdLeaseGrantAt
-    iunfold client.etcdLeaseReadAt
-    iframe #
+    iframe Hserv Hgo HRd HSv
+    iexists pw
+    isplitr
+    · ipureintro; exact ⟨hRs, hRE⟩
+    iframe Hws
+    iunfold tableAt
+    iexists _, _, _, _
+    iframe Hsat
+    iexact Htab'
   | revocable =>
     -- the revocable mode: the lease reads and the live grant
     have hlg : ρ.rd.kv.lg = true := by rw [KVNames.lg_eq, hm]; decide
@@ -298,32 +327,46 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
           rcases hm with rfl | rfl | rfl <;> simp)
         (by intro x hx; simp only [List.mem_map] at hx; obtain ⟨W, -, rfl⟩ := hx; exact Hwreg)
         (by cases Wo <;> simp)
-        Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, Hss, -, -, -, -, -, Hle⟩
+        Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, -, -, -, -, -, -, -, #Hsat, #Htab⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb
-    simp only [client.etcdLeaseGrantLiveMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
-    icases Hle with ⟨#H1, #H2, #H3, -⟩
-    ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
-    ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
-    ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
-    -- the lease reads at the old specs, from the revocable mode's, at the lower bound `0`
-    ihave #H1a := isGrpcRpc_leaseTTL_live_any addr (mvcc.api.mvccLeases E.γ) s 0 $$ [$Hlb0 $H1']
-    ihave #H2a := isGrpcRpc_leaseLeases_live_any addr (mvcc.api.mvccLeases E.γ) 0 $$ [$Hlb0 $H2']
+    -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
+    ihave #Htab' : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys
+        (Wo.toList.map (fun W => v3rpc.watchMethod pw R W)) ={⊤}=∗
+        client.etcdLeaseReadAt a ∗ etcdLeaseServedAt .revocable a s E ρ γr cid mid ∗
+        [∗list] x ∈ Wo.toList.map (fun W => v3rpc.watchMethod pw R W),
+          isGrpcStreamMd a x.name x.Up x.spec) $$ []
+    · iintro !> %a #Ha
+      imod (Htab $$ %a Ha) with ⟨Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
+      simp only [client.etcdLeaseGrantLiveMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
+      icases Hle with ⟨#H1, #H2, #H3, -⟩
+      ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
+      ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
+      ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
+      -- the lease reads at the old specs, from the revocable mode's, at the lower bound `0`
+      ihave #H1a := isGrpcRpc_leaseTTL_live_any a (mvcc.api.mvccLeases E.γ) s 0 $$ [$Hlb0 $H1']
+      ihave #H2a := isGrpcRpc_leaseLeases_live_any a (mvcc.api.mvccLeases E.γ) 0 $$ [$Hlb0 $H2']
+      imodintro
+      iframe Hss
+      simp only [etcdLeaseServedAt]
+      iunfold etcdLeaseGrantLiveAt
+      iunfold client.etcdLeaseReadAt
+      iframe #
+    imod (Htab' $$ %addr Hsat) with ⟨#HRd, #HSv, -⟩
     imodintro
     iexists _
-    iframe Hserv Hgo
-    isplitl [Hss]
-    · iexists pw
-      isplitr
-      · ipureintro; exact ⟨hRs, hRE⟩
-      iframe Hws Hss
-    simp only [etcdLeaseServedAt]
-    iunfold etcdLeaseGrantLiveAt
-    iunfold client.etcdLeaseReadAt
-    iframe #
+    iframe Hserv Hgo HRd HSv
+    iexists pw
+    isplitr
+    · ipureintro; exact ⟨hRs, hRE⟩
+    iframe Hws
+    iunfold tableAt
+    iexists _, _, _, _
+    iframe Hsat
+    iexact Htab'
 
 /-- **etcd's lease reads, and by the member's lease mode `m` the KV calls, the grant and the listing
 at the lessor's history, or the live grant, registered at the address** (see the file header;
@@ -417,7 +460,11 @@ theorem kv_lease_served_watch (s : Loc)
         isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) addr
           go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
           (fun md γs Dn => v3rpc.watchStreamSpec γs R W (auth.mdTokenOf md) Dn) ∗
-        ⌜noRefusalAt addr⌝ := by
+        ⌜noRefusalAt addr⌝ ∗
+        tableAt addr (fun a => client.etcdLeaseReadAt a ∗ etcdLeaseServedAt m a s E ρ γr cid mid ∗
+          isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) a
+            go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
+            (fun md γs Dn => v3rpc.watchStreamSpec γs R W (auth.mdTokenOf md) Dn)) := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hlr, Hst, Hup, HW⟩
   ihave %Hoff := isServerReq_authOff s E ρ $$ Hreq
   ihave ⟨Hup, %Hnr⟩ := grpcUp_noRefusal s E ρ γr gs lis addr cid mid R Hoff $$ [Hup]
@@ -429,7 +476,20 @@ theorem kv_lease_served_watch (s : Loc)
     iapply BigSepL.bigSepL_singleton.2
     iexact HW
   obtain ⟨hRs, hRE⟩ := HRW
-  ihave #Hwst := BigSepL.bigSepL_singleton.1 $$ Hss
+  -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
+  ihave #Htb : tableAt addr (fun a => client.etcdLeaseReadAt a ∗ etcdLeaseServedAt m a s E ρ γr cid mid ∗
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) a
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
+        (fun md γs Dn => v3rpc.watchStreamSpec γs R W (auth.mdTokenOf md) Dn)) $$ []
+  · iapply tableAt_mono
+    iframe Hss
+    iintro !> %a ⟨#HRd, #HSv, #HL⟩
+    ihave #Hw := BigSepL.bigSepL_singleton.1 $$ HL
+    try simp only [Option.toList, List.map, v3rpc.watchMethod, v3rpc.pbWatchRequestT,
+      v3rpc.pbWatchResponseT]
+    imodintro
+    iframe #
+  imod (tableAt_self addr _ $$ Htb) with ⟨-, -, #Hwst⟩
   imodintro
   iframe Hgo Hr Hl
   isplitl [Hserv]
@@ -440,7 +500,9 @@ theorem kv_lease_served_watch (s : Loc)
   · ipureintro; exact ⟨hRs, hRE⟩
   isplitl []
   · iexact Hwst
-  ipureintro; exact Hnr
+  isplitl []
+  · ipureintro; exact Hnr
+  iexact Htb
 
 /-- **`kv_lease_served` at `lg = false`** (its post before the lease-grant plan's 2.2): the KV calls
 and the lease reads registered at the address. -/

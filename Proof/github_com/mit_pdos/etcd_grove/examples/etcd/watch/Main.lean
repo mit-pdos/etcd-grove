@@ -235,7 +235,7 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hleft, -⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     -- the watch server's environment is the server's: `E` is `R.E` from here on
     subst hRE
@@ -254,10 +254,17 @@ theorem Main.wp_proof
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
     -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
-    ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23872" gs q p srv lis R.E
-        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
-      [Hgsn Hlis]
-    · iframe Hgsn Hlis; iframe #
+    -- (phase 7's switch, SW1) the server bound to its listener by the members' certificate
+    ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvBound gs lis go!"127.0.0.1:23872" [il, im, iu] [ims, is] svcs regs sregs ∗
+        ⌜noRefusalAt go!"127.0.0.1:23872"⌝) $$ [Hgsn]
+    · icases Hgsn with (⟨Hgsn, Hlis⟩ | Hb)
+      · iapply (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23872" gs q p srv lis R.E
+        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo)
+        iframe Hgsn Hlis; iframe #
+      · iexact Hb
+    ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis go!"127.0.0.1:23872") ∨
+        grpcSrvBound gs lis go!"127.0.0.1:23872" [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
+    · iright; iexact Hgsn
     -- the watch path's server facts and the watch condition (the cluster never compacts)
     ihave HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd false) R.wsl v3rpc.wsN $$ []
     · rw [hRw]
@@ -268,7 +275,7 @@ theorem Main.wp_proof
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [Hgsn Hlis Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
+      $$ [Hgsn Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro

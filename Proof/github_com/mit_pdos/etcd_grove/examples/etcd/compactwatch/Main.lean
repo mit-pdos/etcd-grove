@@ -214,7 +214,7 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hleft, -⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     subst hRE
     -- (per-type stage B3) the gRPC run pools, from the serving stocks
@@ -236,15 +236,22 @@ theorem Main.wp_proof
       iapply oneValAu $$ Hinv
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
-    ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23794" gs q p srv lis R.E
-        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
-      [Hgsn Hlis]
-    · iframe Hgsn Hlis; iframe #
+    -- (phase 7's switch, SW1) the server bound to its listener by the members' certificate
+    ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvBound gs lis go!"127.0.0.1:23794" [il, im, iu] [ims, is] svcs regs sregs ∗
+        ⌜noRefusalAt go!"127.0.0.1:23794"⌝) $$ [Hgsn]
+    · icases Hgsn with (⟨Hgsn, Hlis⟩ | Hb)
+      · iapply (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23794" gs q p srv lis R.E
+        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo)
+        iframe Hgsn Hlis; iframe #
+      · iexact Hb
+    ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis go!"127.0.0.1:23794") ∨
+        grpcSrvBound gs lis go!"127.0.0.1:23794" [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
+    · iright; iexact Hgsn
     imod (etcd_watch.wk_served_nd hP (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) go!"127.0.0.1:23794"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [Hgsn Hlis Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
+      $$ [Hgsn Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro

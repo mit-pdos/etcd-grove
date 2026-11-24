@@ -296,7 +296,7 @@ theorem etcd_cache_served [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     sregs [v3rpc.watchMethod pw V.R V.W] hregs
     (by intro m hm; simp only [List.mem_singleton] at hm; subst hm; exact hwreg) (by simp)
     Hrf hnd hrd HL) $$ [Hgs Hleft]
-    with ⟨Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
+    with ⟨Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp, -, -⟩
   · iframe; iframe #
   ihave #Hst := BigSepL.bigSepL_singleton.1 $$ Hss
   try simp only [v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]

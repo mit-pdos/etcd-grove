@@ -30,9 +30,10 @@ its text before lease-mono3 (the `_none` laws after each: `clusterAt_none` and `
 associativity); in the monotone mode a member of the started cluster gives its bridge's grant and
 listing registrations (`memberAt_mono`).
 
-**What a started member gives** (`memberServed`), **what a bridge's start gives** (`forwards`: the
-bridge's address serves what the member's does, from the bridge's trust-boundary spec of `New`,
-D26), **a member of the started cluster** (`memberAt`), **the started cluster** (`clusterAt`,
+**What a started member gives** (`memberServed`; since phase 7's switch, SW1, with what it serves at
+every address serving its table, `memberRegs` under `etcdstart.tableAt`, which a bridge's start
+serves at the bridge's address: `StartBridge`, from the bridge's trust-boundary spec of `New`, D26;
+until then a bridge's start gave `forwards`), **a member of the started cluster** (`memberAt`), **the started cluster** (`clusterAt`,
 `clusterUp`), and **the clients' watch environment** (`watchEnv`, over the three members at their
 bridges).
 -/
@@ -188,6 +189,23 @@ instance servedRegs_persistent (m : lease.Mode) (c : GoString) (s : Loc) (E : ap
 private theorem sep_assoc_eq (P Q R : IProp GF) : iprop((P ∗ Q) ∗ R) = iprop(P ∗ Q ∗ R) :=
   BI.sep_assoc.to_eq
 
+/-- **What a member serves at the address `a`** (phase 7's switch, SW1, 2026-11-24): its
+registrations (`servedRegs`) and its `Watch` stream at the server's watch facts (`srvWOf`); what
+`memberServed` gives at every address serving the member's table (`etcdstart.tableAt`), so that a
+bridge to the member serves it too (`StartBridge`). -/
+def memberRegs (m : lease.Mode) (a : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
+  iprop(servedRegs m a s E ρ cid mid ∗
+    isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) a
+      go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
+      (fun md γs Dn => v3rpc.watchStreamSpec γs R (etcdstart.srvWOf E ρ.rd false)
+        (auth.mdTokenOf md) Dn))
+
+instance memberRegs_persistent (m : lease.Mode) (a : GoString) (s : Loc) (E : apply.AEnv GF)
+    (ρ : ReqNames) (cid mid : w64) (R : v3rpc.WSrv GF) :
+    Persistent (memberRegs (GF := GF) m a s E ρ cid mid R) := by
+  unfold memberRegs; infer_instance
+
 /-- **A member started and served** (the success of `StartMember`): the shared start's
 `etcdstart.memberUp` reduced to what a cluster's user needs of it -- the server's request and read
 views (at its apply environment `E`, agreeing with the stand-in `E₀`, auth off), the `GoAttach`
@@ -212,7 +230,9 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
       isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
         (fun md γs Dn => v3rpc.watchStreamSpec γs R (etcdstart.srvWOf E ρ.rd false)
-          (auth.mdTokenOf md) Dn)) ∗
+          (auth.mdTokenOf md) Dn) ∗
+      -- (phase 7's switch, SW1) what it serves, at every address serving its table
+      etcdstart.tableAt client (fun a => memberRegs m a s E ρ cid mid R)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
     ⌜noRefusalAt client⌝)
 
@@ -238,75 +258,14 @@ theorem memberServed_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqName
       isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
         (fun md γs Dn => v3rpc.watchStreamSpec γs R (etcdstart.srvWOf E ρ.rd false)
-          (auth.mdTokenOf md) Dn)) ∗
+          (auth.mdTokenOf md) Dn) ∗
+      -- (phase 7's switch, SW1) what it serves, at every address serving its table
+      etcdstart.tableAt client (fun a => memberRegs .none a s E ρ cid mid R)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
     ⌜noRefusalAt client⌝) := by
   simp only [memberServed, servedRegs, etcdstart.etcdKVAt_eq, sep_assoc_eq]
 
 end defs
-
-section forwards
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **The address `a` serves what `b` serves** (persistent; what a bridge's start gives, from the
-bridge's trust-boundary spec of `New`): the server listening at `b` is the one at `a` (per-type
-stage B: until then method by method, `grpcServes`), and (D29) `a` is refusal-free if `b` is. -/
-def forwards (a b : GoString) : IProp GF :=
-  iprop((□ ∀ γ : GName, grpcAddrIs b γ -∗ grpcAddrIs a γ) ∗ ⌜noRefusalAt b → noRefusalAt a⌝)
-
-instance forwards_persistent (a b : GoString) : Persistent (forwards (GF := GF) a b) := by
-  unfold forwards; infer_instance
-
-/-- A unary method registered with a metadata-indexed spec at `b` is registered at an address that
-forwards to `b` (`isGrpcRpc_forwards`'s; k8s 7e-1, the members' `Range` with its error outcome; since
-phase 7 S2's interface by composing the forwarding wand with the registration's `grpcReach`). -/
-theorem isGrpcRpcMd_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpecMd Req Rep) :
-    forwards (GF := GF) a b ∗ isGrpcRpcMd b name Spec ⊢ isGrpcRpcMd a name Spec := by
-  iintro ⟨#Hf, #Hr⟩
-  iunfold forwards at Hf
-  icases Hf with ⟨#Hf, -⟩
-  iunfold isGrpcRpcMd at Hr
-  icases Hr with ⟨%a₀, %hX, %π, %σ, #Hreach, #Hs⟩
-  unfold isGrpcRpcMd
-  iexists a₀, hX, π, σ
-  iframe Hs
-  iunfold grpcReach at Hreach
-  unfold grpcReach
-  iright
-  icases Hreach with (%he | #Hw)
-  · subst he
-    imodintro
-    iintro %γ #Ha
-    iapply Hf $$ %γ Ha
-  · imodintro
-    iintro %γ #Ha
-    iapply Hf
-    iapply Hw $$ %γ Ha
-
-/-- A method registered at `b` is registered at an address that forwards to `b`. -/
-theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpec Req Rep) :
-    forwards (GF := GF) a b ∗ isGrpcRpc b name Spec ⊢ isGrpcRpc a name Spec :=
-  isGrpcRpcMd_forwards a b name (GrpcSpec.md Spec)
-
-/-- (D32) A stream method registered at `b` is registered at an address that forwards to `b`
-(metadata-indexed, G2). -/
-theorem isGrpcStream_forwards {Req Rep : StreamMsg GF} (a b name : GoString)
-    (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
-    forwards (GF := GF) a b ∗ isGrpcStreamMd b name Up Spec ⊢ isGrpcStreamMd a name Up Spec := by
-  iintro ⟨#Hf, #Hr⟩
-  iunfold forwards at Hf
-  icases Hf with ⟨#Hf, -⟩
-  unfold isGrpcStreamMd
-  icases Hr with ⟨%γ, #Ha, #Hm⟩
-  iexists γ
-  isplitl
-  · iapply Hf $$ %γ Ha
-  · iexact Hm
-
-end forwards
 
 section cluster
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -343,7 +302,8 @@ def watchEnv (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
     v3rpc.histWL γr.raft γr.kv, memAt3 cfg R₁ R₂ R₃, 3, γr.kv, W₁, memWAt3 W₁ W₂ W₃⟩
 
 /-- **A member of the started cluster** (persistent; W4: what `StartCluster` gives of each, from
-`memberServed` and its bridge's start): its bridge's address `b` serving its client address `c`'s,
+`memberServed` and its bridge's start): its bridge's address `b` serving what it serves and
+refusal-free (`memberRegs`; phase 7's switch, SW1: until then `forwards b c`),
 its read view, etcd's KV specs registered at its client address and the address refusal-free, its
 watch server and `Watch` stream there, its names agreeing with the cluster's (the raft names but
 for the member's storage registry, `SrvRaft.reg`; what the KV model reads), and its server in the
@@ -351,7 +311,7 @@ cluster's compaction mode `cmp`. -/
 def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
     (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) (cmp : Bool)
     (m : lease.Mode := .none) : IProp GF :=
-  iprop(forwards b c ∗ isServerRead s E ρ.rd ∗
+  iprop(memberRegs m b s E ρ cid mid R ∗ ⌜noRefusalAt b⌝ ∗ isServerRead s E ρ.rd ∗
     servedRegs m c s E ρ cid mid ∗
     ⌜noRefusalAt c⌝ ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
     client.srvWLaws (etcdstart.srvWOf E ρ.rd false) ∗
@@ -369,7 +329,7 @@ def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply
 theorem memberAt_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
     (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) (cmp : Bool) :
     memberAt γn s id ρ E cid mid R b c γ cmp .none =
-  iprop(forwards b c ∗ isServerRead s E ρ.rd ∗
+  iprop(memberRegs .none b s E ρ cid mid R ∗ ⌜noRefusalAt b⌝ ∗ isServerRead s E ρ.rd ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
     isGrpcRpcMd c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpecE E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/DeleteRange"
@@ -397,7 +357,7 @@ instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqN
 /-- **A member of the started cluster in the monotone mode gives its bridge's grant and listing**
 (lease-mono3's review r1, SF2): `LeaseGrant` and `LeaseLeases` registered at the bridge's address
 `b` at the specs at the member's lessor history (`etcdLeaseGrantSpec`, `etcdLeaseLeasesSpec` of
-`(mvcc.api.mvccLeases E.γ)`), its client address's registrations forwarded (`isGrpcRpc_forwards`). -/
+`(mvcc.api.mvccLeases E.γ)`), its registrations at the bridge's address (`memberRegs`). -/
 theorem memberAt_mono (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
     (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) (cmp : Bool) :
     memberAt γn s id ρ E cid mid R b c γ cmp .mono ⊢
@@ -406,13 +366,13 @@ theorem memberAt_mono (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (
         isGrpcRpc b go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E.γ)) := by
   iintro #Hm
   iunfold memberAt at Hm
-  icases Hm with ⟨#Hfw, -, Hs, -⟩
+  icases Hm with ⟨#Hb, -⟩
+  iunfold memberRegs at Hb
+  icases Hb with ⟨#Hs, -⟩
   isimp only [servedRegs, etcdstart.etcdLeaseServedAt_mono] at Hs
   icases Hs with ⟨-, #Hg⟩
-  icases etcdstart.etcdLeaseGrantAt_elim c E ρ.rd $$ Hg with ⟨#HG, #HL⟩
-  isplitl
-  · iapply isGrpcRpc_forwards b c; iframe #
-  · iapply isGrpcRpc_forwards b c; iframe #
+  icases etcdstart.etcdLeaseGrantAt_elim b E ρ.rd $$ Hg with ⟨#HG, #HL⟩
+  iframe #
 
 /-- **The cluster started, at given names** (`clusterUp`'s body, its names as parameters, so that a
 caller can state what it builds on them: the partition example's clients, at `watchEnv` of the

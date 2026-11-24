@@ -19,7 +19,7 @@ adds.
 token, so that a caller serves them beside the KV and Auth methods.
 
 **The replies' size** (2026-10-31, `notes/reply-size.md`): these results take a server token
-(`grpcServerAt`), made only by `grpc.start`, which takes the workload premise `grpcRepliesFit`;
+(`grpcServerAt`), made only by the single-process start (`grpc.start'`), which takes the workload premise `grpcRepliesFit`;
 they are conditional on it through the token, which their statements do not show.
 -/
 module

@@ -93,7 +93,7 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs
     [v3rpc.watchMethod pw V.R V.W] hregs
     (by intro m hm; simp only [List.mem_singleton] at hm; subst hm; exact hwreg) (by simp)
-    Hrf hnd hrd HL) $$ [Hgs Hleft] with ⟨Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
+    Hrf hnd hrd HL) $$ [Hgs Hleft] with ⟨Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp, -, -⟩
   · iframe; iframe #
   ihave #Hst := BigSepL.bigSepL_singleton.1 $$ Hss
   try simp only [v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
