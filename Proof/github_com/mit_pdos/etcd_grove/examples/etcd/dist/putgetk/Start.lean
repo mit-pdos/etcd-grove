@@ -185,8 +185,8 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
       ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
     (HSM : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
-      (S5 : etcd_dist.S5Draft (G := hG.goose_globalGS) putgetGF),
-      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := hG) S5)
+      (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
+      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5)
     (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbl : BootLogFacts (idsOf peers) ps ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
@@ -209,7 +209,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     obtain ⟨p, -, rfl⟩ := Option.map_eq_some_iff.1 hm
     unfold sharesK
     rw [if_pos hi]
-    exact member_bootK HEnvTok HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
+    exact member_bootK Hctx HEnvTok HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
       (σs i) (Hm i hi) S5
   · rw [List.getElem?_append_right (by omega), hlen] at hm
     have hm' : m = (bootClient (clients.headD go!""), σc) := by
@@ -228,16 +228,17 @@ theorem putgetKBoot_of
     (HSM : ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
       [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
       (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
-      (S5 : etcd_dist.S5Draft (G := hG.goose_globalGS) putgetGF),
-      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := hG) S5) :
+      (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
+      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5) :
     PutgetKBoot := by
   intro _ _ _ _ _ _ _ _ Hctx Hcec peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc
     Hfips Hnd Hok HEnv HEnvTok G hlo hb
   have hS5' : ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS],
       Nonempty (etcd_dist.S5Draft putgetGF) := HS5
   have HSM' : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
-      (S5 : etcd_dist.S5Draft (G := hG.goose_globalGS) putgetGF),
-      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := hG) S5 := fun hG S5 => HSM hG S5
+      (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG _).goose_globalGS) putgetGF),
+      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG _) S5 :=
+    fun hG S5 => HSM hG S5
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   have S5 : etcd_dist.S5Draft putgetGF := Classical.choice hS5'
@@ -431,8 +432,8 @@ theorem putgetK_safe_of_S5
     (HSM : ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
       [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
       (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
-      (S5 : etcd_dist.S5Draft (G := hG.goose_globalGS) putgetGF),
-      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := hG) S5) :
+      (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
+      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5) :
     putgetK_safe.spec :=
   putgetK_safe_of_boot (putgetKBoot_of HS5 HSM)
 

@@ -97,16 +97,20 @@ theorem wp_strSliceLit (l : List GoString) (Φ : val → IProp GF) :
   unfold strSliceLit
   wp_pure
   by_cases hlen : l.length < 2 ^ 63
-  · iapply (wp_slice_literal (V := GoString) (l := l) (kvs := l.map (arrayLitKE go.string)))
+  · iapply (wp_slice_literal (V := GoString) (l := l)
+      (kvs := l.map (fun s => KeyedElement none (ElementExpression go.string (Val #s)))))
     have hp := pure_wp_array_lit_full (hlc := HasLC.hasLC) (GF := GF)
-      (go.arrayLiteralSize (l.map (arrayLitKE go.string))) go.string l _ rfl
-      (by rw [arrayLiteralSize_strKE]; simp) (by rw [arrayLiteralSize_strKE]; simpa using hlen)
+      (go.arrayLiteralSize (l.map (fun s => KeyedElement none (ElementExpression go.string (Val #s)))))
+      go.string l _ (by unfold arrayLitKE; rfl)
+      (by rw [arrayLiteralSize_strLit]; simp) (by rw [arrayLiteralSize_strLit]; simpa using hlen)
     have hp' : ∀ Ψ : val → IProp GF,
-        iprop(▷ (£ 1 -∗ WP (Val #(array.mk (go.arrayLiteralSize (l.map (arrayLitKE go.string))) l))
+        iprop(▷ (£ 1 -∗ WP (Val #(array.mk (go.arrayLiteralSize
+          (l.map (fun s => KeyedElement none (ElementExpression go.string (Val #s))))) l))
           {{ Ψ }})) ⊢
           WP (App (Val (GoInstruction (CompositeLiteral (go.ArrayType
-              (go.arrayLiteralSize (l.map (arrayLitKE go.string))) go.string))))
-            (Val (LiteralValueV (l.map (arrayLitKE go.string))))) {{ Ψ }} :=
+              (go.arrayLiteralSize (l.map (fun s => KeyedElement none (ElementExpression go.string (Val #s)))))
+              go.string))))
+            (Val (LiteralValueV (l.map (fun s => KeyedElement none (ElementExpression go.string (Val #s))))))) {{ Ψ }} :=
       fun Ψ => hp.pure_wp_wp _ _ Ψ [] trivial
     iapply (hp' _)
     inext
@@ -139,9 +143,11 @@ theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
     (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
+    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
+      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (HSM : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
-      (S5 : etcd_dist.S5Draft (G := hG.goose_globalGS) putgetGF),
-      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := hG) S5)
+      (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
+      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5)
     (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hblf : BootLogFacts (idsOf peers) ps ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
@@ -159,6 +165,7 @@ theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
   simp only at hGG hL
   subst hGG hL
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
+  haveI := Hctx hG
   haveI : ReceiptBoundLe putgetGF (2 ^ 62) := ⟨by omega⟩
   haveI : ReceiptBoundLe putgetGF (2 ^ 28) := ⟨by omega⟩
   haveI : ThreadBoundLe putgetGF (2 ^ 28) := ⟨by rw [hT]; omega⟩
