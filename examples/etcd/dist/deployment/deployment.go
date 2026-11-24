@@ -81,6 +81,15 @@ const (
 	CompactorPeriodic = "periodic"
 )
 
+// MaxMembers bounds the cluster's size and MaxLen every member name, every address and the token
+// (in bytes), so that the strings etcd builds from them (a member's peer URLs joined, the initial
+// cluster's "name=http://peer" list) stay far below strings.Join's length bound (Lean:
+// typed.maxMembers, typed.maxLen).
+const (
+	MaxMembers = 64
+	MaxLen     = 255
+)
+
 // Member is a member of a deployment (Lean: Member).
 type Member struct {
 	Name   string
@@ -293,13 +302,13 @@ func IdsOk(d Deployment) bool {
 // w.Kind.String() under %s, or int(w.Kind) under %d: fmt calls no method of a basic-typed argument,
 // which the proof's model of fmt needs.)
 func WellFormed(d Deployment) error {
-	// 1. a member; the names valid and distinct
-	if len(d.Members) == 0 {
-		return fmt.Errorf("no member")
+	// 1. a member, at most MaxMembers; the names valid, distinct, of at most MaxLen bytes
+	if len(d.Members) == 0 || len(d.Members) > MaxMembers {
+		return fmt.Errorf("%d members", len(d.Members))
 	}
 	names := map[string]bool{}
 	for _, m := range d.Members {
-		if !nameOk(m.Name) || names[m.Name] {
+		if !nameOk(m.Name) || len(m.Name) > MaxLen || names[m.Name] {
 			return fmt.Errorf("member name %q", m.Name)
 		}
 		names[m.Name] = true
@@ -314,13 +323,13 @@ func WellFormed(d Deployment) error {
 		}
 	}
 	// 2. every address valid (Deployment.addrs: the members' peer and client addresses, then the
-	// client machines'), all distinct; each workload has its NodeCount client machines
+	// client machines'), of at most MaxLen bytes, all distinct; each workload has its NodeCount client machines
 	if len(d.Nodes) != len(d.Workloads) {
 		return fmt.Errorf("client machines: %d lists for %d workloads", len(d.Nodes), len(d.Workloads))
 	}
 	addrs := map[string]bool{}
 	addr := func(a string) error {
-		if !AddrOk(a) || addrs[a] {
+		if !AddrOk(a) || len(a) > MaxLen || addrs[a] {
 			return fmt.Errorf("address %q", a)
 		}
 		addrs[a] = true
@@ -348,8 +357,8 @@ func WellFormed(d Deployment) error {
 	if !IdsOk(d) {
 		return fmt.Errorf("member ids")
 	}
-	// 4. the token; the server configuration supported
-	if d.Token == "" {
+	// 4. the token, of at most MaxLen bytes; the server configuration supported
+	if d.Token == "" || len(d.Token) > MaxLen {
 		return fmt.Errorf("empty token")
 	}
 	c := d.Cfg

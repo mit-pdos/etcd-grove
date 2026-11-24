@@ -83,6 +83,27 @@ func TestWellFormed(t *testing.T) {
 	if WellFormed(bad) == nil {
 		t.Error("an ephemeral port passed")
 	}
+	// the size bounds (MaxMembers, MaxLen)
+	bad = d
+	bad.Members = append([]Member(nil), d.Members...)
+	bad.Members[0].Name = strings.Repeat("n", deployment.MaxLen+1)
+	if WellFormed(bad) == nil {
+		t.Error("a too-long member name passed")
+	}
+	bad = d
+	bad.Token = strings.Repeat("t", deployment.MaxLen+1)
+	if WellFormed(bad) == nil {
+		t.Error("a too-long token passed")
+	}
+	bad = d
+	bad.Members = nil
+	for i := 0; i <= deployment.MaxMembers; i++ {
+		p, c := addr(i)
+		bad.Members = append(bad.Members, Member{Name: fmt.Sprintf("m%d", i), Peer: p, Client: c})
+	}
+	if WellFormed(bad) == nil {
+		t.Error("too many members passed")
+	}
 	if deployment.AddrOk("010.1.1.1:80") || deployment.AddrOk("10.1.1:80") || deployment.AddrOk("10.-1.2.3:80") || !deployment.AddrOk("10.77.1.1:2379") {
 		t.Error("AddrOk")
 	}

@@ -9,6 +9,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMemberDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelDefs
+public import Perennial.TrustedCode.crypto.fips140
 
 @[expose] public section
 

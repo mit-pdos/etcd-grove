@@ -11,6 +11,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Repr
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentDefs
+public import Perennial.TrustedCode.crypto.fips140
 
 @[expose] public section
 
