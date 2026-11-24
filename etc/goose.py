@@ -387,7 +387,14 @@ PROJECTS = [
         # a336e97f9 on edc800c6f, branch `goose-lean-slicessort`): mvcc's `hashStorage.Store` sorts with
         # `slices.SortFunc(s.hashes, cmp.Compare on Revision)` instead of `sort.Slice` (whose reflection
         # Perennial does not model), an upstream-ready change.
-        rev="6b942d23f4aa521933095fd2ac8724e99ff38cdf",
+        # Then (etcd-dist D6 T4, 2026-11-24, the etcd_safe lead's decision) 8aa40fd5c (branch
+        # `goose-lean-slicessort-on-fmtattrs-snapguard`, on 6b942d23f): `applySnapshot` keeps the
+        # backend when the snapshot's index is at or below its consistent index (possible after a
+        # crash left the backend ahead of the WAL) and only moves the applied state to the snapshot,
+        # so the backend never moves back (nonissues/etcd-crash-backend-ahead-snapshot-regress.md).
+        # To be combined with the WAL's torn-save fix (`goose-lean-fmtattrs-tornsave` @ 768ecf158,
+        # branch etcd-safe-walfix/2026-11-24).
+        rev="8aa40fd5ce201b7658f8c1a856f3b416cd384a39",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
