@@ -77,12 +77,14 @@ jobs:
       # updating it or building; a no-op on a cache hit.
       - name: Fetch dependencies
         run: lake env true
-      # etcd's go.mod (the fork pinned in etc/goose.py) asks for Go 1.27.
-      # (Any 1.27; `etc/goose.py` itself runs `go` with its pinned GOTOOLCHAIN.)
+      # Exactly etc/goose.py's GO_TOOLCHAIN (go1.27.3): goose.py runs `go` with GOTOOLCHAIN set to it,
+      # and with another 1.27.x installed Go would download go1.27.3 into GOMODCACHE, where it refuses
+      # an overlay of GOROOT's files, which the Go model overlays of standard-library packages
+      # ([model] tables, etc/gomodels.py) are.
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.27.x"
+          go-version: "1.27.3"
           cache: false
       # Before the (long) build: the checked-in translations in `Code/` and `GeneratedProof/`
       # must be exactly what the pinned Perennial's translator produces from the pinned

@@ -1,10 +1,14 @@
 # Project models-net (etc/goose.py): `go/token`, names only, but `IsExported` (the net/rpc model's
-# `register` checks a service name with it), trusted: Net/TrustedCode/go/token.lean (its body calls
-# `unicode.IsUpper`, whose tables nothing translates; the model is exact on a name whose first byte
-# is ASCII and a choice point otherwise; models/README.md).
+# `register` checks a service name with it), a Go model (perennial#692, since 2026-11-24; until then
+# trusted, Net/TrustedCode/go/token.lean): the [model] table below, models/go/token/model.go (exact
+# on a name whose first byte is ASCII, internal/gomodel's `Choose` otherwise; its MODEL: comment says
+# why; models/README.md).
 translate = ["!*"]
-imports = ["!*"]
-trusted = ["IsExported"]
+imports = ["!*", "internal/gomodel"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+[model]
+dir = "models/go/token"
+replaces = ["IsExported"]
