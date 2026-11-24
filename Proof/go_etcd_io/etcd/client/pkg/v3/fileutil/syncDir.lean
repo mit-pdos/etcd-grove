@@ -36,13 +36,13 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proof
   wp_auto
   wp_apply wp_OpenDir p R j dq qc $$ [Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
   · iframe; isplitl [] <;> iassumption
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%herr, -⟩)
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%herr, #Hfe⟩)
   · subst herr
     wp_auto
     wp_apply wp_Fsync f fd p (DFrac.own 1) R j .idle n $$ [Hf Hfd] as %e ⟨Hf, Hfd, He⟩
     · iframe; isplitl [] <;> try iassumption
       isplitl [] <;> iassumption
-    icases He with (⟨%he, -⟩ | ⟨%he, #Hc⟩)
+    icases He with (⟨%he, #Hfe⟩ | ⟨%he, #Hc⟩)
     · cases e with
       | nil => exact absurd rfl he.1
       | ok i =>
@@ -50,13 +50,17 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proof
         wp_apply os.File.Close.wp_dirS f fd p j .idle $$ [Hf Hfd] as %e' -
         · iframe; iassumption
         iapply HΦ
+        isplitr
+        · iapply fmtErrorOkOrNil_of $$ Hfe
         iframe
         ileft; ipureintro; exact he.1
     · subst he
       wp_auto
-      wp_apply os.File.Close.wp_dirS f fd p j .idle $$ [Hf Hfd] as %e' -
+      wp_apply os.File.Close.wp_dirS f fd p j .idle $$ [Hf Hfd] as %e' #Hfe'
       · iframe; iassumption
       iapply HΦ
+      isplitr
+      · iexact Hfe'
       iframe
       by_cases he' : e' = interface.nil
       · iright; isplitr
@@ -69,6 +73,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proof
     | ok i =>
       wp_auto
       iapply HΦ
+      isplitr
+      · iexact Hfe
       iframe
       ileft; ipureintro; exact herr
 
@@ -84,10 +90,10 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proofAboveRoot
   wp_apply wp_OpenDir p R hp $$ [] as %f %err Hr
   · isplitl [] <;> try isplitl []
     all_goals iassumption
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%herr, #Hfe⟩)
   · subst herr
     wp_auto
-    wp_apply wp_Fsync f fd p (DFrac.own 1) $$ [Hf Hfd] as %e ⟨Hf, Hfd⟩
+    wp_apply wp_Fsync f fd p (DFrac.own 1) $$ [Hf Hfd] as %e ⟨#Hfe, Hf, Hfd⟩
     · iframe; iassumption
     cases e with
     | ok i =>
@@ -95,20 +101,20 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proofAboveRoot
       wp_apply os.File.Close.wp_outS f fd p $$ [Hf Hfd] as %e' -
       · iframe; iassumption
       iapply HΦ
-      itrivial
+      iexact Hfe
     | nil =>
       wp_auto
-      wp_apply os.File.Close.wp_outS f fd p $$ [Hf Hfd] as %e' -
+      wp_apply os.File.Close.wp_outS f fd p $$ [Hf Hfd] as %e' #Hfe'
       · iframe; iassumption
       iapply HΦ
-      itrivial
+      iexact Hfe'
   · obtain ⟨herr, rfl⟩ := herr
     cases err with
     | nil => exact absurd rfl herr
     | ok i =>
       wp_auto
       iapply HΦ
-      itrivial
+      iapply fmtErrorOkOrNil_of $$ Hfe
 
 end proof
 

@@ -164,7 +164,7 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 ((joinPath r0 cs).length : Int)) by word)]
   wp_auto
   ihave Hs := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).1 $$ Hp
-  wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ qc hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm⟩
+  wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ qc hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm, -⟩
   · (try rw [hkr]); iframe; iframe #
   (try rw [hkr])
   ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
@@ -178,7 +178,7 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   wp_auto
   rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
   wp_apply os.Mkdir.wp_takenS (joinPath r0 cs) b perm R j (.only [b]) _ (DFrac.own qn) h qc hb hbN
-      (by rw [hJ]; rfl) $$ [Hp Hn Hperm] as %e ⟨Hp, Hn, Hperm, %he⟩
+      (by rw [hJ]; rfl) $$ [Hp Hn Hperm] as %e ⟨Hp, Hn, Hperm, %he, -⟩
   · (try rw [hkr]); iframe; iframe #
   (try rw [hkr])
   cases e with

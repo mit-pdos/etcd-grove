@@ -30,7 +30,9 @@ public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
+public import Perennial.Code.hash
 public import Perennial.Code.internal.bytealg
+public import Perennial.Code.internal.byteorder
 public import Perennial.Code.internal.oserror
 public import Perennial.Code.internal.stringslite
 public import Perennial.Code.internal.testlog
@@ -77,7 +79,9 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | go_etcd_io_raft_v3_raftpb : ExternalInit pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
   | go_etcd_io_raft_v3_tracker : ExternalInit pkg_id.go_etcd_io.raft.v3.tracker _root_.Perennial.go_etcd_io.raft.v3.tracker.initialize'
   | google_golang_org_protobuf_proto : ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
+  | hash : ExternalInit pkg_id.hash _root_.Perennial.hash.initialize'
   | internal_bytealg : ExternalInit pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize'
+  | internal_byteorder : ExternalInit pkg_id.internal.byteorder _root_.Perennial.internal.byteorder.initialize'
   | internal_oserror : ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
   | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
   | internal_testlog : ExternalInit pkg_id.internal.testlog _root_.Perennial.internal.testlog.initialize'

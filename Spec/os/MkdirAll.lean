@@ -47,7 +47,8 @@ abbrev os.MkdirAll.specS : Prop :=
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q }}
     (App (App (Val (@! os.MkdirAll)) (Val #(child d b))) (Val #perm))
-  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
+  {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osPathS R d (DFrac.own qd) j ∗
+      osCallPerm (callKey R d) 1 ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ mkOut j b h (DFrac.own q) o ∗ mkNew o }}
 
 end spec

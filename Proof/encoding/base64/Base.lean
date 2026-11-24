@@ -20,7 +20,7 @@ opaque; now the package's initializer and `EncodeToString` are translated with t
 module
 
 public import GeneratedProof.encoding.base64
-public import Proof.internal.byteorder.Base
+public import Perennial.Proof.internal.byteorder.Base
 public import Perennial.Proof.strconv.Base
 
 @[expose] public section

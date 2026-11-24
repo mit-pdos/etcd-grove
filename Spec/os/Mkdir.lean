@@ -18,6 +18,7 @@ Proved in `Proof/os/Mkdir.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.os.SharedAu
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -60,7 +61,7 @@ abbrev os.Mkdir.specS : Prop :=
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q }}
     (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
+  {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ mkOut j b h (DFrac.own q) o ∗ mkNew o }}
 
 /-- `specS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
@@ -74,7 +75,7 @@ abbrev os.Mkdir.specSnc : Prop :=
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAUnc (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q }}
     (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
+  {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ mkOut j b h (DFrac.own q) o ∗ mkNew o }}
 
 end spec
