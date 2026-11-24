@@ -29,6 +29,9 @@ open AntCheck
 section pieces2
 variable [GooseExts]
 
+theorem logOf_nil [GooseExts] : logOf [] = [] := rfl
+theorem stores_cons [GooseExts] (e : EntryM) (es : List EntryM) : ((logOf (e :: es)).length != 0) = true := rfl
+
 /-- A reported request's append fact (B 68-71, `ToAppendFact(msgOf(m, to))`). -/
 def afOf (m : Msg) (to : w64) : AppendFact :=
   { src := nameOf m.src, dst := nameOf to, term := uint.Z m.term, prevLogIndex := uint.Z m.index,
@@ -102,7 +105,7 @@ theorem ox_acks_hb {x : OnDisk} (hx : odX S n id b r t v c [] [msgOf m to] ro ld
 
 /-- The log a follower's write leaves (B 328): the old log to just before `first`, then the
 entries. -/
-theorem ox_L1_cons {x : OnDisk} (hx : odX S n id b r t v c es [msgOf m to] ro ld ll ch tl vi = x)
+theorem ox_L1_cons {x : OnDisk} (hx : odX S n id b r t v c es M ro ld ll ch tl vi = x)
     (hne : es ≠ []) (h1 : 1 ≤ firstOf es) (h2 : firstOf es ≤ ((S.log[n]!).length : Int) + 1) :
     x.L1 = .ok ((S.log[n]!).take (firstOf es - 1).toNat ++ logOf es) := by
   unfold OnDisk.L1
@@ -276,8 +279,38 @@ theorem subSeq_ch1 {L ch : List Entry} {c : w64} {P : Prop} [Decidable P] (hcL :
       · exact hnp hp
     rw [← e, subSeq_one _ _ (by omega), hch h1, e2]
 
-theorem logOf_nil : logOf [] = [] := rfl
-theorem stores_cons (e : EntryM) (es : List EntryM) : ((logOf (e :: es)).length != 0) = true := rfl
+/-- A leader's own request (B 318-326) for a write with nothing stored. -/
+theorem ox_f_lnil {x : OnDisk} (hx : odX S n id b r t v c [] M ro ld ll ch tl vi = x)
+    (hr : r = .leader) :
+    x.f = .ok (AppendFact.mk (S.cfg.server[n]!) (S.cfg.server[n]!) (uint.Z t) 0 0 []
+      (if (uint.Z c != S.commitIndex[n]!) then uint.Z c else 0)) := by
+  subst hr
+  have hme : x.s.cfg.server[x.n]! = S.cfg.server[n]! := by subst hx; rfl
+  unfold OnDisk.f
+  rw [ox_leads hx, eok_bind, hme]
+  simp only [roleOf_beq_leader, decide_true, ite_true, ox_T1 hx, eok_bind, ox_es hx, ox_stores hx,
+    ox_moved hx, epure, logOf_nil, List.length_nil, bne_self_eq_false, Bool.false_eq_true, ite_false,
+    andM_false, ox_w hx, ev_commit, need]
+  cases (uint.Z c != S.commitIndex[n]!) <;> rfl
+
+/-- A leader's own request (B 318-326) for a write of `e :: es` at `first` (its log at its term
+`lT`). -/
+theorem ox_f_lcons {x : OnDisk} {e : EntryM} {es : List EntryM} {lT : List Entry}
+    (hx : odX S n id b r t v c (e :: es) M ro ld ll ch tl vi = x) (hr : r = .leader)
+    (hll : ll.get (uint.Z t) = .ok lT) :
+    x.f = .ok (AppendFact.mk (S.cfg.server[n]!) (S.cfg.server[n]!) (uint.Z t) (uint.Z e.Index' - 1)
+      (termAt lT (uint.Z e.Index' - 1)) (logOf (e :: es))
+      (if (uint.Z c != S.commitIndex[n]!) then uint.Z c else 0)) := by
+  subst hr
+  have hme : x.s.cfg.server[x.n]! = S.cfg.server[n]! := by subst hx; rfl
+  have hll' : x.ll = ll := by subst hx; rfl
+  unfold OnDisk.f
+  rw [ox_leads hx, eok_bind, hme, hll']
+  simp only [roleOf_beq_leader, decide_true, ite_true, ox_T1 hx, eok_bind, ox_es hx, ox_stores hx,
+    ox_moved hx, epure, ox_first hx, TermFn.has_of_get hll, hll, stores_cons, andM_true, ox_w hx,
+    ev_commit, need, firstOf]
+  cases (uint.Z c != S.commitIndex[n]!) <;> rfl
+
 
 /-- The suffix of the log from `k` (an announced write's `suffix`, B 353). -/
 theorem subSeq_suffix (L : List Entry) (k : Int) (h1 : 1 ≤ k) (h2 : k ≤ (L.length : Int) + 1) :
@@ -299,6 +332,56 @@ theorem subSeq_from {l : List EntryM} {K : Int} {es : List EntryM} (h1 : 1 ≤ K
   have := subSeq_suffix (logOf l) K h1 (by rw [logOf_length]; omega)
   rw [logOf_length] at this
   rw [this, hes]; unfold logOf; rw [List.map_drop]
+
+theorem ox_acks_lnil {x : OnDisk} (hx : odX S n id b r t v c [] M ro ld ll ch tl vi = x) (hr : r = .leader) :
+    x.acks = .ok false := by
+  subst hr
+  unfold OnDisk.acks
+  rw [ox_stores hx, ox_leads hx, ox_takes hx, ox_below hx]
+  simp only [logOf_nil, List.length_nil, bne_self_eq_false, andM_false, orM_false, roleOf_beq_leader,
+    decide_true, notM_ok, Bool.not_true]
+  rw [ox_moved hx]
+  cases (uint.Z c != S.commitIndex[n]!) <;> rfl
+
+theorem ox_conf1_lnil {x : OnDisk} (hx : odX S n id b r t v c [] M ro ld ll ch tl vi = x) (hr : r = .leader) :
+    x.conf1 = .ok (S.confirmed[n]!) := by
+  have hc0 : x.s.confirmed[x.n]! = S.confirmed[n]! := by subst hx; rfl
+  unfold OnDisk.conf1
+  rw [ox_stores hx, eok_bind, ox_acks_lnil hx hr, hc0]
+  rfl
+
+theorem ox_acks_lcons {x : OnDisk} {e : EntryM} {es : List EntryM}
+    (hx : odX S n id b r t v c (e :: es) M ro ld ll ch tl vi = x) (hr : r = .leader) :
+    x.acks = .ok true := by
+  subst hr
+  unfold OnDisk.acks
+  rw [ox_stores hx, ox_leads hx]
+  simp only [stores_cons, andM_true, roleOf_beq_leader, decide_true, orM_true]
+
+theorem ox_last_lcons {x : OnDisk} {e : EntryM} {es : List EntryM} {lT : List Entry}
+    (hx : odX S n id b r t v c (e :: es) M ro ld ll ch tl vi = x) (hr : r = .leader)
+    (hll : ll.get (uint.Z t) = .ok lT) :
+    x.last = .ok (uint.Z e.Index' - 1 + (es.length + 1 : Nat)) := by
+  unfold OnDisk.last
+  rw [ox_f_lcons hx hr hll, eok_bind]
+  simp [logOf, epure]
+
+theorem ox_ackAt_lcons {x : OnDisk} {e : EntryM} {es : List EntryM} {lT : List Entry}
+    (hx : odX S n id b r t v c (e :: es) M ro ld ll ch tl vi = x) (hr : r = .leader)
+    (hll : ll.get (uint.Z t) = .ok lT) :
+    x.ackAt = .ok (uint.Z e.Index' - 1 + (es.length + 1 : Nat)) := by
+  unfold OnDisk.ackAt
+  rw [ox_below hx, eok_bind]
+  exact ox_last_lcons hx hr hll
+
+theorem ox_conf1_lcons {x : OnDisk} {e : EntryM} {es : List EntryM} {lT : List Entry}
+    (hx : odX S n id b r t v c (e :: es) M ro ld ll ch tl vi = x) (hr : r = .leader)
+    (hll : ll.get (uint.Z t) = .ok lT) :
+    x.conf1 = .ok { term := uint.Z t, index := uint.Z e.Index' - 1 + (es.length + 1 : Nat) } := by
+  unfold OnDisk.conf1
+  rw [ox_stores hx, eok_bind]
+  simp only [stores_cons, ite_true, ox_T1 hx, eok_bind, ox_last_lcons hx hr hll]
+  rfl
 
 end pieces2
 
@@ -576,6 +659,97 @@ theorem onDisk_fhb {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) (m 
     ox_ch1 hX (ox_L1_nil hX) hcL, ox_newC hX (ox_L1_nil hX) hcL, hcm', hadv, hge', hcL',
     hv, hro, hty, hany, hsend, snapOk_msgOf _ _ _ hs, hcs, anyM_lc hlc, hsub,
     isPrefix_take, hcb1, hcb2, take_len_c hcL, hcc]
+  exact ⟨_, rfl, rfl⟩
+
+/-- **A leader's commit, nothing stored** (`AppRespEnd`'s `maybeCommit`, or a drain's later
+`Ready` after `Advance` stepped the leader's self-acknowledgement): its own request with the commit
+`Sendable` (`hsend`: in `InMemory`'s `chain`/`termLen`, `RecordedIn`), its confirmation at its term
+covering the commit (`hcbc`, `LeaderConfOk`). -/
+theorem onDisk_lcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (t v c : w64)
+    (M : List AntCheck.Msg) (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry))
+    (ch : List Entry) (tl : TermFn Int) (vi : SSet)
+    (ht : uint.Z t = S.currentTerm[n.val]!) (hv : nameOf v = S.vote n.val) (hro : ro[n.val]! = leader)
+    (hsend : sendableIn ld ll ch tl (AppendFact.mk (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z t) 0 0 []
+      (uint.Z c)) = .ok true)
+    (hcm : S.commitIndex[n.val]! < uint.Z c) (hcL : uint.Z c ≤ (S.log[n.val]!).length)
+    (hcbc : (S.confirmed[n.val]!).term = uint.Z t ∧ uint.Z c ≤ (S.confirmed[n.val]!).index)
+    (hcs : comparable ch ((S.log[n.val]!).take (uint.Z c).toNat) = .ok true)
+    (hlc : ∀ p ∈ ll, p.1 > uint.Z t → isPrefix ((S.log[n.val]!).take (uint.Z c).toNat) p.2 = .ok true)
+    (hch : uint.Z c ≤ ch.length → ch.take (uint.Z c).toNat = (S.log[n.val]!).take (uint.Z c).toNat) :
+    ∃ p : Pre, p.made = false ∧
+      S.onDisk n.val ⟨evReady (nodeId n) b .leader t v c [], M⟩ false ro ld ll ch tl vi
+        = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
+            S.msgs S.votes ld ll p
+            (if S.commitIndex[n.val]! < uint.Z c ∧ (ch.length : Int) < uint.Z c then
+              (S.log[n.val]!).take (uint.Z c).toNat else ch)
+            (tl.with (uint.Z t) (imax (tlOld tl (uint.Z t)) (uint.Z c))) vi)) := by
+  have hne : (uint.Z t != S.currentTerm[n.val]!) = false := by rw [ht]; exact bne_self_eq_false _
+  have hge : decide (uint.Z t ≥ S.currentTerm[n.val]!) = true := decide_eq_true (by omega)
+  have hv' : (nameOf v != S.vote n.val) = false := by rw [hv]; exact bne_self_eq_false _
+  have hst : (uint.Z t == S.currentTerm[n.val]!) = true := by rw [ht]; exact beq_self_eq_true _
+  have hcm' : (uint.Z c != S.commitIndex[n.val]!) = true := by rw [bne_iff_ne]; omega
+  have hadv : decide (uint.Z c > S.commitIndex[n.val]!) = true := decide_eq_true (by omega)
+  have hcL' : decide (uint.Z c ≤ ((S.log[n.val]!).length : Int)) = true := decide_eq_true hcL
+  have hcb1 : ((S.confirmed[n.val]!).term != uint.Z t) = false := by
+    rw [hcbc.1]; exact bne_self_eq_false _
+  have hcb2 : decide (uint.Z c > (S.confirmed[n.val]!).index) = false := decide_eq_false (by omega)
+  have hsub := subSeq_ch1 (P := S.commitIndex[n.val]! < uint.Z c) hcL hch (fun h => absurd hcm h)
+  od_run2 [ox_L1_nil hX, ox_f_lnil hX rfl, ox_acks_lnil hX rfl, ox_conf1_lnil hX rfl,
+    ox_ch1 hX (ox_L1_nil hX) hcL, ox_newC hX (ox_L1_nil hX) hcL, hne, hge, hv', hst, hcm', hadv, hcL',
+    hro, hsend, hcs, anyM_lc hlc, hsub, isPrefix_take, hcb1, hcb2, take_len_c hcL]
+  exact ⟨_, rfl, rfl⟩
+
+/-- **A leader's store** (`WinEnd`'s empty entry, `ProposeEnd`'s proposal: `appendEntry` at the
+log's end), its commit unchanged: its own request `Sendable` from its leader log `lT` at its term
+(`hll`, `hsend`: `InMemory`'s `ledLog`, which has the entries appended), its acknowledgement of
+its new last index recorded and confirmed. -/
+theorem onDisk_lstore {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (t v c : w64)
+    (e : EntryM) (es' : List EntryM)
+    (M : List AntCheck.Msg) (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry))
+    (ch : List Entry) (tl : TermFn Int) (vi : SSet) (lT : List Entry) (eqb : Bool)
+    (ht : uint.Z t = S.currentTerm[n.val]!) (hv : nameOf v = S.vote n.val) (hro : ro[n.val]! = leader)
+    (hfirst : uint.Z e.Index' = ((S.log[n.val]!).length : Int) + 1)
+    (hll : ll.get (uint.Z t) = .ok lT)
+    (hsend : sendableIn ld ll ch tl (AppendFact.mk (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z t)
+      (uint.Z e.Index' - 1) (termAt lT (uint.Z e.Index' - 1)) (logOf (e :: es')) 0) = .ok true)
+    (hcm : uint.Z c = S.commitIndex[n.val]!)
+    (hee : entriesEqual ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es'))
+      (S.log[n.val]!) = .ok eqb)
+    (hlm : ∀ b : Nat, matching ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es'))
+      (S.log[b]!) = .ok true)
+    (hcch : uint.Z c ≤ ch.length)
+    (hch : ch.take (uint.Z c).toNat =
+      ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')).take (uint.Z c).toNat) :
+    ∃ p : Pre, p.made = false ∧
+      S.onDisk n.val ⟨evReady (nodeId n) b .leader t v c (e :: es'), M⟩ false ro ld ll ch tl vi
+        = .ok (some (odS S n.val (uint.Z t) none
+            ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')) (uint.Z c) ro
+            { term := uint.Z t, index := uint.Z e.Index' - 1 + (es'.length + 1 : Nat) }
+            (lset.add S.msgs (ackFact (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z t)
+              (uint.Z e.Index' - 1 + (es'.length + 1 : Nat))))
+            S.votes ld ll p ch tl vi)) := by
+  have hne : (uint.Z t != S.currentTerm[n.val]!) = false := by rw [ht]; exact bne_self_eq_false _
+  have hge : decide (uint.Z t ≥ S.currentTerm[n.val]!) = true := decide_eq_true (by omega)
+  have hv' : (nameOf v != S.vote n.val) = false := by rw [hv]; exact bne_self_eq_false _
+  have hst : (uint.Z t == S.currentTerm[n.val]!) = true := by rw [ht]; exact beq_self_eq_true _
+  have hcm' : (uint.Z c != S.commitIndex[n.val]!) = false := by rw [hcm]; exact bne_self_eq_false _
+  have hadv : decide (uint.Z c > S.commitIndex[n.val]!) = false := decide_eq_false (by omega)
+  have hfo : firstOf (e :: es') = uint.Z e.Index' := rfl
+  have hf1 : 1 ≤ firstOf (e :: es') := by rw [hfo]; omega
+  have hf2 : firstOf (e :: es') ≤ ((S.log[n.val]!).length : Int) + 1 := by rw [hfo]; omega
+  have hfe : (uint.Z e.Index' == ((S.log[n.val]!).length : Int) + 1) = true := by
+    rw [hfirst]; exact beq_self_eq_true _
+  have hL1 := fun {x : OnDisk} (hx : odX S n.val (nodeId n) b .leader t v c (e :: es') M ro ld ll ch tl vi = x) =>
+    ox_L1_cons hx (List.cons_ne_nil e es') hf1 hf2
+  rw [hfo] at hL1
+  have hsuf := subSeq_suffix (S.log[n.val]!) _ hf1 hf2
+  rw [hfo] at hsuf
+  have hsub0 : subSeq ch 1 (uint.Z c) =
+      .ok (((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')).take (uint.Z c).toNat) := by
+    rw [← uZ_toNat c, subSeq_one _ _ (by omega), uZ_toNat c, hch]
+  od_run2 [hL1 hX, ox_f_lcons hX rfl hll, ox_acks_lcons hX rfl, ox_conf1_lcons hX rfl hll,
+    ox_ackAt_lcons hX rfl hll, ox_ch1_noadv hX hadv, hne, hge, hv', hst, hcm', hadv, hro, hsend, hfe,
+    hsuf, hsub0, isPrefix_take, hee, anyM_lm hlm, firstOf]
   exact ⟨_, rfl, rfl⟩
 
 end kinds
