@@ -26,13 +26,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 state (`txnObjAt`), made from `api` (`txnKvIs`; 2026-10-20, linkv-txn stage A). -/
 abbrev kv.Txn.spec : Prop :=
   ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAt api addr ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd }}
     (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ci)))
-  {{ (t : GoInterface), RET #t; levelTok 0 ∗ (∃ tp : Loc,
+  {{ (t : GoInterface), RET #t; ∃ tp : Loc,
       ⌜t = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp⌝ ∗
-      txnObjAt tp addr ci cd TxnBuild.empty ∗ txnKvIs tp api) }}
+      txnObjAt tp addr ci cd TxnBuild.empty ∗ txnKvIs tp api }}
 
 end spec
 
