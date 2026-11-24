@@ -11,7 +11,8 @@ which the theorem states, and which none of the semantics' own rules make.
 (approved by the user 2026-11-15, `notes/decisions.md`, "fsExt: no I/O errors on chosen files"; the
 lock requests and directory reads added with the user's approval of 2026-11-19, option (a) of
 `notes/wal-units/noioerr.md`, "Blocked"; the errnos of the `unlink`s and `rmdir`s that cannot succeed,
-`PathErrno`, with the user's approval of 2026-11-19, item 3 narrowed; the lock requests narrowed to the
+`PathErrno`, with the user's approval of 2026-11-19, item 3 narrowed, and of an `open` of an absent
+name, with the user's approval of 2026-11-23, claim #34; the lock requests narrowed to the
 blocking ones and the over-long paths left out, the user's decisions of 2026-11-19 after the attack on
 F1's fix, `notes/wal-units/noioerr.md`, session 7; `flock` left to `NoMapLockErr`, which covers it
 too, the user's decision of 2026-11-20).
@@ -144,13 +145,17 @@ def EISDIR : w64 := 21
 `fs/ext4/namei.c`). -/
 def ENOTEMPTY : w64 := 39
 
-/-- **The errno Linux gives an `unlink`/`rmdir` that cannot succeed**, in the cases a client needs
-(2026-11-19, the user's approval of item 3 of `notes/wal-units/noioerr.md`, narrowed): of the call
-`o` on the path in `v`, from `st`: `ENOENT` when the path has no entry and its parent is a directory
-(the last component's lookup finds nothing: `unlink(2)`, `rmdir(2)`); `EISDIR` for an `unlink` of a
-directory; `ENOTEMPTY` for an `rmdir` of a directory with an entry. Nothing for any other case or
-call. Each case is one where the semantics has no success (`Impl.lean`: `Unlink` succeeds only on a
-file, `Rmdir` only on an empty directory, both only where the entry exists). -/
+/-- **The errno Linux gives an `unlink`/`rmdir`/`open` that cannot succeed**, in the cases a client
+needs (2026-11-19, the user's approval of item 3 of `notes/wal-units/noioerr.md`, narrowed; `open`
+since 2026-11-23, the user's approval for claim #34, `wal.Exist`): of the call `o` on the path in
+`v`, from `st`: `ENOENT` when the path has no entry and its parent is a directory (the last
+component's lookup finds nothing: `unlink(2)`, `rmdir(2)`, and `open(2)` without `O_CREAT` from a
+state with a free fd, the result fd `-1`); `EISDIR` for an `unlink` of a directory; `ENOTEMPTY` for an
+`rmdir` of a directory with an entry. Nothing for any other case or call (an `open` with no free fd
+included: Linux takes the fd first, `EMFILE`, and `NoMapLockErr` speaks of it). Each case is one
+where the semantics has no success (`Impl.lean`: `Unlink` succeeds only on a file, `Rmdir` only on an
+empty directory, both only where the entry exists; `Open` without `O_CREAT` only where the path
+resolves, `OpenEffect`). -/
 def PathErrno (o : String) (v : val) (st : OsState) (e' : Expr) : Prop :=
   match o with
   | "Unlink" => ∃ (k : Nat) (p : GoString), v = PairV (osTokV k) (#p) ∧
@@ -160,6 +165,9 @@ def PathErrno (o : String) (v : val) (st : OsState) (e' : Expr) : Prop :=
       ((st.lookup p = none ∧ st.ParentDir p) → e' = Val (#ENOENT)) ∧
       ((∃ j b n, st.lookup p = some (.dir j) ∧ st.tree.entry j b = some n) →
         e' = Val (#ENOTEMPTY))
+  | "Open" => ∃ (k : Nat) (p : GoString) (fl : w64), v = PairV (osTokV k) (PairV (#p) (#fl)) ∧
+      ((fl.toNat / O_CREAT % 2 = 0 ∧ st.lookup p = none ∧ st.ParentDir p ∧ ∃ fd, FdFree st fd) →
+        e' = osRes (#(-1 : w64)) ENOENT)
   | _ => True
 
 end noIoErr
@@ -191,7 +199,11 @@ another process holds a reference to a description the program closed, a `/proc/
 `locks_spurious_eagain.go`), or a path that does not fit (`ENAMETOOLONG`). But the errno of a failing `unlink`/`rmdir` of a covered path
 that cannot succeed is Linux's (since 2026-11-19, `PathErrno`, asked only where the semantics has no outcome with errno 0): `ENOENT` for an absent entry in an
 existing directory, `EISDIR` for an `unlink` of a directory, `ENOTEMPTY` for an `rmdir` of a
-non-empty directory (no I/O error, no lack of memory, no signal changes it into another).
+non-empty directory (no I/O error, no lack of memory, no signal changes it into another); and so is
+that of a failing `open` without `O_CREAT` of a covered path with no entry whose parent is a
+directory, from a state with a free fd: `ENOENT` (approved by the user 2026-11-23, claim #34: Go's
+`wal.Exist` answers false only on `os.ErrNotExist`, and true on any other error of its `ReadDir`;
+measured as support: `TestNoIoErrOpenAbsent`).
 
 An environment assumption, not a property of Linux (evidence: assumed): the device returns no I/O
 error, the filesystem has room for these files, the kernel has memory for their locks and reads, and
