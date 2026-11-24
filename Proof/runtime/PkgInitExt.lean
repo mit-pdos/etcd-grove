@@ -24,7 +24,6 @@ public import Perennial.Code.bytes
 public import Perennial.Code.cmp
 public import Perennial.Code.context
 public import Perennial.Code.crypto.rand
-public import Perennial.Code.crypto.sha1
 public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
@@ -67,7 +66,6 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | cmp : ExternalInit pkg_id.cmp _root_.Perennial.cmp.initialize'
   | context : ExternalInit pkg_id.context _root_.Perennial.context.initialize'
   | crypto_rand : ExternalInit pkg_id.crypto.rand _root_.Perennial.crypto.rand.initialize'
-  | crypto_sha1 : ExternalInit pkg_id.crypto.sha1 _root_.Perennial.crypto.sha1.initialize'
   | encoding_binary : ExternalInit pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
   | errors : ExternalInit pkg_id.errors _root_.Perennial.errors.initialize'
   | fmt : ExternalInit pkg_id.fmt _root_.Perennial.fmt.initialize'
