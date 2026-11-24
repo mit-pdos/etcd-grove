@@ -59,7 +59,8 @@ theorem etcd_all_Main
 /-- **`MainChecked`, the program's entry point, does not panic** (`MainLinked.lean`'s
 `etcd_all.wp_MainChecked`). -/
 theorem etcd_all_MainChecked
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [_root_.Perennial.net.FieldAssumptions] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     etcd_all.MainChecked.spec (GF := GF) (hG := hG) :=
   etcd_all.wp_MainChecked
 

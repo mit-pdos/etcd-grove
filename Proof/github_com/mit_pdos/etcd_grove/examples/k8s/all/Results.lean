@@ -62,6 +62,7 @@ variable [NaInvG GF]
 /-- **`MainChecked`, the program's entry point, does not panic** (`MainLinked.lean`'s
 `k8s_all.wp_MainChecked`). -/
 theorem k8s_all_MainChecked [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [ContextReadErrs (GF := GF) (hG := hG)]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
