@@ -5545,3 +5545,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
+
+## 2026-11-23: `json.Marshal` of a membership record names its bytes (#24 J2, batch 2)
+
+- **Spec.** `encoding.json.MarshalMember.spec` and `MarshalConfigChangeContext.spec`
+  (`Spec/encoding/json/`): the post was `∃ b, sl ↦* b` (some fresh bytes, the smallest form, an axiom);
+  now `sl ↦* membership.memberJson m ps cs` (resp. `membership.ccJson c ps cs`,
+  `Proof/.../membership/Json.lean`), and both are theorems.
+- **Defect.** None. The post is stronger (the callers, `EtcdServer.AddMember`/`UpdateMember`/`promoteMember`,
+  only drop the binder `b`). #34's bootstrap needs `ctxs = json.Marshal` of each member.
+- **Evidence.** Proved over the encoding/json model's `Marshal` (per-type dispatch, `marshalVia`) and
+  membership's generated `JSONModelMarshal`/`jenc_*` over jsoncodec's proved encoders. Over the model as it
+  was, the old axiom was **not provable**: `jsoncodec.AppendString` panicked on any string outside
+  0x20..0x7e minus `" \ < > &`, and a member's name or URL may hold such bytes (the model was less defined
+  than Go there, so no premise a caller could discharge would do). The model's `AppendString` now writes
+  every string as Go 1.27.3's encoding/json does (approved on #24 by coordinator-E,
+  issuecomment-7118306081; tested exhaustively on short strings, `TestAppendString`).
+- **Proposed change.** As above.
+- **Decision.** Applied (branch `prove-ps2-jsonj4/2026-11-23`).
