@@ -177,9 +177,12 @@ theorem kvPc_first (γ : KdNames) (vs : List w64) (rs : List GoString) (dir : Go
   iintro ⟨#Hgl, HrS, Hvac⟩ Hfs Hgs
   unfold fsStartRes
   icases Hfs with ⟨#Hos, -, Ht⟩
+  -- (the rest of the replica's directory, `kvDirRest`, is dropped: kvnet has no other file)
   imod kvGen_first γ id (kvDFile d' J id) st ⊤ hst
     (fsInit_entry_none hst hp hempty _ hf.2.2.2.1)
-    (fsInit_entry_none hst hp hempty _ hf.2.2.2.2.1) $$ Hos Ht HrS Hvac with Hg
+    (fsInit_entry_none hst hp hempty _ hf.2.2.2.2.1) hp (fun _ _ => CoPset.mem_full)
+    $$ Hos Ht HrS Hvac with ⟨Hg, -⟩
+  ihave Hg := kvGen_of γ id (kvDFile d' J id) st.fs.roots _ $$ Hg
   imodintro
   unfold kvPc
   try dsimp only
