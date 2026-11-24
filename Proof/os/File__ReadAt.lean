@@ -54,6 +54,20 @@ private theorem wp_call3_gen (F : val) (b0 : GoSlice) (o0 n0 : w64) (Φ : val �
   ipureintro; exact ⟨rfl, rfl, rfl⟩
 
 set_option hygiene false in
+/-- `ReadAt`'s loop variables `b`, `off`, `n` (Go's locals) as fresh values with their equations. -/
+local macro "readat_start" : tactic => `(tactic| (
+    obtain ⟨b, hb⟩ : ∃ b : GoSlice, b = sl := ⟨_, rfl⟩
+    obtain ⟨o, ho⟩ : ∃ o : w64, o = off := ⟨_, rfl⟩
+    obtain ⟨n, hn⟩ : ∃ n : w64, n = W64 0 := ⟨_, rfl⟩
+    try simp only [os.modelMaxRW]
+    ihave Hbp : (b_ptr ↦ b : IProp GF) $$ [b]
+    · rw [hb]; iexact b
+    ihave Hop : (off_ptr ↦ o : IProp GF) $$ [off]
+    · rw [ho]; iexact off
+    ihave Hnp : (n_ptr ↦ n : IProp GF) $$ [n]
+    · rw [hn, show (W64 0 : w64) = zero_val w64 from rfl]; iexact n))
+
+set_option hygiene false in
 /-- `ReadAt`'s loop after an iteration's `pread`, its result `hre` over the bytes left. -/
 local macro "readat_tail" : tactic => `(tactic| (
     obtain ⟨k, hkl, rfl, hke0⟩ := hre
@@ -74,7 +88,9 @@ local macro "readat_tail" : tactic => `(tactic| (
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
         try wp_auto
-        iapply IH $$ %b %o %n %pre %cur %hk %hb' %ho' %hpre %hcl Hpre Hcur Hosfd Hm Hbs1 Hbs2 Hfd HΦ
+        wp_for_post
+        inext
+        iapply IH $$ %b %o %n %pre %cur %hk %hb' %ho' %hpre %hcl Hpre Hcur Hosfd Hm Hbs1 Hbs2 Hfd HΦ [$] [$] [$] [$] [$] [$]
       · rw [decide_eq_false he4]
         try wp_auto
         have he0' : ¬ e = W64 0 := he0
@@ -86,6 +102,7 @@ local macro "readat_tail" : tactic => `(tactic| (
         · iframe
         ihave Hbs := hbsj $$ [Hbs1 Hbs2]
         · iframe
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
@@ -108,8 +125,10 @@ local macro "readat_tail" : tactic => `(tactic| (
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
         try wp_auto
+        wp_for_post
+        inext
         iapply IH $$ %b %o %n %pre %_ %hk %hb' %ho' %hpre %(hc2l.trans hcl) Hpre Hcur Hosfd Hm Hbs1
-          Hbs2 Hfd HΦ
+          Hbs2 Hfd HΦ [$] [$] [$] [$] [$] [$]
       · rw [decide_eq_false he4]
         try wp_auto
         by_cases he0 : e = W64 0
@@ -168,9 +187,11 @@ local macro "readat_tail" : tactic => `(tactic| (
             rw [List.length_take, Nat.min_eq_left (by omega)]) $$ [Hbs1 Hbs2]
           · iframe
           try wp_auto
-          rw [show b.len - mm = (slice.slice b w8 mm b.len).len from rfl]
+          try rw [show b.len - mm = (slice.slice b w8 mm b.len).len from rfl]
+          wp_for_post
+          inext
           iapply IH $$ %(slice.slice b w8 mm b.len) %(o + mm) %(n + mm) %_ %_ %hk' %hb'' %ho''
-            %hpre' %hcl' Hpre Hc2 Hosfd Hm Hbs1 Hbs2 Hfd HΦ
+            %hpre' %hcl' Hpre Hc2 Hosfd Hm Hbs1 Hbs2 Hfd HΦ [$] [$] [$] [$] [$] [$]
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
           try wp_auto
@@ -180,6 +201,7 @@ local macro "readat_tail" : tactic => `(tactic| (
           · iframe
           ihave Hbs := hbsj $$ [Hbs1 Hbs2]
           · iframe
+          wp_for_post
           iapply HΦ
           iframe Hokn
           iframe
@@ -203,15 +225,8 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
   have h0 : ¬ (sint.Z off < sint.Z (W64 0)) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hoff
   rw [decide_eq_false h0]
-  wp_pure
-  wp_pure
-  wp_load
-  wp_pure
-  wp_pure
-  wp_pure
-  iapply wp_call3_gen
-  iintro %b %o %n %hbon
-  obtain ⟨hb, ho, hn⟩ := hbon
+  try wp_auto
+  readat_start
   icases ownSlice_wf sl _ vs $$ Hsl with %Hwf
   have hslz : sint.Z sl.len = vs.length := by
     have h1 := Hlen.1; have h2 := Hlen.2
@@ -245,8 +260,10 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
   have hoffN : off.toNat < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond off; split at this <;> omega
   try wp_auto
+  wp_for_bind
   iloeb as IH generalizing %b %o %n %pre %cur %hk %hb' %ho' %hpre %hcl Hpre Hcur Hosfd Hm Hbs1 Hbs2
     Hfd HΦ
+  wp_for_step
   have hnN : n.toNat < 2 ^ 63 := by omega
   have hoN : o.toNat = off.toNat + n.toNat := by rw [ho']; exact w64_add_toNat _ _ (by omega)
   have hoI : 0 ≤ o.toInt := by
@@ -283,6 +300,7 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
     ihave Hbs := hbsj $$ [Hbs1 Hbs2]
     · iframe
     ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+    wp_for_post
     iapply HΦ
     iframe Hokn
     iframe
@@ -457,15 +475,8 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
   have h0 : ¬ (sint.Z off < sint.Z (W64 0)) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hoff
   rw [decide_eq_false h0]
-  wp_pure
-  wp_pure
-  wp_load
-  wp_pure
-  wp_pure
-  wp_pure
-  iapply wp_call3_gen
-  iintro %b %o %n %hbon
-  obtain ⟨hb, ho, hn⟩ := hbon
+  try wp_auto
+  readat_start
   icases ownSlice_wf sl _ vs $$ Hsl with %Hwf
   have hslz : sint.Z sl.len = vs.length := by
     have h1 := Hlen.1; have h2 := Hlen.2
@@ -493,7 +504,9 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
   have hoffN : off.toNat < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond off; split at this <;> omega
   try wp_auto
+  wp_for_bind
   iloeb as IH generalizing %b %o %n %pre %cur %hk %hb' %ho' %hpl %hcl %hpv Hpre Hcur Hosfd Hbs Hfd HΦ
+  wp_for_step
   have hnN : n.toNat < 2 ^ 63 := by omega
   have hoN : o.toNat = off.toNat + n.toNat := by rw [ho']; exact w64_add_toNat _ _ (by omega)
   have hoI : 0 ≤ o.toInt := by
@@ -527,6 +540,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
     have hc0 : cur.length = 0 := by rw [← hblN, hl0]; rfl
     ihave Hsl := hcomb cur $$ [Hpre Hcur]
     · iframe
+    wp_for_post
     iapply HΦ
     iframe
     isplitl []
@@ -544,6 +558,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
       rw [hblZ, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
     rw [decide_eq_false hmx]
     try wp_auto
+    wp_stub os.fsPRead.impl
     wp_apply hread o b.len _ hoI $$ Hinv Hacc Hosfd Hbs as %r %e %hre %hemp %hPe Hosfd Hbs
     wp_apply wp_string_to_bytes r as %tmp ⟨Htmp, -⟩
     by_cases hr0 : r = []
@@ -556,7 +571,9 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
         try wp_auto
-        iapply IH $$ %b %o %n %pre %cur %hk %hb' %ho' %hpl %hcl %hpv Hpre Hcur Hosfd Hbs Hfd HΦ
+        wp_for_post
+        inext
+        iapply IH $$ %b %o %n %pre %cur %hk %hb' %ho' %hpl %hcl %hpv Hpre Hcur Hosfd Hbs Hfd HΦ [$] [$] [$] [$] [$] [$]
       · rw [decide_eq_false he4]
         try wp_auto
         by_cases he0 : e = W64 0
@@ -564,6 +581,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           try wp_auto
           ihave Hsl := hcomb cur $$ [Hpre Hcur]
           · iframe
+          wp_for_post
           iapply HΦ
           iframe
           isplitl []
@@ -582,6 +600,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
           ihave Hsl := hcomb cur $$ [Hpre Hcur]
           · iframe
+          wp_for_post
           iapply HΦ
           iframe
           isplitl []
@@ -602,8 +621,10 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
         try wp_auto
+        wp_for_post
+        inext
         iapply IH $$ %b %o %n %pre %_ %hk %hb' %ho' %hpl %(hc2l.trans hcl) %hpv Hpre Hcur Hosfd Hbs
-          Hfd HΦ
+          Hfd HΦ [$] [$] [$] [$] [$] [$]
       · rw [decide_eq_false he4]
         try wp_auto
         by_cases he0 : e = W64 0
@@ -658,15 +679,18 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
               rw [show i - off.toNat - n.toNat = i - o.toNat by omega]
               exact hre i bt hh (by omega) (by omega) (by omega)
           try wp_auto
-          rw [show b.len - mm = (slice.slice b w8 mm b.len).len from rfl]
+          try rw [show b.len - mm = (slice.slice b w8 mm b.len).len from rfl]
+          wp_for_post
+          inext
           iapply IH $$ %(slice.slice b w8 mm b.len) %(o + mm) %(n + mm) %_ %_ %hk' %hb'' %ho''
-            %hpl' %hcl' %hpv' Hpre Hc2 Hosfd Hbs Hfd HΦ
+            %hpl' %hcl' %hpv' Hpre Hc2 Hosfd Hbs Hfd HΦ [$] [$] [$] [$] [$] [$]
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
           try wp_auto
           wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
           ihave Hsl := hcomb _ $$ [Hpre Hcur]
           · iframe
+          wp_for_post
           iapply HΦ
           iframe
           isplitl []
