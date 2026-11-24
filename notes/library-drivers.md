@@ -41,10 +41,20 @@ Tests (`driver_test.go`): the machines as processes over real TCP; non-vacuity, 
 one process with every section's check counted (`reached`); both with the real libraries and with
 the models (`-tags netmodel`, the GOROOT farm of `models/goroot.py`).
 
-Statement and proof: to come (`Net/Spec/.../rpcdriver/TopLevelRobustness.lean`). The proof rests
-today on net/rpc's proved specs (`Net/Proof/net/rpc`), and on what is not proved yet:
-`HandleHTTP`, `http.Serve` on an rpc address (phase 7 S5), and the initializers of net/rpc and
-net/http (`notes/phase7-endstate.md`; the shared design of rpc over HTTP, L2).
+Statement (2026-11-24): `rpcdriver_robust.spec`
+(`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/rpcdriver/TopLevelRobustness.lean`): the
+two machines (`system σs σc`, `TopLevelDefs.lean`), neither crashing, deployed at `rpcAddrs`
+(`DistDeploy`), are `Robust []` for fewer than `rpcStepBound = 2 ^ 31 - 1` steps (net/rpc's
+server's thread bound, as the net/rpc kits). No premise but the deployment's start and the
+programs' typing facts. Proof: a `sorry` skeleton. The trust-base collection
+`etc/tcb-collections/rpcdriver.txt` lists the `sorry` and the interim axioms of net/rpc's and
+net/http's initializers (`Net/Proof/net/{rpc,http}/Init.lean`; their facts, `True`, in `PkgInit.lean`,
+shared with `Dsverify/`'s `InitHyp`s; retired by L2 step 6, net/rpc's and net/http's initializers
+proved). The proof will rest on net/rpc's proved specs (`Net/Proof/net/rpc`), and on what is not
+proved yet: `HandleHTTP`, `http.Serve` on an rpc address (phase 7 S5), the initializers
+(`notes/phase7-endstate.md`; the shared design of rpc over HTTP, L2). Note for the proof: the
+package fact of net/rpc is `True`, so what the server and client proofs read of net/rpc's
+variables (`errFrame`, the codec registry) must come from the boot, as the kits' `RpcBoot`.
 
 ## gRPC and net/http
 
