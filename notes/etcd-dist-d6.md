@@ -240,7 +240,7 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
 
 ## 9. T4 status (2026-11-24, branch `etcd-safe-d6t4/2026-11-24`)
 
-`NewServer.wp_proofC` (`Proof/.../etcdserver/NewServerCrash.lean`), WIP, not linked: over
+`NewServer.wp_proofC` (`Proof/.../etcdserver/NewServerCrash.lean`), WIP, not linked (built on the VM 2026-11-24 with `NewServerR`, the only `sorry` the case below): over
 `NewServer.specRAt` (`NewServerRAt.lean`: `specR` with `bootstrap`'s contract at the image,
 `bootstrapAtR`; `NewServer.wp_proofRG` now proves it, and `specR` follows, `NewServer.specR_of_RAt`).
 
