@@ -59,7 +59,6 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
   intro f fd name dqf dq dqm d m
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hm⟩
-  unfold os.model.inner os.model.arbitraryMode
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
@@ -136,7 +135,6 @@ private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG)
   intro Sio _ hS f fd name dqf dq dqm d m
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb⟩, Hosfd, Hm⟩
-  unfold os.model.inner os.model.arbitraryMode
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
