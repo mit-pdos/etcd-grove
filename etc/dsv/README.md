@@ -144,13 +144,14 @@ hooks. `sandbox.sh new` copies the scripts a container mounts into the run (`run
 | `sandbox.sh` | everything below (`sandbox.sh --help`: its usage): mirrors, module caches, tools, the built Lake packages, runs, their containers and settings, `verify` |
 | `challenge-prompt.txt` | the template of a run's opening prompt; `kitgen.py --export-challenge` fills it (KITGEN's `prompt`) into `DIR.lab/prompt.txt` |
 | `run.sh` | `run.sh RUN [PROMPT]` (default: the challenge's `prompt.txt`): the token (asked for once), the container checks (`check-env.sh` in the throwaway run `test1`, then `check-env.sh --challenge` in the run's own view), then the agent; `run.sh RUN --continue` resumes |
-| `experiment.sh` | unattended runs: `launch RUN [PROMPT]` (`run.sh` in a detached tmux session named RUN, with `loadlog.sh` and `snapshot.sh`), `wait RUN [HOURS]`, `resume RUN MESSAGE`, `finish RUN` (stop, tag the newest branch `final`, `sandbox.sh verify RUN final`) |
+| `experiment.sh` | unattended runs: `launch RUN [PROMPT]` (`run.sh` in a detached tmux session named RUN, with `loadlog.sh` and `snapshot.sh`), `wait RUN [HOURS] [--finish]`, `done RUN`, `resume RUN MESSAGE`, `finish RUN` (stop, tag the newest branch `final`, `sandbox.sh verify RUN final`) |
+| `rundone.py` | whether a run's agent is done (`experiment.sh wait` and `done`): no Lean, Go or test process using the CPU, and either the goal looks proved (no `sorry` left in the stubs or the changed Lean files on the branch `finish` would tag, all committed) with the transcripts quiet for `GOAL_IDLE` minutes (default 10), or no tool call for `IDLE` minutes (default 20) |
 | `proxy.py`, `inside.sh` | the allowlisting HTTPS proxy (`serve`, on the host; only `api.anthropic.com` and `platform.claude.com`, every request logged) and its bridge inside; `inside.sh` is the container's pid 2 (the bridge, then claude or a shell) |
 | `ask-hook.sh`, `model-hook.sh`, `managed-settings.json` | the managed settings of every run (read-only at `/etc/claude-code/managed-settings.json`): every `AskUserQuestion` is answered "take the option you would recommend and record it as your decision"; every subagent runs on the run's `subagents` model (default opus); workflows disabled |
 | `check-env.sh` | the environment and leak checks, in check views only: isolation, the proxy, the tools; with `--challenge`, the exported tree against `DIR.lab/MANIFEST.txt` (and no section of this README on the scripts), the skill's tree hash, `OFFLINE.txt`'s Go, the built packages and the checks `CLAUDE.md` lists (the kitlibs-check, on the tree as exported, refusing the template instance's `sorry` alone) |
 | `verify.sh`, `statement/comparator-check.sh`, `statement/goal-check.sh` | the independent check of a result (below) |
 | `statement/comparator-tools.sh` | builds the comparator, lean4export, landrun and nanoda into `cache/tools/comparator` |
-| `loadlog.sh`, `snapshot.sh` | while a run's container runs, once a minute: the host's load (`load.log`), and the work tree as a commit of `snapshots.git`, outside the agent's view |
+| `loadlog.sh`, `snapshot.sh` | while a run's container runs, once a minute: the host's load (`load.log`), and the work tree with the agent's other checkouts (its worktrees, under `.lab-worktrees/NAME`) as a commit of `snapshots.git` when something changed (`snapshot.log`: every pass), outside the agent's view |
 
 ### The host
 
@@ -185,7 +186,7 @@ challenge's repository, `home/.claude/projects` the transcripts), `goal/` (the e
 `CHALLENGE.txt` and the challenge commit: never in the agent's view), `meta.txt` (the challenge, the
 `DIR.lab` files' sha256s, the packages' key, the claude, Lean and Go versions, every mirror's head,
 each settings change), `config` (settings), `proxy.log`, `check*.log`, `interventions.log`,
-`load.log`, `snapshots.git` and `verify-TAG.log`.
+`load.log`, `snapshots.git` (with `snapshot.log`) and `verify-TAG.log`.
 
 ### The token
 
@@ -217,7 +218,8 @@ $S new RUN --challenge DIR                   # as root (sudo)
 # the run
 etc/dsv/experiment.sh launch RUN [PROMPT]    # default: the challenge's prompt.txt; PROMPT: a file, or NAME
                                              #   for $DSV_LAB/prompts/NAME.txt
-etc/dsv/experiment.sh wait RUN               # DONE, TIMEOUT, EXITED or DIALOG (sudo tmux attach -t RUN)
+etc/dsv/experiment.sh wait RUN               # DONE, TIMEOUT, EXITED or DIALOG (sudo tmux attach -t RUN);
+                                             #   --finish: then finish (at DONE or EXITED)
 etc/dsv/experiment.sh finish RUN             # tag final, verify: runs/RUN/verify-final.log
 ```
 
