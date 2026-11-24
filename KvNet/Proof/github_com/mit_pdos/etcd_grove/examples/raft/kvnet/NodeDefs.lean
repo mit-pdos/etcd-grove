@@ -6,12 +6,25 @@ kvnet's node (`node.go`), its vocabulary for the server's specs (`Node.serve`, `
   (persistent), a parameter of the node's specs, fixed by the store layer (kvnet's `isReplica`, after
   decision B), with the replica's methods' specs (`Replica.propose`, `Replica.read`, ...) stated over
   it and taken by `Node.handle`'s proof as callee hypotheses.
-* `isNodeS F rep nd γ N id n` (persistent): the node `nd`: its replica (`rep r id`), its transport
-  (`isTransportCore`), its stats, and the replica's raft node (the interface over `*node` at `n`).
+* `stp : NodeConfig → GMap w64 GoString → Loc → GoInterface → IProp GF`, **the incarnation's stopper**
+  (2026-11-24, G5: `notes/kvnet-g5-stop.md`), a parameter like `rep`: what `start` gives with an
+  incarnation (replica `r`, transport `tv`) and `stopIncarnation` spends to give the start resource back.
+  The store layer fixes it (`repStopper` and the transport's `ptStop`, with the start resource's
+  persistent part).
+* `nodeLockInv` (`Node.mu`'s): the current incarnation: the fields `r` and `t`, the replica's raft
+  node `n` (`isNode`), `rep r id`, and the stopper.
+* `stopLaw`/`startLaw` (persistent), **the restart's laws**, at a resource `R` (the start resource,
+  `S cfg.ID cfg.Dir cfg.Opts M` where `StartNode` builds them): `stopIncarnation` turns the stopper into
+  `R`, and `start` turns `R` into a new incarnation with its stopper. `Node.restart`'s proof uses
+  only these, so it is generic; `startNode` takes them, `StartNode`'s proof gives them from
+  `start.spec`/`stopIncarnation.spec` at the cluster `isNodeS` names.
+* `isNodeS F rep stp nd γ N id` (persistent): the node `nd`: its configuration (with the address
+  map), stats, transport constructor (`ptCtor`), the step law, the restart's laws, and its mutex.
 -/
 module
 
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TransportDefs
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.PeerTransport
 
 @[expose] public section
 
@@ -34,18 +47,65 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The node `nd` (see the file header). -/
-def isNodeS (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (nd : Loc) (γ : Cluster) (N : Namespace)
-    (id : w64) (n : NodeH) : IProp GF :=
-  iprop(∃ (r t sp : Loc),
-    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"r"] ↦□ r ∗
-    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"t"] ↦□ t ∗
-    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"stats"] ↦□ sp ∗ isStats sp ∗
+/-- The node's stopper parameter's type (see the file header). -/
+abbrev NodeStopper (GF : BundledGFunctors) [GoGlobalContext] :=
+  github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeConfig → GMap w64 GoString → Loc → GoInterface →
+    IProp GF
+
+/-- **`Node.mu`'s invariant**: the current incarnation (see the file header). -/
+def nodeLockInv (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF) (nd : Loc)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeConfig) (M : GMap w64 GoString)
+    (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
+  iprop(∃ (r : Loc) (tv : GoInterface) (n : NodeH),
+    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"r"] ↦ r ∗
+    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"t"] ↦ tv ∗
     r.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica, go!"node"] ↦□
       interface.mkOk (go.GoType.PointerType node.ty) #n.loc ∗
-    □ rep r id ∗ isTransportCore F t γ N id n)
+    □ rep r id ∗ isNode n γ N id ∗ stp cfg M r tv)
 
-instance isNodeS_persistent F rep nd γ N id n : Persistent (isNodeS (GF := GF) F rep nd γ N id n) := by
+/-- `stopIncarnation` turns the stopper into `R` (see the file header). -/
+def stopLaw (stp : NodeStopper GF) (cfg : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeConfig) (M : GMap w64 GoString) (R : IProp GF) :
+    IProp GF :=
+  iprop(□ ∀ (r : Loc) (tv : GoInterface),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗ stp cfg M r tv }}
+      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.stopIncarnation)) (Val #r)) (Val #tv))
+    {{ RET #(); R }})
+
+instance stopLaw_persistent stp cfg M R : Persistent (stopLaw (GF := GF) stp cfg M R) := by
+  unfold stopLaw; infer_instance
+
+/-- `start` turns `R` into a new incarnation and its stopper (see the file header). -/
+def startLaw (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeConfig) (M : GMap w64 GoString) (R : IProp GF) (γ : Cluster) (N : Namespace) :
+    IProp GF :=
+  iprop(□ ∀ (sts : Loc) (f : GoFunc),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗ cfg.Addrs' ↦$□ M ∗ R ∗ isStats sts ∗
+        ptCtor F γ N cfg.ID' f }}
+      (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.start)) (Val #cfg)) (Val #sts)) (Val #f))
+    {{ (r : Loc) (tv : GoInterface), RET (PairV #r #tv); ∃ n : NodeH,
+        r.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n.loc ∗
+        □ rep r cfg.ID' ∗ isNode n γ N cfg.ID' ∗ stp cfg M r tv }})
+
+instance startLaw_persistent F rep stp cfg M R γ N :
+    Persistent (startLaw (GF := GF) F rep stp cfg M R γ N) := by
+  unfold startLaw; infer_instance
+
+/-- The node `nd` (see the file header). -/
+def isNodeS (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF) (nd : Loc)
+    (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
+  iprop(∃ (cfg : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeConfig) (M : GMap w64 GoString)
+      (sp : Loc) (f : GoFunc),
+    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"cfg"] ↦□ cfg ∗ ⌜cfg.ID' = id⌝ ∗
+    cfg.Addrs' ↦$□ M ∗
+    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"stats"] ↦□ sp ∗ isStats sp ∗
+    nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"newT"] ↦□ f ∗ ptCtor F γ N id f ∗
+    stepLaw F γ N id ∗ ⌜Cluster.trace γ = none⌝ ∗
+    (∃ R : IProp GF, stopLaw stp cfg M R ∗ startLaw F rep stp cfg M R γ N) ∗
+    sync.isMutex (nd.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node, go!"mu"])
+      (nodeLockInv rep stp nd cfg M γ N id))
+
+instance isNodeS_persistent F rep stp nd γ N id :
+    Persistent (isNodeS (GF := GF) F rep stp nd γ N id) := by
   unfold isNodeS; infer_instance
 
 /-- **The conf law** (persistent), the seam to the store's decision on configuration changes: a
