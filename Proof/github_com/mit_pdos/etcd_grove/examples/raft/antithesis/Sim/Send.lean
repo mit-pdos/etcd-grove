@@ -248,6 +248,451 @@ theorem leader_sendable {S : State} {n : Fin 3} {v : NodeView} (hb : BindingOk S
 
 end send
 
+section ack
+variable [GooseExts]
+
+theorem andM_ok (a b : Bool) : AntCheck.andM (.ok a) (.ok b) = .ok (a && b) := by cases a <;> rfl
+
+theorem termAt_pos {l : List Entry} {k : Int} (h1 : 0 < k) (h2 : k ≤ l.length) :
+    termAt l k = (l[(k - 1).toNat]!).term := by
+  unfold termAt; simp only [gt_iff_lt, h1, h2, and_self, ite_true]
+
+theorem TermFn.mem_of_get {α : Type} {f : TermFn α} {t : Int} {x : α} (h : f.get t = .ok x) :
+    (t, x) ∈ f := by
+  unfold TermFn.get at h
+  split at h
+  · rename_i p hp
+    have h1 := List.find?_some hp
+    have h2 := List.mem_of_find?_eq_some hp
+    obtain ⟨a, b⟩ := p
+    simp only [beq_iff_eq] at h1
+    cases h; subst h1; exact h2
+  · cases h
+
+/-- What an accepting acknowledgement's guard checks besides its index (B 571): `PrevOk` and
+`HasFirst` of the handled append at the node, as conditions. -/
+def AckGuard (S : State) (n : Nat) (m : Msg) (id : w64) : Prop :=
+  ((recvFact m id).prevLogIndex = 0 ∨ ((recvFact m id).prevLogIndex ≤ (S.log[n]!).length ∧
+      ((S.log[n]!)[((recvFact m id).prevLogIndex - 1).toNat]!).term = (recvFact m id).prevLogTerm)) ∧
+    ∀ k < (logOf m.entries).length, HFAt S n (recvFact m id) k
+
+instance (S : State) (n : Nat) (m : Msg) (id : w64) : Decidable (AckGuard S n m id) := by
+  unfold AckGuard; infer_instance
+
+/-- The guard of an accepting acknowledgement (B 571) evaluated. -/
+theorem ack_guard_eq (S : State) (n : Nat) (m : Msg) (id : w64) (x : Int) :
+    AntCheck.andM (.ok (x == recvLast m)) (AntCheck.andM (S.prevOk n (recvFact m id))
+      (S.hasFirst n (recvFact m id) ((logOf m.entries).length : Int))) =
+    .ok (decide (x = recvLast m ∧ AckGuard S n m id)) := by
+  have h0 : 0 ≤ (recvFact m id).prevLogIndex := by unfold recvFact; simp only; word
+  rw [prevOk_eq S n _ h0, hasFirst_eq S n _ h0 (logOf m.entries).length (Nat.le_refl _), andM_ok, andM_ok]
+  congr 1
+  unfold AckGuard
+  rw [Bool.eq_iff_iff]
+  simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq]
+
+/-- Log matching (`RaftLaws`' third law) at position `k` of two certified logs, in the binding's terms. -/
+theorem match_logOf {G : RaftFacts} (hl : RaftLaws G) {L1 L2 : List EntryM} (h1 : L1 ∈ G.logs)
+    (h2 : L2 ∈ G.logs) {k : Nat} (hk : 1 ≤ k) (hk1 : k ≤ L1.length) (hk2 : k ≤ L2.length)
+    (ht : termAt (logOf L1) k = termAt (logOf L2) k) : (logOf L1).take k = (logOf L2).take k := by
+  have he : L1[k - 1]? = some L1[k - 1] := List.getElem?_eq_getElem (by omega)
+  have hf : L2[k - 1]? = some L2[k - 1] := List.getElem?_eq_getElem (by omega)
+  have t1 := termAt_logOf he
+  have t2 := termAt_logOf hf
+  have e1 : (((k - 1 : Nat)) : Int) + 1 = (k : Int) := by omega
+  rw [e1] at t1 t2
+  have hef : (L1[k - 1]).Term' = (L2[k - 1]).Term' := uint_Z_inj.mp (by rw [← t1, ← t2, ht])
+  have := hl.2.2.1 L1 h1 L2 h2 (k - 1) _ _ he hf hef
+  rw [show k - 1 + 1 = k by omega] at this
+  unfold logOf
+  rw [← List.map_take, ← List.map_take, this]
+
+/-- **The prefix an accepting acknowledgement confirms** (B 571-575): the node's log and the leader
+log of the append's term agree up to its last index. Its last entry (or, with no entries, the
+previous one) is at the same term in both: in the node's log by `PrevOk`/`HasFirst`, in the leader
+log by the append's `Sendable` slice; log matching (`RaftLaws`) between the certified logs. -/
+theorem ack_match {S : State} {net : List Msg} {G : RaftFacts} (hl : RaftLaws G) (hgo : GlobalOk S net G)
+    {n : Fin 3} {m : Msg} {l : List Entry} (hll : S.ledLog.get (uint.Z m.term) = .ok l)
+    (hsd : S.sendable (recvFact m (nodeId n)) = .ok true) (hpos : 1 ≤ recvLast m)
+    (hg : AckGuard S n.val m (nodeId n)) :
+    recvLast m ≤ (S.log[n.val]!).length ∧ recvLast m ≤ l.length ∧
+      (S.log[n.val]!).take (recvLast m).toNat = l.take (recvLast m).toNat := by
+  obtain ⟨L1, hL1, hA⟩ := hgo.2.2.1 n
+  obtain ⟨L2, hL2, hl2, -⟩ := hgo.2.2.2.1 _ (TermFn.mem_of_get hll)
+  simp only at hl2
+  obtain ⟨l', hl', hlen, hpt, sub, hsub, heq⟩ := sendable_inv hsd
+  obtain ⟨hpv, hhf⟩ := hg
+  unfold recvFact at hl' hlen hpt hsub heq hpv hhf
+  simp only at hl' hlen hpt hsub heq hpv hhf
+  rw [hll] at hl'; cases hl'
+  unfold recvLast at *
+  rw [logOf_length] at hlen hsub hhf hpos ⊢
+  have hP : 0 ≤ uint.Z m.index := by word
+  unfold HFAt at hhf
+  generalize hAdef : S.log[n.val]! = A at hA hpv hhf ⊢
+  generalize hK : m.entries.length = K at hlen hsub hhf hpos heq ⊢
+  have key : uint.Z m.index + (K : Int) ≤ A.length ∧
+      termAt A (uint.Z m.index + K) = termAt l (uint.Z m.index + K) := by
+    by_cases hK0 : K = 0
+    · rw [hK0] at hpos ⊢
+      have e : uint.Z m.index + ((0 : Nat) : Int) = uint.Z m.index := by omega
+      rw [e] at hpos ⊢
+      rcases hpv with h | ⟨h1, h2⟩
+      · omega
+      · exact ⟨h1, by rw [termAt_pos (by omega) h1, h2, hpt]⟩
+    · obtain ⟨h1, h2⟩ := hhf (K - 1) (by omega)
+      have e1 : uint.Z m.index + (((K - 1 : Nat) : Int) + 1) = uint.Z m.index + K := by omega
+      rw [e1] at h1 h2
+      refine ⟨h1, ?_⟩
+      rw [termAt_pos (by omega) h1, h2, termAt_pos (by omega) hlen]
+      obtain ⟨hl1, hl2⟩ := entriesEqual_true heq
+      have hPn : ((uint.Z m.index).toNat : Int) = uint.Z m.index := by omega
+      have hs := subSeq_nat l (uint.Z m.index).toNat K (by omega)
+      rw [hPn, hsub] at hs
+      cases hs
+      have := hl2 (K - 1) (by rw [logOf_length]; omega)
+      rw [this]
+      have i1 : K - 1 < ((l.drop (uint.Z m.index).toNat).take K).length := by
+        rw [List.length_take, List.length_drop]; omega
+      rw [getElem!_pos ((l.drop (uint.Z m.index).toNat).take K) (K - 1) i1, getElem!_pos l (uint.Z m.index + (K : Int) - 1).toNat (by omega)]
+      simp only [List.getElem_take, List.getElem_drop]
+      congr 2
+      omega
+  obtain ⟨k1, k2⟩ := key
+  refine ⟨k1, hlen, ?_⟩
+  have hk : ((uint.Z m.index + (K : Int)).toNat : Int) = uint.Z m.index + K := by omega
+  subst hA hl2
+  rw [logOf_length] at k1 hlen
+  rw [← hk] at k2
+  exact match_logOf hl hL1 hL2 (by omega) (by omega) (by omega) k2
+
+theorem ackConf_term (old : Confirmed) (t last : Int) : (ackConf old t last).term = t := rfl
+
+theorem ackConf_ge (old : Confirmed) (t last : Int) :
+    last ≤ (ackConf old t last).index ∧ (old.term = t → old.index ≤ (ackConf old t last).index) := by
+  unfold ackConf imax
+  by_cases h : old.term = t
+  · simp only [h, beq_self_eq_true, ite_true]
+    constructor <;> (try intro _) <;> split <;> omega
+  · have hb : (old.term == t) = false := by simpa using h
+    simp only [hb, Bool.false_eq_true, ite_false]
+    exact ⟨Int.le_refl _, fun h' => absurd h' h⟩
+
+theorem ack_ne_vote : go!"ack" ≠ go!"vote" := by decide
+theorem grant_ne_vote : go!"grant" ≠ go!"vote" := by decide
+theorem grant_ne_ack : go!"grant" ≠ go!"ack" := by decide
+
+theorem cfg3_has : ∀ j : Fin 3, cfg3.server.has (nameOf (nodeId j)) = true := by decide +kernel
+
+/-- `SendOk` of a grant: the grant fact added. -/
+theorem SendOk.ofGrant {S : State} {n : Fin 3} {q : Msg} (hsh : Shape S) (hb : BindingOk S)
+    (hty : q.ty = .voteResp) (hsrc : q.src = nodeId n) (hterm : uint.Z q.term ≤ S.currentTerm[n.val]!)
+    (j : Fin 3) (hj : q.dst = nodeId j) :
+    SendOk S n q (lset.add S.msgs (Fact.mk go!"grant" (nameOf (nodeId n)) (nameOf q.dst) (uint.Z q.term) 0 0 0))
+      S.confirmed where
+  sub := fun _ h => mem_lset_add.mpr (.inl h)
+  new := fun f hf hn => by
+    rcases mem_lset_add.mp hf with h | h
+    · exact absurd h hn
+    · subst h; exact ⟨grant_ne_vote, rfl, j, by rw [hj]⟩
+  clen := hsh.2.2.2.2.2.2.2.2.2.2.1
+  cother := fun _ _ => rfl
+  conf := hb.2.2.2.2.2.2.1 n
+  acks := fun a ha ht hs hte => by
+    rcases mem_lset_add.mp ha with h | h
+    · exact hb.2.2.2.2.2.2.2.1 n a h ht hs hte
+    · subst h; exact absurd ht grant_ne_ack
+  ty := .inr (.inl hty)
+  src := ⟨hsrc, hterm⟩
+  dst := ⟨j, hj⟩
+  req := fun h => by rcases h with h | h <;> rw [hty] at h <;> cases h
+  vote := fun h => by rw [hty] at h; cases h
+  grant := fun _ => mem_lset_add.mpr (.inr (by rw [hsrc]))
+  ack := fun h => by have h1 := h.1; rw [hty] at h1; cases h1
+
+/-- `SendOk` of a stale acknowledgement (B 577-580): an ack fact at the commit index added. -/
+theorem SendOk.ofStale {S : State} {n : Fin 3} {q m : Msg} (hsh : Shape S) (hb : BindingOk S)
+    (hty : q.ty = .appResp) (hsrc : q.src = nodeId n) (hterm : uint.Z q.term ≤ S.currentTerm[n.val]!)
+    (j : Fin 3) (hj : q.dst = nodeId j) (hqd : q.dst = m.src) (hqt : uint.Z q.term = uint.Z m.term)
+    (hqi : uint.Z q.index = S.commitIndex[n.val]!) :
+    SendOk S n q (lset.add S.msgs (ackFact (nameOf (nodeId n)) (nameOf m.src) (uint.Z m.term)
+      S.commitIndex[n.val]!)) S.confirmed where
+  sub := fun _ h => mem_lset_add.mpr (.inl h)
+  new := fun f hf hn => by
+    rcases mem_lset_add.mp hf with h | h
+    · exact absurd h hn
+    · subst h; exact ⟨ack_ne_vote, rfl, j, by rw [← hqd, hj]; rfl⟩
+  clen := hsh.2.2.2.2.2.2.2.2.2.2.1
+  cother := fun _ _ => rfl
+  conf := hb.2.2.2.2.2.2.1 n
+  acks := fun a ha ht hs hte => by
+    rcases mem_lset_add.mp ha with h | h
+    · exact hb.2.2.2.2.2.2.2.1 n a h ht hs hte
+    · subst h; exact .inr (Int.le_refl _)
+  ty := .inr (.inr (.inr (.inl hty)))
+  src := ⟨hsrc, hterm⟩
+  dst := ⟨j, hj⟩
+  req := fun h => by rcases h with h | h <;> rw [hty] at h <;> cases h
+  vote := fun h => by rw [hty] at h; cases h
+  grant := fun h => by have h1 := h.1; rw [hty] at h1; cases h1
+  ack := fun _ => ⟨_, mem_lset_add.mpr (.inr rfl), rfl, by rw [hsrc]; rfl, by rw [hqd]; rfl,
+    by rw [hqt]; rfl, by rw [hqi]; exact Int.le_refl _⟩
+
+/-- `SendOk` of an accepting acknowledgement (B 571-575): its ack fact added, the node's
+confirmation moved to the prefix it matched (`ack_match`), above its acks at its term. -/
+theorem SendOk.ofAck {S : State} {net : List Msg} {G : RaftFacts} {n : Fin 3} {q m : Msg} (hsh : Shape S)
+    (hb : BindingOk S) (hl : RaftLaws G) (hgo : GlobalOk S net G)
+    (hty : q.ty = .appResp) (hsrc : q.src = nodeId n) (hct : S.currentTerm[n.val]! = uint.Z m.term)
+    (j : Fin 3) (hj : q.dst = nodeId j) (hqd : q.dst = m.src) (hqt : uint.Z q.term = uint.Z m.term)
+    (hqi : uint.Z q.index = recvLast m) (hi : uint.Z q.index ≠ 0)
+    (hsd : S.sendable (recvFact m (nodeId n)) = .ok true) (hg : AckGuard S n.val m (nodeId n)) :
+    SendOk S n q (lset.add S.msgs (ackFact (nameOf (nodeId n)) (nameOf m.src) (uint.Z m.term) (recvLast m)))
+      (S.confirmed.set n.val (ackConf S.confirmed[n.val]! (uint.Z m.term) (recvLast m))) := by
+  have hlen3 : S.confirmed.length = 3 := hsh.2.2.2.2.2.2.2.2.2.2.1
+  have hCn : (S.confirmed.set n.val (ackConf S.confirmed[n.val]! (uint.Z m.term) (recvLast m)))[n.val]! =
+      ackConf S.confirmed[n.val]! (uint.Z m.term) (recvLast m) :=
+    get!_set_self _ (by rw [hlen3]; exact n.isLt)
+  have hq0 : 0 ≤ uint.Z q.index := by word
+  have hge := ackConf_ge S.confirmed[n.val]! (uint.Z m.term) (recvLast m)
+  refine
+   { sub := fun _ h => mem_lset_add.mpr (.inl h)
+     new := ?_
+     clen := by rw [List.length_set]; exact hlen3
+     cother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
+     conf := ?_
+     acks := ?_
+     ty := .inr (.inr (.inr (.inl hty)))
+     src := ⟨hsrc, by omega⟩
+     dst := ⟨j, hj⟩
+     req := fun h => by rcases h with h | h <;> rw [hty] at h <;> cases h
+     vote := fun h => by rw [hty] at h; cases h
+     grant := fun h => by have h1 := h.1; rw [hty] at h1; cases h1
+     ack := fun _ => ⟨_, mem_lset_add.mpr (.inr rfl), rfl, by rw [hsrc]; rfl, by rw [hqd]; rfl,
+       by rw [hqt]; rfl, by rw [hqi]; exact Int.le_refl _⟩ }
+  · intro f hf hn
+    rcases mem_lset_add.mp hf with h | h
+    · exact absurd h hn
+    · subst h; exact ⟨ack_ne_vote, rfl, j, by rw [← hqd, hj]; rfl⟩
+  · intro l hll
+    rw [hCn] at hll ⊢
+    rw [ackConf_term] at hll
+    obtain ⟨m1, m2, m3⟩ := ack_match hl hgo hll hsd (by omega) hg
+    by_cases ht : (S.confirmed[n.val]!).term = uint.Z m.term
+    · obtain ⟨o1, o2, o3⟩ := hb.2.2.2.2.2.2.1 n l (by rw [ht]; exact hll)
+      have e : (ackConf S.confirmed[n.val]! (uint.Z m.term) (recvLast m)).index =
+          imax (S.confirmed[n.val]!).index (recvLast m) := by
+        unfold ackConf; simp only [ht, beq_self_eq_true, ite_true]
+      rw [e]; unfold imax
+      split
+      · exact ⟨o1, o2, o3⟩
+      · exact ⟨m1, m2, m3⟩
+    · have e : (ackConf S.confirmed[n.val]! (uint.Z m.term) (recvLast m)).index = recvLast m := by
+        have hb' : ((S.confirmed[n.val]!).term == uint.Z m.term) = false := by simpa using ht
+        unfold ackConf; simp only [hb', Bool.false_eq_true, ite_false]
+      rw [e]; exact ⟨m1, m2, m3⟩
+  · intro a ha hty' hsa hta
+    rw [hCn, ackConf_term]
+    have hat : a.term = uint.Z m.term := hta.trans hct
+    rcases mem_lset_add.mp ha with h | h
+    · rcases hb.2.2.2.2.2.2.2.1 n a h hty' hsa hta with ⟨h1, h2⟩ | h2
+      · exact .inl ⟨hat.symm, Int.le_trans h2 (hge.2 (h1.trans hat))⟩
+      · exact .inr h2
+    · subst h; exact .inl ⟨rfl, hge.1⟩
+
+/-- `PendOk`'s accepting acknowledgement passes the guard (B 571): its index the append's last, the
+append's previous entry and entries terms of the node's log (no wrap: the index is a `w64`). -/
+theorem accept_guard {S : State} {n : Fin 3} {v : NodeView} {q m : Msg} (hd : DurableIs S n v)
+    (hqi : uint.Z q.index = uint.Z m.index + m.entries.length)
+    (hpt : plogTermAt base0 v.ps.log m.index = some m.logterm)
+    (hent : ∀ (k : Nat) (e : EntryM), m.entries[k]? = some e →
+      plogTermAt base0 v.ps.log (m.index + W64 ((k : Int) + 1)) = some e.Term') :
+    uint.Z q.index = recvLast m ∧ AckGuard S n.val m (nodeId n) := by
+  have hlog := hd.2.2.1
+  refine ⟨by unfold recvLast; rw [logOf_length]; exact hqi, ?_, ?_⟩
+  · unfold recvFact; simp only
+    rw [hlog]
+    obtain ⟨p1, p2⟩ := termAt_of_plog hpt
+    by_cases h0 : uint.Z m.index = 0
+    · exact .inl h0
+    · right
+      have hm0 : 0 ≤ uint.Z m.index := by word
+      rw [logOf_length]
+      refine ⟨p1, ?_⟩
+      rw [termAt_pos (by omega) (by rw [logOf_length]; exact p1)] at p2
+      exact p2
+  · intro k hk
+    rw [logOf_length] at hk
+    have he : m.entries[k]? = some m.entries[k] := List.getElem?_eq_getElem hk
+    obtain ⟨p1, p2⟩ := termAt_of_plog (hent k _ he)
+    have hq : uint.Z q.index < 2 ^ 64 := by word
+    have hm0 : 0 ≤ uint.Z m.index := by word
+    have hw : uint.Z (m.index + W64 ((k : Int) + 1)) = uint.Z m.index + ((k : Int) + 1) := by
+      have hk1 : uint.Z (W64 ((k : Int) + 1)) = (k : Int) + 1 := by word
+      word
+    rw [hw] at p1 p2
+    unfold HFAt recvFact; simp only
+    rw [hlog, logOf_length, logOf_getElem! he, entOf_term]
+    refine ⟨p1, ?_⟩
+    rw [termAt_pos (by omega) (by rw [logOf_length]; exact p1)] at p2
+    exact p2
+
+end ack
+
+section main
+variable [GooseExts]
+
+/-- **`send`** (`drain`, B 510-593). -/
+theorem antSim_send : antSim_send.stmt := by
+  intro S V net evs G n q rest hp hs hl hgo hpend htold hmf
+  obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc S V net G hs hl hgo
+  suffices h : ∃ M C, S1.step (evSend (nodeId n) (V n).byE q) = .ok (some (sendS S1 n.val M C)) ∧
+      SendOk S1 n q M C by
+    obtain ⟨M, C, hst, hok⟩ := h
+    obtain ⟨hs2, hgo2⟩ := send_rel hs1 hgo1 hpend hmf hok
+    exact ⟨_, Prefix.snoc hp hgc hst (violated_nil hs2.2.1.1 hl hgo2), hs2, hgo2⟩
+  obtain ⟨hsh, hb, hnet, hno⟩ := hs1
+  obtain ⟨hd, hL, hC, hP, -, hT, hca⟩ := hno n
+  obtain ⟨hne, ⟨j, hj⟩, hcase⟩ := hP q (by rw [hpend]; exact List.mem_cons_self ..)
+  have hc : S1.cfg = cfg3 := hsh.1
+  have hsrv : S1.cfg.server.has (nameOf q.dst) = true := by rw [hc, hj]; exact cfg3_has j
+  have hne' : (nameOf q.dst != nameOf (nodeId n)) = true := by
+    rw [bne_iff_ne]; intro h; exact hne (nameOf_inj h)
+  have hct : S1.currentTerm[n.val]! = uint.Z (V n).ps.term := hd.1
+  cases hty : q.ty <;> simp only [hty] at hcase
+  case vote =>
+    obtain ⟨h1, h2, h3, -, h5, h6⟩ := hcase
+    have hterm : S1.currentTerm[n.val]! = uint.Z q.term := by rw [hct, h3]
+    obtain ⟨-, hvr⟩ := hC h2
+    have hidx := plogLast_idx hd.2.2.2.2.2.2.2.2.1
+    have e : S1.voteRequest n.val (S1.currentTerm[n.val]!) = Fact.mk go!"vote" (nameOf (nodeId n)) []
+        (uint.Z q.term) (uint.Z q.index) (uint.Z q.logterm) 0 := by
+      unfold State.voteRequest State.lastTerm
+      rw [server_of hc n, hterm, hd.2.2.1, h5, h6, hidx.1, hidx.2, logOf_length]
+    rw [e] at hvr
+    have hvf := List.contains_iff_mem.mpr hvr
+    exact ⟨_, _, send_vote_eq n q _ hc hsrv hne' hty h1 hterm hvf,
+      SendOk.plain hsh hb (.inl hty) ⟨h1, by omega⟩ ⟨j, hj⟩
+        (fun h => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h))
+        (fun _ => ⟨_, voteFact_msgOf q q.dst, by rw [h1]; exact hvr⟩)
+        (fun h => nomatch hty.symm.trans h.1) (fun h => nomatch hty.symm.trans h.1)⟩
+  case voteResp =>
+    obtain ⟨h1, h2, h3⟩ := hcase
+    have hterm : S1.currentTerm[n.val]! = uint.Z q.term := by rw [hct, h2]
+    cases hrej : q.reject
+    · have hvd := h3 hrej
+      have hvn : S1.vote n.val = nameOf q.dst := by rw [hd.2.1, hvd]
+      have hv0 := hb.2.2.2.2.2.2.2.2.2.2.2.2 n (by rw [hvn, hj]; exact nameOf_ne_nil j)
+      rw [hvn, hterm] at hv0
+      have hv := List.contains_iff_mem.mpr hv0
+      exact ⟨_, _, send_grant_eq n q _ hc hsrv hne' hty h1 hrej hv,
+        SendOk.ofGrant hsh hb hty h1 (by omega) j hj⟩
+    · exact ⟨_, _, send_voteRej_eq n q _ hc hsrv hne' hty h1 hrej,
+        SendOk.plain hsh hb (.inr (.inl hty)) ⟨h1, by omega⟩ ⟨j, hj⟩
+          (fun h => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h))
+          (fun h => nomatch hty.symm.trans h)
+          (fun h => by rw [hrej] at h; exact absurd h.2 (by decide))
+          (fun h => nomatch hty.symm.trans h.1)⟩
+  case app =>
+    obtain ⟨hrole, ⟨hok, -⟩⟩ := hcase
+    obtain ⟨-, h1, h2, -, hpt, hcm, -, hpre, hpay⟩ := hok
+    have hterm : S1.currentTerm[n.val]! = uint.Z q.term := by rw [hct, h2]
+    have hrl : S1.role[n.val]! = leader := by rw [hd.2.2.2.2.1, hrole]; rfl
+    have hb0 := hd.2.2.2.2.2.2.2.1
+    rw [hb0] at hpt hpre
+    have hes : ((V n).ps.log.drop (uint.nat q.index)).take q.entries.length = q.entries := by
+      have hp2 := hpay.2
+      have hw : uint.Z (q.index + W64 1) = uint.Z q.index + 1 := by word
+      unfold plogFrom at hpre
+      rw [hw, base0_index] at hpre
+      have e : (uint.Z q.index + 1 - 0 - 1).toNat = uint.nat q.index := by word
+      rw [e] at hpre
+      exact (List.prefix_iff_eq_take.mp hpre).symm
+    have hsd := leader_sendable hb hd hL hrole (nameOf q.dst) hpt hes hcm
+    rw [← h2] at hsd
+    exact ⟨_, _, send_app_eq n q _ hc hsrv hne' hty h1 hterm hrl hsd,
+      SendOk.plain hsh hb (.inr (.inr (.inl hty))) ⟨h1, by omega⟩ ⟨j, hj⟩
+        (fun _ => by rw [toAppendFact_msgOf, eok_bind, h1]; exact hsd)
+        (fun h => nomatch hty.symm.trans h)
+        (fun h => nomatch hty.symm.trans h.1) (fun h => nomatch hty.symm.trans h.1)⟩
+  case heartbeat =>
+    obtain ⟨hrole, hok, hi0, hlt0, hen⟩ := hcase
+    obtain ⟨-, h1, h2, -, hcm, -⟩ := hok
+    have hterm : S1.currentTerm[n.val]! = uint.Z q.term := by rw [hct, h2]
+    have hrl : S1.role[n.val]! = leader := by rw [hd.2.2.2.2.1, hrole]; rfl
+    have hpt : plogTermAt base0 (V n).ps.log (W64 0) = some (W64 0) := by
+      unfold plogTermAt; simp [base0]
+    have hsd0 := leader_sendable (es := []) hb hd hL hrole (nameOf q.dst) hpt rfl hcm
+    have hsd : S1.sendable ⟨nameOf (nodeId n), nameOf q.dst, uint.Z q.term, uint.Z q.index, uint.Z q.logterm,
+        logOf q.entries, uint.Z q.commit⟩ = .ok true := by
+      rw [hi0, hlt0, hen, h2]; exact hsd0
+    exact ⟨_, _, send_hb_eq n q _ hc hsrv hne' hty h1 hterm hrl hsd,
+      SendOk.plain hsh hb (.inr (.inr (.inr (.inr (.inl hty))))) ⟨h1, by omega⟩ ⟨j, hj⟩
+        (fun _ => by rw [toAppendFact_msgOf, eok_bind, h1]; exact hsd)
+        (fun h => nomatch hty.symm.trans h)
+        (fun h => nomatch hty.symm.trans h.1) (fun h => nomatch hty.symm.trans h.1)⟩
+  case heartbeatResp =>
+    obtain ⟨h1, h2⟩ := hcase
+    have hterm : S1.currentTerm[n.val]! = uint.Z q.term := by rw [hct, h2]
+    exact ⟨_, _, send_hbresp_eq n q _ hc hsrv hne' hty h1 (by omega),
+      SendOk.plain hsh hb (.inr (.inr (.inr (.inr (.inr (.inl hty)))))) ⟨h1, by omega⟩ ⟨j, hj⟩
+        (fun h => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h))
+        (fun h => nomatch hty.symm.trans h)
+        (fun h => nomatch hty.symm.trans h.1) (fun h => nomatch hty.symm.trans h.1)⟩
+  case propose =>
+    obtain ⟨h1, h2⟩ := hcase
+    have h0 : 0 ≤ uint.Z (V n).ps.term := by word
+    have hz : uint.Z q.term = 0 := by rw [h2]; rfl
+    exact ⟨_, _, send_prop_eq n q _ hc hsrv hne' hty,
+      SendOk.plain hsh hb (.inr (.inr (.inr (.inr (.inr (.inr hty)))))) ⟨h1, by omega⟩ ⟨j, hj⟩
+        (fun h => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h))
+        (fun h => nomatch hty.symm.trans h)
+        (fun h => nomatch hty.symm.trans h.1) (fun h => nomatch hty.symm.trans h.1)⟩
+  case appResp =>
+    obtain ⟨h1, hby, m, hcm, hmty, hqd, hqt, hqt2, hacc⟩ := hcase
+    have hterm : S1.currentTerm[n.val]! = uint.Z q.term := by rw [hct, hqt2]
+    have hreq : (q.ty = .app ∨ q.ty = .heartbeat) →
+        (toAppendFact (msgOf q q.dst) >>= S1.sendable) = .ok true :=
+      fun h => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h)
+    cases hrej : q.reject
+    case true =>
+      exact ⟨_, _, send_appRespRej_eq n q _ hc hsrv hne' hty h1 hrej,
+        SendOk.plain hsh hb (.inr (.inr (.inr (.inl hty)))) ⟨h1, by omega⟩ ⟨j, hj⟩ hreq
+          (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h.1)
+          (fun h => by rw [hrej] at h; exact absurd h.2.1 (by decide))⟩
+    case false =>
+    obtain ⟨m', hcm', hpd⟩ := hT (htold hby)
+    rw [hcm] at hcm'; cases hcm'
+    have hqtZ : uint.Z q.term = uint.Z m.term := by rw [hqt]
+    have hmt : S1.currentTerm[n.val]! = uint.Z m.term := by rw [hterm, hqtZ]
+    by_cases hi : uint.Z q.index = 0
+    · have hi' : (uint.Z q.index == 0) = true := by simpa using hi
+      exact ⟨_, _, send_appResp0_eq n q _ hc hsrv hne' hty h1 hrej m hpd hmty hmt hi',
+        SendOk.plain hsh hb (.inr (.inr (.inr (.inl hty)))) ⟨h1, by omega⟩ ⟨j, hj⟩ hreq
+          (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h.1)
+          (fun h => h.2.2 (by word))⟩
+    · have hi' : (uint.Z q.index == 0) = false := by simpa using hi
+      obtain ⟨hmn, hmd⟩ := hca m hcm
+      obtain ⟨-, -, j', hj', hsd0⟩ := hnet m hmn
+      have hjn : j' = n := nodeId_inj (hj'.symm.trans hmd)
+      rw [hjn] at hsd0
+      obtain ⟨hsd1, -, -, -⟩ := hsd0 (by omega)
+      have hsd : S1.sendable (recvFact m (nodeId n)) = .ok true := by
+        have := hsd1 (.inl hmty); rw [toAppendFact_msgOf, eok_bind, hmd] at this; exact this
+      have hG := ack_guard_eq S1 n.val m (nodeId n) (uint.Z q.index)
+      by_cases hg : uint.Z q.index = recvLast m ∧ AckGuard S1 n.val m (nodeId n)
+      · rw [decide_eq_true hg] at hG
+        exact ⟨_, _, send_ack_eq n q _ hc hsrv hne' hty h1 hrej m hpd hmty hmt hi' hsd hqd hqtZ hG,
+          SendOk.ofAck hsh hb hl hgo1 hty h1 hmt j hj hqd hqtZ hg.1 hi hsd hg.2⟩
+      · rw [decide_eq_false hg] at hG
+        rcases hacc hrej with ⟨a1, a2, a3⟩ | ⟨s1, s2⟩
+        · exact absurd (accept_guard hd a1 a2 a3) hg
+        · have hst : uint.Z m.index < S1.commitIndex[n.val]! := by rw [hd.2.2.2.1]; exact s1
+          have hqi : uint.Z q.index = S1.commitIndex[n.val]! := by rw [hd.2.2.2.1, s2]
+          exact ⟨_, _, send_stale_eq n q _ hc hsrv hne' hty h1 hrej m hpd hmty hmt hi' hsd hqd hqtZ hG hst hqi,
+            SendOk.ofStale hsh hb hty h1 (by omega) j hj hqd hqtZ hqi⟩
+
+end main
+
 end AntSim
 end EtcdGrove
 end Perennial
