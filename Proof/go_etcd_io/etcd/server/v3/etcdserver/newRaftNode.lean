@@ -12,6 +12,8 @@ contracts the spec takes (`InvNodeStart.lean`).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZap
+public import Spec.go_etcd_io.etcd.pkg.v3.contention.NewTimeoutDetector
 public import Perennial.Proof.time
 public import Perennial.Spec.time.NewTicker
 public import Spec.go_etcd_io.raft.v3.SetLogger
@@ -49,13 +51,15 @@ set_option maxHeartbeats 0 in
 theorem newRaftNode.wp_proof
     (wp_SetLogger : SetLogger.spec (GF := GF) (hG := hG))
     (wp_NewTicker : time.NewTicker.spec (GF := GF) (hG := hG))
-    (wp_TStop : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
+    (wp_TStop : time.Ticker.Stop.spec (GF := GF) (hG := hG))
+    -- (premises to axioms, 2026-11-24: until then the spec's premises `rnLoggerZapOk` and
+    -- `rnTimeoutDetectorOk`) the trust-boundary specs of `NewRaftLoggerZap` and `contention.NewTimeoutDetector`
+    (wp_NewRaftLoggerZap : _root_.Perennial.EtcdGrove.NewRaftLoggerZap.spec (GF := GF) (hG := hG))
+    (wp_NewTimeoutDetector : contention.NewTimeoutDetector.spec (GF := GF) (hG := hG)) :
     newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E node id nl pre ms γs key wal ss cv a0 t0 L₀ commit0 snap0
-  wp_start as ⟨#Hzap, #Htdok, #Hlgz, %Hhb, %-⟩
+  wp_start as ⟨#Hlgz, %Hhb, %-⟩
   ihave %Hlg := zapLoggerOk_ne_null _ $$ Hlgz
-  iunfold rnLoggerZapOk at Hzap
-  iunfold rnTimeoutDetectorOk at Htdok
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -66,7 +70,7 @@ theorem newRaftNode.wp_proof
   -- `cfg.lg != nil`: `lg = NewRaftLoggerZap(cfg.lg)` (the `else` branch is dead)
   rw [show (decide (cv.lg' = null) = false) from decide_eq_false Hlg]
   (try wp_auto)
-  wp_apply Hzap $$ %cv.lg' [] as %l -
+  wp_apply (wp_NewRaftLoggerZap cv.lg') as %l -
   · ipureintro; exact Hlg
   (try wp_auto)
   -- `raft.SetLogger(lg)`
@@ -75,7 +79,7 @@ theorem newRaftNode.wp_proof
   -- the struct's components: `new(sync.RWMutex)`, `time.Now()`, the detector, the channels
   wp_apply time.wp_Now as %t -
   (try wp_auto)
-  wp_apply Htdok $$ %_ [] as %td #Htdi
+  wp_apply wp_NewTimeoutDetector as %td #Htdi
   (try wp_auto)
   wp_apply chan.wp_make2 (V := ReadState) (W64 1) as %rsc %γrs ⟨#Hrsc, %Hrscap, Hrso⟩
   · ipureintro; word

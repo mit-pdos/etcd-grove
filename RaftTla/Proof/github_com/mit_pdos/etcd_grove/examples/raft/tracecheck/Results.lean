@@ -226,8 +226,7 @@ theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem :
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
     (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
-    (Hprem : ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
+    (Hbw : tracecheck.BootWireFacts boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -235,7 +234,7 @@ theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  tracecheck_adequate_of (tcMainSpec_of h) boot Hbf Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2
+  tracecheck_adequate_of (tcMainSpec_of h) boot Hbf Hbw σ g Hlctx Hinit Hthreads n Hn κs t2 σ2
     Hsteps
 
 /-- **The trace check never fails** (`notes/trace-check-design.md` §1.2; 2026-11-12, trace-check step 5:
@@ -244,8 +243,7 @@ theorem raft_tracecheck_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
     (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
-    (Hprem : ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
+    (Hbw : tracecheck.BootWireFacts boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -253,7 +251,7 @@ theorem raft_tracecheck_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  raft_tracecheck_safe_of harnessOpen boot Hbf Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
+  raft_tracecheck_safe_of harnessOpen boot Hbf Hbw σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 end closed
 

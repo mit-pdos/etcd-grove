@@ -60,7 +60,7 @@ abbrev StartServer.spec : Prop :=
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
       threadTok ∗
-      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
+      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP

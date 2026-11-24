@@ -128,13 +128,7 @@ def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
       ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
         γ.boot = LogEntry.toEntries boot 0⌝ -∗
-      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (leaseexpiryDir id)) ∗
-    -- (2026-10-27, the server port) `proto.Marshal` of the peers' conf changes returns the bootstrap
-    -- entries' bytes (raft's `bootMarshal`, which `StartNode` takes; the cluster's allocation's
-    -- premise; until then `bootstrap`'s contract gave it)
-    bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
-    -- the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s)
-    rnLoggerZapOk ∗ rnTimeoutDetectorOk)
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (leaseexpiryDir id)))
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by

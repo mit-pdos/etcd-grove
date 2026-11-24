@@ -62,7 +62,9 @@ theorem Main.wp_proof
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
@@ -95,7 +97,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- `StartServer("putget", "127.0.0.1:23800", clientAddr, lg)`: the one member of a new cluster from the
   -- named premises (`wp_StartServer1`: `alloc1` inside; shared with `putget_safe`'s member)
-  wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne N go!"putget" go!"127.0.0.1:23800"
+  wp_apply (etcdstart.wp_StartServer1 wp_StartServer wp_MarshalBoot hne N go!"putget" go!"127.0.0.1:23800"
       go!"127.0.0.1:23790" lg id ctxs boot Hbf (by decide) (by decide) (by decide) (by decide) (by decide) Htb Hrb48 HrbN HwbN
       Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
   · iframe; iframe #

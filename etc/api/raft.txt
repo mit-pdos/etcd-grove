@@ -69,6 +69,7 @@ importable Spec.go_etcd_io.raft.v3.MustSync
 importable Spec.go_etcd_io.raft.v3.SetLogger
 importable Proof.go_etcd_io.raft.v3.InvNodeCtx
 importable Proof.go_etcd_io.raft.v3.ApiVocab
+importable Proof.go_etcd_io.raft.v3.BootMarshal
 importable Proof.go_etcd_io.raft.v3.ApiCtx
 # raft's linked results for proofs outside the linking files (`open RaftLink`)
 importable Proof.go_etcd_io.raft.v3.Linked

@@ -13,7 +13,10 @@ decision, 2026-11-11; `notes/trace-check-design.md` §1.1), modelled on `etcd_pu
   logs to be one committed log; `proto.MarshalConfChange.spec` gives only bytes that decode to the
   change.
 
-No axiom: the closed theorem takes both as premises (Q32: "follow the etcd examples").
+Until 2026-11-24 the closed theorem took both as premises (Q32: "follow the etcd examples"). Since then
+(premises to axioms) the Iris premise is a theorem, `premises_of_spec`, from the trust-boundary axiom
+`proto.MarshalBootConfChange.wp_proof` and the pure fact `BootWireFacts` (the log's bytes), which the
+closed theorem takes in its place.
 
 **Non-vacuity** (2026-11-24): until then `bootMarshal` began with `⌜∀ c ∈ ctxs, c ≠ []⌝`, false at
 this harness's contexts `[[], [], []]`, so the premise was `⌜False⌝ ∗ …` and `raft_tracecheck_safe`
@@ -26,6 +29,7 @@ adds one breaks it.
 module
 
 public import RaftTla.Spec.go_etcd_io.raft.v3.Api
+public import RaftTla.Proof.go_etcd_io.raft.v3.BootMarshal
 
 @[expose] public section
 
@@ -46,6 +50,12 @@ variable [GooseExts]
 abbrev BootLogFacts (boot : List LogEntry) : Prop :=
   BootLog [W64 1, W64 2, W64 3] [[], [], []] boot
 
+/-- **The bootstrap log's bytes** (premises to axioms, 2026-11-24; see the file header): the `i`-th
+entry's data is `proto.Marshal`'s bytes of `ConfChange{Type: AddNode, NodeId: i}` (`bootWire`:
+`ccBootWire i []`, the four bytes `0x10 0x00 0x18 i`; `TestBootWireVectors`). -/
+abbrev BootWireFacts (boot : List LogEntry) : Prop :=
+  bootWire [W64 1, W64 2, W64 3] [[], [], []] boot
+
 end pure
 
 section defs
@@ -59,23 +69,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev premises (boot : List LogEntry) : IProp GF :=
   bootMarshal [W64 1, W64 2, W64 3] [[], [], []] (LogEntry.toEntries boot 0)
 
-/-- **The premise is `proto.Marshal`'s contract alone** (non-vacuity guard, 2026-11-24; see the file
-header): for each of the three conf changes `Bootstrap` builds (`AddNode i`, no context: the `nil`
-slice), `proto.Marshal` returns the `i`-th boot entry's bytes. No pure fact about the contexts or the
-log is asked for, so the premise is as satisfiable as that Go fact is true. -/
-theorem premises_of_marshal (boot : List LogEntry) :
-    (□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : ConfChangeM) (e : EntryM)
-      (_ : [W64 1, W64 2, W64 3][k]? = some m.nodeId ∧
-        ([[], [], []] : List (List w8))[k]? = some m.context ∧
-        (LogEntry.toEntries boot 0)[k]? = some e ∧ m.type = W32 0 ∧ m.id = W64 0)
-      (Φ : val → IProp GF),
-      bootConfChange p dq m -∗
-      (∀ (d : GoSlice), bootConfChange p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
-      WP (App (Val (@! google_golang_org.protobuf.proto.Marshal))
-            (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p))) {{ Φ }})
-    ⊢ premises (GF := GF) boot := by
-  unfold premises bootMarshal
-  exact .rfl
+/-- **The premise follows from `proto.Marshal`'s trust-boundary spec** (premises to axioms,
+2026-11-24; until then a premise of the closed theorem): at the harness's conf changes (`AddNode i`, no
+context: the `nil` slice), given the log's bytes (`BootWireFacts`) and `proto`'s initialization. -/
+theorem premises_of_spec (wpM : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG))
+    (boot : List LogEntry) (Hw : BootWireFacts boot) :
+    isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ⊢ premises (GF := GF) boot :=
+  bootMarshal_of_spec wpM _ _ boot Hw
 
 end defs
 

@@ -45,10 +45,8 @@ theorem startServer.wp_proof
     startServer.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Hdir Hdirps Haf Hbuq Hdbo
-  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
-  iunfold etcdstart.commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd⟩
   iunfold etcdstart.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
