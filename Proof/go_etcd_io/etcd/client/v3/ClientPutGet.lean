@@ -93,8 +93,9 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   -- (2026-10-19, D21 M6) a persistent update, its result persistent
   ihave Hau' := putAuOk_of_box api [ep] γr.kv _ _ $$ Hau
   wp_apply (client_put_end_to_end api [ep] E γr cid mid ci cd key val sl
-    (fun _ => iprop(□ monoNatLbOwn γf 1)) F hsz) $$ [Hau'] as %resp %err Hout
+    (fun _ => iprop(□ monoNatLbOwn γf 1)) F hsz) $$ [Hlt Hau'] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
+    (try iframe Hlt)
   iapply HΦ
   iframe Hlt
   icases Hout with (⟨%Herr, %m, Hm, Hp⟩ | %Herr)
@@ -138,8 +139,9 @@ theorem client_Put_other (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEn
   ihave #Hau := putOtherAu_of_putGetInv γr γf key val key' val' hne $$ Hinv
   ihave Hau' := putAuOk_of_box api [ep] γr.kv _ _ $$ Hau
   wp_apply (client_put_end_to_end api [ep] E γr cid mid ci cd key' val' sl
-    (fun _ => iprop(□ True)) F hsz) $$ [Hau'] as %resp %err Hout
+    (fun _ => iprop(□ True)) F hsz) $$ [Hlt Hau'] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
+    (try iframe Hlt)
   iapply HΦ
   iframe Hlt
   icases Hout with (⟨%Herr, -⟩ | %Herr)
@@ -172,9 +174,10 @@ theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   ihave #Hau := getAu_of_putGetInv γr γf key val $$ [Hinv Hlb]
   · iframe #
   wp_apply (client_get_end_to_end api [ep] E γr c cid mid ci cd key sl
-    (fun σ => iprop(⌜(mvcc.findKey key σ.kvs).map EtcdKv.value = some val⌝)) F hsz) $$ []
-    as %resp %err Hout
+    (fun σ => iprop(⌜(mvcc.findKey key σ.kvs).map EtcdKv.value = some val⌝)) F hsz) $$ [Hlt]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
+    (try iframe Hlt)
   iapply HΦ
   iframe Hlt
   icases Hout with (⟨%Herr, %m, Hm, #Hq⟩ | %Herr)
@@ -279,9 +282,10 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   wp_pures
   wp_auto
   iapply wp_fupd
-  wp_apply (client_range_any api ms (W64 0) ci cd key sl [] iprop(True) Q [] hsz) $$ []
-    as %resp %err ⟨-, Hout, -⟩
+  wp_apply (client_range_any api ms (W64 0) ci cd key sl [] iprop(True) Q [] hsz) $$ [Hlt]
+    as %resp %err ⟨Hlt, -, Hout, -⟩
   · iframe #
+    (try iframe Hlt)
     isplitl []
     · rw [show (opGetModel key []).base.sortSet = false from rfl]
       iapply sortNamesIf_false
@@ -344,8 +348,9 @@ theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_any api ms ci cd key val sl Q [] hsz) $$ [Hau] as %resp %err Hout
+  wp_apply (client_put_any api ms ci cd key val sl Q [] hsz) $$ [Hlt Hau] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
+    (try iframe Hlt)
     iright
     iframe #
     iexact Hau
@@ -388,8 +393,9 @@ theorem client_Put_any (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_any api ms ci cd key val sl Q [] hsz) $$ [] as %resp %err Hout
+  wp_apply (client_put_any api ms ci cd key val sl Q [] hsz) $$ [Hlt] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
+    (try iframe Hlt)
   iapply HΦ
   iframe Hlt
   icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | ⟨%Herr, #Hke⟩)
@@ -422,7 +428,7 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
           ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ kvRevFits (σ.rev + 1)⌝) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err)) }} := by
   iintro %Φ H HΦ
-  wp_apply (client_Put_rep cl ms V ci cd key val sl Q hsz) $$ [H] as %resp %err Hout
+  wp_apply (client_Put_rep cl ms V ci cd key val sl Q hsz) $$ [H] as %resp %err ⟨Hlt, Hout⟩
   · iexact H
   iapply HΦ
   iframe Hlt
@@ -476,8 +482,9 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_delete_any api ms ci cd key sl Q [] hsz) $$ [Hau] as %resp %err Hout
+  wp_apply (client_delete_any api ms ci cd key sl Q [] hsz) $$ [Hlt Hau] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
+    (try iframe Hlt)
     iright
     iframe #
     iexact Hau
@@ -589,8 +596,9 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (v3.kv.wp_Put api γ dup ci cd key val sl [] Q) $$ [Hau] as %resp %err Hout
+  wp_apply (v3.kv.wp_Put api γ dup ci cd key val sl [] Q) $$ [Hlt Hau] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
+    (try iframe Hlt)
     iframe Hau
     isplitl []
     · ipureintro
@@ -634,8 +642,9 @@ theorem client_Compact_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInt
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Compact_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (v3.kv.wp_Compact api γ dup ci cd rev hr hc) $$ [] as %resp %err Hout
+  wp_apply (v3.kv.wp_Compact api γ dup ci cd rev hr hc) $$ [Hlt] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
+    (try iframe Hlt)
   iapply HΦ
   iframe Hlt
   iexact Hout
@@ -668,9 +677,10 @@ theorem client_Get_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (v3.kv.wp_Get api γ dup ci cd key sl [withRevM rev] iprop(True) Q) $$ []
-    as %resp %err ⟨-, Hout⟩
+  wp_apply (v3.kv.wp_Get api γ dup ci cd key sl [withRevM rev] iprop(True) Q) $$ [Hlt]
+    as %resp %err ⟨Hlt, -, Hout⟩
   · iframe #
+    (try iframe Hlt)
     isplitl []
     · itrivial
     isplitl []
