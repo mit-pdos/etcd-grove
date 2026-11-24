@@ -26,7 +26,12 @@ The request (2026-11-23): `readRequestLimit` on net/rpc's `CONNECT` request, and
 `Server.maxHeaderValueCount`.
 
 net/url's escaping (2026-11-24, phase 7 S5; what the ServeMux runs on a request's path): `shouldEscape`,
-`ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`, `escape` (for the result's length within `int`: `3 * len(s) < 2^63`).
+`ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`, `escape` (for the result's length within `int`: `3 * len(s) < 2^63`);
+`unescape` (for `len(s) + 1` within `int`), `PathUnescape` and `URL.EscapedPath` (both premises,
+on `Path` and `RawPath`). `unescape` calls `strings.Builder.Grow`, which Perennial translates but does
+not specify at the pin (`notes/perennial-changes.md`): linked over its spec on a zero Builder
+(`Spec/strings/Builder__Grow.lean`) as a hypothesis `h_Grow` (`section url`); `WriteByte` and
+`String` are Perennial's linked proofs.
 
 The chunked writer (2026-11-24, phase 7 S5): `net/http/internal`'s `NewChunkedWriter`,
 `chunkedWriter.Write` (over Perennial's `fmt.Fprintf`) and `chunkedWriter.Close`; both methods call
@@ -95,6 +100,9 @@ public import Proof.net.url.ishex
 public import Proof.net.url.unhex
 public import Proof.net.url.validEncoded
 public import Proof.net.url.escape
+public import Proof.net.url.unescape
+public import Proof.net.url.PathUnescape
+public import Proof.net.url.URL__EscapedPath
 public import Net.Proof.net.http.internal.chunkedWriter__Write
 public import Net.Proof.net.http.internal.chunkedWriter__Close
 public import Net.Proof.net.http.isToken
@@ -270,6 +278,23 @@ theorem validEncoded.wp : validEncoded.spec (GF := GF) (hG := hG) :=
   validEncoded.wp_proof shouldEscape.wp
 theorem escape.wp : escape.spec (GF := GF) (hG := hG) := escape.wp_proof shouldEscape.wp
 
+-- Pending: a spec of Perennial's `strings.Builder.Grow` (see the file header).
+variable [package_sem_strings : _root_.Perennial.strings.Assumptions]
+variable (h_Grow : EtcdGrove.strings.Builder.Grow.spec (GF := GF) (hG := hG))
+
+include h_Grow in
+theorem unescape.wp : unescape.spec (GF := GF) (hG := hG) :=
+  unescape.wp_proof ishex.wp unhex.wp shouldEscape.wp h_Grow strings.Builder.wp_WriteByte
+    strings.Builder.wp_String
+
+include h_Grow in
+theorem PathUnescape.wp : PathUnescape.spec (GF := GF) (hG := hG) :=
+  PathUnescape.wp_proof (unescape.wp h_Grow)
+
+include h_Grow in
+theorem URL.EscapedPath.wp : URL.EscapedPath.spec (GF := GF) (hG := hG) :=
+  URL.EscapedPath.wp_proof (unescape.wp h_Grow) escape.wp validEncoded.wp
+
 end url
 
 end net.url
@@ -294,3 +319,7 @@ end Perennial
 #print axioms Perennial.net.url.ishex.wp
 #print axioms Perennial.net.url.unhex.wp
 #print axioms Perennial.net.url.validEncoded.wp
+#print axioms Perennial.net.url.escape.wp
+#print axioms Perennial.net.url.unescape.wp
+#print axioms Perennial.net.url.PathUnescape.wp
+#print axioms Perennial.net.url.URL.EscapedPath.wp
