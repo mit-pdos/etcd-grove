@@ -14,6 +14,5 @@ axiom Perennial.net.http.initFuncsOk
 axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.SprintfSlice.wp_proof
 axiom rand.Int63n.wp_proof
-axiom slices.ContainsFunc.wp_proof
 axiom validation.IsDNS1123Subdomain.wp_proof
 axiom validation.IsDomainPrefixedKey.wp_proof

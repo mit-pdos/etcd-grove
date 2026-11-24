@@ -12,7 +12,6 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/
-axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom pbRecordC_reg
 axiom pbSnapC_reg
