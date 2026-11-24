@@ -5549,3 +5549,23 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   response from a non-member (its transport drops them), and the API form's `S := True` callers are the
   harness's only.
 - **Decision.** Applied (branch `antithesis-s4`, the lead).
+
+## 2026-11-24: `TickEnd`'s heartbeats and `stepLeader`'s `MsgBeat` clause leave the heartbeat's context free (#33 S4, msgShape)
+
+- **Spec.** `LeaderNonpropResultC`'s `MsgBeat` clause (`Spec/go_etcd_io/raft/v3/stepLeader.lean`, in
+  `stepLeader.spec`), and the protocol end relation `TickEnd`'s heartbeat arm (`Proof/go_etcd_io/raft/v3/Protocol/
+  InputEnd.lean`), lifted by `tickEnd_of_stepEnd_beat` (`InputEndLift.lean`).
+- **Defect.** Too weak for the Antithesis harness: `stepLeader` says only `HbCtxOk s.rd.ro m'.ctx` of a
+  heartbeat's context (nil or some position), `TickEnd` nothing, so `msgShape.stmt`'s "a heartbeat (and its
+  response) carries no context" (`Sim/MsgShapeStmt.lean`, what `RawNode.Step`'s `NetFacts` needs at the
+  receiver) is not derivable: a `TickEnd` with a heartbeat of context `[1]` satisfies every premise.
+- **Evidence.** raft v3.7 `raft.go` `bcastHeartbeat`: `r.bcastHeartbeatWithCtx(r.readOnly.heartbeatCtx())`,
+  nil with no read request pending (the fork's `heartbeatCtx`; `raft.bcastHeartbeat.spec` already gives
+  `m.ctx = hbCtx s.rd.ro`, which `stepLeader/Rest.lean` weakened to `HbCtxOk`).
+- **Proposed change.** (1) `stepLeader`'s clause: `m'.ctx = hbCtx s.rd.ro` in place of `HbCtxOk s.rd.ro m'.ctx`
+  (stronger; `hbCtx_ok` recovers the old). (2) `TickEnd`'s heartbeat arm gains `x.ctx = []`; its lifting
+  takes `s.role = .leader → s.rd.ro.pending = []`, which `RnScope` gains (appended last) and every absProof
+  keeps (a win resets the read-only object, `pbecomeLeader`'s `rdNL`; no input of the harness's scope adds a
+  read request). (3) `msgShape.stmt`'s cause premise gains `m.ty = .heartbeat → m.ctx = []` (`NetFacts`).
+- **Decision.** Accepted (the lead, 2026-11-24). (1) and (3) applied by helper F; (2) to land with the
+  `RnScope` scope change (the raft helper's successor), then `msgShape := msgShape_of tickHbCtx`.
