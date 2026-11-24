@@ -179,6 +179,13 @@ func MainDeployment(d deployment.Deployment, j int, ready func()) Result {
 	return MainReady(d.Workloads[j], d.Endpoints(), d.Nodes[j], ready)
 }
 
+// Orchestrator is workload j's orchestrator machine of the deployment d, as etcd_safe states it (Lean:
+// clientProg d j): MainDeployment with no set-up signal (the binary's signal, a line on its output,
+// is the harness's), its result discarded (a failed check panics).
+func Orchestrator(d deployment.Deployment, j int) {
+	MainDeployment(d, j, func() {})
+}
+
 // NodeDeployment is the n-th client machine of the deployment d (Lean: nodeProg d n; in the
 // workloads' order, then by index within the workload: Deployment.Node): if d is well formed and
 // has an n-th client machine, NodeMain, client machine c of workload j at its address

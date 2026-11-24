@@ -213,6 +213,9 @@ noncomputable def MainReady [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def MainDeployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/client.MainDeployment"
 
+noncomputable def Orchestrator [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/client.Orchestrator"
+
 noncomputable def NodeDeployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/client.NodeDeployment"
 
@@ -2671,12 +2674,34 @@ noncomputable def MainDeployment.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad Result.ty))) (Var "$res0")))))))
 
+/-- Orchestrator is workload j's orchestrator machine of the deployment d, as etcd_safe states it (Lean:
+    clientProg d j): MainDeployment with no set-up signal (the binary's signal, a line on its output,
+    is the harness's), its result discarded (a failed check panics).
+
+    go: client.go:185:6 -/
+noncomputable def Orchestrator.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "d"
+  (Lam "j"
+  (Seq (App (Val exceptionDo)
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
+  (Let "d" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Deployment.ty))) (Var "d"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Deployment.ty))) (Var "d"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))
+  (Let "$a2" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #())))
+  (App (App (App (App (Val (GoInstruction (FuncResolve MainDeployment []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (Val #()))))
+
 /-- NodeDeployment is the n-th client machine of the deployment d (Lean: nodeProg d n; in the
     workloads' order, then by index within the workload: Deployment.Node): if d is well formed and
     has an n-th client machine, NodeMain, client machine c of workload j at its address
     d.Nodes[j][c]; otherwise it returns at once.
 
-    go: client.go:186:6 -/
+    go: client.go:193:6 -/
 noncomputable def NodeDeployment.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "n"
@@ -6408,6 +6433,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   hasSetUp_unfold : FuncUnfold hasSetUp [] hasSetUp.impl
   MainReady_unfold : FuncUnfold MainReady [] MainReady.impl
   MainDeployment_unfold : FuncUnfold MainDeployment [] MainDeployment.impl
+  Orchestrator_unfold : FuncUnfold Orchestrator [] Orchestrator.impl
   NodeDeployment_unfold : FuncUnfold NodeDeployment [] NodeDeployment.impl
   RunCompact_unfold : FuncUnfold RunCompact [] RunCompact.impl
   checkCompactRev_unfold : FuncUnfold checkCompactRev [] checkCompactRev.impl
@@ -6485,6 +6511,7 @@ attribute [instance] Assumptions.Result_instance
   Assumptions.hasSetUp_unfold
   Assumptions.MainReady_unfold
   Assumptions.MainDeployment_unfold
+  Assumptions.Orchestrator_unfold
   Assumptions.NodeDeployment_unfold
   Assumptions.RunCompact_unfold
   Assumptions.checkCompactRev_unfold

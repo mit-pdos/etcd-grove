@@ -17,6 +17,7 @@ interim S2 interface (the member's and client's shares, `notes/putget-dist-plan.
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentDefs
 public import Net.Statement.DistBridgeExts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RevokeLevels
 
@@ -109,7 +110,7 @@ theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
   · exact Net.robust_of_distBootIL (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
       (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) HI
       (fun hlo hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ HEnvTok hlo hb)
-      ⟨Hd.2.2.2.2.1, Hd.2.2.2.1, Hnet.1, Hnet.2⟩ hfresh hg hl
+      ⟨Hd.addrs.1, Hd.addrs.2, Hnet.1, Hnet.2⟩ hfresh hg hl
   · refine Net.robust_of_distBootIL (GF := etcdDistGF) [] (machines d σs σc σn) g
       (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) HI
       (fun hlo hb => ?_) ⟨List.nodup_nil, by simp, Hnet.1, Hnet.2⟩ hfresh hg hl

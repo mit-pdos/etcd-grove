@@ -35,6 +35,8 @@ public import Perennial.GooseLang.InitAdequacy
 public import GooseLang.Ext.Net.Ghost
 public import GooseLang.Ext.IdIssue.Specs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client
 
 @[expose] public section
 
@@ -46,160 +48,43 @@ namespace etcd_dist
 
 open go_etcd_io.raft.v3
 
-/-! ## The server configuration and its supported set -/
+/-! ## The deployment, as the programs receive it (Go's `deployment.Deployment`, field by field)
 
-/-- The auto-compactor (etcd's `--auto-compaction-mode` and `--auto-compaction-retention`). -/
-inductive Compactor where
-  | off
-  /-- revision mode, keeping `retention` revisions -/
-  | revision (retention : Nat)
-  /-- periodic mode, keeping the revisions of the last `period` nanoseconds -/
-  | periodic (period : Nat)
-  deriving DecidableEq
+The statement quantifies over the Go value every machine's program receives: these structures mirror
+`examples/etcd/dist/deployment`'s types field for field (Go's `int`/`int64`/`uint64` as `w64`), and
+`deploymentLit` is the composite literal of that value. What a deployment means (the workloads, the
+compactor, which deployments are well formed) is the programs' own business (Go's
+`deployment.WellFormed`); its Lean vocabulary is the proofs' (`DeploymentDefs.lean`), not the
+statement's. -/
 
-/-- The periodic compactor. -/
-def Compactor.isPeriodic : Compactor → Bool
-  | .periodic _ => true
-  | _ => false
-
-/-- **The server configuration** (one per cluster, the same at every member): what
-`examples/etcd/dist/server`'s `Config` takes beyond the member's own name and addresses. The other
-`ServerConfig` fields are the examples' fixed values (`TickMs` 100, `ElectionTicks` 10, `MaxTxnOps`
-128, `MaxRequestBytes` 1.5 MiB, the default quota, pre-vote off): open question Q9. -/
-structure ServerCfg where
-  compactor : Compactor
-  /-- a disk snapshot every `snapCount` applied entries (`--snapshot-count`) -/
-  snapCount : Nat
-  /-- raft's log compacted to `catchUp` entries below a snapshot -/
-  catchUp : Nat
-  /-- the simple token provider (TTL 300 s) installed, or no token provider -/
-  auth : Bool
-  deriving DecidableEq
-
-/-- **The supported set**: what `NewServer.spec` covers today (any snapshot settings since
-2026-10-30; the compactor in either mode, a period of at least 10 ns: a shorter one busy-loops). -/
-def ServerCfg.Supported (c : ServerCfg) : Prop :=
-  (match c.compactor with
-    | .off => True
-    | .revision r => 1 ≤ r ∧ r < 2 ^ 63
-    | .periodic p => 10 ≤ p ∧ p < 2 ^ 63) ∧
-  1 ≤ c.snapCount ∧ c.snapCount < 2 ^ 64 ∧ 1 ≤ c.catchUp ∧ c.catchUp < 2 ^ 64
-
-instance (c : ServerCfg) : Decidable c.Supported := by
-  unfold ServerCfg.Supported; split <;> infer_instance
-
-/-! ## Workloads -/
-
-/-- **A client machine's workload** (`examples/etcd/dist/client`'s `Workload`): today's drivers
-with their start removed. -/
-inductive Workload where
-  /-- txnlinfaultsN's: `clients` concurrent clients of `ops` operations, porcupine (txnlin) -/
-  | kv (clients ops : Nat)
-  /-- partition's `MainWatch`: a watch from revision 1, `writers` writers of `ops` Puts -/
-  | watch (writers ops : Nat)
-  /-- cache's: the watch cache, `writers` writers of `ops` Puts -/
-  | cache (writers ops : Nat)
-  /-- compactwatch's rounds of Put, explicit compaction, latest and old Gets; its watches -/
-  | compact
-  /-- compacted's Put then Get -/
-  | putget
-  /-- authN's set-up, barrier, principals and checks -/
-  | auth
-  /-- authlease's lease rows of auth -/
-  | authLease
-  /-- leaseN's lease reads at every member -/
-  | leaseRead
-  /-- leasecatchup's grant, fillers and listing (no cut of its own) -/
-  | leaseCatchup
-  /-- leaseexpiryN's expiring leases -/
-  | leaseExpiry
-  /-- restartN's durability check over `puts ≤ 256` Puts: acknowledged keys present at version
-  1, other keys only from attempted Puts (no revision check) -/
-  | durable (puts : Nat)
-  deriving DecidableEq
-
-/-- The workload's kind (its constructor), for "at most one of each kind". -/
-def Workload.kind : Workload → Nat
-  | .kv .. => 0 | .watch .. => 1 | .cache .. => 2 | .compact => 3 | .putget => 4 | .auth => 5
-  | .authLease => 6 | .leaseRead => 7 | .leaseCatchup => 8 | .leaseExpiry => 9 | .durable _ => 10
-
-/-- **A workload that writes keys** (each under its own prefix, `client.go`: no two workloads
-write one key). The lease workloads only grant and revoke leases with no keys attached, which
-leaves the store's revision unchanged. -/
-def Workload.writesKeys : Workload → Bool
-  | .leaseRead | .leaseCatchup | .leaseExpiry => false
-  | _ => true
-
-/-- **A workload whose check reads the store's revisions as its own** (review F1): txnlin's model
-starts at revision 1 and checks every reply's revision; the watch checks need gap-free revisions;
-the auth workloads' set-ups and checks likewise. It needs to be the only workload writing keys. -/
-def Workload.needsSoleWriter : Workload → Bool
-  | .kv .. | .watch .. | .cache .. | .auth | .authLease => true
-  | _ => false
-
-/-- **A workload that changes what every other client may do** (it enables auth): alone. -/
-def Workload.alone : Workload → Bool
-  | .auth | .authLease => true
-  | _ => false
-
-/-- A workload that needs the simple token provider. -/
-def Workload.needsAuth : Workload → Bool
-  | .auth | .authLease => true
-  | _ => false
-
-/-- A workload that grants leases (whose ids must be apart in 15 bits across the members). -/
-def Workload.grantsLeases : Workload → Bool
-  | .authLease | .leaseCatchup | .leaseExpiry => true
-  | _ => false
-
-/-- A workload whose proof needs that no lease expires (`lease.leasesNoExpiry`). -/
-def Workload.needsNoExpiry : Workload → Bool
-  | .authLease | .leaseCatchup => true
-  | _ => false
-
-/-- The workload's own bounds (today's drivers' premises). -/
-def Workload.BoundsOk : Workload → Prop
-  | .kv c o => c < 2 ^ 31 ∧ c * o < 2 ^ 60
-  | .watch w o => w < 2 ^ 31 ∧ w * o < 2 ^ 62
-  | .cache w o => w < 2 ^ 31 ∧ w * o < 2 ^ 62
-  | .durable n => n ≤ 256
-  | _ => True
-
-/-- **The workload's client machines** (D8; Go's `client.NodeCount`): kv's clients, watch's and cache's
-writers, auth's four principals (`auth.Principals()`), each on a machine of its own, called by the
-workload's orchestrator machine; the other workloads run on their orchestrator alone. -/
-def Workload.nodeCount : Workload → Nat
-  | .kv c _ => c | .watch w _ => w | .cache w _ => w | .auth => 4 | _ => 0
-
-instance (w : Workload) : Decidable w.BoundsOk := by
-  cases w <;> unfold Workload.BoundsOk <;> infer_instance
-
-/-- **The workloads can run at once on one cluster** (review F1): at most one of each kind; a
-workload that enables auth alone; a workload that reads revisions as its own beside no other
-workload that writes keys; never an expiring lease beside a workload that needs none to expire. -/
-def Compatible (ws : List Workload) : Prop :=
-  (ws.map Workload.kind).Nodup ∧
-  ((∃ w ∈ ws, w.alone = true) → ws.length = 1) ∧
-  (∀ w ∈ ws, w.needsSoleWriter = true →
-    ∀ w' ∈ ws, w' ≠ w → w'.writesKeys = false) ∧
-  ¬ (Workload.leaseExpiry ∈ ws ∧ ∃ w ∈ ws, w.needsNoExpiry = true)
-
-instance (ws : List Workload) : Decidable (Compatible ws) := by
-  unfold Compatible; infer_instance
-
-/-! ## The deployment -/
-
-/-- A member: its name (its data directory `/tmp/etcd-grove-data/<name>.etcd`, its WAL area
-`/tmp/etcd-grove-wal/<name>.etcd`), its peer address (its one peer URL `http://peer`, served by its
-raft handler) and its client address (served by etcd's gRPC API). -/
+/-- Go's `deployment.Member`: a member's name (its data directory `/tmp/etcd-grove-data/<name>.etcd`,
+its WAL area `/tmp/etcd-grove-wal/<name>.etcd`), its peer address (its one peer URL `http://peer`, served
+by its peer handler) and its client address (served by etcd's gRPC API). -/
 structure Member where
   name : GoString
   peer : GoString
   client : GoString
 
-/-- **A deployment**: the cluster (its members, in the initial cluster's order, its token, its
-server configuration), the workloads (each run by an orchestrator machine) and, per workload, its
-client machines' addresses (`nodes`, in the workloads' order; `nodeCount` of them each, D8). -/
+/-- Go's `deployment.ServerCfg`: the auto-compactor's mode and retention (off when the retention is 0),
+the snapshot count, the catch-up entries, the simple token provider. -/
+structure ServerCfg where
+  compactorMode : GoString
+  retention : w64
+  snapCount : w64
+  catchUp : w64
+  auth : Bool
+
+/-- Go's `deployment.Workload`: its kind (`deployment.Kind`, an `int`: `KV` 0, `Watch` 1, `Cache` 2,
+`Compact` 3, `PutGet` 4, `Auth` 5, `AuthLease` 6, `LeaseRead` 7, `LeaseCatchup` 8, `LeaseExpiry` 9,
+`Durable` 10) and its two parameters. -/
+structure Workload where
+  kind : w64
+  clients : w64
+  ops : w64
+
+/-- Go's `deployment.Deployment`: the members (in the initial cluster's order), the token, the server
+configuration, the workloads (each run by an orchestrator machine) and, per workload, its client
+machines' addresses. -/
 structure Deployment where
   members : List Member
   token : GoString
@@ -207,64 +92,24 @@ structure Deployment where
   workloads : List Workload
   nodes : List (List GoString)
 
-/-- Every client machine of the deployment: its workload, its index among the workload's client
-machines, its address (in the workloads' order, then the index's). -/
+/-- Every client machine of the deployment (Go's `Deployment.Node`): its workload, its index among the
+workload's client machines, its address (in the workloads' order, then the index's). -/
 def Deployment.nodeList (d : Deployment) : List (Workload × Nat × GoString) :=
   (d.workloads.zip d.nodes).flatMap (fun p => p.2.zipIdx.map (fun q => (p.1, q.2, q.1)))
 
-/-- PLACEHOLDER (stage D2, open question Q5): **etcd's member id**, as `membership.NewMember`
-computes it: the first 8 bytes, big-endian, of the SHA-1 of the member's sorted peer URLs
-concatenated with the cluster token. Since 2026-11-24 not in any premise: `WellFormed` is checked by
-the programs (Go's `deployment.WellFormed`, which computes the ids with `membership.NewMember` over
-Perennial's translated and proved `crypto/sha1`); this becomes that function's Lean model, used only
-inside the proof. -/
+/-- A workload whose proof needs that no lease expires (`AuthLease`, `LeaseCatchup`). -/
+def Workload.needsNoExpiry (w : Workload) : Bool :=
+  w.kind == W64 6 || w.kind == W64 8
+
+/-- PLACEHOLDER (open question Q5): **etcd's member id**, as `membership.NewMember` computes it: the
+first 8 bytes, big-endian, of the SHA-1 of the member's sorted peer URLs concatenated with the cluster
+token. In no premise but `BootFacts`'s; to be the Lean model of `membership.NewMember` (translated with
+its body, over Perennial's proved `crypto/sha1`). -/
 opaque memberId (peerURL : GoString) (token : GoString) : w64
 
 /-- The members' ids, in the members' order. -/
 def Deployment.ids (d : Deployment) : List w64 :=
   d.members.map (fun m => memberId (go!"http://" ++ m.peer) d.token)
-
-/-- The addresses the deployment listens on: every member's peer and client address, then every
-client machine's (the orchestrators listen nowhere). -/
-def Deployment.addrs (d : Deployment) : List GoString :=
-  d.members.flatMap (fun m => [m.peer, m.client]) ++ d.nodes.flatten
-
-/-- A member name the data directory can carry: nonempty, of ASCII letters, digits and `-` (so
-no `/`, `.` or `..`: one directory per member, `etcdWalAreasInit`'s `memberDataDir`). -/
-def nameOk (n : GoString) : Bool :=
-  !n.isEmpty && n.all (fun b => decide
-    ((48 ≤ b.toNat ∧ b.toNat ≤ 57) ∨ (65 ≤ b.toNat ∧ b.toNat ≤ 90) ∨
-    (97 ≤ b.toNat ∧ b.toNat ≤ 122) ∨ b.toNat = 45))
-
-/-- **The deployment is well formed** (decidable; the theorem's one premise about the deployment):
-
-1. the cluster has a member, and the members' names are distinct and valid (`nameOk`);
-2. every address is the net extension's `addrOk` (a canonical `a.b.c.d:p`, first octet 1-223, port
-   outside the ephemeral range), and the members' peer and client addresses and the client
-   machines' addresses are all distinct; each workload has its `nodeCount` client machines;
-3. the members' ids have distinct, nonzero 16 low bits (etcd's request ids carry them: `BootCore`'s
-   `lowNodup`/`lowNz`), and, when a workload grants leases, distinct 15 low bits
-   (`leaseIdsApart`, `issues/etcd-lease-id-mask-member-prefix.md`);
-4. the token is nonempty, and the server configuration is in the supported set;
-5. the workloads are compatible (`Compatible`) and within their bounds, and a workload that
-   needs the token provider has it; `compact` not under the periodic compactor (review F5); no token
-   provider beside expiring leases (review F10). -/
-def Deployment.WellFormed (d : Deployment) : Prop :=
-  d.members ≠ [] ∧ (d.members.map Member.name).Nodup ∧ (∀ m ∈ d.members, nameOk m.name = true) ∧
-  (∀ a ∈ d.addrs, Net.addrOk a = true) ∧ d.addrs.Nodup ∧
-  d.nodes.length = d.workloads.length ∧ (∀ p ∈ d.workloads.zip d.nodes, p.2.length = p.1.nodeCount) ∧
-  (d.ids.map (fun id => uint.Z id % 2 ^ 16)).Nodup ∧ (∀ id ∈ d.ids, uint.Z id % 2 ^ 16 ≠ 0) ∧
-  ((∃ w ∈ d.workloads, w.grantsLeases = true) → leaseIdsApart d.ids) ∧
-  d.token ≠ [] ∧ d.cfg.Supported ∧
-  Compatible d.workloads ∧ (∀ w ∈ d.workloads, w.BoundsOk) ∧
-  (∀ w ∈ d.workloads, w.needsAuth = true → d.cfg.auth = true) ∧
-  -- review F5: compactwatch's checks hold under the revision compactor (or none), not the periodic
-  (Workload.compact ∈ d.workloads → d.cfg.compactor.isPeriodic = false) ∧
-  -- review F10: the revocable lease mode with the token provider needs `leasesNoExpiry`
-  ¬ (d.cfg.auth = true ∧ Workload.leaseExpiry ∈ d.workloads)
-
-instance (d : Deployment) : Decidable d.WellFormed := by
-  unfold Deployment.WellFormed leaseIdsApart; infer_instance
 
 /-! ## Bootstrap's results -/
 
@@ -282,33 +127,73 @@ structure BootFacts (d : Deployment) (ps : List w64) (ctxs : List (List w8))
 
 end boot
 
-/-! ## The programs (PLACEHOLDER: stage D2, the translations)
+/-! ## The programs
 
-Every machine's program takes the **whole deployment** as a Go value (`deployment.Deployment`, `examples/etcd/dist/deployment`) and its
-own index, and first checks the deployment (Go's `deployment.WellFormed`, Lean's `Deployment.WellFormed`),
-returning at once if it fails (rule: a premise the program can check is the program's, with a Go test
-that the check passes and the real path runs: `TestWellFormed`, `TestDist`). So `WellFormed` is not a
-premise of the statement: on a malformed deployment every machine stops at its first step. -/
+Every machine's program receives the **whole deployment** as a Go value (`deploymentLit d`) and its own
+index, and first checks the deployment (Go's `deployment.WellFormed`), returning at once if it fails
+(rule: a premise the program can check is the program's, with a Go test that the check passes and the
+real path runs: `TestWellFormed`, `TestDist`). So the statement has no premise on the deployment: on a
+malformed one every machine stops after its check. -/
 
 section programs
 variable [GooseExts] [GoGlobalContext]
 
-/-- PLACEHOLDER (stage D2): **member `i`'s machine's boot program**, `server`'s initialization then
-`server.MainDeployment(d, i)` (`deployment.WellFormed(d)`, then `server.Main(server.ConfigOf(d, i))`), the
-deployment as a Go value: the same expression at the first start and after every crash (etcd's
-`NewServer` restarts from the WAL). -/
-opaque serverProg (d : Deployment) (i : Nat) : Expr
+open github_com.mit_pdos.etcd_grove.examples.etcd.dist in
+/-- **The deployment as a Go value**: the composite literal
+`deployment.Deployment{Members: []deployment.Member{{Name: …, Peer: …, Client: …}, …}, Token: …,
+Cfg: deployment.ServerCfg{…}, Workloads: []deployment.Workload{{Kind: …, Clients: …, Ops: …}, …},
+Nodes: [][]string{{…}, …}}`, field for field `d`. -/
+def deploymentLit (d : Deployment) : Expr :=
+  let str (s : GoString) := ElementExpression go.string (Val #s)
+  let lit (t : go.GoType) (es : List keyed_element) := App (Val (GoInstruction (CompositeLiteral t))) (LiteralValue es)
+  let fld (n : GoString) (t : go.GoType) (e : Expr) := KeyedElement (some (KeyField n)) (ElementExpression t e)
+  let memberE (m : Member) := KeyedElement none (ElementExpression deployment.Member.ty
+    (lit deployment.Member.ty [fld go!"Name" go.string (Val #m.name), fld go!"Peer" go.string (Val #m.peer),
+      fld go!"Client" go.string (Val #m.client)]))
+  let workloadE (w : Workload) := KeyedElement none (ElementExpression deployment.Workload.ty
+    (lit deployment.Workload.ty [fld go!"Kind" deployment.Kind.ty (Val #w.kind),
+      fld go!"Clients" go.int (Val #w.clients), fld go!"Ops" go.int (Val #w.ops)]))
+  let nodesE (ns : List GoString) := KeyedElement none (ElementExpression (go.GoType.SliceType go.string)
+    (lit (go.GoType.SliceType go.string) (ns.map (fun n => KeyedElement none (str n)))))
+  lit deployment.Deployment.ty
+    [fld go!"Members" (go.GoType.SliceType deployment.Member.ty)
+       (lit (go.GoType.SliceType deployment.Member.ty) (d.members.map memberE)),
+     fld go!"Token" go.string (Val #d.token),
+     fld go!"Cfg" deployment.ServerCfg.ty
+       (lit deployment.ServerCfg.ty [fld go!"CompactorMode" go.string (Val #d.cfg.compactorMode),
+         fld go!"Retention" go.int64 (Val #d.cfg.retention), fld go!"SnapCount" go.uint64 (Val #d.cfg.snapCount),
+         fld go!"CatchUp" go.uint64 (Val #d.cfg.catchUp), fld go!"Auth" go.bool (Val #d.cfg.auth)]),
+     fld go!"Workloads" (go.GoType.SliceType deployment.Workload.ty)
+       (lit (go.GoType.SliceType deployment.Workload.ty) (d.workloads.map workloadE)),
+     fld go!"Nodes" (go.GoType.SliceType (go.GoType.SliceType go.string))
+       (lit (go.GoType.SliceType (go.GoType.SliceType go.string)) (d.nodes.map nodesE))]
 
-/-- PLACEHOLDER (stage D2): **workload `j`'s orchestrator machine's boot program**, `client`'s
-initialization then `client.MainDeployment(d, j, ready)` (`deployment.WellFormed(d)`, then `client.MainReady(w,
-eps, nodes, _)` with the members' client addresses `eps` in the members' order and the workload's
-client machines' addresses `nodes`, D8). -/
-opaque clientProg (d : Deployment) (j : Nat) : Expr
+variable [GoSemanticsFunctions]
 
-/-- PLACEHOLDER (stage D2): **the `n`-th client machine's boot program** (in `nodeList`'s order),
-`client`'s initialization then `client.NodeDeployment(d, n)` (`deployment.WellFormed(d)`, `d.Node(n)`, then
-`client.NodeMain(w, c, addr, eps)`: client machine `c` of workload `w`, listening at `addr`, D8). -/
-opaque nodeProg (d : Deployment) (n : Nat) : Expr
+open github_com.mit_pdos.etcd_grove.examples.etcd.dist in
+/-- **Member `i`'s machine's boot program**: `server`'s initialization, then
+`server.MainDeployment(d, i)` (`deployment.WellFormed(d)`, then `server.Main` of member `i`'s
+configuration, `server.ConfigOf(d, i)`): the same expression at the first start and after every crash
+(etcd's `NewServer` restarts from the WAL). -/
+def serverProg (d : Deployment) (i : Nat) : Expr :=
+  server.initialize' #() ;;
+  App (App (Val (@! server.MainDeployment)) (deploymentLit d)) (Val #(W64 i))
+
+open github_com.mit_pdos.etcd_grove.examples.etcd.dist in
+/-- **Workload `j`'s orchestrator machine's boot program**: `client`'s initialization, then
+`client.Orchestrator(d, j)` (`deployment.WellFormed(d)`, then `client.MainReady` of workload `j` with the
+members' client addresses and the workload's client machines' addresses, D8). -/
+def clientProg (d : Deployment) (j : Nat) : Expr :=
+  client.initialize' #() ;;
+  App (App (Val (@! client.Orchestrator)) (deploymentLit d)) (Val #(W64 j))
+
+open github_com.mit_pdos.etcd_grove.examples.etcd.dist in
+/-- **The `n`-th client machine's boot program** (in `nodeList`'s order): `client`'s initialization,
+then `client.NodeDeployment(d, n)` (`deployment.WellFormed(d)`, then `client.NodeMain`: client machine
+`c` of workload `w`, listening at its address, D8). -/
+def nodeProg (d : Deployment) (n : Nat) : Expr :=
+  client.initialize' #() ;;
+  App (App (Val (@! client.NodeDeployment)) (deploymentLit d)) (Val #(W64 n))
 
 /-- The members' machines, with their start states `σs`, in the members' order. -/
 def servers (d : Deployment) (σs : List state) : List (Expr × state) :=
@@ -381,7 +266,7 @@ end env
 
 /-! ## The ghost state the statements' Iris premise is stated at -/
 
-attribute [local instance] etcdNetExts
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std in
 /-- **The functors** the statements' Iris premise (`HEnvTok`) is stated at: `putgetGF`'s layout (the
