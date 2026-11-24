@@ -93,7 +93,7 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
   wp_auto
   iunfold drvFacts at Hf
   icases Hf with ⟨-, %fr, #Hrg, #Hrf⟩
-  wp_bind (App (Val #fr) (Val #(go!"register")))
+  wp_bind (App (Val #fr) (Val _))
   iapply wp_wand $$ (Hrf $$ %go!"register")
   iintro %v %Hv
   subst Hv

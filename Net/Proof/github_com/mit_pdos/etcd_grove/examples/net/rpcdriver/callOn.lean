@@ -189,7 +189,7 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
             · ileft; iframe HR HT; ipureintro; exact He
             · iright; ileft; iexists msg; iframe Hem HR HP HD; ipureintro; exact Hm
             · iright; iright; iframe Ha; ipureintro; exact He
-          wp_bind (App (Val #fr) (Val #(go!"concurrent-calls")))
+          wp_bind (App (Val #fr) (Val _))
           iapply wp_wand $$ (Hrf $$ %go!"concurrent-calls")
           iintro %v %Hv
           subst Hv
@@ -287,7 +287,7 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
           imodintro
           wp_apply wp_check pa pr id dsl data fail err $$ [Hout]
           · iframe Hf Hstr Hout
-          wp_bind (App (Val #fr) (Val #(go!"concurrent-calls")))
+          wp_bind (App (Val #fr) (Val _))
           iapply wp_wand $$ (Hrf $$ %go!"concurrent-calls")
           iintro %v' %Hv'
           subst Hv'

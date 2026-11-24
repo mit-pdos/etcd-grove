@@ -33,19 +33,27 @@ theorem below.wp_proof
   wp_start as -
   wp_auto
   wp_if_destruct
-  · wp_auto
+  · try wp_auto
     iapply HΦ
     ipureintro
     constructor
     · intro; rfl
-    · intro h; exact absurd ‹_› h
+    · intro h; exact absurd rfl h
   · wp_apply wp_RandomUint64 as %x -
+    have hz : uint.Z n ≠ 0 := by intro h; apply Hif; word
+    simp only [hz, ↓reduceIte]
     wp_auto
     iapply HΦ
     ipureintro
     constructor
-    · intro h; exact absurd h ‹_›
-    · intro h; word
+    · intro h; exact absurd h Hif
+    · intro _
+      have hn : 0 < n := by
+        rcases Nat.eq_zero_or_pos n.toNat with h | h
+        · exact absurd (BitVec.eq_of_toNat_eq (by simpa using h)) Hif
+        · exact h
+      have := BitVec.umod_lt x hn
+      word
 
 end proof
 

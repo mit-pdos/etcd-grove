@@ -121,7 +121,7 @@ theorem Client.wp_proof
         wp_auto
         iunfold drvFacts at Hf
         icases Hf with ⟨-, %fr, #Hrg, #Hrf⟩
-        wp_bind (App (Val #fr) (Val #(go!"close")))
+        wp_bind (App (Val #fr) (Val _))
         iapply wp_wand $$ (Hrf $$ %go!"close")
         iintro %v %Hv
         subst Hv

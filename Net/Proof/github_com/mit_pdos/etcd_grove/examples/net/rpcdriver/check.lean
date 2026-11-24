@@ -43,9 +43,10 @@ theorem check.wp_proof (wp_isFailMsg : isFailMsg.spec (GF := GF) (hG := hG)) :
     obtain ⟨rfl, rfl⟩ := He
     wp_auto
     wp_apply (wp_bytes_to_string dsl' data (DFrac.own 1)) $$ Hd' as Hd'
+    dsimp only
     wp_apply (wp_bytes_to_string dsl data (DFrac.own 1)) $$ Hd as Hd
-    wp_auto
-    wp_bind (App (Val #f) (Val #(go!"call-success")))
+    repeat (first | wp_if_destruct | wp_auto)
+    try wp_bind (App (Val #f) (Val _))
     iapply wp_wand $$ (Hrf $$ %go!"call-success")
     iintro %v %Hv
     subst Hv
@@ -55,8 +56,8 @@ theorem check.wp_proof (wp_isFailMsg : isFailMsg.spec (GF := GF) (hG := hG)) :
   · -- a `ServerError`
     obtain ⟨rfl, hmsg⟩ := He
     wp_auto
-    simp only [net.rpc.serverErr, interface.mkOk]
-    wp_auto
+    try simp only [net.rpc.serverErr, interface.mkOk]
+    repeat (first | wp_if_destruct | wp_auto)
     wp_apply wp_isFailMsg $$ Hstr
     by_cases hm : driverMark <+: msg
     · have hmf : msg = fail := by
@@ -66,7 +67,7 @@ theorem check.wp_proof (wp_isFailMsg : isFailMsg.spec (GF := GF) (hG := hG)) :
       subst hmf
       simp only [hm, decide_true]
       wp_auto
-      wp_bind (App (Val #f) (Val #(go!"server-error")))
+      try wp_bind (App (Val #f) (Val _))
       iapply wp_wand $$ (Hrf $$ %go!"server-error")
       iintro %v %Hv
       subst Hv
@@ -74,13 +75,13 @@ theorem check.wp_proof (wp_isFailMsg : isFailMsg.spec (GF := GF) (hG := hG)) :
       iapply HΦ
       itrivial
     · simp only [hm, decide_false]
-      wp_auto
+      repeat (first | wp_if_destruct | wp_auto)
       all_goals first
-        | (wp_bind (App (Val #f) (Val #(go!"server-error")))
+        | (wp_bind (App (Val #f) (Val _))
            iapply wp_wand $$ (Hrf $$ %go!"server-error")
            iintro %v %Hv
            subst Hv
-           wp_auto
+           repeat wp_auto
            iapply HΦ
            itrivial)
         | (iapply HΦ; itrivial)
@@ -94,7 +95,7 @@ theorem check.wp_proof (wp_isFailMsg : isFailMsg.spec (GF := GF) (hG := hG)) :
       wp_auto
       simp only [hty, ↓reduceIte, decide_false]
       wp_auto
-      wp_bind (App (Val #f) (Val #(go!"other-error")))
+      try wp_bind (App (Val #f) (Val _))
       iapply wp_wand $$ (Hrf $$ %go!"other-error")
       iintro %v %Hv
       subst Hv
