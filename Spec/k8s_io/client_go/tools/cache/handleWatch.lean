@@ -31,7 +31,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 abbrev handleWatch.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (dch : GoChan) (γd : ChanNames) (start : time.Time) (w : GoInterface)
     (γa : ApiNames) (γw : WatchNames) (r : Res) (bm : Bool) (inits : List Obj)
-    (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (et : reflect.Type')
+    (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (et : reflect.«Type»)
     (name tname : GoString) (cb : GoFunc) (clk : k8s_io.utils.clock.RealClock) (errCh : GoChan)
     (n : Nat) (p : Pos') (L : Nat → Pos' → IProp GF) (C : Nat → Pos' → GoString → IProp GF),
   bmTyOk →

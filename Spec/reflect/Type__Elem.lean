@@ -30,11 +30,11 @@ variable [reflect.Assumptions]
 
 /-- See the file header. -/
 abbrev reflect.Type.Elem.spec : Prop :=
-  ∀ (rt : _root_.Perennial.reflect.Type') (T : go.GoType),
+  ∀ (rt : _root_.Perennial.reflect.«Type») (T : go.GoType),
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect ∗ ⌜reflType rt (go.GoType.SliceType T)⌝ }}
-    (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type'.ty go!"Elem"))) (Val #rt))
+    (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"Elem"))) (Val #rt))
       (Val #()))
-  {{ (et : _root_.Perennial.reflect.Type'), RET #et; ⌜reflType et T⌝ }}
+  {{ (et : _root_.Perennial.reflect.«Type»), RET #et; ⌜reflType et T⌝ }}
 
 end spec
 

@@ -6,7 +6,7 @@ model). Lean-first (no Rocq counterpart); for the Kubernetes etcd3 store's `getT
 For a non-nil interface (whose `TypeOf` is a non-nil `reflect.Type`; `String()` of the nil
 `Type` panics): some `reflect.Type`, whose `String()` returns some string. As `reflect.ValueOf`'s
 `IsNil`, `String` is specified in the postcondition, as a persistent triple of the call as Goose
-translates it (`MethodResolve reflect.Type'.ty "String"` on the value).
+translates it (`MethodResolve reflect.«Type».ty "String"` on the value).
 -/
 module
 
@@ -36,7 +36,7 @@ abbrev reflect.TypeOf.spec : Prop :=
     (App (Val (@! _root_.Perennial.reflect.TypeOf)) (Val #x))
   {{ (t : val), RET t;
       □ ({{ True }}
-          (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type'.ty go!"String")))
+          (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"String")))
             (Val t)) (Val #()))
         {{ (s : GoString), RET #s; True }}) }}
 

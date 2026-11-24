@@ -48,19 +48,19 @@ informer's object contract, the list-watch over the model's resource `res`, the 
 objects', every state's keys good. -/
 def reflEnv (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (res : Res) (γf : FifoNames) (γt : TsNames) (γi : InfNames) (f : Loc) (lw : GoInterfaceOk)
-    (et : reflect.Type') : IProp GF :=
+    (et : reflect.«Type») : IProp GF :=
   iprop(infInv γa res γf γt γi ∗ isFIFO f γf (infObj γi res) ∗ lwOk lw γa cfg res ∗
     typeOfOk et res ∗ keysOk γa)
 
 instance reflEnv_persistent (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (γf : FifoNames) (γt : TsNames) (γi : InfNames) (f : Loc) (lw : GoInterfaceOk)
-    (et : reflect.Type') : Persistent (reflEnv (GF := GF) γa cfg res γf γt γi f lw et) := by
+    (et : reflect.«Type») : Persistent (reflEnv (GF := GF) γa cfg res γf γt γi f lw et) := by
   unfold reflEnv; infer_instance
 
 /-- **`r.watch(ctx, nil, resyncerrc)`**: see the file header. -/
 abbrev Reflector.watch.spec : Prop :=
-  ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') (dh : GoFunc) (ctx : GoInterfaceOk)
+  ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.«Type») (dh : GoFunc) (ctx : GoInterfaceOk)
     (dch : GoChan) (γd : ChanNames) (errCh : GoChan) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (γf : FifoNames) (γt : TsNames) (γi : InfNames) (k : Nat),

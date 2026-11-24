@@ -49,7 +49,7 @@ abbrev sort.Slice.spec : Prop :=
           ys.Perm xs⌝ -∗
         s ↦* ys -∗ P -∗ (∀ b : Bool, s ↦* ys -∗ P -∗ Φ #b) -∗
         WP (App (App (Val #less) (Val #i)) (Val #j)) {{ Φ }}) }}
-    (App (App (Val (@! _root_.Perennial.sort.Slice'))
+    (App (App (Val (@! _root_.Perennial.sort.Slice''))
       (Val #(interface.mkOk (go.GoType.SliceType go.int64) #s))) (Val #less))
   {{ RET #(); ∃ ys : List w64, s ↦* ys ∗ P ∗ ⌜ys.Perm xs⌝ }}
 

@@ -47,7 +47,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev reflect.MakeSlice.spec : Prop :=
-  ∀ (rt : _root_.Perennial.reflect.Type') (n m : w64),
+  ∀ (rt : _root_.Perennial.reflect.«Type») (n m : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect ∗
       ⌜reflType rt (go.GoType.SliceType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty) ∧
         0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z m ∧ sint.Z m ≤ 2 ^ 41⌝ }}

@@ -318,7 +318,7 @@ instance keysOk_persistent (γa : ApiNames) : Persistent (keysOk (GF := GF) γa)
 
 /-- The reflector's fixed fields, part 1 (persistent): the store, list-watch, expected type and GVK,
 resync period, watch-list switch, clock. -/
-def reflFixed1 (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') : IProp GF :=
+def reflFixed1 (r f : Loc) (lw : GoInterfaceOk) (et : reflect.«Type») : IProp GF :=
   iprop(∃ c : k8s_io.utils.clock.RealClock,
     r.[Reflector, go!"store"] ↦□ interface.mkOk (go.GoType.PointerType RealFIFO.ty) #f ∗
     r.[Reflector, go!"listerWatcher"] ↦□ interface.ok lw ∗
@@ -329,7 +329,7 @@ def reflFixed1 (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') : IProp GF 
     r.[Reflector, go!"clock"] ↦□
       (interface.mkOk k8s_io.utils.clock.RealClock.ty #c : k8s_io.utils.clock.Clock))
 
-instance reflFixed1_persistent (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') :
+instance reflFixed1_persistent (r f : Loc) (lw : GoInterfaceOk) (et : reflect.«Type») :
     Persistent (reflFixed1 (GF := GF) r f lw et) := by
   unfold reflFixed1; infer_instance
 
@@ -352,10 +352,10 @@ instance reflFixed2_persistent (r : Loc) (dh : GoFunc) :
   unfold reflFixed2; infer_instance
 
 /-- **The reflector's fixed fields** (persistent): see the file header. -/
-def reflFixed (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') (dh : GoFunc) : IProp GF :=
+def reflFixed (r f : Loc) (lw : GoInterfaceOk) (et : reflect.«Type») (dh : GoFunc) : IProp GF :=
   iprop(reflFixed1 r f lw et ∗ reflFixed2 r dh ∗ delayOk dh)
 
-instance reflFixed_persistent (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') (dh : GoFunc) :
+instance reflFixed_persistent (r f : Loc) (lw : GoInterfaceOk) (et : reflect.«Type») (dh : GoFunc) :
     Persistent (reflFixed (GF := GF) r f lw et dh) := by
   unfold reflFixed; infer_instance
 

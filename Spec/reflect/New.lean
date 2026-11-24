@@ -30,7 +30,7 @@ variable [reflect.Assumptions]
 
 /-- See the file header. -/
 abbrev reflect.New.spec : Prop :=
-  ∀ (rt : _root_.Perennial.reflect.Type') (T : go.GoType),
+  ∀ (rt : _root_.Perennial.reflect.«Type») (T : go.GoType),
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect ∗ ⌜reflType rt T⌝ }}
     (App (Val (@! _root_.Perennial.reflect.New)) (Val #rt))
   {{ (w : _root_.Perennial.reflect.Value) (p : Loc), RET #w;

@@ -25,7 +25,7 @@ abbrev big.Int.Int64.spec : Prop :=
   ∀ (p : Loc) (z : Int),
   - 2 ^ 63 ≤ z ∧ z < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.math.big ∗ ownBigInt p z }}
-    (App (Val (p @!! go.GoType.PointerType math.big.Int'.ty @!! go!"Int64")) (Val #()))
+    (App (Val (p @!! go.GoType.PointerType math.big.Int''.ty @!! go!"Int64")) (Val #()))
   {{ RET #(W64 z); ownBigInt p z }}
 
 end spec

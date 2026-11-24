@@ -41,8 +41,8 @@ theorem Once.wp_Do_own (o : Loc) (P Q : IProp GF) (f : GoFunc) :
     {{ RET #(); Q }} := by
   iintro %Φ ⟨#Hsync, Ho, HP, Hf⟩ HΦ
   iStructNamed Ho
-  have hz : (zero_val sync.atomic.Bool') =
-      ({ «_#0'» := zero_val _, v' := sync.atomic.b32w false } : sync.atomic.Bool') := rfl
+  have hz : (zero_val sync.atomic.Bool'') =
+      ({ «_#0'» := zero_val _, v' := sync.atomic.b32w false } : sync.atomic.Bool'') := rfl
   ihave Hd : sync.atomic.ownBool (GF := GF) (structFieldRef sync.Once go!"done" o) (DFrac.own 1) false $$ [done]
   · simp only [sync.atomic.ownBool_unseal, sync.atomic.ownBoolDef]
     rw [← hz]; iexact done

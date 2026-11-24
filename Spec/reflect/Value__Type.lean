@@ -33,7 +33,7 @@ abbrev reflect.Value.Type.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect ∗ vp ↦{dq} v ∗ ⌜reflElem v T p⌝ }}
     (App (Val #(methods (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type" #vp))
       (Val #()))
-  {{ (rt : _root_.Perennial.reflect.Type'), RET #rt; vp ↦{dq} v ∗ ⌜reflType rt T⌝ }}
+  {{ (rt : _root_.Perennial.reflect.«Type»), RET #rt; vp ↦{dq} v ∗ ⌜reflType rt T⌝ }}
 
 end spec
 

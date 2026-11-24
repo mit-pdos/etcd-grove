@@ -63,7 +63,7 @@ caller's state `L` at the watch's consumer side where it stopped. -/
 abbrev handleAnyWatch.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (dch : GoChan) (γd : ChanNames) (start : time.Time) (w : GoInterface)
     (γa : ApiNames) (γw : WatchNames) (r : Res) (bm : Bool) (inits : List Obj)
-    (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (et : reflect.Type')
+    (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (et : reflect.«Type»)
     (name tname : GoString) (cb : GoFunc) (clk : k8s_io.utils.clock.RealClock) (errCh : GoChan)
     (n : Nat) (p : Pos') (L : Nat → Pos' → IProp GF) (C : Nat → Pos' → GoString → IProp GF),
   bmTyOk →

@@ -33,7 +33,7 @@ abbrev rand.Int.spec : Prop :=
   0 < mz ∧ mz < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.crypto.rand ∗
      globalAddr crypto.rand.Reader ↦□ rdr ∗ ownBigInt max mz }}
-    (App (App (Val #(functions crypto.rand.Int' [])) (Val #rdr)) (Val #max))
+    (App (App (Val #(functions crypto.rand.Int'' [])) (Val #rdr)) (Val #max))
   {{ (v : Loc) (z : Int), RET (PairV #v #interface.nil);
      ownBigInt max mz ∗ ownBigInt v z ∗ ⌜0 ≤ z ∧ z < mz⌝ }}
 

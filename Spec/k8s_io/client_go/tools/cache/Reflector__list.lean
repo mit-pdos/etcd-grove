@@ -46,7 +46,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`r.list(ctx)`**: see the file header. -/
 abbrev Reflector.list.spec : Prop :=
-  ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') (dh : GoFunc) (ctx : GoInterfaceOk)
+  ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.«Type») (dh : GoFunc) (ctx : GoInterfaceOk)
     (dch : GoChan) (γd : ChanNames) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (γf : FifoNames) (γt : TsNames) (γi : InfNames) (n : Option Nat),

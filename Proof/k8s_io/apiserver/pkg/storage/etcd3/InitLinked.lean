@@ -97,7 +97,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.atomic.Bool') fatalOnDecodeError _ as HfatalOnDecodeError
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.atomic.Bool'') fatalOnDecodeError _ as HfatalOnDecodeError
   wp_apply wp_GlobalAlloc (V := w64) defaultWatcherMaxLimit _ as HdefaultWatcherMaxLimit
   wp_apply wp_GlobalAlloc (V := Loc) typeToMessage _ as HtypeToMessage
   wp_apply wp_GlobalAlloc (V := GoInterface) errTooMany _ as HerrTooMany
@@ -208,9 +208,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ihave Hfod : _root_.Perennial.sync.atomic.ownBool (GF := GF) (globalAddr fatalOnDecodeError) (DFrac.own 1) false $$ [HfatalOnDecodeError]
   · rw [_root_.Perennial.sync.atomic.ownBool_unseal]
     unfold _root_.Perennial.sync.atomic.ownBoolDef
-    have e : (zero_val _root_.Perennial.sync.atomic.Bool') =
+    have e : (zero_val _root_.Perennial.sync.atomic.Bool'') =
         ({ «_#0'» := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :
-          _root_.Perennial.sync.atomic.Bool') := rfl
+          _root_.Perennial.sync.atomic.Bool'') := rfl
     rw [← e]; iexact HfatalOnDecodeError
   wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]
   · iPkgInit

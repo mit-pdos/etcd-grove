@@ -33,7 +33,7 @@ variable [sync.atomic.Assumptions]
 theorem swift.wp_anyLoad (wp_Load : sync.atomic.Bool.Load.spec (GF := netDistGF) (hG := hG))
     (r : Loc) :
     {{ swift.anyInv r }}
-      (App (Val ((swift.fld r go!"deliveredAny") @!! go.GoType.PointerType sync.atomic.Bool'.ty
+      (App (Val ((swift.fld r go!"deliveredAny") @!! go.GoType.PointerType sync.atomic.Bool''.ty
         @!! go!"Load")) (Val #()))
     {{ (b : Bool), RET #b; True }} := by
   iintro %Φ #Hany HΦ
@@ -57,7 +57,7 @@ theorem swift.wp_anyLoad (wp_Load : sync.atomic.Bool.Load.spec (GF := netDistGF)
 theorem swift.wp_anyStore (wp_Store : sync.atomic.Bool.Store.spec (GF := netDistGF) (hG := hG))
     (r : Loc) (v : Bool) :
     {{ swift.anyInv r }}
-      (App (Val ((swift.fld r go!"deliveredAny") @!! go.GoType.PointerType sync.atomic.Bool'.ty
+      (App (Val ((swift.fld r go!"deliveredAny") @!! go.GoType.PointerType sync.atomic.Bool''.ty
         @!! go!"Store")) (Val #v))
     {{ RET #(); True }} := by
   iintro %Φ #Hany HΦ
