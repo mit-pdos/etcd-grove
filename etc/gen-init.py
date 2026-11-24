@@ -802,6 +802,12 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 
+# (2026-11-23, Perennial 47ec64a9d translates `math/rand`'s global generator) `math.rand`'s fact stays
+# `True` here (`Proof/math/rand/Base.lean`, not Perennial's `isInit`): its initializer allocates
+# `globalRandGenerator` (dropped) and initializes `sync/atomic` and `sync`. Its other variables are
+# skipped by Perennial's configuration, so no `opaqueInitsOk` axiom any more.
+SPECIAL['math.rand'] = dict(alloc_types=_ALLOC_ANY)
+
 # (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) `io/fs` and `os` record
 # `ErrExist`'s error non-nil (`Proof/os/PkgInit.lean`; the part `LinuxFs/`'s until 2026-11-15, now the
 # main tree's: `SPECIAL['os']`, `SPECIAL['io.fs']` below).

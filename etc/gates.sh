@@ -358,6 +358,13 @@ fi
 # the notes' merge drivers (etc/merge-status.py; .gitattributes): replays this week's real merges of
 # notes/STATUS.md and notes/status-history.md, and synthetic cases (reads git only; ~15s)
 python3 etc/merge-status.py --selftest || fail=1
+# the GitHub coordination tool reads the convention as notes/coordination.md says (etc/gh-inbox.py;
+# recorded JSON, no network; under a second)
+if python3 -m unittest discover -s etc/gh-inbox-test > "$tmp/ghinbox.log" 2>&1; then
+  echo "gh-inbox: ok"
+else
+  echo "gh-inbox: FAILED"; tail -20 "$tmp/ghinbox.log"; fail=1
+fi
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
 # the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs

@@ -62,7 +62,22 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   a per-prefix heap-level `idPfxInv` holding them (both arguments that use them are per prefix, and a prefix is one
   machine's); `IdNames.gen`; `NewGenerator.spec`'s pre gains `idPfxInv γi.gen γi.pfx`; `NewServer.spec`/`NewServerR.spec`
   gain it; `idGen`'s body. No top-level theorem's statement changes (checked; the plan lists the files).
-- **Decision.** Pending (the coordinator posts it on #28 before implementation; idutil's specs are shared).
+- **Decision.** Accepted (no objection on #28 within the hour; the coordinator, 2026-11-23); implemented on branch
+  `d7-idsplit`. Refined in the implementation: each prefix's two names (its ids' map `γip`, its generators' map
+  `γgp`) are allocated by `idCluster_alloc` and recorded in the new global map `IdNames.gen` (`p ↪[gen]□ (γip, γgp)`,
+  persistent, so no authority stays in an invariant); `idClusterInv` therefore gains the parameter `gen` (its type
+  changes by one `GName`); a key's generator facts in the global invariant are heap-free (`idKeyGenFactsG`: the
+  prefix's names, `g ↪[γgp]□ k`, `id ↪[γip]□ g` per issued id), their heap halves (`idIssueFragD`, the `prefix`
+  points-to) in `idPfxInv gen p`; `idClusterOk`'s generator-distinctness clause is restricted to keys of one prefix.
+  **Top-level vocabulary (the #8 rule, 2026-11-23):** `IdNames` gains `gen`, and `IdNames` is a field of `KVNames`,
+  which `etcd_safe_single_process`'s statement names through its restart premise (`etcdstart.premises` →
+  `bootPremiseR` → `bootstrapRestartContract`: `∃ γk : KVNames, …` reading `c0`/`ch0`/`log0`/`lm`/`gps`, never
+  `ids`): the statement's term changes, its meaning does not (an existential over a type with one more unread
+  field). No other top-level statement names `IdNames` (`etc/theorem-loc.py --list-tcb`: `k8s_safe_single_process`,
+  `etcd_leaseexpiryN_safe_single_process` only as axiom vocabulary; `mvccfull`, `mvccrand`, `k8s_authz` not at
+  all). Option (a), this branch: accept it; option (b): `gen` an explicit parameter, `IdNames` unchanged. **(a)
+  accepted** (Upamanyu's coordinator on #28, 2026-11-23: a vocabulary change with unchanged meaning is not covered
+  by #8).
 
 ## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
 
@@ -5266,6 +5281,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above; callers updated (`Client.send`'s, `Client.Go`'s, `ReadResponseHeader`'s proofs).
 - **Decision.** Applied (callee strengthenings an existing proof discharges; no top-level statement changes).
 
+## 2026-11-23: `violated.spec` says an empty result is `nil` (antithesis check, #33 S3b W7)
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/violated.lean`.
+- **Defect.** Its post held only `strsRO u (violated s)`; `Checker.Next` tests `v != nil` on the
+  result, which a list `[]` held by a non-nil slice would not decide, so `Next`'s proof re-proved the
+  call with the extra fact (`Checker.Next.violated_wp`).
+- **Evidence.** `check.go`'s `violated` returns `nil` when no invariant is broken and the state's
+  `Viol` is empty (`len(s.Viol) == 0`), else a non-empty slice.
+- **Proposed change.** The post adds `⌜violated s = [] → u = slice.nil⌝`; `violated.wp_proof` is the
+  re-proof's body, `Checker.Next.wp_proof` takes `violated.spec`, `violated_wp` goes.
+- **Decision.** Applied (a callee strengthening its own proof discharges; no trust or top-level change).
 ## 2026-11-23: grpc's contracts take a resource parameter (#24's S2 signatures, item (c))
 
 - **Spec.** `Proof/google_golang_org/grpc/InvGrpc.lean`, `InvGrpcStream.lean`, `InvGrpcRun.lean` and the axioms

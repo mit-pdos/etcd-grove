@@ -49,8 +49,8 @@ Cluster []Peer, Token, CompactorMode, Retention, SnapCount, CatchUp, Auth}`. It 
 (`etcdserver.NewServer`), serve its raft handler on its peer listener with `http.Server.Serve`, start
 it, serve `v3rpc.Server` on its client listener with `grpc.Server.Serve`, then sleep forever. The
 same `Main` is the boot program after a crash: `NewServer` finds the WAL (bootstrap's `haveWAL`) and
-restarts the member; the initial cluster and token are then ignored by etcd. It first clears the
-proxy variables and `ETCD_VERIFY` (`clearProxyEnv`: §4 and Q10). The binary (`cmd/server`) reads the
+restarts the member; the initial cluster and token are then ignored by etcd. (Until 2026-11-23 it first cleared the
+proxy variables and `ETCD_VERIFY`, `env.ClearProxy`; dropped, Q10's update.) The binary (`cmd/server`) reads the
 `Config` as JSON; the Lean boot program is `Main` applied to the `Config`'s Go value (the parsing is
 not translated).
 
@@ -566,7 +566,9 @@ leaseexpiryN in, `noExpiry` conditional; Q3 the `durable` workload under real cr
 up accepted; Q5 a trusted Lean SHA-1 tested against Go first, Perennial's `crypto/sha1` proof later; Q6 the
 carried premises accepted for the first version; Q7 the interim theorem without crashes is the first
 milestone; Q8 etcd's full peer handler; Q9 no further `ServerConfig` fields in the first version; Q10 the
-server clears the proxy variables itself. Open: the name (decided 2026-11-22: `etcd_safe`, the distributed theorems take the plain names; vs. the files' `_robust`
+server clears the proxy variables itself (**superseded 2026-11-23**, the owner's option (A): `env.ClearProxy` dropped,
+since `os.Unsetenv` has no spec; `verifyEnvOff` per machine and its token `envVerifyOff` are premises of the
+statement, as in one process; a proxy premise comes with S5: `notes/putget-dist-plan.md` section 11). Open: the name (decided 2026-11-22: `etcd_safe`, the distributed theorems take the plain names; vs. the files' `_robust`
 convention) and U1-U5 (upamanyus, etcd-grove#24).
 
 For the user:
@@ -813,7 +815,7 @@ bootMarshal vs ctxs bl ⊢ nodeBoot …` at a heap. Additive: no statement chang
 regenerated; heap-free roots, `nodeBoot` a negative test. `srvClusterBoot_alloc` can now take the raft part from
 `cluster_alloc_bootG`; it stays at a heap until the idutil split.
 
-#### The idutil split (design, 2026-11-23, for review on #28; not implemented)
+#### The idutil split (design, 2026-11-23; accepted on #28, implemented on `d7-idsplit`)
 
 **The defect.** `idClusterInv issued cnt wn fs Φs` (`idutil/Defs.lean`), the cluster's claims, holds for every key
 `k` with a generator `g` (`C !! k = some (L, some g)`) `idKeyGenFacts k e`: `g`'s `prefix` field
@@ -873,6 +875,18 @@ confused with the old one, so (U2)'s `g' = g` then compares `(epoch, g)` pairs. 
 process, `HardStop`, no crash) keeps the heap, so nothing changes for it. The global part has no crash concern.
 
 Ledger: `notes/specs-only/ledger.md`, 2026-11-23, "idutil's cluster claims hold every machine's generator facts".
+
+**Implemented (`d7-idsplit`, 2026-11-23).** As designed, refined: each prefix's two names (its ids' map `γip`, its
+generators' map `γgp`) are allocated by `idCluster_alloc` and recorded persistently in the new map `IdNames.gen`
+(`p ↪[gen]□ (γip, γgp)`; `idPfxTok gen p` the fresh pair, `idPfxInv_alloc` the member's step); the global
+invariant's `idKeyGenFacts gen k e` keeps heap-free records (`g ↪[γgp]□ k`, `id ↪[γip]□ g`), `idPfxInv gen p` their
+heap halves; `idClusterInv` gains the parameter `gen`. `NewGenerator`/`Next` re-proved over both invariants;
+`srvClusterBoot_allocG` (no `bootMarshal`, `nodeBootG`, `idPfxTok`s) with `srvClusterBoot_alloc` its corollary;
+etcdstart's `clusterFacts`, `memberSlice` (`nodeBootG`, `idPfxTok`) and `clusterAllocN` heap-free;
+`memberBoot_of_slice` (the member's boot: `bootMarshal`, `idPfxInv_alloc`, `memberBoot_of`). So the distributed
+start's cluster allocation is `clusterAllocN` (plus the S2 start, `cluster_svc_start`); what is left for D7's no-crash
+part is the `k`-member boot skeleton, which waits for S5 (the peers' transport) and D2 (the server program).
+
 
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 

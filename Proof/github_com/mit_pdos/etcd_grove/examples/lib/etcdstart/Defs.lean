@@ -245,7 +245,9 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+    -- (etcd-dist D7) the prefix's generators' facts, on the member's machine
+    idPfxInv ρ.ids.gen ρ.ids.pfx ∗
     idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
@@ -544,7 +546,9 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
       (m = .revocable → lease.leasesNoExpiry)⌝ ∗
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+    -- (etcd-dist D7) the prefix's generators' facts, on the member's machine
+    idPfxInv ρ.ids.gen ρ.ids.pfx ∗
     idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗

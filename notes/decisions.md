@@ -42057,6 +42057,23 @@ contract chooses the ghost table, so naming three more buckets in it constrains 
 the backend's invariants do not tie it to the data's buckets; adding that tie is a backend-internal change (claimed
 by #30 at the time).
 
+## The Antithesis checker's actions take one budget premise, `State.BoundedFor` (2026-11-23 · #33 S3b W0 · branch `antithesis-check`)
+
+**Was:** `ActionSpec` (the spec shape of every action of `Bind`, `Rep.lean`) had no bound: `State.Made.spec`, its one
+proved instance, needs none. **Now:** `ActionSpec` takes `s.BoundedFor ev` (`notes/antithesis-check-design.md`
+§10.2, "Bounds"): the state within a budget `b` (`State.Within b E`: logs and per-report lists no longer than `b`,
+facts than `2 * b`, numbers within `±2^62`, configuration sets within `|initVoters| + b * E`) and room for the report
+(`b + ev.weight < 2^61`, `|initVoters| + (b + ev.weight + 1) * E < 2^61`). `State.Made`'s proof only ignores it.
+
+**Why one premise for every action:** `Bind` dispatches to each action; a family of shapes (bounded, unbounded)
+would split its proof. **Why a budget, not fixed bounds:** an in-flight value (`InMemory`'s leader log, the
+report's entries appended) is longer than any log of the state; with fixed bounds (logs below `2^61`) its length
+is not bounded where `HasFirst`'s premise needs it; with a budget it is `b + ev.size`, and each step's bound is
+local (`ActionWithin`, `OnDiskWithin`, ...: no history). **Why `E` per entry, not a sum over the stream:** a log's
+total of configuration changes has no local bound (a step can splice one log's prefix onto another's suffix), but
+its length times the largest change has. `Run.spec` (no proof yet) takes `Stream.ConfBounded` and a doubled report count in
+`Stream.Bounded` to start the budget and keep it below `2^61`.
+
 ## pbgen's subset extended to proto2 and oneofs (2026-11-23 · proving session 2, #18, offered by #24 · branch `ps2-pbgen-proto2/2026-11-23`, not landed: for the user's review)
 
 **Context.** pbgen (`models/protobuf/`, "Trusted generated code: the generator is the trusted
