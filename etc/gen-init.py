@@ -90,7 +90,6 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend',
-         'github_com.mit_pdos.etcd_grove.examples.raft.kv',
          # (2026-10-29, track C) the store that reconfigures and snapshots
          'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf',
          # (2026-11-01) the durable store (its files through the durable-state extension's Go
@@ -5185,8 +5184,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.kv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':

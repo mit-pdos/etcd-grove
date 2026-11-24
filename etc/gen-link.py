@@ -24,7 +24,6 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --v3lock > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/Link.lean
        etc/gen-link.py --v3election > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3election/Link.lean
-       etc/gen-link.py --kv > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/Link.lean
        etc/gen-link.py --kvreconf > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/Link.lean
        etc/gen-link.py --kvdurable > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Link.lean
        etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
@@ -162,12 +161,9 @@ the clients' model of etcd: their sections take `[EM : EtcdModel GF]` (the class
 `notes/raft-retarget-plan.md`) and the trust-boundary axioms of protobuf-go's `proto` it rests
 on, from etc/link-lean-first-raft.txt (the mode was `--raft37`, into the parallel tree `Raft37/`,
 until stage R6 swapped the trees).
-`--kv` links the key-value store example's proofs (`examples/raft/kv`; until 2026-10-19 the register
-example, `--register`), from etc/link-lean-first-kv.txt; raft's, the porcupine driver's and
-porcupine's functions it calls are `@` callees, linked in their `Link.lean`s, and its specs'
-`[KVStor GF]` (the storage registry) is passed on.
 `--kvreconf` links the reconfiguring store's (`examples/raft/kvreconf`), from
-etc/link-lean-first-kvreconf.txt, as `--kv`: its specs' `[KvrStor GF]` (the storage registry) is
+etc/link-lean-first-kvreconf.txt (raft's, the porcupine driver's and porcupine's functions it calls
+are `@` callees, linked in their `Link.lean`s): its specs' `[KvrStor GF]` (the storage registry) is
 passed on, and its storage model `kvrStorageModel` (a `def`) is a local instance of the Link, at
 which raft's results over `[StorageModel GF]` are instantiated.
 `--kvdurable` links the durable store's (`examples/raft/kvdurable`), from
@@ -348,15 +344,8 @@ LEAN_FIRST = {
               "etcd-grove's trust boundary of `fmt` (axioms)", [""]),
     "--context": ("link-lean-first-context.txt", "", "_root_.Perennial.context.Assumptions",
                   "etcd-grove's trust boundary of `context` (axioms)", [""]),
-    # the key-value store example (examples/raft/kv): its proofs, over raft's and the porcupine
-    # driver's (linked in their `Link.lean`s, the `@` callees) and the storage model `KVStor`
-    # gives
-    "--kv": ("link-lean-first-kv.txt",
-             "github_com.mit_pdos.etcd_grove.examples.raft.kv go_etcd_io.raft.v3 "
-             "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
-             "github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions",
-             "The key-value store example's proofs (`examples/raft/kv`)", [""]),
-    # the reconfiguring store (examples/raft/kvreconf), as `--kv`, its storage registry `KvrStor`
+    # the reconfiguring store (examples/raft/kvreconf): its proofs, over raft's and the porcupine
+    # driver's (linked in their `Link.lean`s, the `@` callees), its storage registry `KvrStor`
     "--kvreconf": ("link-lean-first-kvreconf.txt",
                    "github_com.mit_pdos.etcd_grove.examples.raft.kvreconf go_etcd_io.raft.v3 "
                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
@@ -673,8 +662,6 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link",
                                # (fs single view) the shared open, `Open`'s `=` callee
                                "Proof.os.OpenFileS"],
-                 # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
-                 "--kv": ["Proof.go_etcd_io.raft.v3.Linked"],
                  # raft's importable `confchange`/`tracker` specs (`=RaftLink.*` callees),
                  # Perennial's `time` results (`=_root_.Perennial.time.*`), gokv's trusted
                  # `ResolveBytes`'s proved spec (`Cluster.Read`'s prophecy, `=_root_.Perennial.…`)
@@ -838,7 +825,7 @@ if ALIAS:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--perclient", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
+NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--perclient", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kvreconf", "--kvdurable", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
@@ -895,7 +882,7 @@ em = ((PRE_VARS.get(sys.argv[1], ""))
       + EXTRA_VARS.get(sys.argv[1], "")
       + "".join(f"\nattribute [local instance] {i}\n"
                 for i in LOCAL_INSTANCES.get(sys.argv[1], [])))
-# The storage registries a store's specs take (kv's `KVStor`, kvreconf's `KvrStor`): passed on; a
+# The storage registries a store's specs take (kvwitness's `KVStor`, kvreconf's `KvrStor`): passed on; a
 # spec taking one is stated at the store's storage model, not at any `[StorageModel GF]`.
 STOR_REGS = ["[KVStor GF]", "[KvrStor GF]", "[KdStor GF]"]
 # a registry as a pending hypothesis's binder, named in full (the Link opens the package's Go

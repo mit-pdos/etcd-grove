@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, kvnet, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -734,28 +734,6 @@ PROJECTS = [
         # (models/encoding/json): the names the main tree's `Code/encoding/json.lean` declares
         # (project k8s-apiserver's, names only) are the model's
         std_models=["encoding/json"],
-    ),
-    Project(
-        name="kv",
-        # An example application on raft's Node: a replicated string-to-string key-value
-        # store (Put, Get, Append; until 2026-10-19 the replicated string register
-        # `examples/register`), with its randomized linearizability test over the lintest
-        # driver and porcupine (check.go). A package of the examples' Go module (examples/go.mod),
-        # which replaces go.etcd.io/raft/v3 by the revision pinned above
-        # (`github.com/upamanyus/etcd/v3`, the fork's pseudo-version under a /v3 path, since
-        # its go.mod declares go.etcd.io/raft/v3; GO_MOD_PINS checks the two agree), and lintest and
-        # porcupine by this repository's copies.
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "raft", "kv"),
-        # (raft v3.7, stage R6b: the store reaches protobuf-go's `proto`, which the raft
-        # tree translates into the root, `Code.google_golang_org.protobuf.proto`; lintest is
-        # the lintest project's translation, porcupine the porcupine project's)
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
-                    "github.com/anishathalye/porcupine="],
-        # the store; not its command (cmd/kvcheck), which only runs it
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kv")],
     ),
     Project(
         name="kvreconf",
