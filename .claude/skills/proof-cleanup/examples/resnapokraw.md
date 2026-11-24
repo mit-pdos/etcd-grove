@@ -108,8 +108,6 @@ static mode needed. First check who still passes `none`.
 - `Protocol/Ghost.lean` is near the bottom of raft: `etc/importers.py --count` gives 4,728 modules
   (703k lines), essentially a full build. Schedule it when the raft proof is not being changed
   elsewhere, and land it quickly.
-- Raft's API vocabulary changes (`RaftNames`, `DecNames`): regenerate the interfaces
-  (`etc/gen-interface.py etc/api/raft.txt`) and review the diff.
 - The fingerprint diff touches definitions the exported results reach through the cluster names,
   only by removing a field nothing constrains. That is a change to a definition under a top-level
   statement, so present it to the user as such; it does not change what any result says.

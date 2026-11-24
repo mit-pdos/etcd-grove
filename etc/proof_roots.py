@@ -210,6 +210,13 @@ def shared_net(m):
     # extension only (no copy of the main tree's modules): putget's distributed theorem imports it
     if m.startswith("Net.Statement."):
         return True
+    # (#24 J3, 2026-11-23) models.lab's codec helpers (`models_lab.jsoncodec`, the part's translation,
+    # `models.lab=Net`) are the main tree's too: membership's generated JSON methods call them (not the
+    # part's `Init` over its own initializer copies: the main tree has its own, `Proof/models_lab/`)
+    for d in ("Net.Code.models_lab.", "Net.GeneratedProof.models_lab.", "Net.Spec.models_lab.",
+              "Net.Proof.models_lab."):
+        if m.startswith(d):
+            return not m.endswith(".Init")
     for d in ("Net.Spec.net.", "Net.Proof.net."):
         if m.startswith(d):
             rest = m[len(d):]

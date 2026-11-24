@@ -3,13 +3,11 @@
 # etc/api/etcdstart.txt --check`). Every other module of the package is internal; in particular the
 # members' start bundles (`StartRes`: `memberStartRes`, `memberFreshRes`, `memberRestartRes`) are
 # sealed, their bodies reachable only with `import all`, which rule 1 forbids outside the package and
-# `etc/import-all.txt` limits inside it. What each importable module exposes, as a client sees it, is
-# `etc/gen-interface.py`'s output under `interface/`.
+# `etc/import-all.txt` limits inside it.
 #
 # Started 2026-11-05 from what clients imported then and its public-import closure, in two groups:
 # the API, and debt (proof internals the examples reach today, to be taken out of the list: a law in
-# an API module instead, or the client's import dropped). Adding a module here is an API change:
-# review its interface.
+# an API module instead, or the client's import dropped). Adding a module here is an API change.
 
 inside Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/
 inside Spec/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/

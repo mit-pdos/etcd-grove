@@ -94,7 +94,7 @@ def readAvailB (st : NetEnd) (d : NetDir) (n : Nat) (r : ReadRes) (d' : NetDir) 
        decide (bs = d.bytes.take bs.length) && dirEqB d' { d with bytes := d.bytes.drop bs.length }
    | _ => false) ||
   (decide (d.bytes = [] ∧ d.status ≠ .open ∧ r = .eof) && dirEqB d' d) ||
-  (decide (d.status = .cut ∧ r = .err .sys) && dirEqB d' d) ||
+  (decide (d.status = .cut ∧ d.bytes = [] ∧ r = .err .sys) && dirEqB d' d) ||
   (decide (st.rdl = true ∧ r = .err .timeout) && dirEqB d' d)
 
 theorem readAvailB_iff {st : NetEnd} {d : NetDir} {n : Nat} {r : ReadRes} {d' : NetDir} :
@@ -127,7 +127,7 @@ theorem cut_unique {st : NetEnd} {d : NetDir} {n k : Nat} {r : ReadRes} {d' : Ne
     k = cutKeep r d' := by
   have hl : (d.bytes.take k).length = k := by simp [List.length_take]; omega
   unfold ReadAvail at h
-  rcases h with ⟨j, -, -, hj, rfl, rfl⟩ | ⟨hb, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
+  rcases h with ⟨j, -, -, hj, rfl, rfl⟩ | ⟨hb, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
   · simp only [cutKeep]
     have := List.take_append_drop j (d.bytes.take k)
     have h2 := congrArg List.length this

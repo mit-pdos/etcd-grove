@@ -33,7 +33,7 @@ theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
       idClaim γi id d γf := by
   iintro #Hg Hu %Hp #HΦ
   iunfold idGen at Hg
-  icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %X, %hX, %Φs, %x, %HΦx, #Hkf, #Hcl⟩
+  icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %X, %hX, %Φs, %x, %HΦx, #Hkf, #Hcl, #Hpi⟩
   iunfold idClusterInv at Hcl
   iinv Hcl with Hi Hclose
   icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, #HG⟩
@@ -77,7 +77,7 @@ theorem idClaim_fact (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
     ⊢ idGen (GF := GF) γi g Φ -∗ idClaim γi id d γf ={E}=∗ ▷ □ Φ id d γf := by
   iintro #Hg #Hc
   iunfold idGen at Hg
-  icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %X, %hX, %Φs, %x, %HΦx, #Hkf, #Hcl⟩
+  icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %X, %hX, %Φs, %x, %HΦx, #Hkf, #Hcl, #Hpi⟩
   iunfold idClusterInv at Hcl
   iinv Hcl with Hi Hclose
   icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, #HG⟩

@@ -466,3 +466,32 @@ member's watch server state `R` (heap-dependent), which S2's `NewClient`/view mu
 from the first call's `etcdPubSpec` reply, then `kvRegsPub_at` and `putgetPub` (opened at the client's heap)
 give `kvRegsAt` and the putget invariant. The client also needs `names` for its own initializer and
 `plainEndpoint client`.
+
+## 11. `env.ClearProxy` dropped; `ETCD_VERIFY` from the statement; `peerPlain` proved (2026-11-23, coordinator-E)
+
+**Decision (the owner, 2026-11-23, option (A)).** The distribution work reuses the single-process proof's trust as it
+is. `env.ClearProxy` proved nothing in the model (`os.Unsetenv` has no spec), and the single-process proof never ran it:
+there `envVerifyOff` comes from the start axiom `goose_adequacy_start` (`startRights`, under `verifyEnvOff e`). A
+distributed run goes through Perennial's `goose_dist_adequacy` (a theorem) and our proved bridge, which hand nothing
+out, so:
+- **Go**: `env.ClearProxy()` removed from `putget.Member`/`Client`, `server.Main`, `client.MainReady`/`NodeMain`; package
+  `examples/etcd/dist/env` deleted. The tests (`TestPutGet`, `TestDist`) unset `ETCD_VERIFY` and the six proxy variables
+  in their own process before starting the machines, which inherit its environment (the harness's job, as the premises
+  describe).
+- **The statement** (`putget_safe.spec`): `HEnv : ∀ m ∈ system peer client σm σc, verifyEnvOff m.1` (the single-process
+  theorems' premise, per machine) and `HEnvTok : ⊢ envVerifyOff` (its token, which one process gets from the start
+  axiom: an Iris premise, no new axiom). `Member.spec` takes `envVerifyOff` in its precondition; `member_boot` takes
+  `HEnvTok`; `MemberBootHyps` loses `clearProxy`.
+- **Proxies: no premise yet.** No verified step reads the proxy variables before phase 7 S5's HTTP client (net/http's
+  `Transport` through `httpproxy.FromEnvironment`). When S5 consumes them: a pure `proxyEnvOff e` beside `verifyEnvOff`
+  (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and the lower-case forms unset or empty for the run, no code of the run sets
+  them), its token `envProxyOff`, and `os.Getenv.spec`'s clause `envProxyOff -∗ ⌜key ∈ proxyEnvKeys → v = ""⌝`, for
+  review then. Go evidence already: `examples/premisefix/proxyenv` (`TestProxyEnvOff`: with the six unset or empty,
+  `os.Getenv` reads `""` and nothing is proxied, CGI or not; `TestProxyEnvOn`: each one set proxies a non-loopback URL of
+  its scheme; `TestGrpcProxy`: grpc-go v1.84 sends a non-loopback dial to `HTTPS_PROXY`'s proxy, an HTTP `CONNECT`).
+  **Finding for #24**: `models/grpc` reads no proxy variable (it keeps `useProxy` but never consults the environment),
+  so its trusted claim holds only for runs with no proxy variable set; `models/README.md` does not say so.
+- **`peerPlain` proved**: `etcd_dist.addrOk_plainPeerURL : Net.addrOk a = true → types.plainPeerURL ("http://" ++ a)`
+  (`Proof/.../examples/etcd/dist/AddrPlain.lean`, pure: `Net.parseAddr`'s pieces through `Net.splitBy`/`Net.decNat`);
+  `MemberBootHyps` loses it. What is left of `MemberBootHyps`: `names` (with `prom-registry`) and `dataDir` (with the fs
+  redesign, #15).
