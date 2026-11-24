@@ -18,7 +18,7 @@ functors of tracecheck's `tcGF`, the same eight slots) in
 initialization, then `Main()`: a three-voter cluster of the verified raft's `RawNode`s run
 concurrently, `RunCluster(DefaultConfig())`, its stream of Antithesis default-mode reports checked
 with `check.Run` against `EtcdBinding.tla` + `EtcdRaft.tla` at `EtcdBindingEmpty.cfg`'s constants,
-and a panic unless ACCEPTED; proposal forwarding disabled, §7), from a fresh state with one thread, of `n` steps, `n + 4 ≤ 2^61`, along
+and a panic unless ACCEPTED; forwarded proposals dropped by the harness's network, §7 revised, #44), from a fresh state with one thread, of `n` steps, `n + 4 ≤ 2^61`, along
 which fewer than `2^31` threads are live at once, has no stuck thread and no thread that ended in
 a panic; if the main thread has finished, its result is `#()`. -/
 theorem raft_antithesis_safe [lctx : GoLocalContext] [sem : go.Semantics]
