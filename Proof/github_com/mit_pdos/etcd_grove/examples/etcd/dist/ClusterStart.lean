@@ -10,7 +10,7 @@ address to serve etcd's KV calls for `(γE, id)` (`etcdAddr_set`), and hands the
 fact and its publication invariant.
 
 Over the interim vocabulary of `S2Interim.lean` (`notes/putget-dist-plan.md` §12: the address fact is
-axiomatized, `etcdAddrRaw`/`etcdAddr_set`, until #24's switch defines it). The cluster's ghost state
+grpc's `grpcAddrAt` at the axiomatized table `etcdSvc`, which `etcdAddr_set` sets, until S2 defines the table). The cluster's ghost state
 (D7's steps (c)-(e): raft's `cluster_alloc_bootG`, the server's allocation at the global classes) joins
 this start once it is stated over the global ghost state; until then it is not part of it. The peer
 addresses are not set here: the raft transport across machines is phase 7 S5's.
