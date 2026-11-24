@@ -79,11 +79,22 @@ restart from a torn write); the reconfiguration work assumes the entries and `Ha
 
 ## Fix
 
-Not written. Either document that a `Ready`'s `HardState` and entries must be persisted atomically
+No upstream branch. Either document that a `Ready`'s `HardState` and entries must be persisted atomically
 (and make etcd's WAL recovery drop entry records not followed by the state record of their `Save`),
 or make raft's guard independent of the stored commit index (refuse to campaign while any conf
 change above the applied index is in the log, at the cost of a node holding an uncommitted conf
 change not campaigning until it learns the commit index).
+
+The first, etcd's side, is written on our fork (upamanyus/etcd branch
+`goose-lean-fmtattrs-tornsave`, on the pin `bc2b5f4d0`): `WAL.Save` ends every `Save` that writes
+entries with a state record (the current `HardState` when the `Ready`'s is empty), `ReadAll` drops the
+entry records no record follows and cuts them from the tail in write mode, and bootstrap starts afresh
+from a WAL holding nothing a `Save` wrote. Its `TestRestartWithEntriesButNotCommit`
+(`server/storage/wal/torn_save_test.go`: this scenario with node 1 persisting to a WAL and restarting
+from it) fails without the change as above (`index 4 committed on nodes 3 and 1`) and passes with it.
+An upstream version needs a WAL format marker: a WAL written by an earlier etcd can end with the
+entry records of a synced, acknowledged `Save` without a state record, which the new `ReadAll` would
+drop (`notes/etcd-dist-d6.md` §10).
 
 ## Notes
 

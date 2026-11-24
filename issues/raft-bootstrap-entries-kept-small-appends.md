@@ -75,10 +75,17 @@ restart members below it and so must use that bound (`notes/etcd-dist-d6.md`, "T
 
 ## Fix
 
-Not written. Either have `Bootstrap`'s nodes persist the bootstrap log and its commit atomically
+No upstream branch. Either have `Bootstrap`'s nodes persist the bootstrap log and its commit atomically
 (document it; or, as `Bootstrap`'s comment already recommends, bootstrap from a storage whose
 snapshot holds the initial `ConfState`), or refuse to campaign while the node's commit index is
 below the bootstrap log's last index.
+
+etcd's side of the first is written on our fork (upamanyus/etcd branch
+`goose-lean-fmtattrs-tornsave`, the fix of `raft-commit-lost-with-entries-kept.md`): a torn `Save`
+reads back as none, and a member whose WAL holds nothing a `Save` wrote (a crash between `wal.Create`
+and the end of its first `Save`) bootstraps again with `StartNode` instead of restarting raft on an
+empty log (`TestBootstrapUnsavedWALBootstrapsFresh`, `server/etcdserver/bootstrap_unsaved_test.go`).
+etcd then never restarts a member below its bootstrap commit, whatever `MaxSizePerMsg` is.
 
 ## Notes
 
