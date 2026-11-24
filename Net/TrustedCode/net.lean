@@ -2,13 +2,14 @@
 Trusted code of `net` (namespace of the generated package; project net of `etc/goose.py`,
 `Net/Code/net.toml`): the primitive stubs of its Go model (`models/net/model.go`), each one
 operation of the net extension `GooseLang.Ext.Net.Impl` (`Net.netExt`), for any program whose
-extensions include it; `errClosed`'s initializer; and, for now, the models of `OpError.Error`,
-`Timeout` and `Temporary`. linux/amd64, Go 1.27.3, the `netgo` build. The design is
+extensions include it; and `errClosed`'s initializer. linux/amd64, Go 1.27.3, the `netgo`
+build. The design is
 `notes/net-tcp.md` (v3: `notes/net-tcp-v3-plan.md`).
 
 Since the Go-model overlays (S6, 2026-11-24) Go's own code is translated down to the socket: the
 types `conn`, `TCPConn`, `TCPListener`, `netFD` and their methods (`ok()`, the `OpError`s Go
-builds), and the model (Go, translated) replaces only what is under them: `netFD`'s methods, the
+builds; `OpError.Error`, `Timeout`, `Temporary`), and the model (Go, translated) replaces only
+what is under them: `netFD`'s methods, the
 socket options, the listener's `accept`/`close`, `Listen`, `Dial`, `DialTimeout`,
 `TCPAddr.String` (`models/net/model.go`'s `MODEL:` comments say why each has every behavior of
 Go's). A model `netFD` holds the extension's id of its connection end or listener in Go's own
@@ -114,52 +115,6 @@ noncomputable def closedErr.impl : val :=
 /-- `stuck()`: no behavior, the shared stuck point (`internal.gomodel.Stuck.impl`), where the
 model does not model Go (a network but `"tcp"` and `"tcp4"`, D23). -/
 noncomputable def stuck.impl : val := internal.gomodel.Stuck.impl
-
-/-! ## `OpError`'s methods (Lean models, for now) -/
-
-@[reducible] def model.OpError : go.GoType := go.GoType.Named go!"net.OpError" []
-@[reducible] def model.timeoutError : go.GoType := go.GoType.Named go!"net.timeoutError" []
-
-/-- `(*OpError).Error() string` (`net.go`): Go's message is `e.Op`, then the network and the
-addresses (each after a space or `"->"`), then `": "` and `e.Err`'s message; the model does not
-explain the network's, the addresses' and the system error's parts: `e.Op ++ s1 ++ ": " ++ s2`
-for arbitrary strings `s1`, `s2` (Go's form, which `TestErrorsAreOpErrors` checks: it starts with
-the operation and holds `": "`; so never empty). `"<nil>"` for a `nil` receiver, as Go's.
-TRUSTED CHANGE (net-rpc-errors, for review): before, an arbitrary non-empty string. A program may
-rely on the form: net/rpc's server answers a request whose body read fails with an error response
-of that message (`"read …: …"`), which a service's own error messages can then be told from
-(`net.rpc.srvErrMsg`). -/
-noncomputable def OpError.Error.impl : val :=
-  λ: "e" <>,
-    if: "e" =⟨go.PointerType model.OpError⟩ #null then #(go!"<nil>") else
-    let: "s1" := ExternalOp Net.netExt.name "AnyString" #() in
-    let: "s2" := ExternalOp Net.netExt.name "AnyString" #() in
-    ![go.string] (StructFieldRef model.OpError go!"Op" "e") +⟨go.string⟩ "s1" +⟨go.string⟩
-      #(go!": ") +⟨go.string⟩ "s2"
-
-/-- `true` for an `Err` of the dynamic type `*poll.DeadlineExceededError` or `*timeoutError`,
-`false` for `poll.errNetClosing` (their `Timeout` and `Temporary` methods, constants: `fd.go`,
-`net.go`), arbitrary otherwise (an `*os.SyscallError` answers its `Errno`'s, which the model does
-not explain; any other `Err` a program stored answers its own methods). -/
-noncomputable def model.errFlag : val :=
-  λ: "e",
-    let: "err" := ![go.error] (StructFieldRef model.OpError go!"Err" "e") in
-    if: Snd (TypeAssert2 internal.poll.errNetClosing.ty "err") then #false
-    else if: Snd (TypeAssert2 (go.PointerType internal.poll.DeadlineExceededError.ty) "err") then
-      #true
-    else if: Snd (TypeAssert2 (go.PointerType model.timeoutError) "err") then #true
-    else ExternalOp Net.netExt.name "AnyBool" #()
-
-/-- `(*OpError).Timeout() bool` (`net.go`): `e.Err`'s `Timeout()`, through an `*os.SyscallError`
-to its `Err` (`model.errFlag`). -/
-noncomputable def OpError.Timeout.impl : val :=
-  λ: "e" <>, model.errFlag "e"
-
-/-- `(*OpError).Temporary() bool` (`net.go`): `e.Err`'s `Temporary()` (and `true` for an accept's
-`ECONNRESET`, `ECONNABORTED`), as `Timeout` (`model.errFlag`). -/
-noncomputable def OpError.Temporary.impl : val :=
-  λ: "e" <>, model.errFlag "e"
-
 
 /-! ## The package variables
 

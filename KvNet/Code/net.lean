@@ -513,10 +513,6 @@ opaque PacketConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque canceledError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque timeout.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque temporary.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque ParseError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque AddrError.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -1543,7 +1539,7 @@ noncomputable def errnoCode [GooseExts] [GoGlobalContext] : GoString :=
     D16); the connection's addresses arbitrary (D18); an error is Go's `&OpError{Op: "dial", Net:
     network, Addr: <the resolved address>}` (dialSingle), as Listen's.
 
-    go: model.go:179:6 -/
+    go: model.go:178:6 -/
 noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -1613,7 +1609,7 @@ noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
     or poll.ErrDeadlineExceeded (netFD.connect's wait under the dial's deadline). The timeout's value
     is not modelled (any timeout may expire, as D5's deadlines).
 
-    go: model.go:195:6 -/
+    go: model.go:194:6 -/
 noncomputable def DialTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -1699,7 +1695,7 @@ noncomputable def DialTimeout.impl [GooseExts] [GoGlobalContext] : val :=
     (D18); an error is Go's `&OpError{Op: "listen", Net: network, Addr: <the resolved address>}`,
     the address arbitrary and the failing system call's name too (any of Go's).
 
-    go: model.go:163:6 -/
+    go: model.go:162:6 -/
 noncomputable def Listen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -1767,10 +1763,47 @@ noncomputable def Listen.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad Listener.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
+/-- go: error_unix.go:11:6 -/
+noncomputable def isConnError.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.syscall.Errno.ty))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "se" (App (Val (GoInstruction (GoAlloc _root_.Perennial.syscall.Errno.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.syscall.Errno.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.syscall.Errno.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.syscall.Errno.ty))) (Var "se")) (Val #(W64 104)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.syscall.Errno.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.syscall.Errno.ty))) (Var "se")) (Val #(W64 103)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.syscall.Errno.ty))) (Pair (Var "se") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 /-- MODEL: netFD.Close (fd_posix.go, poll.FD.Close): the extension's Close (D3: success, or
     `closed` for a second close; Linux's close(2) of a socket does not fail).
 
-    go: model.go:70:18 -/
+    go: model.go:69:18 -/
 noncomputable def netFD.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam BAnon
@@ -1791,7 +1824,7 @@ noncomputable def netFD.Close.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: netFD.closeWrite (fd_posix.go: shutdown(2) with SHUT_WR, wrapSyscallError("shutdown")):
     the extension's CloseWrite (D4).
 
-    go: model.go:76:18 -/
+    go: model.go:75:18 -/
 noncomputable def netFD.closeWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam BAnon
@@ -1814,7 +1847,7 @@ noncomputable def netFD.closeWrite.impl [GooseExts] [GoGlobalContext] : val :=
     outcomes of Linux's read(2) with Go's poller), the bytes copied into p; 0 bytes from a
     non-empty p is io.EOF, as poll.FD's ZeroReadIsEOF; an error is the kind's (kindErr).
 
-    go: model.go:40:18 -/
+    go: model.go:39:18 -/
 noncomputable def netFD.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "p"
@@ -1890,7 +1923,7 @@ noncomputable def netFD.Read.impl [GooseExts] [GoGlobalContext] : val :=
     end's write lock, Go's fd.writeLock()), until a step fails or every byte is written. Go's
     maxRW chunks are among a step's outcomes (any prefix).
 
-    go: model.go:55:18 -/
+    go: model.go:54:18 -/
 noncomputable def netFD.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "p"
@@ -1960,7 +1993,7 @@ noncomputable def netFD.Write.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: netFD.SetDeadline (fd_posix.go, poll.FD.SetDeadline): the extension's SetDeadline of
     both deadlines (D5; the zero time clears them).
 
-    go: model.go:82:18 -/
+    go: model.go:81:18 -/
 noncomputable def netFD.SetDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "t"
@@ -1983,7 +2016,7 @@ noncomputable def netFD.SetDeadline.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: netFD.SetReadDeadline: the read deadline only (D5).
 
-    go: model.go:87:18 -/
+    go: model.go:86:18 -/
 noncomputable def netFD.SetReadDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "t"
@@ -2006,7 +2039,7 @@ noncomputable def netFD.SetReadDeadline.impl [GooseExts] [GoGlobalContext] : val
 
 /-- MODEL: netFD.SetWriteDeadline: the write deadline only (D5).
 
-    go: model.go:92:18 -/
+    go: model.go:91:18 -/
 noncomputable def netFD.SetWriteDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "t"
@@ -2031,7 +2064,7 @@ noncomputable def netFD.SetWriteDeadline.impl [GooseExts] [GoGlobalContext] : va
     wrapped by wrapSyscallError("accept4")): the extension's Accept (D7); the new socket's addresses
     arbitrary (D18), its network the listener's (Go's newFD(d, fd.family, fd.sotype, fd.net)).
 
-    go: model.go:99:18 -/
+    go: model.go:98:18 -/
 noncomputable def netFD.accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam BAnon
@@ -2674,6 +2707,202 @@ noncomputable def OpError.Unwrap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
+/-- go: net.go:501:19 -/
+noncomputable def OpError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType OpError.ty)))) (Var "e"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Op"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e"))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!": ")) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e"))))) (Val #()))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Addr.ty))) (Pair (App (Val (GoInstruction (GoLoad Addr.ty))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Addr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))) (App (Val (GoInstruction (Convert go.untypedNil Addr.ty))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (App (Val (GoInstruction (MethodResolve Addr.ty go!"String"))) (App (Val (GoInstruction (GoLoad Addr.ty))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Addr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e"))))) (Val #())))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Addr.ty))) (Pair (App (Val (GoInstruction (GoLoad Addr.ty))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Source"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))) (App (Val (GoInstruction (Convert go.untypedNil Addr.ty))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(go!"->")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(go!" ")))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Addr.ty))) (Pair (App (Val (GoInstruction (GoLoad Addr.ty))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Source"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))) (App (Val (GoInstruction (Convert go.untypedNil Addr.ty))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!" ")) (App (App (Val (GoInstruction (MethodResolve Addr.ty go!"String"))) (App (Val (GoInstruction (GoLoad Addr.ty))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Source"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e"))))) (Val #())))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Net"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))) (Val #(go!""))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!" ")) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Net"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType OpError.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType OpError.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (Val #(go!"<nil>"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: net.go:539:19 -/
+noncomputable def OpError.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType OpError.ty)))) (Var "e"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 timeout.ty))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc timeout.ty))) (App (Val (GoInstruction (GoZeroVal timeout.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (App (Val (GoInstruction (MethodResolve timeout.ty go!"Timeout"))) (App (Val (GoInstruction (GoLoad timeout.ty))) (Var "t"))) (Val #())) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore timeout.ty))) (Pair (Var "t") (Var "$r0"))))))))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "ne" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 timeout.ty))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.os.SyscallError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (Var "ne")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc timeout.ty))) (App (Val (GoInstruction (GoZeroVal timeout.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (App (Val (GoInstruction (MethodResolve timeout.ty go!"Timeout"))) (App (Val (GoInstruction (GoLoad timeout.ty))) (Var "t"))) (Val #())) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore timeout.ty))) (Pair (Var "t") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (Pair (Var "ne") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: net.go:552:19 -/
+noncomputable def OpError.Temporary.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType OpError.ty)))) (Var "e"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 temporary.ty))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc temporary.ty))) (App (Val (GoInstruction (GoZeroVal temporary.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (App (Val (GoInstruction (MethodResolve temporary.ty go!"Temporary"))) (App (Val (GoInstruction (GoLoad temporary.ty))) (Var "t"))) (Val #())) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore temporary.ty))) (Pair (Var "t") (Var "$r0"))))))))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "ne" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 temporary.ty))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.os.SyscallError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (Var "ne")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc temporary.ty))) (App (Val (GoInstruction (GoZeroVal temporary.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (App (Val (GoInstruction (MethodResolve temporary.ty go!"Temporary"))) (App (Val (GoInstruction (GoLoad temporary.ty))) (Var "t"))) (Val #())) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore temporary.ty))) (Pair (Var "t") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty)))) (Pair (Var "ne") (Var "$r0")))))))))))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Op"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e")))) (Val #(go!"accept")))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef OpError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OpError.ty)))) (Var "e"))))
+  (App (App (Val (GoInstruction (FuncResolve isConnError []))) (Val #())) (Var "$a0"))) (Val #false))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 /-- go: net.go:630:24 -/
 noncomputable def timeoutError.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
@@ -2738,7 +2967,7 @@ noncomputable def timeoutError.Is.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: setReadBuffer (sockopt_posix.go: SO_RCVBUF, wrapSyscallError("setsockopt")): the
     extension's SetSockopt of an option of no validity condition (D24; Linux clamps the value).
 
-    go: model.go:109:6 -/
+    go: model.go:108:6 -/
 noncomputable def setReadBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "bytes"
@@ -2761,7 +2990,7 @@ noncomputable def setReadBuffer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setWriteBuffer (SO_SNDBUF), as setReadBuffer.
 
-    go: model.go:114:6 -/
+    go: model.go:113:6 -/
 noncomputable def setWriteBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "bytes"
@@ -2784,7 +3013,7 @@ noncomputable def setWriteBuffer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setKeepAlive (SO_KEEPALIVE), whatever the value (D24).
 
-    go: model.go:119:6 -/
+    go: model.go:118:6 -/
 noncomputable def setKeepAlive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "keepalive"
@@ -2807,7 +3036,7 @@ noncomputable def setKeepAlive.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setLinger (SO_LINGER), whatever the value (D24: a resetting Close is a cut, D1).
 
-    go: model.go:124:6 -/
+    go: model.go:123:6 -/
 noncomputable def setLinger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "sec"
@@ -2849,7 +3078,7 @@ noncomputable def TCPAddr.Network.impl [GooseExts] [GoGlobalContext] : val :=
     IP.String formats through net/netip, which nothing translates): an arbitrary string. Go's
     String always returns (a nil receiver gives "<nil>"), with no other effect.
 
-    go: model.go:217:19 -/
+    go: model.go:216:19 -/
 noncomputable def TCPAddr.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
@@ -3289,7 +3518,7 @@ noncomputable def TCPListener.ok.impl [GooseExts] [GoGlobalContext] : val :=
     they change in the kernel is not observable beyond D1's cuts, D24), and with it its reads of
     the test hooks testPreHookSetKeepAlive and testHookSetKeepAlive (nil outside net's tests).
 
-    go: model.go:144:24 -/
+    go: model.go:143:24 -/
 noncomputable def TCPListener.accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ln"
   (Lam BAnon
@@ -3341,7 +3570,7 @@ noncomputable def TCPListener.accept.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: TCPListener.close (tcpsock_posix.go: ln.fd.Close(), close(2) of the listening socket):
     the extension's LisClose (D9), the extension's operation on a listener.
 
-    go: model.go:154:24 -/
+    go: model.go:153:24 -/
 noncomputable def TCPListener.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ln"
   (Lam BAnon
@@ -3361,7 +3590,7 @@ noncomputable def TCPListener.close.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setNoDelay (tcpsockopt_posix.go: TCP_NODELAY), whatever the value (D24).
 
-    go: model.go:129:6 -/
+    go: model.go:128:6 -/
 noncomputable def setNoDelay.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "noDelay"
@@ -3386,7 +3615,7 @@ noncomputable def setNoDelay.impl [GooseExts] [GoGlobalContext] : val :=
     default for 0, nothing for d < 0): the extension's SetSockopt of kind 1 with d, whose
     arithmetic the extension's keepIdleValid transcribes (D24).
 
-    go: model.go:136:6 -/
+    go: model.go:135:6 -/
 noncomputable def setKeepAliveIdle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "d"
@@ -3410,7 +3639,7 @@ noncomputable def setKeepAliveIdle.impl [GooseExts] [GoGlobalContext] : val :=
 /-- netOk: the networks the model has (D23): "tcp", and "tcp4", which behaves as "tcp" on the
     IPv4 addresses the extension accepts.
 
-    go: model.go:225:6 -/
+    go: model.go:224:6 -/
 noncomputable def netOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nw"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -3428,7 +3657,7 @@ noncomputable def netOk.impl [GooseExts] [GoGlobalContext] : val :=
     addresses la and ra (Go's newFD and setAddr; the other fields are read only by code the model
     does not translate).
 
-    go: model.go:232:6 -/
+    go: model.go:231:6 -/
 noncomputable def modelFD.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "nw"
@@ -3456,7 +3685,7 @@ noncomputable def modelFD.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newConn: a new *TCPConn (Go's newTCPConn, as TCPListener.accept's model) for the connection
     end `id`, with arbitrary addresses (D18).
 
-    go: model.go:238:6 -/
+    go: model.go:237:6 -/
 noncomputable def newConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "nw"
@@ -3491,7 +3720,7 @@ noncomputable def newConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- anyTCPAddr: a new *TCPAddr with arbitrary fields (D18: Go's sockaddrToTCP of getsockname or
     getpeername; never nil for a connected or bound IPv4 socket).
 
-    go: model.go:246:6 -/
+    go: model.go:245:6 -/
 noncomputable def anyTCPAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Addr.ty))) (App (Val (GoInstruction (GoZeroVal Addr.ty))) (Val #())))
@@ -3511,7 +3740,7 @@ noncomputable def anyTCPAddr.impl [GooseExts] [GoGlobalContext] : val :=
     errClosing), poll.ErrDeadlineExceeded for `timeout`, and for `sys` the system call's error as
     wrapSyscallError wraps it, `&os.SyscallError{name, Errno(n)}` with n arbitrary and nonzero.
 
-    go: model.go:253:6 -/
+    go: model.go:252:6 -/
 noncomputable def kindErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "code"
   (Lam "name"
@@ -3551,7 +3780,7 @@ noncomputable def kindErr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- codeErr: nil for success, else kindErr.
 
-    go: model.go:264:6 -/
+    go: model.go:263:6 -/
 noncomputable def codeErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "code"
   (Lam "name"
@@ -3582,7 +3811,7 @@ noncomputable def codeErr.impl [GooseExts] [GoGlobalContext] : val :=
 /-- detach (gc builds only, used by the stubs' bodies): the fd of a socket Go's own code made, as
     a plain blocking socket the stubs use, the netFD Go made closed.
 
-    go: model.go:405:6 -/
+    go: model.go:404:6 -/
 noncomputable def detach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -3598,7 +3827,6 @@ noncomputable def detach.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r2" (Var "$ret2")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3635,10 +3863,6 @@ noncomputable def detach.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))) (Val #()))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType netFD.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil go.any))) (Val UntypedNil))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.runtime.SetFinalizer []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r2")))))))
   (App (Val doExecute)
   (Var "$r1")))))
@@ -3649,7 +3873,7 @@ noncomputable def detach.impl [GooseExts] [GoGlobalContext] : val :=
 /-- errnoCode (gc builds only): an errno's code: EBADF `closed`, EAGAIN (a socket timeout)
     `timeout`, any other `sys`.
 
-    go: model.go:418:6 -/
+    go: model.go:416:6 -/
 noncomputable def errnoCode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -4939,41 +5163,31 @@ attribute [instance] OpError.TypeAssumptions.type_repr
   OpError.TypeAssumptions.ptr_Timeout_unfold
   OpError.TypeAssumptions.ptr_Unwrap_unfold
 
-opaque timeout.nonempty_type : NonemptyType.{0}
-def timeout : Type := timeout.nonempty_type.type
-instance timeout.nonempty : Nonempty timeout := timeout.nonempty_type.property
-opaque timeout.zero_val : ZeroVal timeout := ⟨Classical.ofNonempty⟩
-attribute [instance] timeout.zero_val
+abbrev timeout [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def timeout.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Timeout" (go.signature.Signature [] false [go.bool]))])
 
 class timeout.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying timeout.underlying timeout
   underlying : go.UnderlyingDirectedEq timeout.ty timeout.underlying
-  isUnderlying : go.IsUnderlying timeout.underlying timeout.underlying
   method_set : go.MethodSetIs timeout.ty [(go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeout.ty) []
 
-attribute [instance] timeout.TypeAssumptions.type_repr
-  timeout.TypeAssumptions.underlying
-  timeout.TypeAssumptions.isUnderlying
+attribute [instance] timeout.TypeAssumptions.underlying
   timeout.TypeAssumptions.method_set
   timeout.TypeAssumptions.ptr_method_set
 
-opaque temporary.nonempty_type : NonemptyType.{0}
-def temporary : Type := temporary.nonempty_type.type
-instance temporary.nonempty : Nonempty temporary := temporary.nonempty_type.property
-opaque temporary.zero_val : ZeroVal temporary := ⟨Classical.ofNonempty⟩
-attribute [instance] temporary.zero_val
+abbrev temporary [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def temporary.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Temporary" (go.signature.Signature [] false [go.bool]))])
 
 class temporary.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying temporary.underlying temporary
   underlying : go.UnderlyingDirectedEq temporary.ty temporary.underlying
-  isUnderlying : go.IsUnderlying temporary.underlying temporary.underlying
   method_set : go.MethodSetIs temporary.ty [(go!"Temporary", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType temporary.ty) []
 
-attribute [instance] temporary.TypeAssumptions.type_repr
-  temporary.TypeAssumptions.underlying
-  temporary.TypeAssumptions.isUnderlying
+attribute [instance] temporary.TypeAssumptions.underlying
   temporary.TypeAssumptions.method_set
   temporary.TypeAssumptions.ptr_method_set
 
@@ -5870,6 +6084,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Dial_unfold : FuncUnfold Dial [] Dial.impl
   DialTimeout_unfold : FuncUnfold DialTimeout [] DialTimeout.impl
   Listen_unfold : FuncUnfold Listen [] Listen.impl
+  isConnError_unfold : FuncUnfold isConnError [] isConnError.impl
   isZeros_unfold : FuncUnfold isZeros [] isZeros.impl
   setReadBuffer_unfold : FuncUnfold setReadBuffer [] setReadBuffer.impl
   setWriteBuffer_unfold : FuncUnfold setWriteBuffer [] setWriteBuffer.impl
@@ -5995,6 +6210,7 @@ attribute [instance] Assumptions.ipAttr_instance
   Assumptions.Dial_unfold
   Assumptions.DialTimeout_unfold
   Assumptions.Listen_unfold
+  Assumptions.isConnError_unfold
   Assumptions.isZeros_unfold
   Assumptions.setReadBuffer_unfold
   Assumptions.setWriteBuffer_unfold

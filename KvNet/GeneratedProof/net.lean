@@ -1161,44 +1161,6 @@ noncomputable instance OpError_access_store_Err (l : Loc) (v : net.OpError) (Err
 end def_
 end OpError
 
-namespace timeout
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance timeout_typed_pointsto :
-    TypedPointsto (GF := GF) net.timeout :=
-  sorry -- axiomatized type
-
-noncomputable instance timeout_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.timeout net.timeout.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end timeout
-
-namespace temporary
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance temporary_typed_pointsto :
-    TypedPointsto (GF := GF) net.temporary :=
-  sorry -- axiomatized type
-
-noncomputable instance temporary_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.temporary net.temporary.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end temporary
-
 namespace ParseError
 section def_
 

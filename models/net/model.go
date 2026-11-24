@@ -26,7 +26,6 @@ import (
 	"internal/poll"
 	"io"
 	"os"
-	"runtime"
 	"syscall"
 	"time"
 )
@@ -404,8 +403,7 @@ func stuck() { select {} }
 // a plain blocking socket the stubs use, the netFD Go made closed.
 func detach(fd *netFD) (int, uint64) {
 	id, _, err := fd.pfd.Dup()
-	runtime.SetFinalizer(fd, nil)
-	fd.pfd.Close()
+	fd.pfd.Close() // sets Sysfd to -1: the finalizer's later Close is extClose(-1), a no-op
 	if err != nil {
 		return 0, 3
 	}

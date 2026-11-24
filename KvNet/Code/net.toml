@@ -10,7 +10,8 @@
 # models/net/model.go) replaces the layer under them: `netFD`'s methods, the socket options, the
 # listener's `accept`/`close`, `Listen`, `Dial`, `DialTimeout` and `TCPAddr.String`, over primitive
 # stubs (`trusted`: one net-extension operation each, Net/TrustedCode/net.lean). `OpError.Error`,
-# `Timeout` and `Temporary` stay trusted Lean models for now (under review). (`TCPConn.Read`, ...:
+# `Timeout` and `Temporary` are Go's (with `isConnError` and the interfaces `timeout`, `temporary`);
+# their specs take the precondition that the error is one net's models make (Upamanyu, D2). (`TCPConn.Read`, ...:
 # `conn`'s methods promoted to `*TCPConn`, so that goose emits their `MethodUnfold` facts.)
 #
 # The verified build is `-tags netgo` (etc/goose.py's BUILD_TAGS: the splice needs a package
@@ -18,7 +19,8 @@
 # the same files but `netgo_off.go` for `netgo_on.go` (the constant `netGoBuildTag`, read only by
 # the resolver's configuration, which the model replaces).
 translate = ["!*", "Conn", "Listener", "Addr", "Error",
-  "OpError", "OpError.Unwrap",
+  "OpError", "OpError.Unwrap", "OpError.Error", "OpError.Timeout", "OpError.Temporary",
+  "timeout", "temporary", "isConnError",
   "timeoutError", "timeoutError.Error", "timeoutError.Timeout", "timeoutError.Temporary",
   "timeoutError.Is", "errTimeout", "ErrClosed",
   "TCPAddr", "IP", "TCPAddr.Network",
@@ -35,14 +37,12 @@ translate = ["!*", "Conn", "Listener", "Addr", "Error",
   "netFD", "ListenConfig", "KeepAliveConfig", "mptcpStatusListen",
   "IP.To4", "isZeros"]
 imports = ["!*", "io", "time", "errors", "context", "os", "syscall", "internal/poll"]
-# The primitive stubs of the model (models/net/model.go; Net/TrustedCode/net.lean), `errClosed`'s
-# initializer (it holds `poll.ErrNetClosing`'s value, the only value of its type), and the three
-# `OpError` methods (Lean models, under review: notes/net-tcp.md D14).
+# The primitive stubs of the model (models/net/model.go; Net/TrustedCode/net.lean) and `errClosed`'s
+# initializer (it holds `poll.ErrNetClosing`'s value, the only value of its type).
 trusted = ["extListen", "extDial", "extAccept", "extRead", "extWrite", "extClose", "extLisClose",
   "extCloseWrite", "extSetDeadline", "extSetSockopt",
   "extAnyString", "extAnyW64", "extAnyBool", "extAnyErrno", "closedErr", "stuck",
-  "errClosed",
-  "OpError.Error", "OpError.Timeout", "OpError.Temporary"]
+  "errClosed"]
 
 [model]
 dir = "models/net"
