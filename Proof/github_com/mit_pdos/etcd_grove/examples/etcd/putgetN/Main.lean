@@ -106,13 +106,20 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law)
     (hbcfg : ∀ (dir : w64 → List GoString) (ps : List w64), (∀ f, dir f ≠ [] ↔ f ∈ ps) →
-      ps.length ≤ 1000 → rafthttp.bootCfg dir ps) :
+      ps.length ≤ 1000 → rafthttp.bootCfg dir ps)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC k N ids ps ctxs boot hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
     Hms hAs
   wp_start as ⟨Hss, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hbps, #Hmarsh, #Hcom⟩
+  icases Hprem with #Hbps
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- the pure facts of the members and their ids
   obtain ⟨Hpnd, -, -⟩ := idPfxsOf_ok ps Hbf.lowNodup Hbf.lowNz
   have Hpsnd : ps.Nodup := by

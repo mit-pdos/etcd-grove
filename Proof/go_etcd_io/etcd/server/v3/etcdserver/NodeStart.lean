@@ -775,7 +775,7 @@ abbrev NodeStartSpec : Prop :=
         "Hboot" ∷ (nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ raftState γr.cl cv.ID' RaftState.init ∗
           nodeVacant γr.cl cv.ID') ∗
         -- the names-only contracts
-        "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+        -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
         "#Hrs" ∷ rnRaftStatusOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
@@ -889,7 +889,7 @@ abbrev NodeStartSpecR : Prop :=
         "#Hlinv" ∷ srvRaftLogInv ⟨γr, [], W64 0⟩ ∗ "#HA0" ∷ srvRLogLb ⟨γr, [], W64 0⟩ A₀ ∗
         "#Hcert" ∷ walSnapCert γr.cl σ ∗
         -- the names-only contracts
-        "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+        -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
         "#Hrs" ∷ rnRaftStatusOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)

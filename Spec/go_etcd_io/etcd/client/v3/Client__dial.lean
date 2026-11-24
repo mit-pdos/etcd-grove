@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.dial(creds, dopts...)` on a client `New` builds (`retryClientOk`; its configuration
-`cfg` with no dial options of the caller's; its token bundle, if any, read-only, with
+`cfg` with no dial options of the caller's but `n` of `WithNoProxy()`'s, `noProxyOptsAt`, appended last; its token bundle, if any, read-only, with
 its tokens `""` or meeting `P` (`tokenBundleInv`); its endpoints
 `eps`, read-only, plain, at least one, D27), with the one option `WithResolvers(rb)` of a resolver of
 etcd's scheme to `eps` (taken): an etcd connection to the servers at `eps` (`isEtcdConnG`: the retry interceptor installed,
@@ -33,10 +33,10 @@ its contract once the client is ready), whose attempts carry no credentials' tok
 abbrev Client.dial.spec : Prop :=
   ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (cr : GoInterface) (sl : GoSlice)
     (rb : GoInterface) (esl : GoSlice) (eps : List GoString) (atb : GoInterface)
-    (P : GoString → IProp GF),
+    (P : GoString → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗
-      cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
+      noProxyOptsAt cfg.DialOptions' n ∗
       clientF c go!"authTokenBundle" ↦□ atb ∗ (⌜atb = GoInterface.nil⌝ ∨ tokenBundleInv atb P) ∗
       clientF c go!"endpoints" ↦□ esl ∗ esl ↦*□ eps ∗ ⌜plainEndpoints eps⌝ ∗
       dialOptsAt sl [.resolvers [rb]] ∗ grpcResolverAt rb etcdScheme eps }}

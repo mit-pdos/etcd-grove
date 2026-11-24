@@ -758,6 +758,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
 for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
     EXTRA_IMPORTS.setdefault(_m, []).append("Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults")
+# (premises to axioms, 2026-11-24) the examples' bootstrap logs' `bootMarshal` from `proto.Marshal`'s
+# trust-boundary axiom at a boot conf change (`=_root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof`)
+for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
+    EXTRA_IMPORTS[_m].append("Proof.google_golang_org.protobuf.proto.MarshalBootConfChange")
 # (the import tiers, 2026-11-18) the laws of the client's linked calls the call proofs take
 # (`=client.*_law_holds`, `=*_law_holds` of `CallsLinked.lean`)
 EXTRA_IMPORTS["--linkvtxn"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",

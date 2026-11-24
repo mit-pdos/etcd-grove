@@ -367,7 +367,7 @@ theorem alloc3 (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   simp only [memberStartRes, memberFreshRes]
-  iintro #Hmarsh ⟨#Hv₁, Hw₁, WaHw₁, Hf₁, Hc₁⟩ ⟨#Hv₂, Hw₂, WaHw₂, Hf₂, Hc₂⟩ ⟨#Hv₃, Hw₃, WaHw₃, Hf₃, Hc₃⟩
+  iintro #Hmarsh ⟨#Hv₁, WaHw₁, Hf₁, Hc₁⟩ ⟨#Hv₂, WaHw₂, Hf₂, Hc₂⟩ ⟨#Hv₃, WaHw₃, Hf₃, Hc₃⟩
   imod (alloc3Http hne id₁ id₂ id₃ ps hperm ctxs boot Hbc dir a₁ a₂ a₃ Hd0 Hhost Hrb
       Hrb2 lm hrun hap cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ha₁, Ho₁⟩,

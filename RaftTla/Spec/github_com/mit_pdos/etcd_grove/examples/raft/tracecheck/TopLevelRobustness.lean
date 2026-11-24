@@ -45,8 +45,7 @@ def raft_tracecheck_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel] (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
-    (Hprem : ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
+    (Hbw : tracecheck.BootWireFacts boot)
     (σ : state) (g : GlobalState),
     Robustness.Robust [] [(tracecheckProgram, σ)] g (threads := 2 ^ 31)
       (bound := 2 ^ 61 - 3)

@@ -6,6 +6,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.run
@@ -73,7 +74,7 @@ theorem etcd_leaseexpiryN.wp_Main [_root_.Perennial.net.FieldAssumptions]
   etcd_leaseexpiryN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcd_leaseexpiryN.wp_run (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)
     mvcc.api.mvccApi_names_nonempty_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

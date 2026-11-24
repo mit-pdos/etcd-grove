@@ -43,6 +43,7 @@ public import RaftTla.Spec.github_com.mit_pdos.etcd_grove.examples.raft.traceche
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Defs
+public import RaftTla.Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.TopLevelDefs
 
 @[expose] public section
@@ -93,9 +94,7 @@ theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
     (wp_Main : tcMainSpec)
-    (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
-    (Hprem : ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
+    (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot) (Hbw : tracecheck.BootWireFacts boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -107,7 +106,6 @@ theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     ((@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
     Hthreads (2 ^ 31) n κs t2 σ2 Hsteps fun hG HN HT => ?_
-  have Hprem1 := Hprem hG
   letI : HeapGS .hasLC tcGF := heapWith hG lctx
   haveI : ThreadBoundLe tcGF (2 ^ 31) := ⟨Nat.le_of_eq HT⟩
   have Hbound : receiptBound tcGF + 3 ≤ 2 ^ 61 := by rw [HN]; omega
@@ -115,7 +113,11 @@ theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.getIsPkgInit_wf, ?_⟩
   iintro #Hpkg -
-  ihave #Hprem' := Hprem1
+  -- (premises to axioms, 2026-11-24: until then the premise `tracecheck.premises`) `bootMarshal` from
+  -- `proto.Marshal`'s trust-boundary axiom and the log's bytes
+  ihave #Hpp : isPkgInit (PROP := IProp tcGF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hprem' := tracecheck.premises_of_spec proto.MarshalBootConfChange.wp_proof boot Hbw $$ Hpp
   ihave #Hcc : context.isClosedchanInit (GF := tcGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit

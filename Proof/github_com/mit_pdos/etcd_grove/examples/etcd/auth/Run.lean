@@ -186,7 +186,7 @@ theorem Run.wp_proof
       (akV R)
       Hpe Htb31) as %cl %cerr Hcl
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with

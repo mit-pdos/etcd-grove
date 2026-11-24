@@ -501,7 +501,7 @@ theorem run.wp_proof
   -- `NewClient(a1, lg)`: the client with no user name, at member 0
   wp_apply (wp_NewClient x0.1.Client' lg (akV x0.1.Client' x0.2.ρ w0.R) (Hpe x0 hx0m) Htb31) as %cl %cerr Hcl
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -702,7 +702,7 @@ theorem run.wp_proof
   wp_auto
   wp_apply (wp_NewClient xu.1.Client' lg (akV xu.1.Client' xu.2.ρ wu.R) (Hpe xu hxum) Htb31) as %bcl %berr Hbc
   · iframe #
-  icases Hbc with (⟨%Hberr, #Hbnc, #Hbtk⟩ | %Hbfail)
+  icases Hbc with (⟨%Hberr, #Hbnc, #Hbtk, -⟩ | %Hbfail)
   rotate_left
   · obtain ⟨Hberr, -⟩ := Hbfail
     cases berr with

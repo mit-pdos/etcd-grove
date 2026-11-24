@@ -225,6 +225,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadNo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadVals
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Perennial.Proof.bytes.Link
 public import Proof.reflect.DeepEqualK8s
@@ -1125,7 +1126,7 @@ theorem wp_newStore :
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_newStore context.wp_ErrAny wp_Check mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
+  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_newStore context.wp_ErrAny wp_Check mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 theorem fieldSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=

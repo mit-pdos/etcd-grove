@@ -289,10 +289,10 @@ end with `etcdKVAt` on the member's heap, which S2 replaces.
   premise (`MemberFiles`, `ClientFiles`), and the bridge takes the initial-state conditions as a hypothesis
   (`robust_of_distBootI`). The fix is `initLocal st _ := FsInit st` in `fsSemWithS` (a trusted-semantics change,
   with its example: not made here).
-- **The step bound** is `2 ^ 28 - 1` (was `2 ^ 40 - 11` in the first statement): `goose_dist_adequacy` bounds
+- **The step bound** was `2 ^ 28 - 1` (was `2 ^ 40 - 11` in the first statement): `goose_dist_adequacy` bounds
   threads over every execution of `n` steps, which the bridge meets with `n + 2`, and the server's specs take
-  `threadBound ≤ 2 ^ 28`. An along-the-execution distributed adequacy (as the single-process
-  `goose_adequacy_below`) would restore it (`notes/perennial-changes.md`, 2026-11-23).
+  `threadBound ≤ 2 ^ 28`. **Superseded 2026-11-24** (§12, "The bounds"): over `goose_dist_adequacy_below` the
+  statement is at `threads := putgetThreads` (`2 ^ 28`) and `bound := 2 ^ 48`.
 
 ## 8. Against S2's draft signatures (2026-11-23; `notes/phase7-plan.md` on `phase7-s2-design` `0606f68248`, §"S2 draft signatures")
 
@@ -495,3 +495,215 @@ out, so:
   (`Proof/.../examples/etcd/dist/AddrPlain.lean`, pure: `Net.parseAddr`'s pieces through `Net.splitBy`/`Net.decNat`);
   `MemberBootHyps` loses it. What is left of `MemberBootHyps`: `names` (with `prom-registry`) and `dataDir` (with the fs
   redesign, #15).
+
+## 12. The interim cross-machine axioms (2026-11-24, branch `dist-putget-interim/2026-11-24`)
+
+**Why.** Phase 7 S2 (#24) is not done: the address fact (`grpcAddrAt a (etcdSvc γE mid)`) needs etcd's
+table, whose entries need the messages' wire bytes (`ProtoWire.enc`, #24's O3/O7: no protobuf encoder or
+codec law in Lean), and the cross-machine proofs of `Server.Serve`/`Invoke` are S2's. The owner wanted
+`putget_safe` first, over interim trust-boundary axioms that S2 retires. Design:
+`s2-interim/axioms.md` and `s2-interim/client-plan.md` (coordinator-E's job directory); adversarial
+review: `s2-interim/review.md` (the `axiom` skill; Go evidence `review-go/proxyrogue/`).
+
+**The axioms** (five; `etc/tcb-baseline.txt`, collection `etc/tcb-collections/putget-dist.txt`):
+
+| # | Axiom | File | Asserts |
+|---|---|---|---|
+| A1 | `etcd_dist.etcdSvc` (since 2026-11-24; until then the opaque predicate `etcdAddrRaw`, `etcdAddrAt := □ etcdAddrRaw`) | `Proof/.../etcd/dist/S2Interim.lean` | etcd's service table for the member `mid` publishing at `γE` (heap-free `GrpcSvc GF`, no law); `etcdAddrAt a γE mid := ∃ σ, grpcAddrAt a (etcdSvc γE mid)` (#24's retirement form, over the S2 switch's `grpcAddrAt`) |
+| A2 | `etcd_dist.etcdAddr_set` (**a theorem** since 2026-11-24: `depSlots_alloc`, `grpc_addr_set`) | same | the start sets an unset address (`addrUnset a`, spent) to A1 |
+| A3 | `etcd_dist.Serve_dist.wp_proof` | `Spec`/`Proof/.../etcd/dist/ServeDist.lean` | `etcdstart.Serve(s, a)` of a started member whose view is published at `γE`, at an address set by A2, returns and starts no stuck or panicking thread |
+| A4 | `etcd_dist.Client_Put_dist.wp_proof` | `.../ClientPutDist.lean` | `cli.Put` of a no-proxy client of `[ep]` before it knows the view: on `nil`, a published view, a putget invariant at it, the put's flag |
+| A5 | `etcd_dist.Client_Get_dist.wp_proof` | `.../ClientGetDist.lean` | `cli.Get` of that client at the published view: on `nil`, a reply whose first value is the put's |
+
+The rest of the vocabulary is defined and proved (no `sorry`): `EnvView` (the KV state variable's name,
+countable), `envPubHalf`, `envAt`, `envPubInv` (#24's §1.3 over `dghostVar`), `envPub_start`,
+`env_publish`, `envAt_agree`, `envAt_pub`, `putGetInv_st`.
+
+**The review's findings and their fixes.**
+- **F1 (high; a real panic): a proxy variable reroutes A4/A5's calls.** grpc-go v1.84 dials through an HTTP
+  `CONNECT` proxy named by `HTTPS_PROXY` unless `WithNoProxy` (or a custom dialer) is set, and clientv3 sets
+  neither; `TestProxyRogue` (a raw-`net` rogue proxy) made the real `putget.Client` panic while A2/A4 proved it
+  could not. **Fixed by option (a)** (the owner's decision): `etcdstart.NewClients` passes
+  `DialOptions: []grpc.DialOption{grpc.WithNoProxy()}` (`TestWithNoProxyFix`: no `CONNECT`).
+  - grpc's `WithNoProxy` translated from the model (`Code/google_golang_org/grpc.toml`), its spec
+    (`grpcDialOptIs o .noProxy`, a new descriptor of `InvDial.lean`, which sets `useProxy` false) proved over
+    the body (`Proof/google_golang_org/grpc/WithNoProxy.lean`). `grpc.NewClient`'s axiom is stated over the
+    descriptors: it now covers dials with `WithNoProxy` too (the model reads no proxy variable, so its claim is
+    the same with or without it, and true of grpc-go only with it).
+  - `clientCfgOk` takes the configuration's dial options as `WithNoProxy()`'s, none or more
+    (`noProxyOptsAt`); `dial` appends them last (`dialOk_noProxy`, `unaryIcsOf_noProxy`,
+    `credsOfDial_noProxy`); `New`'s and `newClient`'s posts give the client's `cfg` field.
+  - `etcdstart.NewClients`/`NewClient` give `clientNoProxy cl` (the client's configuration's dial options are
+    `WithNoProxy()`'s, at least one), and A4/A5 take it: they speak only of clients with no proxy dial path.
+  - The single-process examples' statements are unchanged; their proofs change by a pattern or a line (the
+    callers of `clientCfgOk`, `New` and `NewClient(s)`).
+- **F2 (high; the `sorry`'d `envAt_pub` was inconsistent).** It opened a non-timeless invariant without a later.
+  Now `envAt_pub … ={E}=∗ ▷ □ Pub ν`, and A4's deposit is `□ ∀ ν, envAt γE ν ={⊤}=∗ ▷ ∃ γr γf, …` (weaker for
+  the caller, so A4 is stronger; true of the interpretation: the member takes steps between reading the
+  deposit from the slot and firing it).
+- **F3 (low):** `γE` is bound before the mask premise in `env_publish`/`envAt_pub`.
+- **F4 (low, docstrings):** A3 claims only the connections A4/A5 make (no other program can dial `a`); A2's
+  docstring says that a program may listen at `a` before it, and that such a listener can never accept.
+- **F5 (low):** A3's docstring records S2's obligation: the served member's id is `memberUp`'s (`mid = id`).
+
+**A statement fix found on the way.** A machine's boot program must return `()` (`Net.DistBootWpSL`), and
+`putget.Client` returns a `bool`; `bootClient` now discards it (`Client(client) ;; ()`, as `cmd/client`,
+which only prints it). Without this the client's boot was unprovable.
+
+**Where it stands.** `putget_safe_of_hyps (HM : … MemberBootHyps) : putget_safe.spec` (proved over the five
+axioms); `MemberBootHyps` is `dataDir` (until the fs redesign; `names` went with prom-registry, merged here on
+2026-11-24: each machine's boot allocates its registration rights), so the
+plain `theorem putget_safe` waits for them. `S2Draft.lean` and `S2Holds` are gone; D7's `cluster_svc_start`
+(`dist/ClusterStart.lean`) is stated over the new vocabulary. Not lean-checked locally (no build on this
+machine): the first VM build is the check.
+
+**Retirement.** #24's switch: `etcdAddrRaw` is deleted and `etcdAddrAt` becomes
+`∃ σ, depSlotsCtx ∗ grpcAddrAt a (etcdSvc γE mid)` (so `etcdAddr_set` is `depSlots_alloc` then
+`grpc_addr_set`); `EnvView` gains #24's fields; A5 is `kvRegsPub_at` and `client_Get_own`; A4 needs the
+pub-form put `client_Put_pub` (a proved lemma to write); A3 waits for S2's `Serve` proof (and its `mid = id`
+obligation). Then the axioms are theorems with the same statements.
+
+**Second round (2026-11-24; reviews `s2-interim/review2.md` and `review24.md`).**
+- `names` was a `⊢` premise on an exclusive token (`namesFree`: it would prove a double `MustRegister` panic-free):
+  gone; prom-registry (`26dc7423c4`, queued) merged here, and `member_boot`/`client_boot` allocate their packages'
+  registration rights (`regKeys_alloc`, `PromRegGS`). `HNs` leaves `etcd_robust(_nocrash).spec` and the D9 skeleton.
+- `dataDir : ⊢ dataDirFresh (memberDataDir name)` has the same shape and stays a hypothesis for now: no real source
+  exists yet (the fs redesign, #15); the interim options are in the round's report, for the lead's decision.
+- `Serve_dist`'s view premise is `ν = memberView ρ` (`memberView ρ := ⟨ρ.rd.kv.st⟩`, `S2Interim.lean`): the axiom
+  does not change when `EnvView` grows.
+- `Serve_dist`'s docstring names `a`'s protocols as `lean`'s opaque `grpcCliPI`/`grpcSrvPI`, the defined
+  `grpcCliP`/`grpcSrvP` their intended reading.
+- Built on the VM (full build, 2026-11-24): `#print axioms putget_safe_of_hyps` lists Lean's three, the five interim
+  axioms and the single-process trust base, no `sorryAx`; `etc/tcb-report.py --check` passes and the collection
+  `putget-dist.txt` has its baseline (159 axioms). Build fixes: heap-level `env_publish_h`/`envAt_pub_h` (a WP's fancy
+  update is the heap's `IrisGS`, which the proof mode does not unify with `GooseGlobalGS.gooseInvGS`); `wenv_nonempty`
+  over an all-`False` etcd model and the mvcc API's names law (`MvccName` is sealed).
+- (2026-11-24, Upamanyu's approval, a one-off exception to the scope rule) **`dataDirFresh` deleted from bootstrap's WAL
+  slot** (`wal.bootRes`, its own commit): `dataAreaFresh d` already says the data directory holds no entry
+  (its definition: the whole names claim on `d`'s root, none naming an entry; review 3's D1 dropped a vacuous lemma
+  `dataAreaFresh_empty` the contract commit's message cites). The start bundles (`memberStartRes`, `memberFreshRes`) lose it; the single-process start
+  axiom's `startRights` still hands it out, unchanged, and `memberStartRes_intro` drops it. So `MemberBootHyps` and
+  `putget_safe_of_hyps` are gone: **`theorem putget_safe : putget_safe.spec`**, over the five interim axioms, no
+  hypothesis. Full VM build passes; `putget-dist.txt` 158 axioms (no `dataDirFresh`).
+- (review 3, 2026-11-24) `dataDirFresh` (and `dataDirFresh_timeless`) is now an **unused axiom**: the single-process
+  start axiom's `startRights` still hands it out and nothing consumes it; deleting it (with that conjunct of
+  `startRights`) changes the start axiom's statement, a separate decision. Docstrings (`Start.lean`, `WalDir.lean`)
+  say so; every collection's baseline rerun on the VM.
+
+**Over the S2 interface switch (2026-11-24, `origin/lean` `62ca03cfa2` merged; the switch is `6d5a98fb3d`).** The
+switch put `grpcAddrAt`, `grpcSvcAt`, `grpc_addr_set` (proved), the heap-free `isGrpcRpcMd` and a trust-boundary
+`grpc.Server.Serve.wp_proof` over a service table (`grpcServeTok gs lis a Svc`) on `lean`. What it retires here:
+- **A2 is a theorem**, and **A1 is now only the table**: `etcdAddrAt a γE mid := ∃ σ, grpcAddrAt a (etcdSvc γE mid)`,
+  exactly the retirement form above, with `etcd_dist.etcdSvc : GName → w64 → GrpcSvc GF` axiomatized (heap-free: no
+  `HeapGS`; in `etc/heapfree-roots.txt` with `etcdAddrAt`, `envAt`, `envPubInv`). It has no law: no proof learns an
+  entry, so `Invoke` (`isGrpcRpcMd` needs an entry at the address) and `Server.Serve` (`grpcServes` needs a handler
+  per entry) cannot use it; only A3-A5 do. The defined fact exposes `addrProto` at `a` (a raw program may dial or
+  listen there), but over the opaque `grpcCliPI`/`grpcSrvPI` no proof writes or learns any byte (the switch's review,
+  `notes/axiom-review/s2-interface.md`); A3's docstring (F4) now says so instead of "no other program can dial `a`".
+- **A3-A5 stay whole-call axioms, text unchanged.** Narrowing them is S2's etcd side, which the switch did not
+  supply: the table itself (`etcdSvc` over `etcdPubSpec`/`etcdEnvOf ν`, blocked on O1: `AEnv` is not countable,
+  and O2: the client-facing specs take the member's `AEnv`, `client_Put_own` needs `kvRegsAt ⟨ep, E, …⟩` and
+  `kvLogLb E.γs F`), the pub-form client proofs (`client_Put_pub`), and a member listening at an address its
+  deployment set (`grpcServeTok`'s branch `grpcSrvNew ∗ netListenerOpen lis a`: no `net.Listen` spec gives
+  `netListenerOpen` at a set address yet) with `grpcServes (etcdSvc γE mid)`. A narrower A4/A5 such as
+  "`etcdAddrAt ∗ envAt γE ν ⊢ ∃ E γr cid, kvRegsAt ⟨ep, E, γr, cid, mid⟩`" would hand the client machine specs
+  built at its own `HeapGS` from the member's `AEnv` (O2), a cross-heap transfer: not taken.
+- Interim axioms now four: `etcdSvc`, `Serve_dist`, `Client_Put_dist`, `Client_Get_dist`.
+
+**Review 4 (2026-11-24, the `axiom` skill, on `530dc2af99`): A4 and A5 are false with `bridge.New`, in both forms.**
+`bridge.New.wp_proof` (on `lean`) takes only `netListenerAt l a` (`addrClaim ∗ netListenerOpen`). A program holding
+`netAddrFree a` gets a listener at `a` and `etcdAddrAt a γE mid` at a view it fabricates (`envPub_start`/`env_publish`,
+a KV ghost variable holding `{k ↦ v}`, `putGetInv` with its flag at 1), bridges `a` to a real etcd whose store is empty,
+and A5 proves its `Get` returns `v`: Go panics (`scratch/pgint-review/gocx`, 5/5 runs; the proof sketched, not built).
+- New form (`530dc2af99`): `net.Listen` gives `netAddrLeft a`, which sets `a`'s table (`addr_set_proto_tok`, as
+  `grpc.start'` does); or `etcdAddr_set` then `listen_au` from `etcdAddrAt`'s `addrProto`.
+- Old form (`etcdAddrRaw`, the earlier reviews' "a listener before the law can never accept"): the net part's
+  `Listen` only lends the listening token, so the program listens first, keeps `addrUnset a` for `etcdAddr_set`, and
+  `bridge.New` needs no `Accept` (the lead's reading of `Net/Spec/net/Listen.lean`, not built).
+- `putget_safe`'s own conclusion is not hit (its start gives only `addrUnset`, no `addrClaim`), but A4/A5 are false as
+  statements. Likely the same route refutes the S2 switch's `Invoke` with a table the program picks, no interim axiom
+  involved (not built).
+- **Proposed fix (needs the owner's sign-off: a trusted change on `lean`):** `bridge.New` also consumes `netAddrLeft a`
+  (a bridged address's protocols are its target's). Then in both forms nothing can both set `a`'s table and bridge
+  it. A local alternative, `etcdAddr_set` also spending `addrClaim a`, does not fit: the distributed start hands out
+  only `addrUnset`. Until decided the branch does not land; the docstrings say "known false".
+
+- **Decided (2026-11-24, the coordinator):** the proposed fix, on its own branch `bridge-new-addrleft/2026-11-24`
+  (queued to land), merged here. A second review found the hole on `lean` itself, with no interim axiom (the table set
+  to etcd's KV entries at fabricated names; the proved `client_Get_own` over `Invoke`; `examples/axiomcx/bridgeinvoke/`);
+  `notes/axiom-review/bridge-addrleft.md`. The docstrings now record the fix.
+
+**Review 5 (2026-11-24, the `axiom` skill, on `395a24818f`, after `bridge.New`'s fix): A1, A3, A4, A5 survive.**
+- Routes tried, each blocked: a raw relay (the opaque protocols are per connection number); a grpc server at `ep`
+  through `grpc.start` (`Serve` needs `grpcServes` of the unknown table: only an empty server, which answers
+  `Unimplemented`); the bridge (it consumes `netAddrLeft a`, which neither route A nor route B leaves); loopback
+  across machines (every acceptor must meet the table's protocols); crash and restart (a restarted member has new
+  names, `envAt` is one-shot, `ep`'s table set once); two members at one `(γE, mid)` (`envAt_agree`, `mid` in the
+  table); fabricating `envAt` (no server behind it: an error) or a `putGetInv` on the real member's state (needs the
+  one client half of `etcdKV`); the proxy (F1's fix); HTTP at `ep` (Go's server answers grpc's HTTP/2 preface over
+  HTTP/1.1 with method `PRI`, so the client gets an error, which A4/A5 allow; evidence
+  `notes/axiom-review/http-register-addrleft/httph2c_main.go.txt`).
+- Docstrings corrected: A4/A5 "`ep`'s only acceptor" (others can accept, none can answer a call successfully); A3's
+  list of what another program may do at `a` (an HTTP server through `listen_au` and `http.register`), and its claim
+  covers every byte arriving at `a`, not only the calls; `etcdSvc`'s empty server registers no method, unary or stream.
+- **Found outside the targets, open (reported to the coordinator):** `http.register` (`Proof/net/http/Axioms.lean`)
+  has `bridge.New`'s pre-fix hole: it takes only `netListenerAt l a`, so a program sets `a`'s net protocols from
+  `net.Listen`'s `netAddrLeft a` to trivial ones, sends a raw `GET`, and `Serve_ok` promises the handler a request of
+  `a`'s http protocol (every request a `POST`): Go panics 5/5 (`notes/axiom-review/http-register-addrleft/`; Lean
+  sketch not built). Not in `putget_safe`'s trust base (its collection has no `http.register`/`reserve`/`Serve_ok`);
+  in the single-process `etcd-all`, `k8s-all`, `leaseexpiryN` collections. Proposed fix, as for the bridge:
+  `register` (or `reserve`) also consumes `netAddrLeft a`.
+- A lead, untested: `etcd_noRefusal`/`etcd_noOtherRefusal` (`v3rpc/NoRefusal.lean`) derive the global, pure
+  `noRefusalAt addr` from a server under construction and `netListenerAt`; with `listen_au` re-listening it may
+  outlive the server it came from.
+  (**Fixed on `lean`** the same day, merged here: `notes/audit.md`, `http.register`/`http.reserve`.)
+
+**The bounds (2026-11-24, after merging `lean`: the thread-bound `Robust`, `4e3c90e848`, and dsv-steps63).** The
+statement was `Robust [] (system …) g (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)`; it is now
+`(threads := putgetThreads) (bound := 2 ^ 48)`, `putgetThreads := 2 ^ 28` a named constant
+(`TopLevelDefs.lean`), the member's server specs' `threadBound ≤ 2 ^ 28` (`etcdstart.Serve.spec`,
+`wp_StartServer1`; the client's take `2 ^ 31`).
+- **The bridge**: `Net.robust_of_distBootIT` (new, a theorem, `Net/Statement/DistBridgeExts.lean`), over Perennial's
+  `goose_dist_adequacy_below` at `n + 1` receipts and `threads` threads, with each machine's obligation
+  `DistBootWpST bound T` (`receiptBound ≤ bound`, `threadBound = T`); as `DistBridge.lean`'s and dsverify's `RBT`
+  variants, over any list of extensions with the net extension. No receipt floor: the served member's `srvLevels`
+  (`srvLevelK ≤ threadBound`) now comes from the thread bound. `robust_of_distBootIL` stays for D9's skeleton
+  (`etcd/dist/TopLevelRobustness.lean`, unchanged).
+- **The step bound is `2 ^ 48`, not `2 ^ 63`**: an execution of `n` steps runs at `n + 1` receipts, and the member's
+  start caps them at `2 ^ 48` (`etcdstart.wp_StartServer1`'s `Hrb48`, the receipt bound of the server's request ids,
+  through `newServer`/`BuildServer`'s `[ReceiptBoundLe GF (2 ^ 48)]`), the single-process `etcd_all`'s bound. So:
+  `Member.spec` at `ReceiptBoundLe GF (2 ^ 48)` (was `2 ^ 28`), its write-back budget and named premises at
+  `N = 2 ^ 48 - 1` (`receiptBound ≤ N + 1`; `N + 7 + bootWB ≤ wbInit = 2 ^ 62 - 1`); the statement's `Hprem` at
+  `n + 1 ≤ 2 ^ 48` (was `n + 12 ≤ 2 ^ 40`), `etcd_all`'s range for the same `etcdstart.premises`
+  (`Spec/.../etcd/all/TopLevelRobustness.lean`); the interim axiom `Serve_dist` at `ReceiptBoundLe GF (2 ^ 48)` (was
+  `2 ^ 28`): the single-process `etcdstart.Serve.spec` it mirrors takes no receipt bound, and the member it serves was
+  started at that ceiling. The client's proof takes no receipt bound.
+- **`os`'s field steps**: `putget_safe.spec` binds `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]`, as
+  the single-process theorems since wal-nostorageok (approved 2026-11-21, option (A)); `lean`'s `putget_safe_of_s2`
+  took them as the hypothesis `HOs` "until etcd-dist settles it".
+
+**The robustness review's items (2026-11-24, `putget_safe` section of the owner's review, same branch).**
+- *Step bound, named*: `putgetSteps := 2 ^ 48` beside `putgetThreads` (`TopLevelDefs.lean`); the statement is
+  `Robust [] (system …) g (threads := putgetThreads) (bound := putgetSteps)`.
+- *Network start premises*: `DistDeploy` left the statement. Its `init` conjuncts (no connection, no listener) are
+  `Robust`'s own `extsInitGlobal`/`extsInitLocal` (`robust_of_distBootIT` takes only `addrs.Nodup` and `addrOk` of
+  its list now, not `DistDeploy`).
+- *Address validity checked in Go*: `Member` returns at once unless `AddrOk(peer) && AddrOk(client) && peer != client`,
+  `Client` unless `AddrOk(ep)` (`putget.go`; `AddrOk`/`decimal` the same Go text as kvnet's, their proofs copied
+  from kvnet's part into `Proof/.../dist/putget/{Addrs,AddrOk,decimal}.lean`, which the main tree cannot import
+  from `KvNet/`). `Member.spec`/`Client.spec` take their resources behind the check (`⌜…⌝ -∗ …`), the machines'
+  shares are `memberShareIf`/`clientShareIf`, and the start sets only the addresses that pass
+  (`startAddrs`, `putget_shares`: both, the client's alone, or none). The premise left is the addresses'
+  lengths, `peer.length + 1 < 2 ^ 63` (and `client`'s): `AddrOk`'s loop runs `i` to `len(a)`, which wraps past
+  `2 ^ 63 - 1`; every Go string meets it, but a Lean `GoString` is any list. Go: `TestAddrOk` (the addresses
+  `TestPutGet` deploys at pass, malformed ones do not, and `Member`/`Client` then return); `TestPutGet`'s
+  fault-free round, which must check, is the real path with the deployment's addresses (not rerun here: it needs
+  namespaces and writes outside the worktree).
+- *`ETCD_VERIFY` not moved into Go* (`HEnv`, `HEnvTok` stay): a check at start (`os.Getenv`) would give the proof
+  nothing about etcd's later reads. `os.Getenv` is names-only, and its spec returns some string, constrained
+  (to an off value for `ETCD_VERIFY`) only under `envVerifyOff`; no spec ties two reads of a variable together,
+  and `verify.IsVerificationEnabled` reads it at every call. So the token cannot come from a Go check without a
+  model of the process environment (a ghost map of the variables, stable since no verified code sets them,
+  handed out at a machine's start): a trusted-semantics change to `os` and to the distributed start, for the
+  owner. `verifyEnvOff` is an opaque `axiom … : Prop` (no witness can meet it), and `envVerifyOffTok` is
+  produced only by the single-process `goose_adequacy_start` under it.

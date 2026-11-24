@@ -56,7 +56,7 @@ abbrev StartMembersAuth.spec : Prop :=
   -- (`StartMemberAuth.spec`'s)
   (∀ x ∈ xs, clusterNoSnap x.2.γ.cl → 2 ^ 48 ≤ uint.Z catchUp) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗ commonPremises ∗
+      zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗
       context.isClosedchanInit ∗
       [∗list] x ∈ xs, memberPreOn N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn x m }}
     (App (App (App (App (App

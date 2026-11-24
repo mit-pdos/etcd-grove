@@ -102,9 +102,7 @@ def premises (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (L
     etcdstart.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       token name₂ (urlsOk peerAddr₂ clientAddr₂) id₂ ∗
     etcdstart.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
-      token name₃ (urlsOk peerAddr₃ clientAddr₃) id₃ ∗
-    bootMarshal ps ctxs (LogEntry.toEntries boot 0) ∗
-    etcdstart.commonPremises)
+      token name₃ (urlsOk peerAddr₃ clientAddr₃) id₃)
 
 instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) :

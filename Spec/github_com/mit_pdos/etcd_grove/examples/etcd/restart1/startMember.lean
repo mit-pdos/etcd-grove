@@ -50,7 +50,7 @@ abbrev startMember.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart1 ∗
       zapLoggerOk lg ∗ threadTok ∗
       etcdstart.bootPremise N [id] bootLog ctxs (dir id) name name urlsOk id ∗
-      etcdstart.commonPremises ∗ context.isClosedchanInit ∗
+      context.isClosedchanInit ∗
       etcdstart.memberBoot γ ctxs ρ E₀ Φs id ∗ netHttpOk γn id ∗
       etcdstart.memberFreshRes name {} γn }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart1.startMember)) (Val #lg))
@@ -71,7 +71,7 @@ abbrev startMember.specRestart : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart1 ∗
       zapLoggerOk lg ∗ threadTok ∗
       etcdstart.bootPremiseR N [id] bootLog ctxs (dir id) name name urlsOk id ∗
-      etcdstart.commonPremises ∗ context.isClosedchanInit ∗ netHttpOk γn id ∗
+      context.isClosedchanInit ∗ netHttpOk γn id ∗
       etcdstart.memberRestartRes name {} γn γ ρ id ∗
       etcdstart.memberRestartFacts γ ρ id ∗ envVerifyOff }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart1.startMember)) (Val #lg))

@@ -69,9 +69,7 @@ def premises (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)
   iprop(
     ([∗list] m; id ∈ members k; ids,
       etcdstart.bootPremiseOn N ps (LogEntry.toEntries boot 0) ctxs (etcd_putgetN.dirN (members k) ids) token
-        m.Name' (urlsN (members k) m) id) ∗
-    bootMarshal ps ctxs (LogEntry.toEntries boot 0) ∗
-    etcdstart.commonPremises)
+        m.Name' (urlsN (members k) m) id))
 
 instance premises_persistent (k N : Nat) (ids : List w64) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) :

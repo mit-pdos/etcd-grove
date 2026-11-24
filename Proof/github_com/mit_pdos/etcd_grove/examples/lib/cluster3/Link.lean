@@ -24,6 +24,7 @@ public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.net.Listen
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Net.Proof.net.Listen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
@@ -115,7 +116,7 @@ theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssu
 
 theorem wp_StartCluster [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.cluster3.StartCluster.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cluster3.StartCluster.wp_proof wp_StartMember wp_StartBridge mvcc.api.mvccApi_names_nonempty_law_holds
+  EtcdGrove.cluster3.StartCluster.wp_proof wp_StartMember wp_StartBridge mvcc.api.mvccApi_names_nonempty_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end links_hasLC
 

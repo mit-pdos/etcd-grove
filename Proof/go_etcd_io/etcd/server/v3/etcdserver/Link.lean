@@ -150,6 +150,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersB
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Swap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentIndex
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.NewNotifier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZapNN
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Receive
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
@@ -271,6 +272,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
+public import Proof.go_etcd_io.etcd.pkg.v3.contention.NewTimeoutDetector
 public import Proof.context.TODO
 public import Proof.context.ValueStartTime
 public import Proof.context.WithCancelBackground
@@ -3322,6 +3324,10 @@ theorem EtcdServer.wp_revokeExpiredLeases :
     EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) :=
   EtcdServer.revokeExpiredLeases.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_Logger EtcdServer.wp_ensureLeadership EtcdServer.wp_MemberID EtcdServer.wp_LeaseRevoke auth.authStore.wp_WithRoot zap.wp_Uint64 zap.wp_String zap.wp_Error zap.Logger.wp_Warn
 
+theorem wp_NewRaftLoggerZapNN :
+    NewRaftLoggerZap.specNN (GF := GF) (hG := hG) :=
+  NewRaftLoggerZap.wp_proofNN
+
 theorem wp_addFeatureGateMetrics :
     addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=
   addFeatureGateMetrics.wp_proof prometheus.GaugeVec.wp_With
@@ -3442,9 +3448,13 @@ theorem membership.RaftCluster.wp_SetBackendFresh :
     membership.RaftCluster.SetBackend.specFresh (GF := GF) (hG := hG) :=
   membership.RaftCluster.SetBackend.wp_proofFresh schema.membershipBackend.wp_MustCreateBackendBucketsFresh
 
+theorem contention.wp_NewTimeoutDetector :
+    contention.NewTimeoutDetector.spec (GF := GF) (hG := hG) :=
+  contention.NewTimeoutDetector.wp_proof
+
 theorem wp_newRaftNode :
     newRaftNode.spec (GF := GF) (hG := hG) :=
-  newRaftNode.wp_proof wp_SetLogger _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop
+  newRaftNode.wp_proof wp_SetLogger _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop wp_NewRaftLoggerZapNN contention.wp_NewTimeoutDetector
 
 theorem bootstrappedRaft.wp_newRaftNode [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=

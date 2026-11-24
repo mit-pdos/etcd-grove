@@ -156,7 +156,7 @@ theorem restartMember.wp_proof
     restartMember.spec (GF := GF) (hG := hG) := by
   intro CS N m γS name peerAddr client cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
     ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf Haf Hbuq Hdbo
-  wp_start as ⟨#Hzlg, Htok, Hrec, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩
+  wp_start as ⟨#Hzlg, Htok, Hrec, #Hcl, #Hsls, #Hboot, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩
   iunfold memberRec at Hrec
   icases Hrec with ⟨%sw, %peer, Hm, #Hpeer, #Hsw⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
