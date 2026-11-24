@@ -31,6 +31,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.config.Assumptions]
 
+/-- **`err != nil` on any error** (the checks' errors): `i == nil` on an interface steps to
+`decide (i = nil)` for every `i` (a copy of `bootstrapSnapshot.lean`'s local rule, derived from
+Perennial's `go_eq_interface`; no new trust). -/
+local instance (priority := high) verifyBootstrap_eq_interface_nil_r (elems : List go.InterfaceElem)
+    (i : GoInterface) :
+    ⟦GoOp GoEquals (go.InterfaceType elems), (#i, #interface.nil)⟧ ⤳[under]
+      #(decide (i = interface.nil)) := by
+  have h := go.go_eq_interface (elems := elems) i interface.nil
+  cases i <;> simpa using h
+
 theorem config.ServerConfig.VerifyBootstrap.wp_proof
     (hLocal : config.ServerConfig.hasLocalMember.spec (GF := GF) (hG := hG))
     (hAdv : config.ServerConfig.advertiseMatchesCluster.spec (GF := GF) (hG := hG))
@@ -56,7 +66,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
   · iframe #
   try wp_auto
   wp_if_destruct
-  · wp_auto
+  · try wp_auto
     iapply HΦ
     ipureintro; left; assumption
   rcases Herr1 with Hne | ⟨-, Hin⟩
@@ -66,7 +76,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
   · iframe #
   try wp_auto
   wp_if_destruct
-  · wp_auto
+  · try wp_auto
     iapply HΦ
     ipureintro; left; assumption
   try wp_auto
@@ -109,7 +119,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
   · wp_apply hDisc p cfg $$ [] as %b -
     · iframe #
     wp_if_destruct
-    · wp_auto
+    · try wp_auto
       wp_apply hErrorf _ _ _ _ $$ [] as %e -
       · iframe #
         isplitl

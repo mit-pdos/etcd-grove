@@ -44,7 +44,7 @@ private theorem wp_slice_for_range_ro {V : Type} [ZeroVal V] [TypedPointsto (GF 
   iintro Hs HP #Hiter HΦ
   ihave %Hlen := ownSlice_len _ _ _ $$ Hs
   unfold slice.forRange
-  wp_auto
+  try wp_auto
   ihave Hinv : (∃ (j : Nat), "i" ∷ i_ptr ↦ W64 j ∗ "HP" ∷ P j ∗ "Hs" ∷ sl ↦*{dq} vs ∗
       "HΦ" ∷ (P vs.length -∗ sl ↦*{dq} vs -∗ Φ executeVal) ∗ "%Hj" ∷ ⌜j ≤ vs.length⌝ :
       IProp GF) $$ [i HP Hs HΦ]
@@ -55,7 +55,7 @@ private theorem wp_slice_for_range_ro {V : Type} [ZeroVal V] [TypedPointsto (GF 
   by_cases hj : j < vs.length
   · have hc : sint.Z (W64 (j : Int)) < sint.Z sl.len := by word
     simp only [decide_eq_true hc, ↓reduceIte]
-    wp_auto
+    try wp_auto
     have h0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
     simp only [h0, hc, and_self, ↓reduceIte]
     have hsj : (sint.Z (W64 (j : Int))).toNat = j := by word
@@ -66,7 +66,7 @@ private theorem wp_slice_for_range_ro {V : Type} [ZeroVal V] [TypedPointsto (GF 
     iintro %bv ⟨%hbv, HP, Hs⟩
     subst hbv
     iapply wp_for_post_do
-    wp_auto
+    try wp_auto
     iframe
     iexists (j + 1)
     have hw : W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by word
@@ -100,7 +100,7 @@ theorem types.URLsMap.String.wp_proof
   have hSp := fmt.Sprintf.argsWf hSprintf
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
-  wp_auto
+  try wp_auto
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply (wp_map_for_range (K := GoString) (V := GoSlice) (fun keys i => iprop(
@@ -140,6 +140,7 @@ theorem types.URLsMap.String.wp_proof
       · iexact url
       (try wp_auto)
       wp_apply wp_slice_literal (V := GoInterface)
+        [interface.mkOk go.string #key, interface.mkOk go.string #s]
       isplitr
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
@@ -147,7 +148,7 @@ theorem types.URLsMap.String.wp_proof
           (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)))
         $$ [$Hasl] as %str -
       (try wp_auto)
-      wp_apply wp_slice_literal (V := GoString)
+      wp_apply wp_slice_literal (V := GoString) [str]
       isplitr
       · ipureintro; rfl
       iintro %sl1 ⟨Hsl1, -⟩
@@ -181,7 +182,7 @@ theorem types.URLsMap.String.wp_proof
     (List.perm_ext_iff_of_nodup Hknodup (GMap.nodup_dom_list m)).2
       (fun k => (Hkset k).trans (GMap.mem_dom_list m k).symm)
   have hlen : xs.length ≤ 2 ^ 62 := by
-    rw [Hxs, (hperm.map _).sum_eq]; exact Hsum
+    rw [Hxs, (hperm.map _).sum_nat]; exact Hsum
   (try wp_auto)
   ihave #Hsortp : isPkgInit (PROP := IProp GF) pkg_id.sort $$ []
   · iPkgInit

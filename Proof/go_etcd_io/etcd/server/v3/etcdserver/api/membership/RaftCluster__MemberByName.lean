@@ -69,12 +69,12 @@ theorem membership.RaftCluster.MemberByName.wp_proof
       "%Hi" ∷ ⌜0 ≤ i ∧ mb = if k ∈ keys.take i.toNat then vk else null⌝ ∗
       "memb" ∷ memb_ptr ↦ mb ∗
       "Hmems" ∷ ([∗map] k ↦ m ∈ ms, membership.memberAt m q ((mem !! k).getD default)) ∗
-      "m" ∷ m_ptr ↦ x)) $$ Hmap
+      "m" ∷ m_ptr ↦ x ∗ "name" ∷ name_ptr ↦ name ∗ "c" ∷ c_ptr ↦ c)) $$ Hmap
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
-  isplitl [memb m Hmems]
+  isplitl [memb m Hmems name c]
   · iexists null, zero_val Loc
     simp only [named, Int.toNat_zero, List.take_zero, List.not_mem_nil, ↓reduceIte]
-    iframe memb m Hmems
+    iframe memb m Hmems name c
     ipureintro; exact ⟨by omega, by first | rfl | trivial⟩
   isplitr
   · imodintro
@@ -107,7 +107,6 @@ theorem membership.RaftCluster.MemberByName.wp_proof
       omega
     rw [hmk]
     simp only [Option.getD_some]
-    trace_state
     wp_if_destruct
     · -- the names agree: `key` is `k`
       have hkk : key = k := huniq key k mk mm hmk hk (Hif.trans hname.symm)
@@ -125,7 +124,7 @@ theorem membership.RaftCluster.MemberByName.wp_proof
       · ipureintro; rfl
       iexists vv, vv
       simp only [named]
-      iframe memb Hmems m
+      iframe memb Hmems m name c
       ipureintro
       refine ⟨by omega, ?_⟩
       rw [htake]; simp
@@ -139,7 +138,7 @@ theorem membership.RaftCluster.MemberByName.wp_proof
       · ipureintro; rfl
       iexists mb, vv
       simp only [named]
-      iframe memb Hmems m
+      iframe memb Hmems m name c
       ipureintro
       refine ⟨by omega, ?_⟩
       rw [Hmb, htake]
@@ -160,8 +159,7 @@ theorem membership.RaftCluster.MemberByName.wp_proof
   rw [hk]
   simp only [Option.getD_some]
   wp_apply hClone vk q mm $$ [Hown] as %mc ⟨Hown, Hmc, -⟩
-  ihave Hmems := Hmclose $$ [Hown]
-  · iexact Hown
+  ihave Hmems := Hmclose $$ Hown
   (try wp_auto)
   wp_method_call
   wp_call

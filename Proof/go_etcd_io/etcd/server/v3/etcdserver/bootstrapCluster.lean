@@ -33,7 +33,7 @@ theorem bootstrapCluster.wp_proof
   have hnc : cfg.NewCluster' = true := Hfresh.1
   wp_start as ⟨#Hzlg, #Hro, Hrt⟩
   wp_auto
-  rw [show decide (true = cfg.NewCluster') = true by simp [hnc]]
+  rw [show decide (true = !cfg.NewCluster') = false by simp [hnc]]
   try wp_auto
   wp_apply (hNew cfg U H prt Hfresh HU Hfips HiOk) $$ [Hrt] as %c %err Hres
   · iframe #; iframe Hrt

@@ -30,14 +30,14 @@ theorem config.ServerConfig.hasLocalMember.wp_proof
     config.ServerConfig.hasLocalMember.spec (GF := GF) (hG := hG) := by
   intro p cfg m
   wp_start as ⟨#Hname, #Hmapf, #Hm⟩
-  wp_auto
+  try wp_auto
   wp_apply (wp_map_lookup1 (K := GoString) (V := GoSlice) _ _ cfg.InitialPeerURLsMap' m cfg.Name'
     DFrac.discard) $$ [Hm] as -
   · iframe #
   try wp_auto
   wp_if_destruct
   · -- nil: an error
-    wp_auto
+    try wp_auto
     ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
     · iPkgInit
     wp_apply wp_slice_literal (V := GoInterface)
@@ -50,7 +50,7 @@ theorem config.ServerConfig.hasLocalMember.wp_proof
     (try wp_auto)
     iapply HΦ
     ipureintro; left; simp
-  · wp_auto
+  · try wp_auto
     iapply HΦ
     ipureintro; right
     refine ⟨rfl, ?_⟩

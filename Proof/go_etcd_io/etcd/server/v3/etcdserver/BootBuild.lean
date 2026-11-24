@@ -23,8 +23,30 @@ namespace bootGo
 
 open go_etcd_io.etcd.server.v3.etcdserver.api
 
-/-- `bootGo.sha1` is Perennial's `crypto.sha1.sha1` (the same text). -/
-theorem sha1_eq (m : List w8) : sha1 m = crypto.sha1.sha1 m := rfl
+/-! `bootGo.sha1` is Perennial's `crypto.sha1.sha1` (the same text), piece by piece (a single
+`rfl` exceeds the elaborator's recursion depth). -/
+theorem be32At_fn : be32At = crypto.sha1.be32At := by
+  funext l i; unfold be32At crypto.sha1.be32At; rfl
+theorem bytes32_fn : bytes32 = crypto.sha1.bytes32 := by
+  funext x; unfold bytes32 crypto.sha1.bytes32; rfl
+theorem bytes64_fn : bytes64 = crypto.sha1.bytes64 := by
+  funext x; unfold bytes64 crypto.sha1.bytes64; rfl
+theorem pad_fn : pad = crypto.sha1.pad := by
+  funext m; unfold pad crypto.sha1.pad; rw [bytes64_fn]
+theorem schedule_fn : schedule = crypto.sha1.schedule := by
+  funext blk; unfold schedule crypto.sha1.schedule; rw [be32At_fn]
+theorem round_fn : round = crypto.sha1.round := by
+  funext w st t; unfold round crypto.sha1.round; rfl
+theorem init_eq : init = crypto.sha1.init := by
+  unfold init crypto.sha1.init; rfl
+theorem compress_fn : compress = crypto.sha1.compress := by
+  funext h blk; unfold compress crypto.sha1.compress; rw [schedule_fn, round_fn]
+  all_goals rfl
+
+/-- `bootGo.sha1` is Perennial's `crypto.sha1.sha1`. -/
+theorem sha1_eq (m : List w8) : sha1 m = crypto.sha1.sha1 m := by
+  unfold sha1 crypto.sha1.sha1; rw [pad_fn, compress_fn, init_eq, bytes32_fn]
+  all_goals rfl
 
 theorem combine_append_single (xs : List w8) (b : w8) :
     LittleEndian.combine (xs ++ [b]) = LittleEndian.combine xs + 256 ^ xs.length * b.toNat := by
@@ -66,7 +88,7 @@ theorem bytes64_eq (x : w64) : bytes64 x = u64Be x := by
   simp only [LittleEndian.split, List.reverse_cons, List.reverse_nil, List.nil_append,
     List.cons_append, List.range, List.range.loop, List.map_cons, List.map_nil,
     Nat.div_div_eq_div_mul]
-  rfl
+  simp only [Nat.reduceSub, Nat.reduceMul, Nat.reducePow, Nat.div_one]
 
 /-- Go's string order: `strLe` is `membership.strLeB`. -/
 theorem strLe_eq (x y : GoString) : strLe x y = membership.strLeB x y := by
@@ -77,7 +99,7 @@ theorem strLe_eq (x y : GoString) : strLe x y = membership.strLeB x y := by
     | cons b bs =>
       simp only [strLe, membership.strLeB, go.GoStringLe, go.GoStringLt]
       symm; apply decide_eq_true; right; exact List.Lex.nil
-  | cons a as ih =>
+  | cons a rest ih =>
     cases y with
     | nil =>
       simp only [strLe, membership.strLeB, go.GoStringLe, go.GoStringLt]
@@ -126,8 +148,8 @@ theorem memberID_eq (us : List GoString) (token : GoString) :
 theorem memberOf_eq [GooseExts] (U : BootURLs) (token name : GoString) :
     memberOf U token name = membership.memberOfURLs name (U.initURLs name) token := by
   unfold memberOf membership.memberOfURLs
-  rw [memberID_eq]
-  rfl
+  simp only [memberID_eq]
+  all_goals rfl
 
 /-- The initial cluster's entries' members. -/
 noncomputable abbrev entries [GooseExts] (U : BootURLs) (token : GoString) : List apply.MemberM :=

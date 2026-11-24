@@ -40,13 +40,14 @@ theorem membership.NewClusterFromURLsMap.wp_proof
   let fm : GoString → apply.MemberM := fun k => membership.memberOfURLs k (urls k) token
   have hfm : ∀ k, (fm k).id = (membership.memberOfURLs k (urls k) token).id := fun _ => rfl
   wp_start as ⟨#Hlg, #Hm, #Hurls, #Hopts, #Hf⟩
-  wp_auto
+  try wp_auto
   wp_apply hNC lg opts f ml $$ [] as %c ⟨%Hcnn, Hcl⟩
   · iframe #
-  wp_auto
+  try wp_auto
   iunfold membership.clusterOwned at Hcl
   icases Hcl with ⟨%lgc, %rp, %dp, Hclg, #Hlgc, Hlid, Hcid, Hbe, Hmu, Hver, Hmem, Hrf, Hrm, Hdg,
     Hdgv, Hml, Hvc⟩
+  wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply (wp_map_for_range (K := GoString) (V := GoSlice) (fun keys i => iprop(
       ∃ (ms : GMap w64 Loc) (nm : GoString) (us : GoSlice),

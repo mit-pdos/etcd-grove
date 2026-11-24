@@ -115,11 +115,11 @@ theorem bootstrapNewClusterNoWAL.wp_proof
       cases verr with
       | nil => exact absurd rfl Hne
       | ok ve => exact ⟨ve, rfl⟩
-    wp_auto
+    try wp_auto
     iapply HΦ
     ileft; ipureintro; exact Hne
   obtain ⟨rfl, hname⟩ := Hok
-  wp_auto
+  try wp_auto
   -- `NewClusterFromURLsMap(cfg.Logger, token, cfg.InitialPeerURLsMap, WithMaxLearners(..))`
   wp_apply hWML cfg.MaxLearners' $$ [] as %f #Hf
   · iframe #
@@ -131,7 +131,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   wp_apply (hNCU cfg.Logger' tok cfg.InitialPeerURLsMap' U.initMap U.initURLs osl f
       cfg.MaxLearners' Hfips HU hnd' hnz' hsz hlen) $$ [] as %c ⟨%Hcnn, %ms, %ids, %Hids, Hcl⟩
   · iframe #
-  wp_auto
+  try wp_auto
   have hmem : membership.memOfList (U.initMap.domList.map fm) = bootGo.memMap U tok :=
     (bootGo.memMap_eq U tok HiOk').symm
   -- this member's entry
@@ -148,7 +148,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   wp_apply (hMBN c 1 ms _ cfg.Name' (fm cfg.Name').id (fm cfg.Name') huniq hlk rfl) $$ [Hmu Hmem]
     as %mc ⟨Hmu, Hmem, Hmc⟩
   · iframe #; iframe
-  wp_auto
+  try wp_auto
   -- `isMemberBootstrapped(cfg.Logger, cl, cfg.Name, prt, cfg.BootstrapTimeoutEffective())`
   wp_apply (hBTE cfg_ptr cfg) $$ [] as %tmo -
   · iframe #
@@ -160,7 +160,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   cases bt
   rotate_left
   · -- already bootstrapped: an error
-    wp_auto
+    try wp_auto
     wp_apply wp_slice_literal (V := GoInterface)
     isplitr
     · ipureintro; rfl
@@ -173,10 +173,10 @@ theorem bootstrapNewClusterNoWAL.wp_proof
         · iapply bootNC.id_stringMethodSpec hIDString $$ Htpkg
         · ipureintro; fmt_method_facts
       itrivial
-    wp_auto
+    try wp_auto
     iapply HΦ
     ileft; ipureintro; simp
-  wp_auto
+  try wp_auto
   -- `cfg.ShouldDiscover()`: no discovery endpoints
   wp_apply (hSD cfg_ptr cfg) $$ [] as %sd %Hsd
   · iframe #
@@ -185,7 +185,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
     · rfl
     · exact absurd hend (Hsd rfl)
   subst hsd
-  wp_auto
+  try wp_auto
   irename «$r0» => Hbc
   generalize «$r0_ptr» = bcl at *
   iapply HΦ

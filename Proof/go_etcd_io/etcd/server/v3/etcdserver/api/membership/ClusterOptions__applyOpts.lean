@@ -30,7 +30,7 @@ theorem membership.ClusterOptions.applyOpts.wp_proof :
     membership.ClusterOptions.applyOpts.spec (GF := GF) (hG := hG) := by
   intro co opts f ml ml0
   wp_start as ⟨#Hopts, #Hf, Hml⟩
-  wp_auto
+  try wp_auto
   wp_func_lits
   wp_apply (membership.wp_slice_for_range_ro (V := GoFunc) _ opts [f] DFrac.discard _
     (fun i => iprop(opt_ptr ↦ (if i = 0 then (zero_val GoFunc : GoFunc) else f) ∗
@@ -46,10 +46,10 @@ theorem membership.ClusterOptions.applyOpts.wp_proof :
     have hxf : x = f := (by simpa using hx : f = x).symm
     subst hxf
     simp only [↓reduceIte]
-    wp_auto
+    try wp_auto
     iunfold membership.clusterOptMax at Hf
     wp_apply Hf $$ Hml as Hml
-    wp_auto
+    try wp_auto
     iframe
     simp only [Nat.zero_add, Nat.one_ne_zero, ↓reduceIte]
     iframe

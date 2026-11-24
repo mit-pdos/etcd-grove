@@ -89,20 +89,21 @@ theorem membership.computeMemberID.wp_proof
   have hsub : subslice (sint.nat (W64 0)) (sint.nat (W64 8))
       (crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)) =
       (crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8 ++ [] := by
-    have h0 : sint.nat (W64 0) = 0 := by rfl
-    have h8 : sint.nat (W64 8) = 8 := by rfl
-    simp [subslice, h0, h8]
-  rw [hsub]
+    simp only [subslice, List.append_nil]
+    rfl
+  ihave Hmid' : (slice.slice (slice.mk hash_ptr (W64 20) (W64 20)) w8 (W64 0) (W64 8) ↦*
+      ((crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8 ++ []) : IProp GF) $$ [Hmid]
+  · rw [← hsub]; iexact Hmid
   wp_apply (hU64 _ ((crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8) []
-    (DFrac.own 1) (by simp [membership.sha1_length])) $$ [Hmid] as Hmid
-  · iframe #; iframe Hmid
+    (DFrac.own 1) (by simp [membership.sha1_length])) $$ [Hmid'] as Hmid
+  · iframe #; iframe Hmid'
   (try wp_auto)
-  iapply HΦ
   have hid : beToU64 ((crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8) =
       membership.memberIDOf (us.map membership.urlStrOf) token := by
     rw [membership.intercalate_empty, hxs']
     rfl
   rw [hid]
+  iapply HΦ
   itrivial
 
 end proof

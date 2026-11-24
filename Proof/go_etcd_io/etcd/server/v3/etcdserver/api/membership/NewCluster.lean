@@ -31,7 +31,7 @@ theorem membership.NewCluster.wp_proof
   intro lg opts f ml
   wp_start as ⟨#Hlg, #Hopts, #Hf⟩
   ihave %Hlgnn := zapLoggerOk_ne_null lg $$ Hlg
-  wp_auto
+  try wp_auto
   simp only [Hlgnn, decide_false, Bool.false_eq_true, ↓reduceIte]
   try wp_auto
   wp_apply hOpts opts f ml $$ [] as %co Hml
@@ -39,7 +39,7 @@ theorem membership.NewCluster.wp_proof
   try wp_auto
   wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %mp Hmp
   wp_apply (wp_map_make1 (K := w64) (V := Bool)) as %rp Hrp
-  wp_auto
+  try wp_auto
   irename «$r0» => Hc
   generalize «$r0_ptr» = c at *
   ihave %Hcnn := typedPointsto_not_null $$ Hc

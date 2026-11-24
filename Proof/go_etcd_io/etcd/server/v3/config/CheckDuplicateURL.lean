@@ -103,6 +103,7 @@ theorem config.CheckDuplicateURL.wp_proof
   try wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := Bool)) as %ump Hump
   try wp_auto
+  wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply (wp_map_for_range (K := GoString) (V := GoSlice) (fun _ _ => iprop(
       ∃ (umm : GMap GoString Bool) (us : GoSlice) (r : Bool),

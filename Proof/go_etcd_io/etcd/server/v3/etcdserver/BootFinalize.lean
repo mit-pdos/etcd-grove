@@ -68,6 +68,11 @@ theorem dget_withMemBkts [GooseExts] (D : backend.Data) :
     | some m => rfl
   · rfl
 
+/-- `dget_withMemBkts`, applied (for `simp` under binders and `decide`). -/
+theorem dget_withMemBkts_app [GooseExts] (D : backend.Data) (n k : GoString) :
+    backend.dget (withMemBkts D) n k = backend.dget D n k := by
+  rw [dget_withMemBkts]
+
 /-- The readers' view of the data with the membership buckets created is the data's. -/
 theorem vData_withMemBkts [GooseExts] (P : backend.BParams) (D : backend.Data) :
     backend.vData P (withMemBkts D, ⟨∅, W64 0⟩) = backend.vData P (D, ⟨∅, W64 0⟩) := by
@@ -102,8 +107,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 theorem fkCl_withMemBkts (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) :
     backend.fkCl (GF := GF) γ P (withMemBkts D) = backend.fkCl γ P D := by
   unfold backend.fkCl
-  simp only [backend.fkInit, backend.fkVals, backend.fkWInit, backend.fkAbsD, backend.fkWfD]
-  rw [dget_withMemBkts]
+  simp only [backend.fkInit, backend.fkVals, backend.fkWInit, backend.fkAbsD, backend.fkWfD,
+    dget_withMemBkts_app]
 
 end iprops
 

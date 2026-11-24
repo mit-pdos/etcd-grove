@@ -88,10 +88,10 @@ theorem bootstrappedCluster.Finalize.wp_proof
     intro h
     rw [h] at h1
     simp at h1
-  wp_auto
+  try wp_auto
   -- `if !s.wal.haveWAL { c.cl.SetID(c.nodeID, c.cl.ID()) }`
   rw [Hhw]
-  wp_auto
+  try wp_auto
   wp_apply (hID bc.cl' (DFrac.own 1) _) $$ [$Hmpkg $Hcid] as Hcid
   icases membership.memAt_open bc.cl' 1 ms _ $$ Hmem0 with ⟨%mp, Hmf, Hmp, Hmems, Hmcl⟩
   wp_apply (hSetID bc.cl' bc.nodeID' (bootGo.cid U cfg.InitialClusterToken') (W64 0) _
