@@ -66,11 +66,14 @@ def ownedPkgs : List GoString :=
 
 /-- A program's table gives every package of `swiftnet`'s import closure its fact. -/
 structure KitG (G : GoString → IProp GF) : Prop where
-  e_errors : G pkg_id.errors = isPkgInit (PROP := IProp GF) pkg_id.errors
+  e_internal_abi : G pkg_id.internal.abi = isPkgInit (PROP := IProp GF) pkg_id.internal.abi
+  e_internal_gomodel : G pkg_id.internal.gomodel = isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel
   e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
+  e_internal_reflectcore : G pkg_id.internal.reflectcore = isPkgInit (PROP := IProp GF) pkg_id.internal.reflectcore
+  e_internal_reflectlite : G pkg_id.internal.reflectlite = isPkgInit (PROP := IProp GF) pkg_id.internal.reflectlite
+  e_errors : G pkg_id.errors = isPkgInit (PROP := IProp GF) pkg_id.errors
   e_math_bits : G pkg_id.math.bits = isPkgInit (PROP := IProp GF) pkg_id.math.bits
   e_internal_strconv : G pkg_id.internal.strconv = isPkgInit (PROP := IProp GF) pkg_id.internal.strconv
-  e_internal_gomodel : G pkg_id.internal.gomodel = isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel
   e_internal_bytealg : G pkg_id.internal.bytealg = isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg
   e_internal_stringslite : G pkg_id.internal.stringslite = isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite
   e_unicode_utf8 : G pkg_id.unicode.utf8 = isPkgInit (PROP := IProp GF) pkg_id.unicode.utf8
@@ -81,7 +84,6 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_internal_synctest : G pkg_id.internal.synctest = isPkgInit (PROP := IProp GF) pkg_id.internal.synctest
   e_sync : G pkg_id.sync = isPkgInit (PROP := IProp GF) pkg_id.sync
   e_io : G pkg_id.io = isPkgInit (PROP := IProp GF) pkg_id.io
-  e_internal_reflectcore : G pkg_id.internal.reflectcore = isPkgInit (PROP := IProp GF) pkg_id.internal.reflectcore
   e_iter : G pkg_id.iter = isPkgInit (PROP := IProp GF) pkg_id.iter
   e_reflect : G pkg_id.reflect = isPkgInit (PROP := IProp GF) pkg_id.reflect
   e_fmt : G pkg_id.fmt = isPkgInit (PROP := IProp GF) pkg_id.fmt
@@ -148,13 +150,29 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_github_com_mit_pdos_etcd_grove_examples_lib_remote : G pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote = isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote
   e_github_com_imdea_software_swiftpaxos_examples_swiftnet : G pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet = isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet
 
-theorem wf_errors {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.errors G :=
-  And.intro h.e_errors True.intro
+theorem wf_internal_abi {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.abi G :=
+  And.intro h.e_internal_abi True.intro
+
+theorem wf_internal_gomodel {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.gomodel G :=
+  And.intro h.e_internal_gomodel True.intro
 
 theorem wf_unsafe {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.«unsafe» G :=
   And.intro h.e_unsafe True.intro
+
+theorem wf_internal_reflectcore {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.reflectcore G :=
+  And.intro h.e_internal_reflectcore ⟨wf_unsafe h, True.intro⟩
+
+theorem wf_internal_reflectlite {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.reflectlite G :=
+  And.intro h.e_internal_reflectlite ⟨wf_internal_abi h, wf_internal_gomodel h, wf_internal_reflectcore h, True.intro⟩
+
+theorem wf_errors {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.errors G :=
+  And.intro h.e_errors ⟨wf_internal_reflectlite h, True.intro⟩
 
 theorem wf_math_bits {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.math.bits G :=
@@ -163,10 +181,6 @@ theorem wf_math_bits {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_internal_strconv {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.strconv G :=
   And.intro h.e_internal_strconv ⟨wf_math_bits h, True.intro⟩
-
-theorem wf_internal_gomodel {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.gomodel G :=
-  And.intro h.e_internal_gomodel True.intro
 
 theorem wf_internal_bytealg {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.bytealg G :=
@@ -207,10 +221,6 @@ theorem wf_sync {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_io {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.io G :=
   And.intro h.e_io ⟨wf_errors h, wf_sync h, True.intro⟩
-
-theorem wf_internal_reflectcore {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.reflectcore G :=
-  And.intro h.e_internal_reflectcore ⟨wf_unsafe h, True.intro⟩
 
 theorem wf_iter {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.iter G :=
@@ -472,15 +482,35 @@ theorem wf_github_com_imdea_software_swiftpaxos_examples_swiftnet {G : GoString 
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet G :=
   And.intro h.e_github_com_imdea_software_swiftpaxos_examples_swiftnet ⟨wf_fmt h, wf_io h, wf_log h, wf_math_rand h, wf_net h, wf_net_http h, wf_net_rpc h, wf_strings h, wf_sync h, wf_time h, wf_github_com_anishathalye_porcupine h, wf_github_com_goose_lang_primitive h, wf_github_com_imdea_software_swiftpaxos_client h, wf_github_com_imdea_software_swiftpaxos_config h, wf_github_com_imdea_software_swiftpaxos_dlog h, wf_github_com_imdea_software_swiftpaxos_master h, wf_github_com_imdea_software_swiftpaxos_replica_defs h, wf_github_com_imdea_software_swiftpaxos_swift h, wf_github_com_mit_pdos_etcd_grove_examples_lib_remote h, wf_errors h, True.intro⟩
 
-theorem wfO_errors {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.errors (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.errors ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_errors) True.intro
+theorem wfO_internal_abi {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.abi (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.abi ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_abi) True.intro
+
+theorem wfO_internal_gomodel {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.gomodel (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.gomodel ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_gomodel) True.intro
 
 theorem wfO_unsafe {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.«unsafe» (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.«unsafe» ∉ ownedPkgs) (hS _ hm))).trans
     h.e_unsafe) True.intro
+
+theorem wfO_internal_reflectcore {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.reflectcore (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.reflectcore ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_reflectcore) ⟨wfO_unsafe h S hS, True.intro⟩
+
+theorem wfO_internal_reflectlite {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.reflectlite (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.reflectlite ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_reflectlite) ⟨wfO_internal_abi h S hS, wfO_internal_gomodel h S hS, wfO_internal_reflectcore h S hS, True.intro⟩
+
+theorem wfO_errors {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.errors (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.errors ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_errors) ⟨wfO_internal_reflectlite h S hS, True.intro⟩
 
 theorem wfO_math_bits {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math.bits (gOff S G) :=
@@ -491,11 +521,6 @@ theorem wfO_internal_strconv {G : GoString → IProp GF} (h : KitG G) (S : List 
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.strconv (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.strconv ∉ ownedPkgs) (hS _ hm))).trans
     h.e_internal_strconv) ⟨wfO_math_bits h S hS, True.intro⟩
-
-theorem wfO_internal_gomodel {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.gomodel (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.gomodel ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_gomodel) True.intro
 
 theorem wfO_internal_bytealg {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.bytealg (gOff S G) :=
@@ -546,11 +571,6 @@ theorem wfO_io {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.io (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.io ∉ ownedPkgs) (hS _ hm))).trans
     h.e_io) ⟨wfO_errors h S hS, wfO_sync h S hS, True.intro⟩
-
-theorem wfO_internal_reflectcore {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.reflectcore (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.reflectcore ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_reflectcore) ⟨wfO_unsafe h S hS, True.intro⟩
 
 theorem wfO_iter {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.iter (gOff S G) :=

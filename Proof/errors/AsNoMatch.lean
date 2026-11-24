@@ -24,17 +24,20 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 section pure
 variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
-/-- A dynamic type outside `T`'s type set and, for a non-interface `T`, of another underlying type is
-not assignable to `T`, and the model decides it. -/
+/-- A dynamic type outside `T`'s type set and, for a non-interface `T`, of another underlying type
+(and of another kind, or of a kind other than struct, channel and function) is not assignable to
+`T`, and the model decides it. -/
 theorem errors.asNoMatch_notAssignable {T : go.GoType} {ii : GoInterfaceOk}
     (hts : go.typeSetContains ii.ty T = false)
-    (hu : go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T) :
+    (hu : go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T ∧
+      (_root_.Perennial.errors.undecidedKind (underlying T) = false ∨
+        go.kindOf (underlying ii.ty) ≠ go.kindOf (underlying T))) :
     _root_.Perennial.errors.asAssignable T ii = false ∧ _root_.Perennial.errors.AsDecided T ii := by
-  refine ⟨?_, fun hI => ⟨fun heq => absurd (congrArg underlying heq) (hu hI), fun _ => hu hI⟩⟩
+  refine ⟨?_, fun hI => ⟨fun heq => absurd (congrArg underlying heq) (hu hI).1, fun _ => hu hI⟩⟩
   unfold _root_.Perennial.errors.asAssignable
   cases hI : go.isInterfaceType (underlying T)
   · simp only [Bool.false_eq_true, ↓reduceIte, decide_eq_false_iff_not]
-    exact fun heq => hu hI (congrArg underlying heq)
+    exact fun heq => (hu hI).1 (congrArg underlying heq)
   · simpa using hts
 
 theorem errors.asNoMatchLeaf_perennial {T : go.GoType} {e : GoInterface}

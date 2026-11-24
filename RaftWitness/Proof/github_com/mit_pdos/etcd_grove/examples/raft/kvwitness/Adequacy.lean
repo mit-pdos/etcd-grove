@@ -141,6 +141,8 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.internal.reflectcore, isPkgInit pkg_id.internal.reflectcore),
    (pkg_id.io, isPkgInit pkg_id.io),
    (pkg_id.errors, isPkgInit pkg_id.errors),
+   (pkg_id.internal.reflectlite, isPkgInit pkg_id.internal.reflectlite),
+   (pkg_id.internal.abi, isPkgInit pkg_id.internal.abi),
    (pkg_id.go_etcd_io.raft.v3.raftpb, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb),
    (pkg_id.google_golang_org.protobuf.proto, isPkgInit pkg_id.google_golang_org.protobuf.proto),
    (pkg_id.google_golang_org.protobuf.reflect.protoreflect,

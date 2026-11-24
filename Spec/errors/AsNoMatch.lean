@@ -57,11 +57,14 @@ variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- **An error `errors.As` ends at without a match against `T`**: `nil`, or a leaf error (no
 `As(any) bool`, no `Unwrap`) whose dynamic type is outside `T`'s type set and, for a non-interface
-`T`, of another underlying type. -/
+`T`, of another underlying type and either of another kind or of a kind other than struct, channel
+and function (Perennial's `AsDecided`: where the `reflectlite` model decides it). -/
 def errors.asNoMatchLeaf (T : go.GoType) (e : GoInterface) : Prop :=
   e = interface.nil ∨ ∃ ii : GoInterfaceOk, e = GoInterface.ok ii ∧
     _root_.Perennial.errors.isLeafError ii ∧ go.typeSetContains ii.ty T = false ∧
-    (go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T)
+    (go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T ∧
+      (_root_.Perennial.errors.undecidedKind (underlying T) = false ∨
+        go.kindOf (underlying ii.ty) ≠ go.kindOf (underlying T)))
 
 end pure
 
@@ -78,7 +81,9 @@ type set (of another underlying type than a non-interface `T`) with `Unwrap() er
 def errors.asNoMatchWrap (T : go.GoType) (err : GoInterface) : IProp GF :=
   iprop(∃ ii : GoInterfaceOk,
     ⌜err = GoInterface.ok ii ∧ go.typeSetContains ii.ty T = false ∧
-      (go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T) ∧
+      (go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T ∧
+        (_root_.Perennial.errors.undecidedKind (underlying T) = false ∨
+          go.kindOf (underlying ii.ty) ≠ go.kindOf (underlying T))) ∧
       GoSemanticsFunctions.methodSet ii.ty !! go!"As" ≠
         some (go.signature.Signature [go.any] false [go.bool]) ∧
       GoSemanticsFunctions.methodSet ii.ty !! go!"Unwrap" =
