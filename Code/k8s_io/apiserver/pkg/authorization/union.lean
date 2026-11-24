@@ -461,12 +461,15 @@ noncomputable def unionAuthzHandler.EvaluateConditions.impl [GooseExts] [GoGloba
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Var "decision"))
   (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty) go!"Has"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "unevaluatedSubDecision")) (Val #()))) (Var "$a0"))))
+  (Let "$r0" (Val #(go!""))
+  (Let "possible" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"FailureDecision"))) (Var "unevaluatedSubDecision")) (Val #()))
   (Let "$r1" (Val #(go!"failed closed"))
-  (Let "$r2" (Let "$a0" (Val #(go!"evaluated to decision %s, but only %v were possible"))
+  (Let "$r2" (Let "$a0" (Val #(go!"evaluated to decision %s, but only [%s] were possible"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Var "decision")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty) go.any))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "unevaluatedSubDecision")) (Val #()))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List' [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty]))) (Val #())) (Var "$a0"))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "possible")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -476,7 +479,30 @@ noncomputable def unionAuthzHandler.EvaluateConditions.impl [GooseExts] [GoGloba
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "reason") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Pair (Var "decision") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Pair (Var "decision") (Var "$r0"))))))))))
+  (Let "$range" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "unevaluatedSubDecision")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List' [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty]))) (Val #())) (Var "$a0")))
+  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "possible") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "possible")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty) go!"String"))) (Var "p")) (Val #())))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "possible") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "possible")) (Val #(go!" ")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Pair (Var "p") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "possible") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -526,7 +552,7 @@ noncomputable def unionAuthzHandler.EvaluateConditions.impl [GooseExts] [GoGloba
   (Val #())))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))))
 
-/-- go: union.go:188:39 -/
+/-- go: union.go:196:39 -/
 noncomputable def unionAuthzHandler.evaluateConditions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "authzHandler"
   (Lam "ctx"
@@ -601,7 +627,7 @@ noncomputable def unionAuthzHandler.evaluateConditions.impl [GooseExts] [GoGloba
 
 /-- NewRuleResolvers returns an authorizer that authorizes against a chain of authorizer.Authorizer objects
 
-    go: union.go:200:6 -/
+    go: union.go:208:6 -/
 noncomputable def NewRuleResolvers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "authorizationHandlers"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.RuleResolver.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.RuleResolver.ty))) (Val #())))
@@ -617,7 +643,7 @@ noncomputable def NewRuleResolvers.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- RulesFor against a chain of authorizer.RuleResolver objects and returns nil if successful and returns error if unsuccessful
 
-    go: union.go:205:44 -/
+    go: union.go:213:44 -/
 noncomputable def unionAuthzRulesHandler.RulesFor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "authzHandler"
   (Lam "ctx"
