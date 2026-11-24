@@ -40,7 +40,6 @@ axiom grpcSrvLink
 axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbAuthEnableRequestT_reg
 axiom pbAuthEnableResponseT_reg

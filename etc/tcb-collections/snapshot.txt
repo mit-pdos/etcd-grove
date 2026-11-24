@@ -41,7 +41,6 @@ axiom httputil.GracefulClose.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
 axiom pbMessageC_reg

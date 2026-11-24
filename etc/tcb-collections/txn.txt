@@ -10,7 +10,6 @@ axiom NewLoggableTxnRequest.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.Marshal.wp_proof
