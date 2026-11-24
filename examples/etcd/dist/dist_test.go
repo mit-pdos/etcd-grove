@@ -83,7 +83,7 @@ func TestWellFormed(t *testing.T) {
 	if WellFormed(bad) == nil {
 		t.Error("an ephemeral port passed")
 	}
-	if deployment.AddrOk("010.1.1.1:80") || deployment.AddrOk("10.1.1:80") || !deployment.AddrOk("10.77.1.1:2379") {
+	if deployment.AddrOk("010.1.1.1:80") || deployment.AddrOk("10.1.1:80") || deployment.AddrOk("10.-1.2.3:80") || !deployment.AddrOk("10.77.1.1:2379") {
 		t.Error("AddrOk")
 	}
 	// the client machines: their number, their addresses

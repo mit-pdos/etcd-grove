@@ -818,7 +818,7 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int)))) (Pair (Var "v") (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.Itoa []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -869,7 +869,7 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
     membership.NewMember's, from the member's one peer URL as server.Config builds it (http://Peer)
     and the token, as bootstrap does; in the members' order.
 
-    go: deployment.go:261:6 -/
+    go: deployment.go:262:6 -/
 noncomputable def memberIDs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
@@ -916,7 +916,7 @@ noncomputable def memberIDs.impl [GooseExts] [GoGlobalContext] : val :=
 /-- IdsOk is WellFormed's condition 3: the member ids' 16 low bits distinct and nonzero, and, if a
     workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart).
 
-    go: deployment.go:272:6 -/
+    go: deployment.go:273:6 -/
 noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1014,7 +1014,7 @@ noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
     bounds of the workloads (Workload.BoundsOk) and of the server configuration (ServerCfg.Supported):
     nil if d is well formed, otherwise the first clause it fails.
 
-    go: deployment.go:292:6 -/
+    go: deployment.go:293:6 -/
 noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))

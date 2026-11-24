@@ -246,7 +246,8 @@ func AddrOk(a string) bool {
 	var v [5]int
 	for i, s := range append(octs, port) {
 		n, err := strconv.Atoi(s)
-		if err != nil || strconv.Itoa(n) != s {
+		// n < 0: Atoi takes a sign, and "-1" is Itoa's own spelling of -1
+		if err != nil || n < 0 || strconv.Itoa(n) != s {
 			return false
 		}
 		v[i] = n
