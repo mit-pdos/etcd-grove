@@ -831,3 +831,64 @@ persistent L1 mark `cmtBefore γ.node.cl γ.id γ.t0 (srvLE γ.srv γ.a0)`, `srv
 `raftState γ.node.cl γ.id S'` with `rnMessageSource γ ⟨ml, sm⟩`, `sentMsg … sm`, `sm.msg.Type' = MsgSnap`,
 `sm.msg.Term' = S'.term`, `γ.a0 ≠ []`: `|={E}=> raftState … S' ∗ ⌜DurAgrees S' (γ.a0.map EntryModel.toLE)⌝`
 (L2 instantiated; `↑srvClusterN ∪ ↑srvConfN ∪ ↑srvLogN ⊆ E`).
+
+**2026-11-24, option (b): blocked; the S/S' question has no answer over raft's current API and ghost
+state. No Lean changed; last green build `e3572c99c0`.**
+
+*What the payload's job needs.* `rnReplayJob_of_history` needs `DurAgrees S_P a0` at the durable state
+`S_P` the payload's runs describe: the state after the payload's own `Ready` `P` (`raftTerm = rt` is
+`P`'s hard-state term). The `MsgSnap` at `rt` comes from a `Ready` `M` that can be before `P`, `P`
+itself, or after `P` (the loop runs ahead of `applyAll`; `applyAll` merges any queued `MsgSnap` with
+`m.Term == apply.raftTerm`). L2 holds only at a state `S` with `snapshotLeader γ id S.term` in hand.
+
+*(1) Relating `S_P` and `S_M`: fails.* In Go, if `id` leads `rt` then at `P`'s hand-out `id` is already
+a candidate or leader at `rt` (a node at term `rt` campaigns only at `rt + 1`), and from then on its log
+only grows, so `S_P` and `S_M` agree below `|a0|`. None of this is visible from `raftState`: the server
+sees each `Ready`'s entries, not the node's role, and a follower's durable entry at an index `≤ |a0|` can
+change within a term (overwrite by the term's leader). Inside raft, `durPers` at `S_P` gives `campLink`
+only for a campaign record that exists in the entered maps at `P` (`E_P.camps !! rt`). When it is `none`
+(a follower at `rt` that never voted at `rt`), nothing in the ghost state stops a record at `rt` from being
+added later: `PromFresh` only asks that the key be absent, and `durPers`'s camps bound allows `T ≤ S.term`.
+The vote map has the same gap (`voted !! rt = none`). Ruling it out needs "no campaign record is ever
+added at a term at or below a durable term that had none". That is a persistent fact about the future
+(closing the camps map up to the durable term), which means new campaign ghost state in raft.
+`EvSorted` and the term registry (`TermsOk`) do not provide it.
+*(2) Moving the production site: fails alone.* The payload goes on `applyc` before the `Save` and before
+*enter*, so `raftState` is still `S_{P-1}`. After *enter* (before the `notifyc` sends, which `applyAll`
+receives before the merge), the loop holds `raftState S_P`. `notifyc`'s deposit can carry a pure fact made
+there, so the job could be discharged from it. But L2 still needs `snapshotLeader γ id rt` at that point,
+which exists only if `id` already leads `rt` at `P`. A payload of a candidate `Ready` that wins later is
+the same gap as (1).
+*(3) Server-side ghost state: fails.* A record per `MsgSnap` of `DurAgrees S_M` does not reach `S_P` (as
+in (1)); the server cannot observe raft's camps.
+
+*The same gap blocks every later step, not only the kept snapshot.* The batch `Ready`s keep `replayPending`
+through `rnReplayState.appendEntries`. Its premise `above` (entries past `|a0|`) comes from `Ha0p`
+(`rnRestartOk_a0_le`: `|a0| ≤ commit0`, `raftNode__start.lean:232`, `:1354`). Dropping `|A₀| ≤ σ.commit`
+(the crash case) removes that, and after a crash the WAL's entries `≤ |a0|` can be stale (round 4,
+step 3). So the crash window needs the history form (runs describe `S_P`, then L2 at `S_P`) for every
+payload.
+
+*Two ways forward (a decision for the lead; neither started):*
+- (a) raft ghost: the camps map closed up to the durable term, i.e. a persistent "no campaign of `id` at
+  `T`" for `T ≤ S.term` with no record. Then the law `raftState γ id S ⊢ |={E}=> raftState γ id S ∗
+  □ (snapshotLeader γ id S.term -∗ ⌜durLogAgrees S l⌝)` holds, made at *enter* and deposited in
+  `notifyc`. This is new campaign ghost state in raft, which this task excluded.
+- (b') a fork change plus a raft law over the existing ghost state. In `raft.go`, set `ap.raftTerm` only
+  on a `Ready` whose role is leader (`islead`), else `0`. A `MsgSnap` is then merged only with a leader
+  `Ready`'s payload (liveness only: an unmerged `MsgSnap` is reported failed and resent). Raft's `Ready`
+  post (`readyGot`/`readyLeaderMsgs`) gains `⌜roleAfter st.role ss = StateLeader⌝ -∗ snapshotLeader γ id
+  (phsNext st.hardState h).Term'`. At a leader, `campOwn` already holds the `isCamp`; the win's certificate
+  is `leadLogOwn`'s term record. Server: after *enter* of a leader `Ready`, L2 at `S_P` (with `t0 < rt`
+  from `LifeOk`'s leader clause, to be exposed with it); `DurAgrees S_P a0` goes in `notifyc`'s deposit;
+  the job reads it. The loop keeps `replayHistoryMatches runs S n` (runs describe the current durable
+  state above the cursor) through `appendEntries`'s cut (`appendEntries_nonempty`'s `hcut`), the snapshot
+  reset and `after`, in place of `replayPending`. The seed is the WAL's entries, which are `S_0`'s.
+  Estimate: the fork change and its test, one raft `Ready` law, the loop's replay invariant reworked in
+  `raftNode__start.lean` (2000 lines; three `Ready` arms) and `replaySeed_facts`, and `applyAll`'s two
+  `notifyc` receives.
+
+Checkpoint 2026-11-24: (b) blocked as above. **Next statement** (once (a) or (b') is chosen): for (b'),
+raft's `readyLeaderMsgs` widened to `⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms ∗
+snapshotLeader γ id (phsNext st.hardState h).Term' ∗ ⌜uint.Z n.names.sn.t0 < uint.Z (phsNext st.hardState
+h).Term'⌝`. For (a), the raft law above.
