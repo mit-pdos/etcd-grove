@@ -1079,3 +1079,12 @@ implicitly. The order (the frontier of modules whose imports are ported):
    `Proto/ClientLaws`' `opAU` is the lab's shape and must change), Start/Shares (the start's
    resources over remote's), Mains, Linked, `gryff_remote_robust` (`DistDeploy … → Robust [] …`),
    `etc/tcb-collections/dsv-gryff.txt`.
+
+## math-rand-isinit (2026-11-24)
+
+`math.rand.InitHyp` is no longer a premise of `gryff_remote_robust`: `math/rand`'s `isPkgInit` is
+Perennial's (`isInit`), its `wp_initialize'` Perennial's proof, so `etc/dsv/gryff.py`'s `HYP_INITS`
+drops `math.rand` and the generated initializers call it (`ExternalInit.math_rand`). `RandSeedHyp`
+stays (`Seed` is names only at fce59af75); its precondition `isPkgInit math.rand` is now Perennial's
+fact, a stronger precondition and so a weaker premise. `NonVacuityLinked.lean` drops its
+`mrand_initHyp_holds` walk. See `notes/math-rand-isinit.md`.

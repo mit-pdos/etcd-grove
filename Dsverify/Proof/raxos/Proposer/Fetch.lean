@@ -8,6 +8,7 @@ public import Dsverify.Proof.raxos.Proposer.Esp
 public import Dsverify.Proof.raxos.Proposer.Conv
 public import Perennial.Proof.sync.WaitGroupJoin
 public import Perennial.Proof.sync.Results
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -139,7 +140,7 @@ theorem wp_getRandomClient (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) :
   iStructNamed Hp
   wp_auto
   rw [Hnr]
-  wp_apply hyp.RandHyp.Intn (GF := GF) (W64 cf.n) (by omega) as %x %Hx
+  wp_apply _root_.Perennial.math.rand.wp_Intn_pos (GF := GF) (W64 cf.n) (by omega) as %x %Hx
   ihave HI : (∃ (r : w64), "rn" ∷ rn_ptr ↦ r ∗ "%Hr" ∷ ⌜1 ≤ sint.Z r ∧ sint.Z r ≤ cf.n⌝ : IProp GF)
     $$ [rn]
   · iexists _
@@ -147,7 +148,7 @@ theorem wp_getRandomClient (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) :
     ipureintro; constructor <;> word
   wp_for HI
   wp_if_destruct
-  · wp_apply hyp.RandHyp.Intn (GF := GF) (W64 cf.n) (by omega) as %y %Hy
+  · wp_apply _root_.Perennial.math.rand.wp_Intn_pos (GF := GF) (W64 cf.n) (by omega) as %y %Hy
     wp_for_post
     iframe
     iexists _

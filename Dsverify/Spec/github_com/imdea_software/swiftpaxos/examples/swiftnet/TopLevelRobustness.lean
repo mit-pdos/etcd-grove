@@ -36,11 +36,12 @@ and the start's net protocol names `π`):
 * `l`, the libraries' representation choice (`SwiftNetPkgState`/`SwiftLibs`, `Base.lean`): gob's
   encoder/decoder predicates and gob's wire format (`GobFmt`, the field `gobFmt`), each argued true
   of the real library in its docstring;
-* the package initializers without a proof here (`InitHyp`, `etc/dsv/README.md`): math/rand's,
-  net/rpc's, net/http's, encoding/gob's, os/signal's, google/uuid's (encoding/json's is the main
-  tree's proved `wp_initialize'`);
+* the package initializers without a proof here (`InitHyp`, `etc/dsv/README.md`): net/rpc's,
+  net/http's, encoding/gob's, os/signal's, google/uuid's (encoding/json's is the main tree's proved
+  `wp_initialize'`, math/rand's Perennial's since math-rand-isinit, 2026-11-24);
 * the library specs (`SwiftHyps`, `Hyps.lean`: gob, bufio's lab lemmas, uuid's `ID`;
-  `math.rand.Hyps`, dsv-rabia's `math/rand` specs), the environment (`os.signal.NoSignals usr1Sigs`,
+  `math.rand.Hyps`, dsv-rabia's `math/rand` specs of `NewSource`/`New`/`Rand.Intn`; the
+  package-level `Intn` is Perennial's proved spec since math-rand-isinit), the environment (`os.signal.NoSignals usr1Sigs`,
   dsv-rabia's class at SIGUSR1: no SIGUSR1 is sent; `SwiftOsRandom`: the OS's randomness does not
   fail, uuid's `New`);
 * net/rpc over HTTP (`lib/RpcHttpHyps.lean`; Net's `models-rpc-http`, not landed, named after its
@@ -61,7 +62,6 @@ public import Robustness.Statement
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.os.signal.Init
 public import Dsverify.Proof.github_com.google.uuid.Init
-public import Dsverify.Proof.math.rand.Init
 public import Dsverify.Proof.math.rand.Spec
 public import Dsverify.Proof.os.signal.Spec
 
@@ -99,7 +99,6 @@ def swiftpaxos_remote_robust.spec : Prop :=
     [server6_sem : cmd.server6.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     (l : SwiftNetPkgState netDistGF),
-    (∀ G L, letI := heapAt G L; math.rand.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; net.rpc.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; net.http.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; encoding.gob.InitHyp netDistGF) →

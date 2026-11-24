@@ -18,7 +18,7 @@ public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
 public import Perennial.Proof.math.Link
-public import Dsverify.Proof.math.rand.Init
+public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
@@ -35,7 +35,7 @@ public import Dsverify.Proof.gryff.src.gryffcommon.Init
 public import Dsverify.Proof.gryff.src.gryffproto.Init
 public import Dsverify.Proof.gryff.src.state.Init
 public import Dsverify.Proof.gryff.src.stats.Init
-public import Dsverify.Proof.runtime.PkgInitDsv
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -58,7 +58,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.math.rand.InitHyp GF]
 variable [package_sem : _root_.Perennial.gryff.src.gryff.Assumptions]
 
 namespace gryff.src.gryff
@@ -94,8 +93,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd23⟩
   wp_apply (_root_.Perennial.gryff.src.stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd22⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.math.rand _root_.Perennial.math.rand.initialize'
-      _root_.Perennial.math.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd21⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.math.rand _root_.Perennial.math.rand.initialize'
+      EtcdGrove.ExternalInit.math_rand _root_.Perennial.math.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd21⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd20⟩
   wp_apply (_root_.Perennial.gryff.src.clientproto.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd19⟩

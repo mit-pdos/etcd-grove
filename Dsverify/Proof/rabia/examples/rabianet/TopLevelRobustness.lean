@@ -116,7 +116,7 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
       [RemoteGS], gens.spec (GF := remoteGF) (hG := hG)) :
     rabia_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
-    hzi hpi hph hgpi hri hsi hmi hz hmr hns σ g threads
+    hzi hpi hph hgpi hri hsi hz hmr hns σ g threads
   refine robust_of_distProtoRB (GF := remoteGF) rabiaKitAddrs (system σ) g threads (2 ^ 63) ?_
   intro G π hrb
   iintro #Hreg Hs
@@ -186,7 +186,6 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
     haveI : github_com.gogo.protobuf.gogoproto.InitHyp remoteGF := hgpi G' hG.goose_localGS
     haveI : github_com.go_redis.redis.v8.InitHyp remoteGF := hri G' hG.goose_localGS
     haveI : os.signal.InitHyp remoteGF := hsi G' hG.goose_localGS
-    haveI : math.rand.InitHyp remoteGF := hmi G' hG.goose_localGS
     haveI : github_com.rs.zerolog.Hyps remoteGF := hz G' hG.goose_localGS
     haveI : math.rand.Hyps remoteGF := hmr G' hG.goose_localGS
     haveI : os.signal.NoSignals os.signal.quietSigs remoteGF := hns G' hG.goose_localGS

@@ -15,11 +15,12 @@ this says porcupine accepts every history, under every fault the net extension a
 **Premises** (visible; each a hypothesis class of the proof at the bundle `remoteGF`, for every
 machine's heap `heapAt G L`, or for the global ghost state `G`; notes/dsv-quepaxa.md, "Hypotheses"):
 * the initializers of the libraries with no translation or model here (`InitHyp`: yaml.v2, go-redis
-  v8, io/ioutil, encoding/gob, grpc, grpc/codes, math/rand: each runs without panicking);
+  v8, io/ioutil, encoding/gob, grpc, grpc/codes: each runs without panicking; math/rand's is
+  Perennial's proved `wp_initialize'` since math-rand-isinit, 2026-11-24);
 * `qv : hyp.QpVocab remoteGF`, the abstract vocabulary of the gRPC and `sync.Map` hypotheses (any:
   the premises below are about it);
-* protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages (`hyp.PbHyp`), math/rand's `Seed` and
-  package-level `Intn` (`hyp.RandHyp`), `time.Time.UTC` (`hyp.UtcHyp`), `sort.Ints`
+* protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages (`hyp.PbHyp`), math/rand's `Seed`
+  (`hyp.RandHyp`; the package-level `Intn` is Perennial's proved spec since math-rand-isinit), `time.Time.UTC` (`hyp.UtcHyp`), `sort.Ints`
   (`hyp.SortHyp`), `fmt.Println` (`hyp.PrintlnHyp`), gRPC's unary path over `qv.grpc` and the codec
   `hyp.qpCodec` (`hyp.grpc.GrpcHyp`, for every heap and every protocol registry `NetProtoGS`), a gRPC
   world's registry can be allocated (`hyp.grpc.GrpcWorldHyp`, over the global ghost state), and
@@ -41,7 +42,6 @@ public import Dsverify.Proof.io.ioutil.Init
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.google_golang_org.grpc.Init
 public import Dsverify.Proof.google_golang_org.grpc.codes.Init
-public import Dsverify.Proof.math.rand.Init
 
 @[expose] public section
 
@@ -88,7 +88,6 @@ def quepaxa_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; encoding.gob.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; google_golang_org.grpc.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; google_golang_org.grpc.codes.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; math.rand.InitHyp remoteGF) →
     ∀ (qv : raxos.hyp.QpVocab remoteGF),
     (∀ G L, letI := heapAt G L; raxos.hyp.PbHyp remoteGF) →
     (∀ G L, letI := heapAt G L; raxos.hyp.RandHyp remoteGF) →
