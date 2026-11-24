@@ -5,6 +5,7 @@ counter loops (`getUint64.specAny`, any rest), the conf state kept in the status
 -/
 module
 
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TransportDefs
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.GetStatus
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getUint64Any
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getConfStateAny
@@ -163,7 +164,7 @@ theorem GetStatus.wp_proof (wp_getUint64 : getUint64.specAny (GF := GF) (hG := h
       s_ptr ↦ sv ∗ ⌜sv.Conf' = cs⌝) $$ [s]
   · iexists _; iframe; ipureintro; rfl
   icases Hs with ⟨%sv, s, %Hsv⟩
-  by_cases ha : ¬ a4 = W64 24
+  by_cases ha : ¬ a4 = W64 numStats
   · rw [decide_eq_false ha]
     try wp_auto
     iapply HΦ
@@ -177,18 +178,18 @@ theorem GetStatus.wp_proof (wp_getUint64 : getUint64.specAny (GF := GF) (hG := h
   icases Hs with ⟨SI, SC, SCo, SL, ST, SR, SCm, SS⟩
   rename_i ip1
   icases SS with ⟨SS, -⟩
-  ihave IS : iprop(∃ (j : w64) (k0 : w64) (sa : GoArray w64 24) (rv : GoSlice) (bsr : List w8),
+  ihave IS : iprop(∃ (j : w64) (k0 : w64) (sa : GoArray w64 numStats) (rv : GoSlice) (bsr : List w8),
       "i" ∷ i_ptr ↦ j ∗ "iv" ∷ ip1 ↦ k0 ∗
       "SS" ∷ s_ptr.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Status, go!"Stats"] ↦ sa ∗
       "rest" ∷ rest_ptr ↦ rv ∗
-      "Hrv" ∷ rv ↦*{dq} bsr ∗ "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ 24⌝)
+      "Hrv" ∷ rv ↦*{dq} bsr ∗ "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ numStats⌝)
     $$ [-HΦ «$res0» «$res1» Hcs HK SI SC SCo SL ST SR SCm F0 F1 F2 F3 F4 iv]
   · iexists W64 0, _, _, rv, bsr
     iframe
     ipureintro; decide
   wp_for IS
   wp_if_destruct
-  · obtain ⟨Hjr, Hj1⟩ := word_stepN 24 j Hj (by simpa using Hif) (by decide)
+  · obtain ⟨Hjr, Hj1⟩ := word_stepN numStats j Hj (by simpa using Hif) (by decide)
     try wp_auto
     wp_apply wp_getUint64 rv dq bsr $$ [$Hrv] as %x %r %ok Hr
     icases getUint64_post_any _ _ _ _ _ $$ Hr with ⟨%br, Hr⟩
@@ -208,7 +209,7 @@ theorem GetStatus.wp_proof (wp_getUint64 : getUint64.specAny (GF := GF) (hG := h
     rw [ite_eq_left Hjr]
     ihave %Hfl := array_len _ _ _ _ $$ SS
     obtain ⟨v, Hlk⟩ := arr_lookup sa (sint.Z j) (by omega) Hjr
-    icases array_acc _ (sint.Z j) (DFrac.own 1) 24 _ v Hjr.1 Hlk $$ SS with ⟨Hfe, Hfb⟩
+    icases array_acc _ (sint.Z j) (DFrac.own 1) numStats _ v Hjr.1 Hlk $$ SS with ⟨Hfe, Hfb⟩
     try wp_auto
     ihave SS := Hfb $$ %x Hfe
     try wp_auto

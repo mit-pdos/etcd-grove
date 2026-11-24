@@ -2,7 +2,7 @@
 # kvudp's boot counter: its file, crash-aware (2026-11-24)
 
 `notes/kvudp-proof-plan.md`, "The boot counter". Each process of replica `id` takes a boot number one
-more than the last process's (`nextBoot`), from the durable file `bootFileName dir id`
+more than the last process's (`nextBoot`), from the durable file `kvBootFileName dir id`
 (`BootFileOf`), written with `durable.Write` before the number is used, so that no two processes of
 the replica share one, across crashes. The ghost state says so with `udpHi γu id hi` (`UdpDefs.lean`:
 the names' invariant has every counter `(id, b)` at `b ≤ hi`), which lives in the generation's **boot
@@ -30,7 +30,7 @@ window). So:
 -/
 module
 
-public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Defs
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopBoot
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.UdpDefs
 
 @[expose] public section
@@ -45,10 +45,6 @@ namespace EtcdGrove
 namespace raft_kvnet
 
 open Iris Iris.BI Iris.ProofMode Net Udp go_etcd_io.raft.v3
-
-/-- The file of replica `id`'s boot counter (the program's string): `dir + "/udp-boot-" + itoa(id)`. -/
-def bootFileName (dir : GoString) (id : w64) : GoString :=
-  dir ++ go!"/udp-boot-" ++ decimalB (uint.nat id)
 
 /-- **The boot counter's file state `s` bounds `hi`** (see the file header): every contents a crash
 may leave hold a number at least `hi`. -/
@@ -97,7 +93,7 @@ def udpBootStart (γu : UdpNames) (id : w64) (dir : GoString) (bn : UdpBootNames
     Fs.osInv ∗ Fs.osSharedInv bn.fR ∗ DurFs.durInv bn.γd bn.df ∗ DurFs.durHandle bn.γd bn.df bn.fR ∗
     Fs.osCallPerm (Fs.callKey bn.fR bn.df.d) qc ∗ udpBootInv γu id bn ∗
     ghostVar bn.wr (1 : Qp).half (⟨cur, none⟩ : DurFs.DurSt) ∗
-    ⌜bn.df.Ok ∧ bn.df.name = bootFileName dir id⌝)
+    ⌜bn.df.Ok ∧ bn.df.name = kvBootFileName dir id⌝)
 
 /-- **What a process's UDP side starts from** (`openUDP`'s, `startNodeUDP`'s): every valid address of
 `M` with its invariant (`udpAddrsInv`) and the boot counter's file. -/
@@ -137,6 +133,24 @@ theorem bootOk_crash {hi : w64} {s : DurFs.DurSt} (h : BootOk hi s) (v : Option 
   rcases hv with rfl | hv
   · exact h.1
   · exact h.2 v hv
+
+/-- **The boot file at a generation's boot** (2026-11-24, with kvnet's `kvGen` claiming only the
+storage file's names, `TopBoot.lean`): from the claim on the boot file's two names (out of what
+`kvGen_first`/`kvGen_crash` hand back, `kvDirRest`, by `osNames_take2`: they are not the storage
+file's, `kvBoot_names_fresh`), what the generation found there, a share of the root's call permission,
+and replica `id`'s `udpHi` bounded by the found contents: `durable`'s boot on the two names
+(`DurFs.durBootOnly`) and the boot invariant (`udp_boot_alloc`): `nextBoot`'s `udpBootStart` and what
+the crash keeps. -/
+theorem udp_gen_boot (γu : UdpNames) (id : w64) (dir : GoString) (f : DurFs.DFile) (R : Fs.Roots)
+    (V : Fs.Hist) (v : Option GoString) (hi n : w64) (qc : Qp) (hV : V.2 = []) (hr : (f.d, f.J) ∈ R)
+    (hf : f.Ok) (hname : f.name = kvBootFileName dir id) (hv : bootVal v n)
+    (hn : uint.nat hi ≤ uint.nat n) :
+    ⊢ Fs.osInv (GF := GF) -∗ Fs.osSharedInv R -∗ Fs.osCallPerm (Fs.callKey R f.d) qc -∗
+      Fs.osNames f.J (.only [f.b, f.tb]) (DFrac.own 1) (Fs.namesOf V f.J (.only [f.b, f.tb])) -∗
+      DurFs.durFound f V.now v -∗ DurFs.durFoundTmp f V.now -∗ udpHi γu id hi ={⊤}=∗
+      ∃ bn : UdpBootNames, ⌜bn.df = f ∧ bn.fR = R⌝ ∗ udpBootStart γu id dir bn qc ∗
+        udpBootKeep γu id bn := by
+  sorry
 
 end defs
 

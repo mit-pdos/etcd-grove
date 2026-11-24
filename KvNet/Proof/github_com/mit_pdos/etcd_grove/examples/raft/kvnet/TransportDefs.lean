@@ -42,6 +42,16 @@ namespace raft_kvnet
 
 open Iris Iris.BI Iris.ProofMode Net go_etcd_io.raft.v3
 
+/-- **How many counters `Stats` has** (`stats.go`'s `NumStats`, the length of `Stats.c` and of
+`StatNames`): the one place the number is written in the proofs (2026-11-24: kvudp's counters took it
+from 24 to 39), tied to Go's constant by `NumStats_eq` (and to `Stats.c`'s type by the proofs that
+use both). An `Int`, as Goose's array lengths: reducible to the literal, so `GoArray w64 numStats`
+is `Stats.c`'s type. -/
+abbrev numStats : Int := 39
+
+theorem NumStats_eq [GooseExts] [GoGlobalContext] :
+    github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NumStats = #numStats := rfl
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
@@ -52,7 +62,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The counters, guarded by their mutex. -/
 def statsInv (s : Loc) : IProp GF :=
-  iprop(∃ a : GoArray w64 24,
+  iprop(∃ a : GoArray w64 numStats,
     s.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Stats, go!"c"] ↦ a)
 
 /-- A stats object: its mutex (see the file header). -/

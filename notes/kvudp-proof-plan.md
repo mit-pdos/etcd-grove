@@ -152,13 +152,13 @@ Perennial spec; it now calls a helper `putUint32`, `PutUint32` into a `[4]byte` 
 
 ## Design risks
 
-1. **Two durable files in one directory.** `durable`'s boot (`DurFs.durBoot`) takes the whole claim on
-   the directory's names (`osNames f.J (.except [])`); kvnet's `kvGen_boot` gives it to the storage
-   file. The boot counter needs a second file in the same directory: a `durBoot` on the claim of its
-   two names only (`.only [f.b, f.tb]`; it splits internally already, `osNames_split`), and kvnet's
-   `kvGen`/`kvGen_boot`/`kvGen_crash` generalized to leave the other names' claim (and `durFound` of the
-   boot file) to the caller. A change to `WalTester/`'s `durable` (`Boot.lean`) and to the kvnet lead's
-   `TopBoot.lean`; the call permission of the root is split between the two (`qc`).
+1. **The boot file's crash.** (The boot's half is resolved, 2026-11-24: `kvGen` claims only the storage
+   file's names and hands the rest back, `kvDirRest`; `durable`'s `durBootOnly` boots on two names;
+   `udp_gen_boot` is the boot file's boot.) At a crash, `durable`'s crash lemma for the boot file needs
+   the crash's `crashRest` too, which kvnet's `kvGen_crash` consumes whole: either `kvGen_crash` also
+   gives what the next generation finds at the other names (`durFound`/`durFoundTmp` of a second file),
+   or it takes the boot file's crash keep and runs both crash lemmas. A change to the kvnet lead's
+   `TopBoot.lean`, for the top-level task.
 2. **The reassembler's `chunks[i] != nil`.** `ownPartial` tracks which chunks arrived by a ghost list
    (`got`), tied to `c ≠ slice.nil`; the proof must show a chunk `getDatagram` copies is non-nil
    (`append([]byte(nil), nonempty...)`).
@@ -172,8 +172,8 @@ Perennial spec; it now calls a helper `putUint32`, `PutUint32` into a `[4]byte` 
 1. **Boot counter** (`nextBoot`, `BootFileOf`; `UdpBootDefs.lean`'s `udp_boot_alloc`, `udp_boot_crash`,
    the sync's ghost step): the crash-aware invariant over `durable`'s two atomic updates.
 2. **Top-level generation and crash** (`cmd/kvudp/TopLevelRobustness.lean`, `NetFsUdp/Adequacy.lean`'s
-   adequacy and projections; with risk 1's `durable` and `TopBoot` generalization): the global
-   allocation of `UdpNames` and the address invariants from `udpStart`.
+   adequacy and projections): the global
+   allocation of `UdpNames` and the address invariants from `udpStart`; `udp_gen_boot`; risk 1.
 3. **Reassembler** (`reassembler.add`, `reassembler.remember`, `newReassembler`; the reassembly lemma).
 4. **Receiver** (`udpNet.receive`, `udpNet.handle`, `udpNet.stepper`, `udpNet.ack`; `udpDgOk_recv`).
 5. **Sender** (`udpTransport.runPeer`, `sendSnapshot`, `writeAll`, `udpNet.write`, `udpNet.nextSeq`; the

@@ -8,10 +8,12 @@
   names, the addresses' TCP protocols, raft's cluster), and kvudp's: the names' invariant `udpMsgInv γu`
   (`udpHi γu id 0` for every replica `id`, empty maps), and one `udpAddrInv` per replica address, from
   the UDP extension's start resources (`kvudp_udp_globalStart`: `udpSent a []` for every valid address);
-* a generation's boot: kvnet's `kvGen_boot`, and the boot file's (`durable`'s boot on the second file of
-  the directory, `udp_boot_alloc`), giving `RunNodeUDP`'s `udpProcStart`;
-* a crash: kvnet's `kvGen_crash`, and the boot file's (`udp_boot_crash`, `durable`'s crash lemma,
-  `bootOk_crash`);
+* a generation's boot: kvnet's `kvGen_first`/`kvGen_crash` hand back the rest of the directory
+  (`kvDirRest`: the claim on every other name, half the root's call permission); the boot file's two
+  names out of it (`osNames_take2`, `kvBoot_names_fresh`), then `udp_gen_boot` (`DurFs.durBootOnly` and
+  `udp_boot_alloc`): `RunNodeUDP`'s `udpProcStart`, beside kvnet's `kvGen_boot`;
+* a crash: kvnet's `kvGen_crash`, and the boot file's (`udp_boot_crash`, `durable`'s crash lemma on the
+  boot file, `bootOk_crash`; see the plan's risks: the crash's `crashRest` must serve both files);
 * the programs: `RunNodeUDP.wp_proof` (through `RunUDP`, `startNodeUDP` at kvnet's seams), kvcheck's as
   kvnet's.
 -/

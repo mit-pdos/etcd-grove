@@ -1,5 +1,5 @@
 /-
-`BootFileOf(dir, id)` (`nodeudp.go`): the boot counter's file name (`bootFileName`).
+`BootFileOf(dir, id)` (`nodeudp.go`): the boot counter's file name (`kvBootFileName`, `TopBoot.lean`).
 (kvudp, 2026-11-24: `notes/kvudp-proof-plan.md`.)
 -/
 module
@@ -32,7 +32,7 @@ abbrev BootFileOf.spec : Prop :=
   ∀ (dir : GoString) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.BootFileOf)) (Val #dir)) (Val #id))
-  {{ RET #(bootFileName dir id); True }}
+  {{ RET #(kvBootFileName dir id); True }}
 
 end spec
 
