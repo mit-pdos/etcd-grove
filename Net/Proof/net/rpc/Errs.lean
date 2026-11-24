@@ -22,7 +22,7 @@ module
 
 public import Net.Proof.net.rpc.Codec
 public import Net.Proof.net.Base
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.errors.Base
 public import GooseLang.Ext.Net.Specs

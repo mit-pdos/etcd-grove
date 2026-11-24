@@ -9,7 +9,7 @@ public import Dsverify.Proof.raxos.Proxy.NetSpecs
 public import Dsverify.Proof.raxos.Proposer.Strings
 public import Perennial.Proof.errors.NewVar
 public import GooseLang.Ext.Net.Decide
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
