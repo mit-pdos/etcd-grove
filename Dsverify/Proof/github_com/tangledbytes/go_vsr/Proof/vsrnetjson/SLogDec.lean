@@ -10,7 +10,6 @@ decoded into a local and appended it).
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.LogDec
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
 
 @[expose] public section
 

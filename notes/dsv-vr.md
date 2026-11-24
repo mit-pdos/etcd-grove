@@ -52,7 +52,75 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 
 ## State
 
-### Round 7: J3's premise shapes, RegisterJSON from the boot (2026-11-24; the current handoff)
+### Round 8: jsoncodec's runtime specs, scanOk and the registered codec proved (2026-11-24; the current handoff)
+
+Brief: discharge vr's JSON premises one at a time (round 7's list); generic library pieces where
+other kits can use them; the statement may only lose premises; no GitHub posts.
+
+**Done (1): a runtime-spec library for `models.lab/jsoncodec`, generic, in `Net/`** (where the
+main tree's `encoding/json` already takes jsoncodec's vocabulary: `Net/Proof/models_lab/jsoncodec/
+Codec.lean`; nothing in `Proof/`/`Spec/` had jsoncodec specs; lean has no others, checked
+f08ee893fb). One spec file per function, `Net/Spec/models_lab/jsoncodec/<F>.lean` (`<F>.spec`), its
+proof `Net/Proof/models_lab/jsoncodec/<F>.lean` (`<F>.wp_proof`, callees as hypotheses: tier rule),
+linked in `Net/Proof/models_lab/Results.lean` (`jsoncodec.<F>.wp`, `#print axioms` each: Lean's
+three):
+- the pure scanner moved out of vr: `Net/Proof/models_lab/jsoncodec/Scan/{Def,StrSteps,NumSteps,
+  Steps,Bounds,Idx,Lits}.lean`, namespace **`JsonScan`** (was vr's `VsrJson`; vr's remaining
+  `VsrJson` files `open JsonScan`): `spB`, `strL`, ..., `goL`, `scanL`, **`scanF`** (was
+  `VsrJson.scanF`; `vsrnet.scanF := JsonScan.scanF`, the same function), `skipEnd`; `Lits.lean`:
+  `decN`, `okB`, `plainEnc` (AppendString's plain subset), `numEnd`, `numL_full`, `strL_full`,
+  `valD`, `decN_okB`, `scanL_num`, `scanL_str` (top-level number/string without vr's `JV`);
+- specs+proofs: `SkipSpace`, `Scan` (`JsonScan.scanF`, any input), `ValueEnd`, `At`, `Next`,
+  `Empty`, `Str`, `Member`, `Digits`, `Uint`, `QuotedUint` (with the new `noEscape`), `String`,
+  `AppendUint`, `AppendQuotedUint`, `AppendString` (plain subset only: true of today's panic model
+  and of zeldovich's escaping AppendString, prove-ps2-jsonj4: **for a #24 post**, offer them to adopt
+  it); internal helpers as defs-tier lemmas (`ScanString.lean`: `wp_isDigit`, `wp_scanDigits`,
+  `wp_isHex`, `wp_scanString`, tactics `ldidx`/`ldagain`/`fin_ret`; `ScanNumber.lean`,
+  `ScanScalar.lean`; `DecBase.lean`: `wp_SkipSpace_ns`, `wp_noEscape`). The decoders' specs are
+  the lab's (at valid input of the shapes decoders meet), not full functional specs.
+- Not done: `FoldEq`, `Valid`, `AppendInt`, `AppendCompact`, `Bool`, `Int` (not needed so far; the
+  frame's `JSONModelUnmarshal` needs `Valid`, lab `wp_Valid_ok`).
+
+**Done (2): `scanOk`.** `Net/Proof/models_lab/jsoncodec/ScanOk.lean` (`scanOk_of`), linked
+`models_lab.jsoncodec.scanOk_scanF : ⊢ scanOk JsonScan.scanF scanFn`. It left
+`registeredCodecOk` (which became `marshalOk ∗ unmarshalOk`) before (3) removed the whole field.
+
+**Done (3): `registeredCodecOk` proved; `JsonHyps.codec` removed.** `Proof/vsrnetjson/`:
+`LogDec.lean` (`jdec_log_Log`, `jdecMember_log_Log`), `SLogDec.lean` (`jdec_S_log_Log`: this
+codec appends a zero `Log` and decodes in place, `&s[n]`, unlike the lab's), `RegUnmarshal.lean`
+(`vsrnet.registeredUnmarshalOk`: `Frame`/payload pointers excluded by `unmarshalsByCodec`,
+`payload_unmarshaler`, `frame_unmarshaler`), `LogEnc.lean` (`jenc_log_Log`, `jenc_S_log_Log`, with
+the depth arguments), `RegMarshal.lean` (`vsrnet.registeredMarshalOk`; `*Event` excluded by
+`marshalsByCodec`), `Registered.lean` (`vsrnet.registeredCodecOk_of` over the helpers' specs).
+`examples/vsrnet/Link.lean`: `vsrScanOk`, `vsrRegisteredCodecOk` (Net's `.wp`s), and
+`j.codecOk vsrRegisteredCodecOk vsrScanOk` (`JsonHyps.codecOk` takes both now).
+**Statement diff (round 7 head ace1737dcb → now): `JsonHyps` loses the field
+`codec : examples.vsrnet.registeredCodecOk (GF := GF) (hG := hG)`; nothing else** (the
+`TopLevelRobustness` spec file is unchanged; `vsrnet.registeredCodecOk` stays defined in
+`Spec/json.lean`, now `⊢ marshalOk ∗ unmarshalOk` at `codecPart`, and is a theorem).
+
+**Remaining premises** (`JsonHyps`): `NewEncoder`, `Encode_conn`, `newDecoder`, `Decode_frame`,
+`types : vsrnet.TypeCodecs` (13 fields: `event`, the 11 payloads, `frame`); `LibHyps`:
+`connReaderOk`; data classes `DecoderRep`, `EncoderRep`. Next, in order: (4) `TypeCodecs.frame`
+(`vsrwire`'s `Frame.JSONModelUnmarshal`: `Valid`, then `jdec_Frame`/`jdecMember_Frame`/`jdecRaw`;
+needs a `Valid` spec (lab `wp_Valid_ok`), `Uint` at max 255 for the type; lab `vsrnetjson/
+Frame.lean`, `Unmarshal.lean`); (5) the 11 payloads' `JSONModelUnmarshal` (lab `DecFlat`,
+`DecMore`, `Request`, `UnmarshalAll`; `DoViewChange`/`StartView`/`NewState` through
+`Logs.UnmarshalJSON`, which now has the registered codec's proof to stand on); (6)
+`TypeCodecs.event` (`jenc_Event` etc.; lab `EncFlat`, `EncLogs`, `Marshal`, `MarshalTop`). Each
+removes a field of `TypeCodecs` (restate `TypeCodecs` without it and have `codecOk_of` take the
+proof, as `codec` went).
+
+**Checks (round 8):** fk-lean1: vr's `TopLevelRobustness` + `Net.Proof.models_lab.Results`
+built (2973 jobs), `vr_remote_robust` and every jsoncodec `.wp` print `[propext,
+Classical.choice, Quot.sound]` (see the final round-8 entry below for the six landed statements).
+Here: `tier-check --check` ok, 227 known (no new); `gen-init --check` 274 up to date;
+`goose --check --project dsv-vr` up to date; `_vr_boot.py --check`, `_swiftpaxos_boot.py --check`
+rc 0; `copy-part --check` 0 differ; `proof_roots.namespace()` `Perennial.EtcdGrove.`; dups 4 (the
+known parse artifacts; scratchpad `dups-vr8.py` = `dups.py` at Perennial ccfeb3895); `jsongen
+--check` rc 0; `etc/goose.py`, `etc/gen-init.py` equal the merged lean's (merge-base).
+
+### Round 7: J3's premise shapes, RegisterJSON from the boot (2026-11-24; history)
 
 Coordinator's decisions (round 6's open points): (1) restate the JSON premises in J3's true
 shapes; (2) prove `RegisterJSON` from a first-run boot as swiftpaxos's; (3) discharge the
