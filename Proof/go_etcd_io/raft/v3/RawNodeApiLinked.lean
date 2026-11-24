@@ -12,8 +12,9 @@ proved** (`RawNodeApi.lean`'s `.law` statements), and its specs from the strengt
   `wp_proofEmptyStartAbs`); `Ready`'s and `HasReady`'s over their proofs
   (`RawNode.<F>.wp_apiProof`, with those proofs' callee specs as hypotheses).
 
-Not proved: `rawNode_vote.law` (false as stated: a vote granted by a `Step` is a promise in the
-virtual maps until the next `Ready`'s *enter* mints its `isVote`, `Protocol/Enter.lean`).
+`rawNode_vote.law` is of the client's durable state (`ownDurGhost`), not of `rawNode`: a vote a
+`Step` grants has no `isVote` until a `Ready`'s *enter* persists it; it is read through the slot
+invariant (`rawNode_vote`).
 -/
 module
 
@@ -147,6 +148,51 @@ theorem rawNode_leader : rawNode_leader.law (GF := GF) := by
     iintro !> %h
     exact absurd h hr
 
+/-- The durable state's vote: the slot invariant's entered fragments (`durFrags`), its maps the
+durable half's (`durShares_agree`), which hold the vote at the term (`VoteHistOkD`). -/
+theorem rawNode_vote : rawNode_vote.law (GF := GF) := by
+  intro γ id S
+  iintro H
+  iunfold ownDurGhost at H
+  icases H with ⟨%E, Hsh, #Hp, #Hslot, #HI1⟩
+  ihave %Hvh : ⌜VoteHistOkD E.voted S⌝ $$ []
+  · iunfold durPers at Hp
+    icases Hp with ⟨%kd, %fp, %Hpure, -⟩
+    ipureintro; exact Hpure.1
+  by_cases hv : S.vote = W64 0
+  · imodintro
+    isplitr
+    · iintro !> %h; exact absurd hv h
+    iunfold ownDurGhost
+    iexists E
+    iframe Hsh Hp Hslot HI1
+  have Hlk : E.voted !! S.term = some S.vote := by rw [Hvh.2, if_neg hv]
+  have HE : (↑(slotN γ id) : CoPset) ⊆ ↑(raftN γ) := slotN_raftN γ id
+  unfold slotInv
+  iinv Hslot with Hb Hclose
+  unfold slotBody
+  icases Hb with ⟨%γs', %E', %g, %Mq, >%Hγs', >Hsh', >#Hfr, Hai, >Hv', >Hg, >Hq, >%Hdom, >%Hcur,
+    >%Hb⟩
+  icases durShares_agree γ id _ _ E E' $$ Hsh Hsh' with ⟨Hsh, Hsh', %HEE⟩
+  subst HEE
+  ihave #Hvt : isVote (GF := GF) γ id S.term S.vote $$ []
+  · iunfold durFrags at Hfr
+    icases Hfr with ⟨#Hvs, -⟩
+    iapply BigSepM.bigSepM_lookup (Φ := fun t c => isVote (GF := GF) γ id t c) Hlk $$ Hvs
+  imod Hclose $$ [Hsh' Hai Hv' Hg Hq] with -
+  · inext
+    iexists γs', E, g, Mq
+    isplitr; · ipureintro; exact Hγs'
+    iframe Hsh' Hfr Hai Hv' Hg Hq
+    ipureintro; exact ⟨Hdom, Hcur, Hb⟩
+  imodintro
+  isplitr
+  · iintro !> -; iexact Hvt
+  iunfold ownDurGhost
+  iexists E
+  unfold slotInv slotBody
+  iframe Hsh Hp Hslot HI1
+
 theorem rawNode_tally : rawNode_tally.law (GF := GF) := by
   intro γ rn id rs ps qs ip
   refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
@@ -237,6 +283,51 @@ theorem rawNode_raise_tc : rawNode_raise_tc.law (GF := GF) := by
   intro γ rn id rs ps qs ip tc Hle
   unfold rawNode
   exact ownRawNodeAt_raise_tc γ rn id rs ps qs ip true tc Hle
+
+/-- **The storage handshake, at the protocol state** (`ownRawNode_appended`'s proof, through
+`ownRawNodeAt_intro`): only the log's unpersisted entries move, which neither the protocol reading,
+the in-progress boundary nor the scope reads. -/
+theorem ownRawNodeAt_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
+    (qs : List Msg) (ip : Nat) (sc : Bool) (Hsl : rs.slent = none) (a : List EntryM)
+    (Ha : a ≠ [] → ∀ e0, rs.unpersisted.head? = some e0 →
+      uint.nat e0.Index' - 1 + a.length ≤ rs.delivered.length) :
+    ⊢ ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc -∗ appendReceipt rs.storage rs.unpersisted a ==∗
+      ownRawNodeAt γ rn id { rs with unpersisted := [] } ps qs ip sc := by
+  iintro H Htok
+  iNamed H
+  ihave Htok : appendReceipt s.logst.storage s.logst.unpersisted a $$ [Htok]
+  · rw [← Hstor.1, ← Hunp]; iexact Htok
+  icases ownRaftPhysC_log_at cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hlback⟩
+  imod ownRaftLog_absorb s.log s.logst a (fun hne e0 he => by
+      have := Ha hne e0 (by rw [Hunp]; exact he); rw [Hdlen] at this
+      have := uint_Z_nonneg s.logst.applying
+      have : uint.nat s.logst.applying = (uint.Z s.logst.applying).toNat := rfl
+      omega) $$ Hlog Htok with Hlog
+  ihave Hphys := Hlback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+    %(fun _ => logLast_le_of_fields rfl rfl rfl)
+  ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
+    (s' := { s with logst := { s.logst with unpersisted := [] } }) rfl rfl rfl rfl $$ Hghost
+  ihave Hsc := rnScopeAt_keep sc rs { rs with unpersisted := [] } s
+    { s with logst := { s.logst with unpersisted := [] } } (fun h => h) rfl $$ Hsc
+  imodintro
+  iapply ownRawNodeAt_intro γ rn id { rs with unpersisted := [] } ps qs ip sc
+    { s with logst := { s.logst with unpersisted := [] } } cf fp rnv sv hprev steps Hwf Hin Hasync
+    Hdlen rfl Hsnap
+    (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
+    ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h),
+        Hloan.2.2.2⟩
+    Hsdt Hrole Hphs Hps Hip $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv
+      Hstrecs Hloanc Hsloc Hhist [Hledger] [Hdur] [Hrntr] Hsc
+  · unfold restoreLedger restoreClock queuedRestoreTerms localInstallations; iexact Hledger
+  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
+  · iapply rnTrace_congr γ _ id cf (s := s)
+      (s' := { s with logst := { s.logst with unpersisted := [] } }) rfl rfl rfl rfl rfl $$ Hrntr
+
+theorem rawNode_appended : rawNode_appended.law (GF := GF) := by
+  intro γ rn id rs ps qs ip a Hsl Ha
+  unfold rawNode
+  exact ownRawNodeAt_appended γ rn id rs ps qs ip true Hsl a Ha
 
 /-! ### The term budget -/
 

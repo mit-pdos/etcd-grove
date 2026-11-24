@@ -106,11 +106,16 @@ abbrev rawNode_leader.law : Prop :=
       isLeader γ id ps.term ∗ ∃ F0 : List EntryM, isCamp γ id ps.term F0 ∗ ⌜F0 <+: ps.log⌝) ∗
     rawNode γ rn id rs ps qs ip
 
-/-- The node's vote at its term (`VoteHistOk`, the vote table). -/
+/-- The vote of the client's durable state `S` at its term (`VoteHistOkD`, the vote table). Of the
+durable state, not of `rawNode`'s protocol state: a vote a `Step` grants is a promise in the node's
+virtual maps, and its `isVote` is minted only when a `Ready`'s *enter* persists it
+(`Protocol/Enter.lean`, `votesTbl_insert`); the harness reads it after `Ready`'s `Henter`. Under an
+update: the entered votes' fragments are the slot invariant's (`slotBody`'s `durFrags`), read against
+the durable half's authority share. -/
 abbrev rawNode_vote.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    □ (⌜ps.vote ≠ W64 0⌝ -∗ isVote γ id ps.term ps.vote) ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (id : w64) (S : RaftState),
+  ⊢ ownDurGhost (GF := GF) γ id S ={↑(raftN γ)}=∗
+    □ (⌜S.vote ≠ W64 0⌝ -∗ isVote γ id S.term S.vote) ∗ ownDurGhost γ id S
 
 /-- The tally's grants, each a vote for the node at its term (`Htally`). -/
 abbrev rawNode_tally.law : Prop :=
@@ -155,6 +160,18 @@ abbrev rawNode_raise_tc.law : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat) (tc : w64),
   uint.Z rs.tc ≤ uint.Z tc →
   ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗ rawNode γ rn id { rs with tc := tc } ps qs ip
+
+/-- The storage handshake (`ownRawNode_appended`): the receipt of the client's append of the entries
+the last `Ready` handed out (`rs.unpersisted`; `appendReceipt`, for the node's storage) is absorbed;
+afterwards nothing is unpersisted. A ghost step: the protocol state, the queue and the in-progress
+boundary unchanged. `a`, the batch's frozen prefix, within the committed log handed out. -/
+abbrev rawNode_appended.law : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat)
+    (a : List EntryM), rs.slent = none →
+  (a ≠ [] → ∀ e0, rs.unpersisted.head? = some e0 →
+     uint.nat e0.Index' - 1 + a.length ≤ rs.delivered.length) →
+  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗ appendReceipt rs.storage rs.unpersisted a ==∗
+    rawNode γ rn id { rs with unpersisted := [] } ps qs ip
 
 /-! ### The term budget, sealed (decision 2; `InvNodeChan.lean`'s) -/
 
