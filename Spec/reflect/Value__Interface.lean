@@ -1,13 +1,12 @@
 /-
 `w.Interface()` of the `Value` of the pointer `p : *T`: the interface holding `p` at type `*T`.
 
-The trust boundary: an axiom, `Proof/reflect/Value__Interface.lean` (`reflect` is names-only; the reasoning
-principles of `Proof/reflect/Values.lean`). Lean-first (no Rocq counterpart).
+Proved over Perennial's model of `reflect` (reflect S0, `Proof/reflect/Value__Interface.lean`; until then a trust-boundary axiom), in the vocabulary of `Proof/reflect/Values.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.reflect.Values
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Perennial.Proof.reflect.Base
 
 @[expose] public section
 

@@ -1,22 +1,19 @@
 /-
-`reflect.ValueOf`: the trust boundary (`reflect` is names-only: Go reflection, which Goose does
-not model). Lean-first (no Rocq counterpart); unit P4 (2026-10-14), for the txn package's `isNil`
-(`util.go`: `reflect.ValueOf(msg).IsNil()`).
+`reflect.ValueOf` of an interface holding a pointer `p` (of any type `*T`): a `reflect.Value` whose
+`IsNil()` reports whether `p` is nil and whose `Elem()`, for a non-nil `p`, is the addressable `Value`
+of the `T` at `p` (`reflElem`). Lean-first (no Rocq counterpart); unit P4 (2026-10-14), for the txn
+package's `isNil` (`util.go`: `reflect.ValueOf(msg).IsNil()`); `Elem` since stage 7e-2
+(`notes/k8s-7e-2-draft.md` §5.2).
 
-For the one call shape: an interface holding a pointer `p` (of any type `*T`). `ValueOf` returns
-the `reflect.Value` of it (an axiomatized type: the result is a `val`), whose `IsNil()` reports
-whether `p` is nil (`reflect/value.go`: `IsNil` of a `Pointer` kind reads the pointer; it panics
-only for a kind that cannot be nil, which a pointer is not). `IsNil` is a method of that value,
-specified here, in `ValueOf`'s postcondition, as a persistent triple of the call as Goose
-translates it (`MethodResolve reflect.Value.ty "IsNil"` on the value: `reflect.Value` is
-axiomatized, without the underlying type `MethodResolve`'s step needs; the shape of
-`prometheus.HistogramVec.WithLabelValues`' observer). Restated in stage 7e-2
-(`notes/k8s-7e-2-draft.md` §5.2, attacked T12): also its `Elem()` of a non-nil pointer, the
-addressable `Value` of the pointee (`reflElem`), as `reflect/value.go`'s `Elem` of a `Pointer` kind.
+`IsNil` and `Elem` are methods of the result, specified here as persistent triples of the calls as
+Goose translates them (`MethodResolve reflect.Value.ty "IsNil"` on the value). Proved over Perennial's
+model of `reflect` (reflect S0, `Proof/reflect/ValueOf.lean`); until then an axiom. `Elem` needs `T`
+to have a kind (`go.kindOf (underlying T)`; every Go type has one, the model's opaque types need
+not), as the `Elem()` of the model reads it.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
+public import Perennial.Proof.reflect.Base
 public import Proof.reflect.Values
 
 @[expose] public section
@@ -35,10 +32,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [reflect.Assumptions]
 
 /-- `reflect.ValueOf(i)` of an interface holding the pointer `p` of type `*T`: a value `v` whose
-`IsNil()` returns whether `p` is nil, and whose `Elem()`, for a non-nil `p`, is the addressable
-`Value` of the `T` at `p` (persistent). -/
+`IsNil()` returns whether `p` is nil, and whose `Elem()`, for a non-nil `p` and a `T` with a kind, is
+the addressable `Value` of the `T` at `p` (persistent). -/
 abbrev reflect.ValueOf.spec : Prop :=
   ∀ (T : go.GoType) (p : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect }}
@@ -49,7 +47,7 @@ abbrev reflect.ValueOf.spec : Prop :=
           (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Value.ty go!"IsNil")))
             (Val v)) (Val #()))
         {{ RET #(decide (p = null)); True }}) ∗
-      □ ({{ ⌜p ≠ null⌝ }}
+      □ ({{ ⌜p ≠ null ∧ ∃ k : Nat, go.kindOf (underlying T) = some k⌝ }}
           (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Value.ty go!"Elem")))
             (Val v)) (Val #()))
         {{ (e : _root_.Perennial.reflect.Value), RET #e; ⌜reflectM.reflElem e T p⌝ }}) }}

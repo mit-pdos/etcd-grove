@@ -176,6 +176,9 @@ structure ObjSpec (GF : BundledGFunctors) (Obj : Type) extends ObjCodec Obj wher
   /-- an object is a non-nil `*objTy` -/
   objAt_ptr : ∀ x o rv, objAt x o rv ⊢
     ⌜∃ p : Loc, p ≠ null ∧ x = interface.mkOk (go.GoType.PointerType objTy) #p⌝
+  /-- `objTy` has a `reflect.Kind` (`reflect.Value.Elem` of a `*objTy` reads it; the model's
+  kind of a type is only defined for the types it knows, a struct type among them) -/
+  objTy_kind : ∃ k : Nat, go.kindOf (underlying objTy) = some k
   /-- `reflect.New(objTy)`'s allocation is the zero object -/
   newObj : ∀ p : Loc, reflectM.reflNew objTy p ⊢
     |==> objAt (interface.mkOk (go.GoType.PointerType objTy) #p) zero []

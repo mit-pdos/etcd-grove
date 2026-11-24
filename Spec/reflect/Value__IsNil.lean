@@ -14,12 +14,12 @@ do not panic"), so "ptr null → `slice.nil`" is NOT a law of the model; never r
 `/shared/tmp/isnil-attack/report.md`, minor 1). Needed by `finalizeList`, whose `if v.IsNil() { v.Set(MakeSlice(…, 0, 0)) }` leaves the items
 non-nil on both branches. Go: `examples/k8s/etcd3/trustspecs_test.go` `TestIsNilFalseNonNil`.
 
-The trust boundary: an axiom, `Proof/reflect/Value__IsNil.lean` (`reflect` is names-only; the reasoning principles of `Proof/reflect/Values.lean`; stage 7e-2, `notes/k8s-7e-2-draft.md` §5.2, attacked in `notes/k8s-7e-2-attack.md`). Lean-first (no Rocq counterpart).
+Proved over Perennial's model of `reflect` (reflect S0, `Proof/reflect/Value__IsNil.lean`; until then a trust-boundary axiom, stage 7e-2, `notes/k8s-7e-2-draft.md` §5.2, attacked in `notes/k8s-7e-2-attack.md`), in the vocabulary of `Proof/reflect/Values.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.reflect.Values
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Perennial.Proof.reflect.Base
 
 @[expose] public section
 

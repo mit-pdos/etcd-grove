@@ -100,7 +100,7 @@ theorem store.processListItem.wp_proof
   · (try wp_auto)
     wp_apply (wp_ValueOf c.S.objTy q) as %vv ⟨-, #HElem⟩
     wp_apply HElem as %e %he
-    · ipureintro; exact hq
+    · ipureintro; exact ⟨hq, c.S.objTy_kind⟩
     wp_apply wp_slice_literal (V := _root_.Perennial.reflect.Value) [e]
     isplitr
     · ipureintro; rfl

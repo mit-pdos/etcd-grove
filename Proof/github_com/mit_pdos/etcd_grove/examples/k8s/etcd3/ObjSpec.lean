@@ -103,6 +103,10 @@ theorem objAtD_ptr (x : GoInterface) (o : DObj) (rv : GoString) :
   ipureintro
   exact ⟨p, h.2.1, h.1⟩
 
+/-- `Obj` is a struct type: its kind is `Struct` (25). -/
+theorem objTyD_kind : ∃ k : Nat, go.kindOf (underlying objTyD) = some k :=
+  ⟨25, by rw [go.is_underlying]; rfl⟩
+
 theorem objAtD_new (p : Loc) :
     reflectM.reflNew (GF := GF) objTyD p ⊢
       |==> objAtD (interface.mkOk (go.GoType.PointerType objTyD) #p) dzero [] := by
@@ -127,6 +131,7 @@ def driverSpec : ObjSpec GF DObj where
   objAt_ne_nil := objAtD_ne_nil
   objTy := objTyD
   objAt_ptr := objAtD_ptr
+  objTy_kind := objTyD_kind
   newObj := objAtD_new
   encErr _ := False
   trErr _ := False

@@ -1,13 +1,12 @@
 /-
 `v.Type()` of the `Value` of a `T` (on the variable `vp` holding `v`): the `reflect.Type` of `T`.
 
-The trust boundary: an axiom, `Proof/reflect/Value__Type.lean` (`reflect` is names-only; the reasoning
-principles of `Proof/reflect/Values.lean`). Lean-first (no Rocq counterpart).
+Proved over Perennial's model of `reflect` (reflect S0, `Proof/reflect/Value__Type.lean`; until then a trust-boundary axiom), in the vocabulary of `Proof/reflect/Values.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.reflect.Values
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Perennial.Proof.reflect.Base
 
 @[expose] public section
 
