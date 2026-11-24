@@ -71,6 +71,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions]
 
+omit package_sem in
 /-- **The token an attempt of `who`'s call carries** (`akTokSeen_attempt` at `reqCtx`'s context). -/
 theorem akTokSeen_md (γa : auth.AuthNames) (who : GoString) (conn : Loc) (c : GrpcMd) (md : GrpcMd)
     (hout : c = akOut who) :
