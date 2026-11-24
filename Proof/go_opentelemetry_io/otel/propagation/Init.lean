@@ -5,7 +5,7 @@ Package initialization of `go_opentelemetry_io.otel.propagation`
 Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers (prove-misc, 2026-11-20): the interface assertions (`var _
 TextMapCarrier = MapCarrier{}`, ...) and `versionPart = fmt.Sprintf("%.2X", supportedVersion)`
-(Perennial's `fmt.wp_Sprintf`: some string, no panic).
+(Perennial's `fmt.wp_Sprintf` of the real `Sprintf`, `fmt-stage15`'s `%.P`: some string, no panic).
 -/
 module
 
@@ -14,6 +14,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sync.Link
 public import Proof.net.http.Init
+public import Proof.fmt.SprintfPure
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -71,7 +72,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %svp ⟨Svp, -⟩
   try wp_auto
-  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Svp] as %rvp -
+  wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%.2X" [.prec 2 _root_.Perennial.fmt.verb_X] _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int _) .nil) $$ [$Svp] as %rvp -
   try wp_auto
   iframe Hown
   is_pkg_init_finish

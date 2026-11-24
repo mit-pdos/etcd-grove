@@ -7,6 +7,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Spec.fmt.Errorf
+public import Perennial.Spec.fmt.Sprintf
 
 @[expose] public section
 
@@ -24,14 +25,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
-/-- **`fmt.Sprintf(format, args...)`** returns some string, for arguments that are
-`fmt.argsOk` under the format's verbs; the arguments' slice comes back. The output is not
-modelled. -/
-abbrev fmt.SprintfArgs.spec : Prop :=
-  ∀ (format : GoString) (args_sl : GoSlice) (xs : List GoInterface) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.argsOk fmt.methodVerbs format xs }}
-    (App (App (Val #(functions _root_.Perennial.fmt.Sprintf [])) (Val #format)) (Val #args_sl))
-  {{ (s : GoString), RET #s; args_sl ↦*{dq} xs }}
+/-- **`fmt.Sprintf(format, args...)`**: Perennial's spec of the real `Sprintf` (real `fmt` stage 1,
+perennial#671): the format made of pieces in the verified subset, each argument an `fmt.isArg`
+(those Go formats by their `Error()`/`String()` with the method's spec), the output `fmt.Out`.
+Until 2026-11-24 any format, arguments `fmt.argsOk` under its verbs, some string (over the
+trusted model of `Sprintf`). -/
+abbrev fmt.SprintfArgs.spec : Prop := _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG)
 
 end spec
 

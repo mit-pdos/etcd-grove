@@ -8,6 +8,7 @@ module
 public import Spec.fmt.ErrorfPlain
 public import Perennial.Proof.fmt
 public import Proof.errors.NewVarCell
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -91,23 +92,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
-
-/-- Perennial's `fmt.Sprintf.spec` (premise `fmt.argsOk`) for arguments that are all `nil` or
-`ArgWf`, the form of its spec before fmtmodel (2026-11-20), for the proofs that take the spec as a
-hypothesis. -/
-theorem fmt.Sprintf.argsWf (wp_Sprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG)) :
-    ∀ (format : GoString) (args_sl : GoSlice) (xs : List GoInterface) (dq : DFrac),
-    _root_.Perennial.fmt.ArgsWf xs →
-      {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs }}
-        (App (App (Val (@! _root_.Perennial.fmt.Sprintf)) (Val #format)) (Val #args_sl))
-      {{ (s : GoString), RET #s; args_sl ↦*{dq} xs ∗ ⌜_root_.Perennial.fmt.SprintfOut format xs s⌝ }} := by
-  intro format args_sl xs dq Hxs
-  iintro %Φ ⟨#Hpkg, Hsl⟩ HΦ
-  iapply (wp_Sprintf format args_sl xs dq) $$ [Hsl] HΦ
-  iframe
-  isplitr
-  · iexact Hpkg
-  iapply (_root_.Perennial.fmt.argsOk_of_argsWf Hxs)
 
 /-- **`fmt.Errorf(format)`, no `%` and no argument**: `errors.New(format)` (Go's fast path,
 `fmt/errors.go`), from Perennial's `fmt.wp_Errorf`: an `*errors.errorString` holding the format for

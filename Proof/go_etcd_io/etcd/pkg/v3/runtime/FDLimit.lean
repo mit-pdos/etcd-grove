@@ -27,6 +27,9 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.runtime.Assumptions]
 
 theorem runtime.FDLimit.wp_proof : runtime.FDLimit.spec (GF := GF) (hG := hG) := by
   wp_start
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   (try wp_auto)
   wp_apply wp_ArbitraryInt as %e -
   by_cases he : e = W64 0
@@ -47,7 +50,7 @@ theorem runtime.FDLimit.wp_proof : runtime.FDLimit.spec (GF := GF) (hG := hG) :=
     isplitr
     · ipureintro; right; rfl
     iapply fmtErrorOkOrNil_of
-    iapply (errnoErr_fmtErrorOk e he)
+    iapply (errnoErr_fmtErrorOk e he) $$ Hsys
 
 end proof
 

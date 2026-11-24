@@ -1,12 +1,14 @@
 /-
 `fmt.Sprintf("%d.tmp", n)` of an `int` (the WAL's `filePipeline.alloc`, file_pipeline.go:77:
-`fmt.Sprintf("%d.tmp", fp.count%2)`): over Perennial's `fmt.wp_Sprintf`, whose model formats `%d`
-exactly, the decimal of `n` and `.tmp` (`fmt.wp_SprintfTmp`, proved; no new trust). WAL leaf
+`fmt.Sprintf("%d.tmp", fp.count%2)`): over Perennial's `fmt.wp_Sprintf` of the real `Sprintf` (real `fmt`
+stage 1; until 2026-11-24 over its model), the decimal of `n` and `.tmp` (`fmt.wp_SprintfTmp`,
+proved; no new trust). WAL leaf
 specs, 2026-11-13; Lean-first.
 -/
 module
 
 public import Perennial.Proof.fmt
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -16,33 +18,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode
-
-section pure
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
-
-/-- A format without `%` and no arguments is copied. -/
-theorem fmt.SprintfOut_plain {f out : GoString} (hf : ∀ c ∈ f, c ≠ W8 37)
-    (h : _root_.Perennial.fmt.SprintfOut f [] out) : out = f := by
-  induction f generalizing out with
-  | nil => exact _root_.Perennial.fmt.SprintfOut.done_inv h
-  | cons c f ih =>
-    obtain ⟨out', rfl, h'⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv
-      (hf c (List.mem_cons_self ..)) h
-    rw [ih (fun c' hc' => hf c' (List.mem_cons_of_mem _ hc')) h']
-
-/-- `Sprintf("%d.tmp", n)` of an `int` is `n`'s decimal and `.tmp`. -/
-theorem fmt.SprintfOut_dtmp [go.IntoValInj w64] [go.string ↓u go.string] (n : w64) (out : GoString)
-    (h : _root_.Perennial.fmt.SprintfOut go!"%d.tmp" [interface.mkOk go.int #n] out) :
-    out = _root_.Perennial.fmt.decimal (sint.Z n) ++ go!".tmp" := by
-  have hf : go!"%d.tmp" = W8 37 :: go!"d.tmp" := rfl
-  rw [hf] at h
-  obtain ⟨out', rfl, h'⟩ := _root_.Perennial.fmt.SprintfOut.int_inv
-    (f := go!"d.tmp") (rest := go!".tmp") (w := 0) (by decide)
-    (_root_.Perennial.fmt.IntArgValue.int n)
-    (_root_.Perennial.fmt.IntArgValue.uniq_int n) h
-  rw [fmt.SprintfOut_plain (by decide) h', _root_.Perennial.fmt.decimalPad_zero]
-
-end pure
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -58,12 +33,14 @@ theorem fmt.wp_SprintfTmp (n : w64) (sl : GoSlice) (dq : DFrac) :
     {{ (r : GoString), RET #r; sl ↦*{dq} [interface.mkOk go.int #n] ∗
         ⌜r = _root_.Perennial.fmt.decimal (sint.Z n) ++ go!".tmp"⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hsl⟩ HΦ
-  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf go!"%d.tmp" sl [interface.mkOk go.int #n] dq
-    (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.int n)
-      _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hsl] as %r ⟨Hsl, %hr⟩
+  wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%d.tmp"
+    [.dir none _root_.Perennial.fmt.verb_d, .lit go!".tmp"] sl [interface.mkOk go.int #n] _ dq
+    (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int n) .nil) $$ [$Hsl] as %r ⟨Hsl, %hr⟩
   iapply HΦ
   iframe Hsl
-  ipureintro; exact fmt.SprintfOut_dtmp n r hr
+  ipureintro
+  simp (config := { decide := true }) [hr, _root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn,
+    _root_.Perennial.fmt.decimalPad_zero]
 
 end spec
 

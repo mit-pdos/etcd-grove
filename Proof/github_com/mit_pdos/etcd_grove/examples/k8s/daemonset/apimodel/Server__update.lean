@@ -421,7 +421,7 @@ theorem Server.update.wp_proof
             wp_apply EtcdGrove.wp_New_errorString_cell as %ex ⟨#Hem, -⟩
             (try wp_auto)
             wp_apply +noauto wp_NewConflict as %p ⟨%st, Hp, #Hd, %Hst⟩
-            · iapply errorString_argOk $$ Hem
+            · iapply errorString_fmtErrorOkOrNil $$ Hem
             ipersist Hp
             (try wp_auto)
             iapply HΦ
@@ -823,7 +823,7 @@ theorem Server.update.wp_proof
               wp_apply EtcdGrove.wp_New_errorString_cell as %ex ⟨#Hem, -⟩
               (try wp_auto)
               wp_apply +noauto wp_NewConflict as %p ⟨%st, Hp, #Hd, %Hst⟩
-              · iapply errorString_argOk $$ Hem
+              · iapply errorString_fmtErrorOkOrNil $$ Hem
               ipersist Hp
               (try wp_auto)
               iapply HΦ
@@ -1248,7 +1248,7 @@ theorem Server.update.wp_proof
                 wp_apply EtcdGrove.wp_New_errorString_cell as %ex ⟨#Hem, -⟩
                 (try wp_auto)
                 wp_apply +noauto wp_NewConflict as %p ⟨%st, Hp, #Hd, %Hst⟩
-                · iapply errorString_argOk $$ Hem
+                · iapply errorString_fmtErrorOkOrNil $$ Hem
                 ipersist Hp
                 (try wp_auto)
                 iapply HΦ

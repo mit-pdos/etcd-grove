@@ -51,6 +51,23 @@ instance promSrvMetricsOpt_persistent (o : GoFunc) :
 
 end defs
 
+/-- **`ic` is an interceptor grpc-prometheus's `(*ServerMetrics).UnaryServerInterceptor` returned**
+(opaque; 2026-11-24, `notes/axiom-review/norefusal-link.md`): made only by that method's trusted spec
+(`grpc_prometheus.ServerMetrics.UnaryServerInterceptor.spec`), so that a statement can name the
+interceptor of etcd's unary chain that is grpc-prometheus's, not just one with its contract. Go: the
+closure `interceptors.UnaryServerInterceptor(reporter)` builds (go-grpc-middleware v2.3.4
+`interceptors/server.go`), which records the call and calls `handler(ctx, req)` once, returning its
+result unchanged. -/
+opaque promUnaryIc [GooseExts] (ic : GoFunc) : Prop
+
+section defs2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+end defs2
+
 /-! ## The server metrics' descriptors (prom-registry, route (b), 2026-11-22) -/
 
 /-- **The server metrics' fully-qualified names, in `Describe`'s order** (providers/prometheus v1.1.0,

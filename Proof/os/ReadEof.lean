@@ -88,7 +88,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
   · simp only [decide_eq_false he0, Bool.not_false]
     wp_auto
     wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %perr #Hep
-    ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0 $$ Hep
+    ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0 $$ Hsys Hep
     ihave #Hep2 := Hep
     iunfold os.errnoPathErr at Hep2
     icases Hep2 with ⟨%pe, %op, %path, %hpe, -⟩
@@ -96,7 +96,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
     iexists 0
     simp only [List.take_zero, List.drop_zero, List.nil_append]
     iframe Hsl
@@ -147,7 +147,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
     iexists 0
     simp only [List.take_zero, List.drop_zero, List.nil_append]
     iframe Hsl
@@ -179,7 +179,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
   iapply HΦ
   iframe Hosfd Hm Hbs
   isplitl [Hfd]
-  · iexists inner; iframe; isplitl [] <;> iassumption
+  · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   iexists k
   iframe Hsl
   isplitr
@@ -213,7 +213,7 @@ theorem os.File.Read.wp_eof (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
               ⌜err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe⌝ ∗
               fmtErrorOk err ∗ ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e)) }} := by
   unfold os.ownFile os.ownOff
-  wp_start as ⟨#Hinv, #Heof, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
+  wp_start as ⟨#Hinv, #Heof, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
   icombine Hf Hf' gives %hin'
   cases hin'
   unfold os.model.inner
@@ -238,7 +238,7 @@ theorem os.File.Read.wp_eof (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
     iexists 0
     simp only [List.take_zero, List.drop_zero, List.nil_append, List.length_nil]
     iframe Hsl
