@@ -53,6 +53,7 @@ def kitFn [GooseExts] [GoSemanticsFunctions] (name : GoString) : GoFunc :=
 
 section routes
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable [GoSemanticsFunctions]
 
 /-- `Marshal(v)` goes to the registered codec: `v`'s dynamic type has neither
 `JSONModelMarshalPtr` nor `JSONModelMarshal` (`marshalAny`). -/
@@ -91,8 +92,8 @@ theorem marshalVia_codec (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 �
   rcases v with ii | _
   · obtain ⟨h1, h2⟩ := h
     simp only [marshalVia, h1, h2, Bool.false_eq_true, ↓reduceIte]
-    exact .rfl
-  · exact .rfl
+    iintro H; iexact H
+  · iintro H; iexact H
 
 /-- A pointer the dispatch sends to the codec: `unmarshalVia` is the codec's route. -/
 theorem unmarshalVia_codec (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 → Bool → w64 × w64)
@@ -101,8 +102,8 @@ theorem unmarshalVia_codec (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 
   rcases ptr with ii | _
   · simp only [unmarshalsByCodec] at h
     simp only [unmarshalVia, h, Bool.false_eq_true, ↓reduceIte]
-    exact .rfl
-  · exact .rfl
+    iintro H; iexact H
+  · iintro H; iexact H
 
 /-- `Marshal` of a `*T` whose method set has `JSONModelMarshalPtr`: `T`'s own method. -/
 theorem marshalVia_ptr (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 → Bool → w64 × w64)
