@@ -9,8 +9,8 @@ Perennial models `reflect` (`goose/model/overlay/reflect`, reflect S0): `TypeOf`
 rest of the package is names only. Its `Value` is `{typ_ any; ptr any; flag}`, `typ_` the token of the
 value's type. The predicates the specs here are stated in:
 
-- `reflElem v T p`, `reflPtr w T p`, `reflType rt T`, `reflNew T p` (definitions, those of the
-  reflect S0 plan, over the model's `Value`): `v` is the addressable `reflect.Value` of the `T` at `p`
+- `reflElem v T p`, `reflPtr w T p`, `reflType rt T`, `reflNew T p` (abbreviations of Perennial's
+  `Perennial/Proof/reflect/Values.lean`, over the model's `Value`): `v` is the addressable `reflect.Value` of the `T` at `p`
   (what `Elem()` of a non-nil `*T` gives), `w` the `Value` of the pointer `p : *T`, `rt` the
   `reflect.Type` of `T`, and `reflNew T p` the zeroed `T` at `p` (`reflNew_pointsto` turns it into
   `p ↦ zero_val V` for a Lean type `V` that represents `T`);
@@ -25,8 +25,7 @@ trust-boundary axioms.
 -/
 module
 
-public import Perennial.Proof.ProofPrelude
-public import Perennial.GeneratedProof.reflect
+public import Perennial.Proof.reflect.Values
 
 @[expose] public section
 
@@ -38,29 +37,51 @@ namespace reflectM
 
 open Iris Iris.BI
 
+section vocab
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+
+/-- `v` is the addressable `reflect.Value` of the `T` at `p` (`Elem()` of the `Value` of a non-nil
+`*T`): it holds `any(p)` (a `*T`), and its flag is `T`'s kind with `flagIndir` (128) and `flagAddr`
+(256). Perennial's `reflect.reflElem` (`reflElem_iff`), over fewer instances. -/
+def reflElem (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : Prop :=
+  ∃ k : Nat, go.kindOf (underlying T) = some k ∧
+    v = _root_.Perennial.reflect.Value.mk (go.tok T) (interface.mkOk (go.PointerType T) #p)
+      (W64 k ||| W64 128 ||| W64 256)
+
+/-- `w` is the `reflect.Value` of the pointer `p : *T` (`reflect.ValueOf(any(p))`): Perennial's
+`reflect.reflPtr`. -/
+abbrev reflPtr (w : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : Prop :=
+  _root_.Perennial.reflect.reflPtr w T p
+
+/-- `rt` is the `reflect.Type` of `T`: Perennial's `reflect.reflType`. -/
+abbrev reflType (rt : _root_.Perennial.reflect.Type') (T : go.GoType) : Prop :=
+  _root_.Perennial.reflect.reflType rt T
+
+/-- A kind is below 27. -/
+theorem kindOf_lt {u : go.GoType} {k : Nat} (h : go.kindOf u = some k) : k < 27 := by
+  unfold go.kindOf at h
+  split at h <;> try (cases h; omega)
+  simp only [List.find?] at h
+  repeat (first | (split at h <;> try (cases h; omega)) | (simp at h; omega))
+  all_goals simp_all
+
+/-- The flag bits of a `reflElem` of kind `k`: its kind bits, non-zero, not a method value; and
+`Elem()` of a `reflPtr` builds it. -/
+theorem elemFlag_bits (k : Nat) (hk : k < 27) :
+    (W64 k ||| W64 128 ||| W64 256) &&& W64 31 = W64 k ∧
+    (W64 k ||| W64 128 ||| W64 256) ≠ W64 0 ∧
+    (W64 k ||| W64 128 ||| W64 256) &&& W64 512 = W64 0 ∧
+    W64 22 &&& W64 96 ||| W64 128 ||| W64 256 ||| W64 k = W64 k ||| W64 128 ||| W64 256 := by
+  revert k
+  decide
+
+end vocab
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- `v` is the addressable `reflect.Value` of the `T` at `p` (`Elem()` of the `Value` of a non-nil
-`*T`): it holds `any(p)` (a `*T`), and its flag is `T`'s kind with `flagIndir` (128) and `flagAddr`
-(256). -/
-def reflElem (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : Prop :=
-  ∃ k : Nat, go.kindOf (underlying T) = some k ∧
-    v = _root_.Perennial.reflect.Value.mk (go.tok T) (interface.mkOk (go.GoType.PointerType T) #p)
-      (W64 k ||| W64 128 ||| W64 256)
-
-/-- `w` is the `reflect.Value` of the pointer `p : *T` (`reflect.ValueOf(any(p))`): direct, of kind
-`Pointer` (22). -/
-def reflPtr (w : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : Prop :=
-  w = _root_.Perennial.reflect.Value.mk (go.tok (go.GoType.PointerType T))
-    (interface.mkOk (go.GoType.PointerType T) #p) (W64 22)
-
-/-- `rt` is the `reflect.Type` of `T`: the interface holding the model's `rtype` of `T`'s token. -/
-def reflType (rt : _root_.Perennial.reflect.Type') (T : go.GoType) : Prop :=
-  rt = interface.mkOk _root_.Perennial.reflect.rtype.ty #(_root_.Perennial.reflect.rtype.mk (go.tok T))
 
 /-- `z` is the (non-addressable) zero `reflect.Value` of `T` (what `reflect.Zero` gives). -/
 opaque reflZero (z : _root_.Perennial.reflect.Value) (T : go.GoType) : Prop
@@ -69,20 +90,19 @@ opaque reflZero (z : _root_.Perennial.reflect.Value) (T : go.GoType) : Prop
 `reflect.Append` return; stage 7e-2). -/
 opaque reflSliceV (w : _root_.Perennial.reflect.Value) (T : go.GoType) (s : GoSlice) : Prop
 
-/-- The zeroed `T` that `reflect.New` allocated at `p`: its typed points-to at each Lean type `V`
-that represents `T`. -/
-def reflNew (T : go.GoType) (p : Loc) : IProp GF :=
-  iprop(∀ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V)
-    (_ : IntoValTyped (GF := GF) V T), p ↦ (zero_val V))
+/-- The zeroed `T` that `reflect.New` allocated at `p`: Perennial's `reflect.reflNew`, its typed
+points-to at each Lean type `V` that represents `T`. -/
+abbrev reflNew (T : go.GoType) (p : Loc) : IProp GF :=
+  _root_.Perennial.reflect.reflNew (GF := GF) T p
+
+theorem reflElem_iff (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) :
+    reflElem v T p ↔ _root_.Perennial.reflect.reflElem (GF := GF) v T p := Iff.rfl
 
 /-- **`reflect.New`'s allocation is a zero value** of any Lean type representing `T`. -/
 theorem reflNew_pointsto (T : go.GoType) (p : Loc) {V : Type} [ZeroVal V]
     [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V T] :
-    reflNew (GF := GF) T p ⊢ p ↦ (zero_val V) := by
-  unfold reflNew
-  iintro H
-  ispecialize H $$ %V %inferInstance %inferInstance %inferInstance
-  iexact H
+    reflNew (GF := GF) T p ⊢ p ↦ (zero_val V) :=
+  _root_.Perennial.reflect.reflNew_pointsto T p
 
 end defs
 

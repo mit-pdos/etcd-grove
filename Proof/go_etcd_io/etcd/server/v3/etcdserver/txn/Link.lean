@@ -54,7 +54,6 @@ public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.pruneKVs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.rangeLimit
-public import Proof.reflect.ValueOf
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.sortRangeResults
 public import Proof.sort.Reverse
 public import Proof.sort.Sort
@@ -259,13 +258,9 @@ theorem zap.Logger.wp_Error :
     EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Error.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
-theorem reflect.wp_ValueOf :
-    EtcdGrove.reflect.ValueOf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.reflect.ValueOf.wp_proof
-
 theorem wp_isNil :
     EtcdGrove.txn.isNil.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.isNil.wp_proof reflect.wp_ValueOf
+  EtcdGrove.txn.isNil.wp_proof
 
 theorem zap.wp_Duration :
     EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=

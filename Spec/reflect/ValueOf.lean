@@ -32,7 +32,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [reflect.Assumptions]
 
 /-- `reflect.ValueOf(i)` of an interface holding the pointer `p` of type `*T`: a value `v` whose
 `IsNil()` returns whether `p` is nil, and whose `Elem()`, for a non-nil `p` and a `T` with a kind, is
