@@ -43,7 +43,7 @@ section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [net.Assumptions]
 
 theorem errorString_ptr_isError :

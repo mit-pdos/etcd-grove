@@ -77,7 +77,6 @@ the machine `replicas[i].2`; the client runs on the machine `σc`. -/
 def raft_kvnet_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
-    [field_sem : net.FieldAssumptions]
     [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
     [log_sem : log.NewModel],
   ∀ (cl : ClusterConfig) (dir : GoString) (replicas : List (GoString × state)) (σc : state)
@@ -107,7 +106,6 @@ in /var/lib/kvnet. A corollary of `raft_kvnet_robust`. -/
 def raft_kvnet_robust_example.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
-    [field_sem : net.FieldAssumptions]
     [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
     [log_sem : log.NewModel],
   ∀ (σ₁ σ₂ σ₃ σ₄ σ₅ σc : state) (g : GlobalState),

@@ -70,7 +70,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : framed.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : framed.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `wire.readP` before any byte of the call is read. -/

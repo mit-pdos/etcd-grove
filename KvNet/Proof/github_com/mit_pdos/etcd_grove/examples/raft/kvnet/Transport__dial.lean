@@ -29,7 +29,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS] [Stor
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 
 /-- The peer hello is a prefix of a peer stream (no frame yet). -/
 theorem kvP_hello (F : KvFacts GF) (pid : w64) (cn : Nat) : ⊢ kvP F pid cn [helloPeerB] := by

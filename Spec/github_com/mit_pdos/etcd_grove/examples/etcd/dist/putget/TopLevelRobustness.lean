@@ -75,7 +75,7 @@ def putget_safe.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF,

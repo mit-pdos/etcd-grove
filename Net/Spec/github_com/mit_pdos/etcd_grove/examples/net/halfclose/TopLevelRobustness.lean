@@ -42,7 +42,7 @@ hypotheses: in every execution, of any length, no thread of any machine is stuck
 unrecovered panic. -/
 def halfclose_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [server_sem : cmd.server.Assumptions]
-    [client_sem : cmd.client.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [client_sem : cmd.client.Assumptions] [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat),
     Robustness.Robust (system σs σc) [] g (threads := bound + 1) (bound := bound)

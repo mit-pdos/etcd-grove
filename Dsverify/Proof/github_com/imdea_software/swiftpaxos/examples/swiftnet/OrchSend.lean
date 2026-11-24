@@ -30,7 +30,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+variable [net.Assumptions] [io.Assumptions]
 
 set_option goose.wp.extras true in
 theorem sendConf.wp_proof (D : SwNetDeps (hG := hG)) : sendConf.spec (hG := hG) := by

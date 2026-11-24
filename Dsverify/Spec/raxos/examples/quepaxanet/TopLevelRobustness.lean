@@ -81,7 +81,7 @@ def quepaxa_remote_robust.spec : Prop :=
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; gopkg_in.yaml_v2.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; io.ioutil.InitHyp remoteGF) →

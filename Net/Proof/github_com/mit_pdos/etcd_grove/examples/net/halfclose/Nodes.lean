@@ -101,7 +101,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : halfclose.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : halfclose.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `append(data, buf[:k]...)`: the first `k` bytes of `buf` appended to `data`, `buf` kept. -/

@@ -34,7 +34,7 @@ extensions were `TrivialExt.lean`'s `[idIssueExt]`.
 net swap (tag `single-process-final`) and restored under the `_single_process` name over
 `[idIssueExt, fsExt, netExt]` (`lib/etcdstart/NetExts.lean`'s `etcdNetExts`): `net.Listen` is the net
 extension's since the swap; the addresses' listening tokens come from its start resources
-(`leaseexpiryNAddrs_ok`: every port below `32768`), the statement takes `[net.FieldAssumptions]` and the
+(`leaseexpiryNAddrs_ok`: every port below `32768`), the statement took `[net.FieldAssumptions]` (dropped 2026-11-24) and the
 network's initial state (`Hg : extsInitGlobal g`).
 -/
 module
@@ -134,7 +134,7 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
+    [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetNGF, ContextReadErrs (GF := putgetNGF) (hG := heapAtN hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetNGF, ContextErrsClient (GF := putgetNGF) (hG := heapAtN hG lctx))
     (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)

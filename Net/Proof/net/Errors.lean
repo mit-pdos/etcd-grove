@@ -1,9 +1,10 @@
 /-
-The trusted models' error and address helpers (`Net/TrustedCode/net.lean`: `model.opError`,
-`model.kindErr`, `model.sysErr`, `model.anyTCPAddr`), as WP lemmas the proofs of `net`'s specs use:
-each gives the error's or the address's predicate of `Base.lean` (`opErr`, `kindErr`, `sysErr`,
-`netAddr`). And `(*OpError).Error()` (`OpError.Error.impl`): a message of Go's form, its
-operation, then `": "` (`opErrMsg`, `wp_OpError_Error`).
+The Go model's helpers and `netFD` methods (`models/net/model.go`, translated; over the primitive
+stubs of `Net/TrustedCode/net.lean`), as WP lemmas the proofs of `net`'s specs use: the stubs
+(`extAny*`), the errors (`closedErr`, `kindErr`, `codeErr`: `kindErr`'s and `resKind`'s predicates
+of `Base.lean`), the addresses (`anyTCPAddr`: `netAddr`), `netOk`, the `netFD`s the model makes
+(`modelFD`, `newConn`: `fdAt`, `isConn`), Go's `conn.ok`/`TCPListener.ok`, and `netFD`'s methods
+(one lemma per model: the extension's operation, then the result's error).
 -/
 module
 
@@ -25,196 +26,226 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 variable [go.BasicIntoValInj]
 
-theorem wp_opError (op nw : GoString) (src addr e : GoInterface) (Φ : val → IProp GF) :
-    ⌜tcpNet nw⌝ -∗ (∀ err, opErr (GF := GF) op src addr e err -∗ Φ #err) -∗
-    WP (App (App (App (App (App (Val model.opError) (Val #op)) (Val #nw)) (Val #src)) (Val #addr))
-      (Val #e)) {{ Φ }} := by
-  iintro %hnw HΦ
-  unfold model.opError
-  rw [OpError_ty_eq, Addr_ty_eq']
-  iapply wp_fupd
-  wp_auto
-  ipersist pe
-  imodintro
-  iapply HΦ
-  unfold opErr
-  iexists pe_ptr, nw
-  isplitr
-  · ipureintro; exact ⟨rfl, hnw⟩
-  iexact pe
+/-! ### The primitive stubs that answer arbitrarily -/
 
-theorem wp_sysErr (name : GoString) (nm : GoString → Prop) (hnm : nm name) (Φ : val → IProp GF) :
-    (∀ e, sysErr (GF := GF) nm e -∗ Φ #e) -∗
-    WP (App (Val model.sysErr) (Val #name)) {{ Φ }} := by
+theorem wp_extAnyString (Φ : val → IProp GF) :
+    (∀ s : GoString, Φ #s) -∗ WP (App (Val (@! net.extAnyString)) (Val #())) {{ Φ }} := by
   iintro HΦ
-  unfold model.sysErr
-  rw [Errno_ty_eq]
-  (try wp_auto)
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyErrno
-  iintro %n %hn
-  iapply wp_fupd
-  wp_auto
-  ipersist p
-  imodintro
-  iapply HΦ
-  unfold sysErr
-  iexists p_ptr, name, n
-  isplitr
-  · ipureintro; exact ⟨rfl, hnm, hn⟩
-  iexact p
+  wp_func_call; wp_call
+  iapply wp_net_AnyString
+  iexact HΦ
 
-/-- The `Err` of a failure of kind `k` (its code), `name` the system call's. -/
+theorem wp_extAnyW64 (Φ : val → IProp GF) :
+    (∀ n : w64, Φ #n) -∗ WP (App (Val (@! net.extAnyW64)) (Val #())) {{ Φ }} := by
+  iintro HΦ
+  wp_func_call; wp_call
+  iapply wp_net_AnyW64
+  iexact HΦ
+
+theorem wp_extAnyBool (Φ : val → IProp GF) :
+    (∀ b : Bool, Φ #b) -∗ WP (App (Val (@! net.extAnyBool)) (Val #())) {{ Φ }} := by
+  iintro HΦ
+  wp_func_call; wp_call
+  iapply wp_net_AnyBool
+  iexact HΦ
+
+theorem wp_extAnyErrno (Φ : val → IProp GF) :
+    (∀ n : w64, ⌜n ≠ 0⌝ -∗ Φ #n) -∗ WP (App (Val (@! net.extAnyErrno)) (Val #())) {{ Φ }} := by
+  iintro HΦ
+  wp_func_call; wp_call
+  iapply wp_net_AnyErrno
+  iexact HΦ
+
+/-! ### Errors (D14) -/
+
+theorem wp_closedErr (Φ : val → IProp GF) :
+    Φ #closedErr -∗ WP (App (Val (@! net.closedErr)) (Val #())) {{ Φ }} := by
+  iintro HΦ
+  wp_func_call; wp_call
+  wp_auto
+  unfold closedErr
+  iexact HΦ
+
+/-- The `Err` of a failure of kind `k` (its code `c`), `name` the system call's. -/
 theorem wp_kindErr (k : NetErr) (ed : Option GoInterface) (name : GoString)
     (nm : GoString → Prop) (hnm : nm name) {c : w64} (hc : c = errCode (some k))
     (Φ : val → IProp GF) :
-    (match k, ed with
-     | .timeout, some e => iprop(globalAddr internal.poll.ErrDeadlineExceeded ↦□ e)
-     | .timeout, none => iprop(False)
-     | _, _ => iprop(True)) -∗
-    (∀ e, kindErr (GF := GF) k ed nm e -∗ Φ #e) -∗
-    WP (App (App (Val model.kindErr) (Val #c)) (Val #name)) {{ Φ }} := by
+    edAt (GF := GF) k ed -∗ (∀ e, kindErr (GF := GF) k ed nm e -∗ Φ #e) -∗
+    WP (App (App (Val (@! net.kindErr)) (Val #c)) (Val #name)) {{ Φ }} := by
   subst hc
   iintro Hed HΦ
-  unfold model.kindErr
+  wp_func_call; wp_call
   cases k
   · wp_auto
-    unfold model.closedErr
+    wp_apply wp_closedErr
     wp_auto
     iapply HΦ
     unfold kindErr
     ipureintro; rfl
   · cases ed with
-    | none => dsimp only; iexfalso; iexact Hed
+    | none => unfold edAt; iexfalso; iexact Hed
     | some e =>
-      wp_auto
-      unfold model.deadlineErr
+      unfold edAt
       wp_auto
       iapply HΦ
       unfold kindErr
       ipureintro; rfl
   · wp_auto
-    wp_apply wp_sysErr name nm hnm
-    iintro %e He
+    wp_apply wp_extAnyErrno as %n %hn
+    wp_alloc p as Hp
+    ipersist Hp
+    wp_auto
     iapply HΦ
-    unfold kindErr
+    unfold kindErr sysErr
+    iexists p, name, n
+    isplitr
+    · ipureintro; exact ⟨rfl, hnm, hn⟩
+    iexact Hp
+
+/-- `codeErr(c, name)`: `nil` for success, else the kind's error. -/
+theorem wp_codeErr (res : Option NetErr) (ed : Option GoInterface) (name : GoString)
+    (nm : GoString → Prop) (hnm : nm name) {c : w64} (hc : c = errCode res)
+    (Φ : val → IProp GF) :
+    (match res with | some k => edAt (GF := GF) k ed | none => iprop(True)) -∗
+    (∀ e, resKind (GF := GF) res ed nm e -∗ Φ #e) -∗
+    WP (App (App (Val (@! net.codeErr)) (Val #c)) (Val #name)) {{ Φ }} := by
+  subst hc
+  iintro Hed HΦ
+  wp_func_call; wp_call
+  cases res with
+  | none =>
+    wp_auto
+    iapply HΦ
+    unfold resKind
+    ipureintro; rfl
+  | some k =>
+    have hk : errCode (some k) ≠ W64 0 := by cases k <;> decide
+    wp_auto
+    wp_apply wp_kindErr k ed name nm hnm rfl $$ Hed as %e #He
+    wp_auto
+    iapply HΦ
+    unfold resKind
     iexact He
+
+/-! ### Addresses (D18) and networks (D23) -/
 
 theorem wp_anyTCPAddr (Φ : val → IProp GF) :
     (∀ x, netAddr (GF := GF) x -∗ Φ #x) -∗
-    WP (App (Val model.anyTCPAddr) (Val #())) {{ Φ }} := by
+    WP (App (Val (@! net.anyTCPAddr)) (Val #())) {{ Φ }} := by
   iintro HΦ
-  unfold model.anyTCPAddr
-  rw [TCPAddr_ty_eq, IP_ty_eq, Addr_ty_eq']
-  (try wp_auto)
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyString
-  iintro %z
-  wp_apply wp_string_to_bytes z as %sl ⟨-, -⟩
-  (try wp_auto)
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyW64
-  iintro %port
-  (try wp_auto)
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyString
-  iintro %ip
-  iapply wp_fupd
+  wp_func_call; wp_call
   wp_auto
-  ipersist p
-  imodintro
+  wp_apply wp_extAnyString as %z
+  wp_apply wp_string_to_bytes z as %sl ⟨-, -⟩
+  wp_apply wp_extAnyW64 as %port
+  wp_apply wp_extAnyString as %zone
+  wp_alloc p as Hp
+  ipersist Hp
+  wp_auto
   iapply HΦ
   unfold netAddr
-  iexists p_ptr, _
+  iexists p, _
   isplitr
   · ipureintro; rfl
-  iexact p
+  iexact Hp
 
-/-- D23. The networks the models accept (`model.netOk`): `true` for `"tcp"` and `"tcp4"`. -/
+/-- D23. The networks the model accepts (`netOk`): `true` for `"tcp"` and `"tcp4"`. -/
 theorem wp_netOk (nw : GoString) (hnw : tcpNet nw) (Φ : val → IProp GF) :
-    Φ #true -∗ WP (App (Val model.netOk) (Val #nw)) {{ Φ }} := by
+    Φ #true -∗ WP (App (Val (@! net.netOk)) (Val #nw)) {{ Φ }} := by
   iintro HΦ
-  unfold model.netOk
+  wp_func_call; wp_call
   rcases hnw with rfl | rfl
   · wp_auto; iexact HΦ
   · wp_auto; iexact HΦ
+
+/-! ### The `netFD`s the model makes -/
+
+/-- `modelFD(id, nw, la, ra)`: a new `netFD`, read-only for good. -/
+theorem wp_modelFD (id : w64) (nw : GoString) (la ra : GoInterface) (Φ : val → IProp GF) :
+    (∀ fd : Loc, fdAt (GF := GF) fd id nw la ra -∗ Φ #fd) -∗
+    WP (App (App (App (App (Val (@! net.modelFD)) (Val #id)) (Val #nw)) (Val #la)) (Val #ra))
+      {{ Φ }} := by
+  iintro HΦ
+  wp_func_call; wp_call
+  wp_auto
+  wp_alloc fd as Hfd
+  ipersist Hfd
+  wp_auto
+  iapply HΦ
+  unfold fdAt
+  iexists _
+  iframe Hfd
+  ipureintro
+  exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-- A new `*TCPConn` for the end `s` of `cn` on the network `nw`, with new addresses. -/
 theorem wp_newConn (cn : Nat) (s : Bool) (a nw : GoString) (Φ : val → IProp GF) :
     ⌜tcpNet nw⌝ -∗ netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a -∗
     (∀ c, isConn (GF := GF) c cn s a -∗ Φ #c) -∗
-    WP (App (App (Val model.newConn) (Val #(endId cn s))) (Val #nw)) {{ Φ }} := by
+    WP (App (App (Val (@! net.newConn)) (Val #(endId cn s))) (Val #nw)) {{ Φ }} := by
   iintro %hnw #Hat HΦ
-  unfold model.newConn
-  rw [TCPConn_ty_eq, conn_ty_eq', Conn_ty_eq, Addr_ty_eq']
-  iapply wp_fupd
+  wp_func_call; wp_call
   wp_auto
   wp_apply wp_anyTCPAddr as %la #Hla
-  (try wp_auto)
+  wp_auto
   wp_apply wp_anyTCPAddr as %ra #Hra
-  (try wp_auto)
-  ipersist t
-  imodintro
+  wp_auto
+  wp_apply wp_modelFD as %fd #Hfd
+  wp_alloc t as Ht
+  ipersist Ht
+  wp_auto
   iapply HΦ
-  unfold isConn connAt
-  iexists t_ptr, la, ra
-  dsimp only
+  unfold isConn connAt connFd
+  iexists t, la, ra
   isplitr
   · ipureintro; rfl
   iexists nw
-  iframe t Hat Hla Hra
-  ipureintro; exact hnw
+  iframe Hat Hla Hra
+  isplitr
+  · ipureintro; exact hnw
+  iexists fd
+  iframe Ht Hfd
+
+/-! ### `ok()`: Go's `c != nil && c.fd != nil` -/
+
+/-- `(*conn).ok()` on a `conn` holding a non-nil `fd`: `true`. -/
+theorem wp_conn_ok (c fd : Loc) (hfd : fd ≠ null) (Φ : val → IProp GF) :
+    (c ↦□ (conn.mk fd) : IProp GF) -∗ Φ #true -∗
+    WP (App (Val #(methods (go.GoType.PointerType conn.ty) go!"ok" #c)) (Val #())) {{ Φ }} := by
+  iintro #Hc HΦ
+  ihave %hc := typedPointsto_not_null _ _ _ $$ Hc
+  wp_method_call; wp_call
+  wp_auto
+  trace_state
+  sorry
+
+/-! ### `netFD`'s methods (the model) -/
+
+/-- D3. `fd.Close()`: the extension's `Close` of the end, then the result's error. -/
+theorem wp_fd_Close (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra : GoInterface)
+    (Q : Option NetErr → IProp GF) (Φ : val → IProp GF) :
+    fdAt (GF := GF) fd (endId cn s) nw la ra -∗
+    netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a -∗
+    (|={⊤,∅}=> ∃ st d, netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ∗
+      netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn s d ∗
+      ∀ res st' d', ⌜CloseOutcome st d res st' d'⌝ -∗
+        netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st' -∗
+        netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn s d' ={∅,⊤}=∗ Q res) -∗
+    (∀ res e, Q res -∗ resKind (GF := GF) res none (· = go!"close") e -∗ Φ #e) -∗
+    WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"Close" #fd)) (Val #())) {{ Φ }} := by
+  iintro #Hfd #Hat HAU HΦ
+  unfold fdAt
+  icases Hfd with ⟨%v, %hv, #Hv⟩
+  obtain ⟨hid, -, -, -⟩ := hv
+  wp_method_call; wp_call
+  wp_auto
+  trace_state
+  sorry
 
 end proof
-
-/-- Go's form of an `*OpError`'s message (`OpError.Error.impl`, `net.go`): the operation `op`,
-some string (the network and the addresses), `": "`, some string (the error's message). -/
-def opErrMsg (op msg : GoString) : Prop :=
-  ∃ s1 s2 : GoString, msg = op ++ s1 ++ go!": " ++ s2
-
-theorem opErrMsg_ne (op msg : GoString) (h : opErrMsg op msg) : msg ≠ [] := by
-  obtain ⟨s1, s2, rfl⟩ := h
-  simp
-
-section errorMsg
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-/-- `e.Error()` on an `*OpError` `pe`: a message of Go's form (`opErrMsg`) for its `Op`. -/
-theorem wp_OpError_Error (pe : Loc) (v : net.OpError) (Φ : val → IProp GF) :
-    (pe ↦□ v : IProp GF) -∗ ▷ (∀ msg : GoString, ⌜opErrMsg v.Op' msg⌝ -∗ Φ #msg) -∗
-    WP (App (Val #(methods (go.GoType.PointerType OpError.ty) go!"Error" #pe)) (Val #()))
-      {{ Φ }} := by
-  iintro #Hpe HΦ
-  ihave %hnn := typedPointsto_not_null _ _ _ $$ Hpe
-  ihave #H2 := Hpe
-  iStructNamed H2
-  wp_method_call
-  wp_call
-  unfold OpError.Error.impl
-  rw [OpError_ty_eq]
-  wp_auto
-  (try rw [decide_eq_false hnn])
-  (try simp only [hnn, ↓reduceIte, decide_false, Bool.false_eq_true])
-  wp_auto
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyString
-  iintro %s1
-  wp_auto
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyString
-  iintro %s2
-  wp_auto
-  iapply HΦ
-  ipureintro
-  exact ⟨s1, s2, by simp [List.append_assoc]⟩
-
-end errorMsg
 
 end net
 end Perennial

@@ -50,7 +50,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.As
 
 /-- **restartN's `Main(k)` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/Main.lean`),
 over its callees' linked results. -/
-theorem etcd_restartN.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem etcd_restartN.wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_restartN.Main.spec (GF := GF) (hG := hG) :=
   etcd_restartN.Main.wp_proof zap.NewNop.wp_proof
     (etcd_restartN.Run.wp_proof etcdstart.wp_Members

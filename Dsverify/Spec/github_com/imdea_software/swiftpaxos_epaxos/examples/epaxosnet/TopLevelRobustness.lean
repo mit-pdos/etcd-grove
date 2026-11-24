@@ -78,7 +78,7 @@ def epaxos_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [server6_sem : cmd.server6.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; net.rpc.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; net.http.InitHyp remoteGF) →
     ∀ (ra : ∀ (G : GooseGlobalGS HasLC.hasLC remoteGF) (π : NetProtoGS), letI := G;

@@ -25,7 +25,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
-variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [field_sem : net.FieldAssumptions] [io.Assumptions]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [io.Assumptions]
 
 theorem wp_rFatal (hP : dlog.Logger.Fatal.spec (GF := GF)) (γ : EpNames) (r : Loc) (id : Nat)
     (L : List GoString) (p : FwPtrs) (v : GoSlice) :

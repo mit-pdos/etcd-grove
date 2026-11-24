@@ -37,7 +37,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [Net.NetProtoGS]
 variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 
 /-- `poll`'s package fact, its first two conjuncts (the third, `ErrFileClosing` an `*errorString`, unused). -/
 theorem poll_access' :

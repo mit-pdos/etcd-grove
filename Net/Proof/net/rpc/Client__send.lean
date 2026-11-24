@@ -33,7 +33,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [sync.Assumptions] [net.Assumptions]
 
 theorem uint_nat_W64_lt (n : Nat) (h : n < 2 ^ 64) : uint.nat (W64 n) = n := by

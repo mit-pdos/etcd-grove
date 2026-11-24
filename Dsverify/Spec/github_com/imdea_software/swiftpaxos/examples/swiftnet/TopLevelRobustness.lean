@@ -96,7 +96,7 @@ def swiftpaxos_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [server6_sem : cmd.server6.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (l : SwiftNetPkgState netDistGF),
     (∀ G L, letI := heapAt G L; math.rand.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; net.rpc.InitHyp netDistGF) →

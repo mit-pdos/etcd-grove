@@ -58,7 +58,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : shutdown.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : shutdown.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `lisInv_alloc`, its update under a node's invariants. -/

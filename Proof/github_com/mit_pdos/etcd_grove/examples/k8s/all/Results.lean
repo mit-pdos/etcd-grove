@@ -26,7 +26,7 @@ These replace the two drivers' five closed theorems (`k8s_etcd3_safe`, `k8s_etcd
 
 (2026-11-23, etcd-grove#28, `notes/single-process-restore.md`: retired at the net swap, tag
 `single-process-final`, and restored over the net extension, `etcdNetExts`, under the `_single_process`
-name; against the tag the statement gains the instance argument `[net.FieldAssumptions]` and the
+name; against the tag the statement gains the instance argument `[net.FieldAssumptions]` (dropped since, 2026-11-24, Go-model overlays S6) and the
 network's initial state `Hg : extsInitGlobal g`, the semantics the net extension.)
 -/
 module
@@ -58,7 +58,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumpti
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_all.wp_Main`). -/
-theorem k8s_all_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem k8s_all_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
@@ -79,7 +79,7 @@ stuck, none has ended in a panic, and the main thread's result, if any, is `#()`
 theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,

@@ -30,7 +30,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section defs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- Server node `i + 1`'s boot resources (see the file header). -/
@@ -48,7 +48,7 @@ end defs
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [examples.swiftnet.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 

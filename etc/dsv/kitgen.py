@@ -249,11 +249,11 @@ def spec_file(kit, kg):
         o.append(f'    [{m.n}_sem : cmd.{m.n}.Assumptions]\n')
     ps = premises(st)
     if ps:
-        o.append('    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],\n')
+        o.append('    [go.BasicIntoValInj],\n')
         o.extend(t for _, t, _ in ps)
         o.append('    ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),\n')
     else:
-        o.append('    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]\n')
+        o.append('    [go.BasicIntoValInj]\n')
         o.append('    (σ : Nat → state) (g : GlobalState) (threads : Nat),\n')
     o.append(f'    DistDeploy {st["addrs"]} (system σ) g →\n')
     o.append(f'    Robustness.Robust [] (system σ) g threads ({st["steps"]})\n\n')

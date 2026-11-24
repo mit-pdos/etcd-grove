@@ -106,7 +106,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantic
 variable [package_sem : rabia.roles.server.Assumptions]
 variable [tcp_sem : rabia.internal.tcp.Assumptions] [msg_sem : rabia.internal.message.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj] [sync.Assumptions]
+variable [net.Assumptions] [go.BasicIntoValInj] [sync.Assumptions]
 
 -- bufio and message's framing
 theorem wp_bufio_Writer_Write : EtcdGrove.bufio.Writer.Write.spec (GF := GF) (hG := hG) :=

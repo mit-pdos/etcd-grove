@@ -47,7 +47,7 @@ set_option linter.unusedVariables false in
 is stuck and none has an unrecovered panic. -/
 theorem echo_dist_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
-    [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [junk_sem : cmd.junk.Assumptions] [go.BasicIntoValInj]
     (σs σc σj : state) (g : GlobalState) (threads bound : Nat) :
     DistDeploy echoAddrs (system σs σc σj) g → Robust [] (system σs σc σj) g threads bound := by
   refine robust_of_distBoot _ _ g threads bound ?_

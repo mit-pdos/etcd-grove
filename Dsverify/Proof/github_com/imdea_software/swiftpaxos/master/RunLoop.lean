@@ -44,7 +44,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.FieldAssumptions] [replica.defs.Assumptions]
+variable [replica.defs.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean)
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]

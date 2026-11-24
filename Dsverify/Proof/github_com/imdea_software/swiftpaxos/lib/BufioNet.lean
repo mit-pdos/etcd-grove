@@ -42,7 +42,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] [π : NetProtoGS]
+variable [net.Assumptions] [net.rpc.Assumptions] [π : NetProtoGS]
 
 theorem tcpConn_ne_reader :
     go.GoType.PointerType net.TCPConn.ty ≠ go.GoType.PointerType bufio.Reader.ty := by

@@ -157,7 +157,7 @@ attribute [instance] RpcHttpAddr.rpcAddrP_persistent RpcHttpAddr.rpcLisP_persist
 /-- **Hypothesis** (the file header): net/rpc over HTTP, as models-rpc-http will state it (the
 specs, per machine heap, over the addresses' part `RpcHttpAddr`). -/
 class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
-    [go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
+    [go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions]
     [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr GF] where
   /-- The right to register paths at `DefaultServeMux`, `R` those registered (exclusive: a
   second registration of a path panics). A machine's comes from net/http's initialization (a
@@ -227,7 +227,7 @@ end hyp
 
 section use
 variable [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr GF] [H : RpcHttpHyp GF]
 
 /-- What `rpc.DialHTTP("tcp", a)` needs (persistent): the client's bounds and package state

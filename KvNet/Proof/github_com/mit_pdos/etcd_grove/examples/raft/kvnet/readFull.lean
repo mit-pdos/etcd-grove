@@ -30,7 +30,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 
 /-- The step past `k` bytes of `cur`: its suffix `cur[k:]` holds the rest, and gives back, with the
 first `k` bytes, a slice the old wand takes. -/

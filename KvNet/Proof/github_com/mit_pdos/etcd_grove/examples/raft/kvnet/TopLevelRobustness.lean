@@ -96,7 +96,6 @@ def kvClient (γ : KdNames) (rs : List GoString) : IProp GF :=
 
 variable [lctx : GoLocalContext] [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
 variable [log_sem : log.NewModel] [NaInvG GF]
 
@@ -260,7 +259,7 @@ variable [go_gctx : GoGlobalContext]
 header): the bridge on top of #683. -/
 theorem raft_kvnet_robust_of_errors (Hb : RobustOfNetFsBootG) :
     raft_kvnet_robust.spec := by
-  intro lctx sem package_sem field_sem os_file_sem os_stat_sem log_sem cl dir replicas σc g
+  intro lctx sem package_sem os_file_sem os_stat_sem log_sem cl dir replicas σc g
     hcl hn hdir hnd hrep addrs hfresh hig hil
   have hlenrs : (replicas.map (·.1)).length = replicas.length := List.length_map _
   have hok : ∀ a ∈ replicas.map (·.1), addrOk a = true := by
@@ -330,8 +329,8 @@ theorem raft_kvnet_robust_of_errors (Hb : RobustOfNetFsBootG) :
 its premises by computation. -/
 theorem raft_kvnet_robust_example_of (H : raft_kvnet_robust.spec) :
     raft_kvnet_robust_example.spec := by
-  intro lctx sem package_sem field_sem os_file_sem os_stat_sem log_sem σ₁ σ₂ σ₃ σ₄ σ₅ σc g hfs
-  have h := @H lctx sem package_sem field_sem os_file_sem os_stat_sem log_sem exampleConfig
+  intro lctx sem package_sem os_file_sem os_stat_sem log_sem σ₁ σ₂ σ₃ σ₄ σ₅ σc g hfs
+  have h := @H lctx sem package_sem os_file_sem os_stat_sem log_sem exampleConfig
     go!"/var/lib/kvnet"
     [(go!"10.0.0.1:7001", σ₁), (go!"10.0.0.2:7001", σ₂), (go!"10.0.0.3:7001", σ₃),
      (go!"10.0.0.4:7001", σ₄), (go!"10.0.0.5:7001", σ₅)] σc g

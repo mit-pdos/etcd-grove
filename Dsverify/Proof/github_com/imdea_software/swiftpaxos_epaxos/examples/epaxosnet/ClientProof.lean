@@ -49,7 +49,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Assumptions]
-variable [net.rpc.Assumptions] [field_sem : net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions] [epaxos.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [ρ : RemoteGS] [bvi : go.BasicIntoValInj]
 

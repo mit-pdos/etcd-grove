@@ -33,7 +33,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [encoding.json.Assumptions] [EncoderRep GF]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [HasExt netExt] [net.Assumptions] [π : NetProtoGS]
 
 /-- `enc.Encode(v)`, `enc` a healthy encoder writing to the end `s` of a connection `cn`
 (`net.isConn`) whose written stream (protocol `P`) is `W`, the encoding allowed after `W`, `v`

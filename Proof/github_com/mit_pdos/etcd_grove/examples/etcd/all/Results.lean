@@ -49,7 +49,7 @@ variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_all.wp_Main`). -/
 theorem etcd_all_Main
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [_root_.Perennial.net.FieldAssumptions] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_all.Main.spec (GF := GF) (hG := hG) :=
   etcd_all.wp_Main
 
@@ -69,7 +69,6 @@ in a panic, and the main thread's result, if any, is `#()`. -/
 theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    [_root_.Perennial.net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC etcdGF, ContextReadErrs (GF := etcdGF) (hG := etcdHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC etcdGF, ContextErrsClient (GF := etcdGF) (hG := etcdHeapAt hG lctx))
     -- KV: txnlinfaultsN's cluster, `k₁` members

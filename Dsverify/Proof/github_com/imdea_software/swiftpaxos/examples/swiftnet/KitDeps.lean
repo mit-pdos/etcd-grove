@@ -37,7 +37,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section deps
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions] [io.Assumptions] [π : NetProtoGS]
+variable [net.Assumptions] [io.Assumptions] [π : NetProtoGS]
 
 /-- The network callees of the kit's code (see the file header). -/
 structure SwNetDeps : Prop where
@@ -186,7 +186,7 @@ section netlemmas
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+variable [net.Assumptions] [io.Assumptions]
 
 /-- `poll.ErrDeadlineExceeded`'s value, from the kit's initialization. -/
 theorem kit_ed_init :

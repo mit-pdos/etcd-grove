@@ -85,7 +85,7 @@ section hyp
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [log.Assumptions] [net.http.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -162,7 +162,7 @@ attribute [instance] RpcHttpAddr.rpcAddrP_persistent RpcHttpAddr.rpcLisP_persist
 /-- **Hypothesis** (the file header): net/rpc over HTTP, as models-rpc-http will state it
 (the specs, per machine heap, over the addresses' part `RpcHttpAddr`). -/
 class RpcHttpHyp (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics]
-    [net.rpc.Assumptions] [net.FieldAssumptions] [NetProtoGS] [log.Assumptions]
+    [net.rpc.Assumptions] [NetProtoGS] [log.Assumptions]
     [net.http.Assumptions] [RpcHttpAddr GF] where
   /-- The right to register paths at `DefaultServeMux`, `R` those registered (exclusive: a
   second registration of a path panics). A machine's comes from net/http's initialization (a

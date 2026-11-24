@@ -38,7 +38,7 @@ namespace examples.epaxosnet
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics] [π : NetProtoGS]
-variable [examples.epaxosnet.Assumptions] [field_sem : net.FieldAssumptions]
+variable [examples.epaxosnet.Assumptions]
 
 /-- `Close()` of a connection whose outcome nobody keeps (`net.Conn.Close.spec` by `close_au`;
 `replica/ClientListener.lean`'s `wp_connClose`). -/

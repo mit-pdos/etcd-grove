@@ -58,7 +58,7 @@ theorem etcd_compactwatch.wp_checkCompactRev [go_etcd_io.etcd.client.v3.DialWith
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Main.lean`), under the semantic premise of
 its callees' linked results: the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
-theorem etcd_compactwatch.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_compactwatch.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_compactwatch.Main.spec (GF := GF) (hG := hG) :=
   etcd_compactwatch.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof

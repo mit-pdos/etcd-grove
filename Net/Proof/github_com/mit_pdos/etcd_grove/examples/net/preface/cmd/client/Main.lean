@@ -26,7 +26,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- The client node: given preface's protocol and the plan's entry for `SrvAddr` (at any host `h`),

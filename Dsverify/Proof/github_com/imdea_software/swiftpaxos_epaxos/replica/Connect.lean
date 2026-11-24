@@ -29,7 +29,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
-variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [field_sem : net.FieldAssumptions] [io.Assumptions]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [io.Assumptions]
 
 /-- `New`'s initial order `(id + 1 + j) % N` is a permutation of the ids with `id` last
 (`fwPrefOwn`). -/

@@ -97,7 +97,7 @@ section srv
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
   [SwiftHyps netDistGF] [math.rand.Hyps netDistGF] [os.signal.NoSignals usr1Sigs netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [examples.swiftnet.Assumptions]
 
 /-- The package states' facts `swift.New` uses, from `pkgStates`. -/
 theorem srv_pkg_facts :
@@ -311,7 +311,7 @@ section machines
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
   [SwiftHyps netDistGF] [math.rand.Hyps netDistGF] [os.signal.NoSignals usr1Sigs netDistGF] [SwiftOsRandom netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [examples.swiftnet.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- The client node's package facts (`ClientPkgFacts`), from `swift.pkgSt` and `defs.pkgSt`. -/

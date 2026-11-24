@@ -35,7 +35,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `preface_crash_robust.spec`
 (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/preface/TopLevelRobustness.lean`). -/
 theorem preface_crash_robust : preface_crash_robust.spec := by
-  intro lctx sem package_s package_c package_j field_sem _ σs σc σj g Hconns bound
+  intro lctx sem package_s package_c package_j _ σs σc σj g Hconns bound
   refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
   have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σs σc σj) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
     ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩

@@ -251,9 +251,6 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringNotWriter",
     # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
     "EtcdGrove.MutexLitSemantics",
-    # (net-swap, 2026-11-22) the net extension's `net`'s hand-stated field facts (`Net/TrustedCode/net.lean`),
-    # which Net's `Listen` spec takes (`Proof/net/Listen.lean`)
-    "_root_.Perennial.net.FieldAssumptions",
 ]
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they

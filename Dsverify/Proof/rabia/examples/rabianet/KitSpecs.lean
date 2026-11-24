@@ -48,7 +48,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [math.rand.Hyps GF]
-variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [go.BasicIntoValInj]
 
 /-- `ProxyAddrs()`. -/
 abbrev ProxyAddrs.spec : Prop :=
@@ -109,7 +109,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [math.rand.Hyps GF]
-variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [_root_.Perennial.bufio.Assumptions]
 variable [tcp_sem : rabia.internal.tcp.Assumptions] [msg_sem : rabia.internal.message.Assumptions]
 
@@ -152,7 +152,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [math.rand.Hyps GF]
-variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [go.BasicIntoValInj]
 variable [ρ : RemoteGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -180,7 +180,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantic
 variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [srv_sem : rabia.roles.server.Assumptions]
 variable [math.rand.Hyps GF]
-variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [go.BasicIntoValInj]
 
 /-- `Server(id)`: server machine `id = k + 1` (`k < maxS`), from its share and its package state
 (with which it claims `Conf` if it serves); it never returns. -/

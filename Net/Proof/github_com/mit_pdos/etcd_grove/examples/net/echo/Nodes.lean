@@ -52,7 +52,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : echo.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : echo.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `client_check`, its update under a node's invariants (`Defs.lean`'s are the global ghost

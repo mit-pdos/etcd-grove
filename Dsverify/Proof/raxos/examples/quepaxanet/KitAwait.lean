@@ -60,7 +60,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : raxos.examples.quepaxanet.Assumptions]
 variable [π : NetProtoGS] [qv : hyp.QpVocab GF]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [net.Assumptions] [go.BasicIntoValInj]
 variable [_root_.Perennial.io.Assumptions]
 
 attribute [local instance] HeapGS.goose_globalGS

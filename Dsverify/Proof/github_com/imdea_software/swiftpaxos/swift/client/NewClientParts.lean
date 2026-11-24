@@ -48,7 +48,7 @@ section split
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
-  [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions] [net.FieldAssumptions]
+  [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions]
 
 /-- A connected replica end: the reader's part and the writer's part. -/
 theorem replicaEnd_split (H : HC) (srv : GoInterface) (rd wr : Loc) :

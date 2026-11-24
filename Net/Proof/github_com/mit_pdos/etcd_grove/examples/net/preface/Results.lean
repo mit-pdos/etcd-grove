@@ -128,7 +128,7 @@ than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 proof does not need it. -/
 theorem preface_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_s : cmd.server.Assumptions] [package_c : cmd.client.Assumptions]
-    [package_j : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [package_j : cmd.junk.Assumptions] [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σs σc σj : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
@@ -278,7 +278,7 @@ thread bound `n + 2`, which an execution of `n` steps from single threads respec
 checked by `decide` on a concrete plan, as below). -/
 theorem preface_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_s : cmd.server.Assumptions] [package_c : cmd.client.Assumptions]
-    [package_j : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [package_j : cmd.junk.Assumptions] [go.BasicIntoValInj]
     (σs σc σj : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)

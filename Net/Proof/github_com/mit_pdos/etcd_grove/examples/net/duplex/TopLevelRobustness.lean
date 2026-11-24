@@ -35,7 +35,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `duplex_crash_robust.spec`
 (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/duplex/TopLevelRobustness.lean`). -/
 theorem duplex_crash_robust : duplex_crash_robust.spec := by
-  intro lctx sem server_sem client_sem field_sem _ σs σc g Hconns bound
+  intro lctx sem server_sem client_sem _ σs σc g Hconns bound
   refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
   have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σs σc) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
     ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩

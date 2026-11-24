@@ -37,7 +37,7 @@ section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- The master's world: every address the wildcard `":7001"` takes offers the master's service

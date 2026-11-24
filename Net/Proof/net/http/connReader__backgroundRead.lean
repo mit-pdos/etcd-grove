@@ -29,7 +29,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
-variable [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [π : NetProtoGS] [net.Assumptions]
 
 /-- A one-element slice of an array's place is the array. -/
 theorem slice1_array (l : Loc) (xs : List w8) :

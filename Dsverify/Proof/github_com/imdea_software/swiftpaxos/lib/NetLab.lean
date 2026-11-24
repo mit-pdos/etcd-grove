@@ -41,7 +41,7 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.Assumptions] [π : NetProtoGS]
 
 /-- See the file header. -/
 def net.ownListener (l : Loc) (lid : w64) (la : GoString) : IProp GF :=
@@ -86,7 +86,7 @@ section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.Assumptions] [π : NetProtoGS]
 
 /-- `net`'s `errTimeout` and `poll.ErrDeadlineExceeded`'s values, from `net`'s initialization. -/
 theorem net.et_ed_init :

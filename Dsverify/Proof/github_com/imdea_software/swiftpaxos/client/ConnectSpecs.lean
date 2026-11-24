@@ -82,7 +82,7 @@ instance client.cn.rpcAddr_persistent [GooseExts] [GooseSemantics] [GooseInterp]
 section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
 -- `kitCodecC` in the link

@@ -33,7 +33,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [math.rand.Hyps GF]
-variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [go.BasicIntoValInj]
 
 def confPre (cf : RCfg) (ps : GoSlice) : Config :=
   { Role' := go!"svr", Id' := (zeroValDef : Config).Id', ControllerAddr' := (zeroValDef : Config).ControllerAddr',

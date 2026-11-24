@@ -45,7 +45,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.cache.Assumptions]
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_cache.wp_Main`). -/
-theorem cachekv_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem cachekv_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_cache.Main.spec (GF := GF) (hG := hG) :=
   etcd_cache.wp_Main

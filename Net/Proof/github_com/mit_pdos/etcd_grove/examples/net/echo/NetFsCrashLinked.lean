@@ -102,7 +102,7 @@ none has an unrecovered panic: the client's check (the reply it read in full is 
 however often the server crashes. -/
 theorem echo_netfs_mixed_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState) (threads bound : Nat) :
     NetFsDeploy [srvAddr] [(boot_serverNF, σs)] [(boot_clientNF, σc)] g →
       Robust [(boot_serverNF, σs)] [(boot_clientNF, σc)] g threads bound := by

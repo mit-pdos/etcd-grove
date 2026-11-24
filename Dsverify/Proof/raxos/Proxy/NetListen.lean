@@ -28,7 +28,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions] [pb : hyp.PbHyp GF]
-variable [net.Assumptions] [net.FieldAssumptions]
+variable [net.Assumptions]
 variable [QpBufioDeps GF]
 
 attribute [local instance] HeapGS.goose_globalGS

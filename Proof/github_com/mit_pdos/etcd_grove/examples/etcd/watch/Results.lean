@@ -40,7 +40,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.watch.Assumptions]
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_watch.wp_Main`). -/
-theorem watchkv_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem watchkv_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_watch.Main.spec (GF := GF) (hG := hG) :=
   etcd_watch.wp_Main

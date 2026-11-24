@@ -52,7 +52,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section hyp
 variable [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr GF]
 
 /-- A machine's net/rpc boot resources (dsv-epaxos's `rpcBootRes`, with `cliEnv` through

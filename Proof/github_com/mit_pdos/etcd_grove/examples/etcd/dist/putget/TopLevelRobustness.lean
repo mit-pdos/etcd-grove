@@ -55,7 +55,7 @@ def PutgetBoot : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (_Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (_Hcec : ∀ hG : HeapGS .hasLC putgetGF,
@@ -82,7 +82,7 @@ def PutgetBoot : Prop :=
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` (`Net.robust_of_distBootI`), with each machine's `FsInit` from the statement. -/
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
-  intro _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
+  intro _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
     Hm Hc Hd HEnv HEnvTok
   refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peer client) (system peer client σm σc) g
     (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
@@ -141,7 +141,7 @@ def PutgetClientS2 : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (_Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (_Hcec : ∀ hG : HeapGS .hasLC putgetGF,

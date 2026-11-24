@@ -40,7 +40,7 @@ PROGRAMS = {f'{PAXOS}.examples.paxosnet.cmd.{n}':
 _MAINS_VARS = '''variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.{n}.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.{n}.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]'''
 
 _KP = '''  ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.{pkg}) $$ []

@@ -134,7 +134,7 @@ theorem getCodec.wp [sync.Assumptions] : getCodec.spec (GF := GF) (hG := hG) :=
 theorem SetCodec.wp [sync.Assumptions] : SetCodec.spec (GF := GF) (hG := hG) :=
   SetCodec.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock
 
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 
 theorem readFull.wp : readFull.spec (GF := GF) (hG := hG) :=
   readFull.wp_proof net.Conn.Read.wp_proof
@@ -166,7 +166,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [NetProtoGS]
 
 theorem Call.done.wp : Call.done.spec (GF := GF) (hG := hG) := Call.done.wp_proof
@@ -203,7 +203,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [NetProtoGS]
 
 theorem serverCodec.ReadRequestHeader.wp :
@@ -295,7 +295,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [NetProtoGS]
 
 /-! The HTTP path (`DialHTTPPath`, `DialHTTP`), over net/http's `ReadResponse`

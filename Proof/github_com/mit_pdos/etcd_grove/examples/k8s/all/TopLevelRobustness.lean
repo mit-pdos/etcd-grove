@@ -37,7 +37,7 @@ variable [go_gctx : GoGlobalContext]
 
 /-- `k8s_robust_single_process.spec` (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean`). -/
 theorem k8s_robust_single_process : k8s_robust_single_process.spec := by
-  intro lctx sem package_sem cache_sem _ _ _ Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot
+  intro lctx sem package_sem cache_sem _ _ Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot
     Hlen Hbf k₂ hk₂1 hk₂ ids' ps' ctxs' boot' Hlen' Hbf' Hlow Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0
     Hc31 Hops Hwops Hmul steps₁ steps₂ Hsteps₁ Hsteps₂ HAs HDs HEnv Hprem₁ Hprem₂ σ g Hfs HWal
   exact

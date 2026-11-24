@@ -12,7 +12,7 @@ states it (to audit); the proof is in
 
 (2026-11-23, etcd-grove#28, `notes/single-process-restore.md`: retired at the net swap, tag
 `single-process-final`, and restored over the net extension, `etcdNetExts`, under the `_single_process`
-name; against the tag the statement gains the instance argument `[net.FieldAssumptions]`, and its
+name; against the tag the statement gains the instance argument `[net.FieldAssumptions]` (dropped since, 2026-11-24, Go-model overlays S6), and its
 semantics the net extension; the network's initial state is `Robust`'s own premise.)
 -/
 module
@@ -58,7 +58,7 @@ def etcd_leaseexpiryN_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetNGF, ContextReadErrs (GF := putgetNGF) (hG := heapAtN hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetNGF, ContextErrsClient (GF := putgetNGF) (hG := heapAtN hG lctx))
     (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (ids : List w64) (ps : List w64) (ctxs : List (List w8))

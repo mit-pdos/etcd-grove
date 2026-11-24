@@ -80,7 +80,7 @@ def rabia_remote_robust.spec : Prop :=
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; github_com.rs.zerolog.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.proto.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.proto.Hyps remoteGF) →

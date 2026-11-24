@@ -26,7 +26,7 @@ section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.Assumptions] [π : NetProtoGS]
 
 /-- The lab's `net.isTCPAddr`: a non-`nil` `*TCPAddr`. -/
 def net.isTCPAddr (ad : GoInterface) : Prop :=

@@ -22,7 +22,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 
 theorem DialTCP.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG := hG)) :
     DialTCP.spec (GF := GF) (hG := hG) := by

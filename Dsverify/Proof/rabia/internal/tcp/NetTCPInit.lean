@@ -27,7 +27,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.internal.tcp.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [net.Assumptions] [go.BasicIntoValInj]
 
 set_option goose.wp.extras true
 
