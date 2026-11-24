@@ -4563,7 +4563,13 @@ def exec_order(p):
             tg = ''
             if idx != d['file'] and os.path.exists(idx):
                 chunks = ''.join(open(g).read() for g in glob.glob(idx[:-len('.lean')] + '/chunk*.lean'))
-                if f'def {m.group(5)}.impl ' not in chunks:
+                # (2026-11-24, Go-model overlays S5) or a Go model's (the toml's `[model]` `replaces`
+                # names it: a translation of the model's Go, unfolded as a trusted one's)
+                toml = idx[:-len('.lean')] + '.toml'
+                gname = m.group(5).replace('«', '').replace('»', '')
+                modelled = os.path.exists(toml) and re.search(
+                    r'(?ms)^\[model\].*?^replaces\s*=\s*\[[^\]]*"%s"' % re.escape(gname), open(toml).read())
+                if f'def {m.group(5)}.impl ' not in chunks or modelled:
                     tg = open(idx).read()
             kind = 'initfn' if f'FuncUnfold {m.group(5)} [] ' in t + tg else 'opaqueinitfn'
             items.append((kind, m.group(5)))
@@ -5601,7 +5607,8 @@ NET_PROGRAMS.update({f'github_com.mit_pdos.etcd_grove.examples.lib.remote.counte
 
 # The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
 # translations and `IsPkgInit` instances are the main tree's, their `Init.lean` copies in the part.
-NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix']
+NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix',
+            'internal.filepathlite']
 # (2026-11-22) and the main tree's packages `examples/lib/remote` imports: lintest's driver and
 # porcupine (their `Init.lean` import the main tree's `PkgInitExt`, which the part's replaces).
 NET_MAIN += ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',

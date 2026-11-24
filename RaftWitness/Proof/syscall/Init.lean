@@ -16,6 +16,7 @@ public import Proof.syscall.PkgInit
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.internal.oserror.Link
 public import Perennial.Proof.sync.Link
+public import Proof.internal.gomodel.Init
 public import Proof.syscall.Models
 public import Perennial.Proof.sync.Link
 public import RaftWitness.Proof.runtime.PkgInitExt
@@ -74,7 +75,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _) envs _ as Henvs
   wp_apply wp_GlobalAlloc (V := _) env _ as Henv
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
-      EtcdGrove.ExternalInit.internal_oserror _root_.Perennial.internal.oserror.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+      EtcdGrove.ExternalInit.internal_oserror _root_.Perennial.internal.oserror.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (_root_.Perennial.internal.gomodel.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
@@ -86,13 +88,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of forceClone3))
   -- translated initializer of fcntl64Syscall))
   -- translated initializer of pageBufPool))
+  -- translated initializer of mapper))
   -- translated initializer of Stdin))
   -- translated initializer of Stdout))
   -- translated initializer of Stderr))
   -- translated initializer of errEAGAIN))
   -- translated initializer of errEINVAL))
   -- translated initializer of errENOENT))
-  -- translated initializer of mapper))
   -- translated initializer of errors))
   -- translated initializer of signals))
   wp_func_call
