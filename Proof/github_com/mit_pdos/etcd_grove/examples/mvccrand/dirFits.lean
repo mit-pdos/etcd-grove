@@ -64,7 +64,11 @@ theorem dirFits.wp_proof : dirFits.spec (GF := GF) (hG := hG) := by
     try wp_auto
     wp_if_destruct
     · -- an iteration: the byte `r[i]`
-      have hk : sint.nat i < r.length := by revert Hif; word
+      have hP : sint.Z i < sint.Z (W64 ↑r.length) := by
+        apply Classical.byContradiction; intro hn
+        rw [decide_eq_false hn] at Hif
+        exact Bool.false_ne_true (go.intoVal_inj Hif)
+      have hk : sint.nat i < r.length := by revert hP; word
       obtain ⟨c, hpc⟩ : ∃ c, r[sint.nat i]? = some c := ⟨_, List.getElem?_eq_getElem hk⟩
       try simp only [show (0 : Int) ≤ sint.Z i from Hi0, ↓reduceIte, hpc]
       try wp_auto
@@ -78,15 +82,15 @@ theorem dirFits.wp_proof : dirFits.spec (GF := GF) (hG := hG) := by
         iframe
         ipureintro
         rw [hsucc]
-        have hc : (W8 47 : w8) = Fs.slashB := by decide
+        have hc : (W8 47 : w8) = slashB := by decide
         rw [hts, if_pos hc]
         refine ⟨by word, by omega, by word, by word, by word, fun m hm => ?_⟩
         rcases Nat.lt_or_ge m (sint.nat i + 1) with hlt' | hge
         · exact Hall m (by omega)
         · have : m = sint.nat i + 1 := by omega
           subst this; rw [hts, if_pos hc]; omega
-      · have hc : c ≠ Fs.slashB := by
-          rw [show Fs.slashB = (W8 47 : w8) by decide]; exact Hif
+      · have hc : c ≠ slashB := by
+          rw [show slashB = (W8 47 : w8) by decide]; exact Hif
         rw [if_neg hc] at hts
         try wp_auto
         wp_if_destruct
@@ -113,7 +117,11 @@ theorem dirFits.wp_proof : dirFits.spec (GF := GF) (hG := hG) := by
           · have : m = sint.nat i + 1 := by omega
             subst this; rw [hts]; revert Hif Hrun; word
     · -- the end: every prefix's run under 256
-      have hend : sint.nat i = r.length := by revert Hif Hik; word
+      have hnP : ¬ sint.Z i < sint.Z (W64 ↑r.length) := by
+        intro hP; apply Hif; rw [decide_eq_true hP]
+      have hend : sint.nat i = r.length := by revert hnP Hik; word
+      simp only [decide_eq_false hnP, Bool.false_eq_true, ↓reduceIte]
+      try wp_auto
       iapply HΦ
       ipureintro
       constructor

@@ -77,7 +77,7 @@ theorem tailRun_suffix_len :
     exact ⟨[], [], rfl, List.not_mem_nil, rfl⟩
   | k + 1, p, hk => by
     have hne : p ≠ [] := by intro h; subst h; simp at hk
-    have hp := (List.dropLast_append_getLast hne).symm
+    have hp := (List.dropLast_concat_getLast hne).symm
     generalize p.getLast hne = c at hp
     generalize hq : p.dropLast = q at hp
     have hql : q.length = k := by rw [← hq]; simp [hk]

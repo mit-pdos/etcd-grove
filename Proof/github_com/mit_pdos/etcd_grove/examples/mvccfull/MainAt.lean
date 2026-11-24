@@ -27,7 +27,23 @@ namespace EtcdGrove
 namespace mvccfull
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open github_com.mit_pdos.etcd_grove.examples.mvccfull
+open github_com.mit_pdos.etcd_grove.examples.mvccfull Fs
+
+theorem mf_lt (k len : w64) (n : Nat) (h : sint.Z k < sint.Z len) (hn : n = sint.nat len)
+    (hk0 : 0 ≤ sint.Z k) : sint.nat k < n := by
+  subst hn; revert h hk0; word
+
+theorem mf_succ (k len : w64) (hk0 : 0 ≤ sint.Z k) (h : sint.Z k < sint.Z len) :
+    sint.nat (k + W64 1) = sint.nat k + 1 := by
+  revert hk0 h; word
+
+theorem mf_succ_nonneg (k len : w64) (hk0 : 0 ≤ sint.Z k) (h : sint.Z k < sint.Z len) :
+    0 ≤ sint.Z (k + W64 1) := by
+  revert hk0 h; word
+
+theorem mf_end (k len : w64) (n : Nat) (h : ¬ sint.Z k < sint.Z len) (hk : sint.nat k ≤ n)
+    (hn : n = sint.nat len) : sint.nat k = n := by
+  subst hn; revert h hk; word
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,6 +52,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
 
+-- The kernel's check of this proof takes about 9 minutes (VM, 2026-11-24): `FilePaths`' slice `s ↦* …`
+-- (its spec's `TypedPointsto` instance) is compared with the loop body's after each
+-- `wp_load_slice_index` (reached through `IntoValTyped`), equal only after unfolding both. Without the
+-- options: "(kernel) deterministic timeout". The slice's list is never written out here (the loop
+-- invariant leaves `Hs` in the frame, the load takes it from `Hs`), which keeps that comparison to
+-- the iteration's re-framing. A proof-perf candidate.
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 0 in
 theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
     (wp_absent : absent.spec (GF := GF) (hG := hG))
     (wp_MainConfig : MainConfig.spec (GF := GF) (hG := hG))
@@ -52,7 +76,7 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
     iapply HΦ; itrivial
   | true =>
     have hd : Fs.DirFits r := hfits.1 rfl
-    have hok : ∀ b ∈ mvccfullNames, Fs.NameOk b ∧ Fs.PathFits (Fs.child r b) := fun b hb =>
+    have hok : ∀ b ∈ mvccfullNames, NameOk b ∧ Fs.PathFits (Fs.child r b) := fun b hb =>
       ⟨mvccfullNames_ok b hb, Fs.pathFits_of_dirFits hd (mvccfullNames_len b hb)⟩
     try wp_auto
     rw [show r ++ go!"/mvccfull" = Fs.child r go!"mvccfull" from rfl]
@@ -73,7 +97,6 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
     rw [List.length_map] at Hsl
     try wp_auto
     ihave HI : (∃ (k : w64) (pv : GoString), "i" ∷ i_ptr ↦ k ∗ "p" ∷ p_ptr ↦ pv ∗
-        "Hs" ∷ s ↦* names.map (Fs.child r) ∗
         "Hpath" ∷ osPathS (GF := GF) R r (DFrac.own 1) j0 ∗
         "Hperm" ∷ osCallPerm (GF := GF) (callKey R r) q ∗
         "Hdone" ∷ ([∗list] b ∈ names.take (sint.nat k), ∃ hb : NamesH,
@@ -81,9 +104,8 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
         "Htodo" ∷ ([∗list] b ∈ names.drop (sint.nat k), ∃ hb : NamesH,
           osNames (GF := GF) j0 (.only [b]) (DFrac.own 1) hb) ∗
         "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ names.length⌝ : IProp GF)
-      $$ [i p Hs Hpath Hperm Hcl]
+      $$ [i p Hpath Hperm Hcl]
     · iexists W64 0, _
-      iframe
       rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero]
       iframe
       isplitl []
@@ -93,15 +115,14 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
     obtain ⟨Hk0, Hkl⟩ := Hk
     wp_if_destruct
     · -- an iteration: the name `names[k]`
-      have hk : sint.nat k < names.length := by revert Hif Hsl; word
+      have hk : sint.nat k < names.length := mf_lt k s.len _ Hif Hsl.1 Hk0
       obtain ⟨b, hbl⟩ : ∃ b, names[sint.nat k]? = some b := ⟨_, List.getElem?_eq_getElem hk⟩
       have hpl : (names.map (Fs.child r))[sint.nat k]? = some (Fs.child r b) := by
         rw [List.getElem?_map, hbl]; rfl
       have hbm : b ∈ names := List.mem_of_getElem? hbl
-      (try simp only [show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z s.len from ⟨Hk0, by revert Hif; word⟩,
+      (try simp only [show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z s.len from ⟨Hk0, Hif⟩,
         _root_.and_self, ↓reduceIte])
-      wp_apply wp_load_slice_index s (sint.Z k) (names.map (Fs.child r)) (DFrac.own 1)
-        (Fs.child r b) Hk0 $$ [Hs] as Hs
+      wp_apply wp_load_slice_index s (sint.Z k) _ (DFrac.own 1) _ Hk0 $$ [Hs] as Hs
       · iframe; ipureintro; exact hpl
       try wp_auto
       rw [List.drop_eq_getElem_cons hk, show names[sint.nat k] = b from
@@ -110,7 +131,7 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
       wp_apply wp_absent r b R j0 1 hb q (hok b hbm).1 (fsNoErrAt_of_all (hok b hbm).2)
         $$ [Hpath Hb Hperm] as %res ⟨Hpath, Hb, Hperm, %hres⟩
       · iframe; iframe #
-      have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by revert hk Hsl; word
+      have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := mf_succ k s.len Hk0 Hif
       cases res with
       | false =>
         try wp_auto
@@ -130,9 +151,9 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
           iexists hb
           iframe Hb
           ipureintro; exact hres rfl
-        ipureintro; exact ⟨by revert hk Hsl; word, by omega⟩
+        ipureintro; exact ⟨mf_succ_nonneg k s.len Hk0 Hif, by omega⟩
     · -- every name found empty: the run
-      have hend : sint.nat k = names.length := by revert Hif Hkl Hsl; word
+      have hend : sint.nat k = names.length := mf_end k s.len _ Hif Hkl Hsl.1
       rw [hend, List.take_of_length_le (Nat.le_refl _)]
       imod files_of_done (hG := hG) R r j0 hr names q hok $$ Hinv Hsh Hdone Hperm with Hfiles
       try wp_auto

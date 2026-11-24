@@ -44,12 +44,12 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
   | true =>
     have hd : Fs.DirFits r := hfits.1 rfl
     have hfit : Fs.PathFits (Fs.child r go!"mvccrand.db") := Fs.pathFits_of_dirFits hd (by decide)
-    have hnm : Fs.NameOk go!"mvccrand.db" := by decide
+    have hnm : NameOk go!"mvccrand.db" := by decide
     try wp_auto
     rw [show r ++ go!"/mvccrand.db" = Fs.child r go!"mvccrand.db" from rfl]
     iunfold rootClaimF at Hroot
     icases Hroot with ⟨%R, %j0, %h0, %q, %hr, #Hinv, #Hsh, Hn, Hperm⟩
-    imod claims_of_names (hG := hG) R j0 [go!"mvccrand.db"] [] h0 (List.nodup_singleton _)
+    imod claims_of_names (hG := hG) R j0 [go!"mvccrand.db"] [] h0 (List.pairwise_singleton _ _)
       (fun _ _ h => absurd h List.not_mem_nil) $$ Hsh Hn with Hcl
     icases BigSepL.bigSepL_cons.1 $$ Hcl with ⟨⟨%hn, Hb⟩, -⟩
     imod Fs.osPathS_root (E := ⊤) (L := hG.goose_localGS) R r j0 (DFrac.own 1) hr
