@@ -73,7 +73,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
   wp_apply wp_resetRecv l addr $$ [] as %st %err Hres
   · iframe #
   (try wp_auto)
-  icases Hres with (⟨%Herr, %γ, %Up, %Dn, %cd', #Hcs, #Hz, HRt⟩ | ⟨%Hst, #Herr⟩)
+  icases Hres with (⟨%Herr, %γ, %Up, %Md, %Dn, %cd', #Hcs, #Hz, HRt⟩ | ⟨%Hst, #Herr⟩)
   · subst Herr
     (try wp_auto)
     ihave #Hcs' := Hcs
@@ -92,7 +92,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
       · itrivial
       iframe
     (try wp_auto)
-    icases Hres with (⟨%Herr, %m, #Hm, -, HRt⟩ | ⟨%Hresp, #Heofe, %Hne, HRt, -⟩ | ⟨%Hresp, #Hse0, HRt⟩)
+    icases Hres with (⟨%Herr, %a, %md, %m, -, -, #Hm, -, HRt⟩ | ⟨%Hresp, #Heofe, %Hne, HRt, -⟩ | ⟨%Hresp, #Hse0, HRt⟩)
     · subst Herr
       (try wp_auto)
       wp_apply wp_recvKeepAlive l addr resp m $$ []

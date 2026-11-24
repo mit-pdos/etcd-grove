@@ -36,27 +36,32 @@ address `a` of `addrs` (`cliWatchStreamIs`, both tokens at `[]`, `a`'s content a
 specification `Spec a md γ Dn`), or a `nil` stream and a client error. Since G2 (2026-10-30), as
 `NewStream`'s: the registration is metadata-indexed (`isGrpcStreamsMd`), and the stream was opened
 with some metadata `md` an attempt of the call delivers (`clientAttemptMd`), at which the stream
-specification is the registration's. -/
+specification is the registration's. Since phase 7's switch (SW1, 2026-11-24, R2, as `NewStream`'s):
+one client content `Up` for every address, and neither the address nor the metadata is fixed when
+the stream is returned: the stream specification holds at every address of `addrs` and every metadata
+an attempt may deliver (`clientAttemptMdI`), at that dispatch's content `Dn a md`, and each response
+says which dispatch it is (`cliWatchStreamIs`' family, `streamDispIs`). -/
 abbrev watchClient.Watch.spec : Prop :=
   ∀ (wc conn : Loc) (addrs : List GoString) (ics : List GoFunc)
-    (Up : GoString → Nat → v3rpc.WatchReqM → IProp GF)
+    (Up : Nat → v3rpc.WatchReqM → IProp GF)
     (Spec : GoString → GrpcMd → StreamSpec (GF := GF) v3rpc.pbWatchResponse) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       v3rpc.watchStubAt wc conn ∗ grpcConn conn addrs ics [] anyRes ∗
       isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) addrs
-        go!"/etcdserverpb.Watch/Watch" Up Spec ∗
+        go!"/etcdserverpb.Watch/Watch" (fun _ => Up) Spec ∗
       v3rpc.watchDescOk ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (Val (wc @!! go.GoType.PointerType etcdserverpb.watchClient.ty @!! go!"Watch"))
       (Val #(GoInterface.ok ctx))) (Val #opts))
   {{ (cs err : GoInterface), RET (PairV #cs #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (γ : StreamNames)
-          (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
-          (md : GrpcMd),
-        ⌜a ∈ addrs ∧ clientAttemptMd conn om md⌝ ∗
-        v3rpc.cliWatchStreamIs cs γ (Up a) Dn cd' ∗
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames)
+          (Dn : GoString → GrpcMd → Nat → v3rpc.WatchRespM → IProp GF)
+          (cd' : context.ContextDesc (IProp GF)),
+        v3rpc.cliWatchStreamIs cs γ Up
+          (fun a md => iprop(⌜a ∈ addrs⌝ ∗ clientAttemptMdI conn om md)) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γ [] ∗
-        cliRecvTok (Rep := v3rpc.pbWatchResponse) γ [] ∗ Spec a md γ Dn) ∨
+        cliRecvTok (Rep := v3rpc.pbWatchResponse) γ [] ∗
+        □ (∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMdI conn om md -∗ Spec a md γ (Dn a md))) ∨
       (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err) }}
 
 end spec
