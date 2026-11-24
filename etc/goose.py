@@ -67,6 +67,16 @@ WORK = os.path.join(ROOT, ".lake", "goose")
 # The Go toolchain the translations are generated with (the module docstring says why).
 GO_TOOLCHAIN = "go1.27.3"
 
+# The build tags of every project (one build configuration for every program): `netgo`, the pure-Go
+# `net` (Go-model overlays S6, 2026-11-24). `net`'s Go model (`[model]` in Net/Code/net.toml) splices
+# only a package without cgo files (Perennial's goose/util/model.go), and the default linux build
+# of `net` has them (the cgo resolver). The verified build is `-tags netgo`. etcd's release builds
+# use CGO_ENABLED=0 (scripts/build_lib.sh, `CGO_ENABLED="${CGO_ENABLED:-0}"`), which selects the
+# same `net` files but `netgo_off.go` for `netgo_on.go`: the constant `netGoBuildTag`, read only by
+# the resolver's configuration (`conf.go`), which the model replaces. `netgo` changes no other
+# package's files.
+BUILD_TAGS = ["netgo"]
+
 # Project raft's pin (projects raft and raft-tla translate two builds of it).
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
 
@@ -114,9 +124,10 @@ class Project:
     # The Go source is this directory of this repository (relative to its root) instead
     # of a fork (`repo`, `rev`: None).
     local: str = None
-    # Additional Go build tags the packages are loaded with, beside `goose` (goose's and proofgen's
-    # `-tags`, Perennial c6b39d4f8). Every package of one program must be translated with the same
-    # tags: projects raft-tla and tracecheck (the `with_tla` build) are the only ones with any.
+    # Additional Go build tags the packages are loaded with, beside `goose` and BUILD_TAGS (goose's
+    # and proofgen's `-tags`, Perennial c6b39d4f8). Every package of one program must be translated
+    # with the same tags: projects raft-tla and tracecheck (the `with_tla` build) are the only ones
+    # with any.
     tags: list = None
     # The module root of the translation: "" for `Code/`, `GeneratedProof/`; else
     # `<root>/Code/`, `<root>/GeneratedProof/` (configured by `<root>/Code/**.toml`), for
@@ -2611,8 +2622,7 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
             piece_out = os.path.join(out, str(i))
             config = os.path.join(lib_dir, "Code")
             roots = [a for r in lean_roots for a in ("-lean-root", r)]
-            if proj.tags:
-                roots = ["-tags", ",".join(proj.tags)] + roots
+            roots = ["-tags", ",".join(BUILD_TAGS + (proj.tags or []))] + roots
             if overlay and i == 0:
                 roots = ["-overlay", overlay] + roots
             for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
