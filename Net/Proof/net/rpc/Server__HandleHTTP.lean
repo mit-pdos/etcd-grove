@@ -33,13 +33,19 @@ theorem Server.HandleHTTP.wp_proof (wp_Handle : net.http.Handle.spec (GF := GF) 
   intro s γs C W A Ps rp dp hrp hdp hne hrpP hdpP
   wp_start as ⟨%hT, #Hhttp, Hmux, #Hs, #Hsrv, #Henv, #Hset, #Hcon⟩
   wp_auto
-  wp_apply wp_Handle Ps rp _ hrp hrpP (by simp [interface.mkOk]) (by simp [interface.mkOk])
+  have h1 : interface.mkOk (go.GoType.PointerType net.rpc.Server.ty) #s ≠ interface.nil := by
+    simp [interface.mkOk]
+  have h2 : interface.mkOk (go.GoType.PointerType net.rpc.Server.ty) #s ≠
+      interface.mkOk net.http.HandlerFunc.ty #(func.nil : GoFunc) := by
+    unfold net.http.HandlerFunc.ty; simp [interface.mkOk]
+  wp_apply wp_Handle Ps rp _ hrp hrpP h1 h2
       $$ [$Hhttp $Hmux]
     as ⟨Hmux, #Hroute⟩
-  wp_auto
+  try wp_auto
   wp_apply wp_Handle (rp :: Ps) dp _ hdp (by simp [hdpP, Ne.symm hne])
-    (by simp [interface.mkOk]) (by simp [interface.mkOk]) $$ [$Hhttp $Hmux] as ⟨Hmux, -⟩
-  wp_auto
+    (by simp [interface.mkOk]) (by unfold net.http.HandlerFunc.ty net.rpc.debugHTTP.ty; simp [interface.mkOk])
+    $$ [$Hhttp $Hmux] as ⟨Hmux, -⟩
+  try wp_auto
   iapply HΦ
   iframe Hmux
   iunfold net.http.muxRpc

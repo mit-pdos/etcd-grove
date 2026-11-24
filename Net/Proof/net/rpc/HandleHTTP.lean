@@ -38,6 +38,8 @@ theorem HandleHTTP.wp_proof (wp_HandleHTTP : Server.HandleHTTP.spec (GF := GF) (
   iunfold defaultServerAny at Hd
   icases Hd with ⟨%s, #Hg, #Hs⟩
   wp_auto
+  rw [show net.rpc.DefaultRPCPath = #defaultRPCPath from rfl,
+    show net.rpc.DefaultDebugPath = #defaultDebugPath from rfl]
   wp_apply wp_HandleHTTP s γs C W A Ps defaultRPCPath defaultDebugPath litPattern_rpc
       litPattern_debug (by decide) hrp hdp $$ [Hmux] as ⟨Hmux, #Hr⟩
   · iframe Hhttp Hmux Hs Hsrv Henv Hset Hcon
