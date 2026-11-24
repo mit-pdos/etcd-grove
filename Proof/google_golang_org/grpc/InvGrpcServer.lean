@@ -1,9 +1,9 @@
 /-
 **grpc's server, built and started** (item 4 of the client→server path, 2026-10-17; Lean-first,
 no Rocq counterpart; restated in per-type stage B, B1b): what produces Go's configuration of a
-server (`grpcSrvCfg γ c`, `InvGrpc.lean`), from which `grpc.start'` makes the facts
-`grpcServerAt addr ics regs γ` and `grpcStreamServerAt addr sics sregs γ` that `grpc.serve` and
-`grpc.serveStream` (theorems) use. The Go-level specs of grpc's `NewServer`, its options,
+server, which `grpc.start'` (`InvGrpcRun.lean`) turns into the address's service table and the facts
+`grpcServerAt` and `isGrpcStreamMd` (phase 7's switch, SW1: until then a server name `γ` with
+`grpcSrvCfg γ c`). The Go-level specs of grpc's `NewServer`, its options,
 `Server.RegisterService` and `Server.Serve`, and of `net.Listen`, are trust-boundary axioms
 (`Spec/google_golang_org/grpc/`, `Spec/net/Listen.lean`); this file is their vocabulary.
 
@@ -34,17 +34,16 @@ setting `ClientStreams` or `ServerStreams`: premises stronger than grpc checks, 
 method and stream names, the unary one winning (test T9b), and runs an unflagged stream's handler
 without the stream interceptor, `server.go:1446-1450` (test T10b)).
 
-**The start** (`grpc.start`, an axiom): the server being built, whose full method and stream names
-are jointly distinct, and a listener bound at `addr` (`netListenerAt`, `Proof/net/InvNet.lean`)
-become a server `γ` listening at `addr` (`grpcAddrIs addr γ`), with Go's configuration
-(`grpcSrvCfg γ c`: the chains and registrations, fixed from now on), and the right to accept its
-calls on the listener (`grpcSrvLink gs lis γ`); `grpc.start'` packages them as `grpcServerAt`,
-`grpcStreamServerAt` and `grpcServeTok gs lis γ` (what `gs.Serve(lis)` takes). A ghost step, before
-the `go gs.Serve(lis)`: the server's methods are served at `addr` once `Serve` runs (a call before
-`Serve` accepts waits, or fails: an error for the client). After it the server can no longer
+**The start** (`grpc.start'`, a theorem in `InvGrpcRun.lean` since phase 7's switch, SW1,
+2026-11-24, which deleted the axiom `grpc.start` and its server name `γ`): the server being built, whose
+full method and stream names are jointly distinct, and a listener bound at `addr` (`netListenerAt`,
+`Proof/net/InvNet.lean`) with what `Listen` left, set `addr`'s service table to Go's configuration, and
+give the right to serve it (`grpcServeTok gs lis addr Svc`, what `gs.Serve(lis)` takes). A ghost step,
+before the `go gs.Serve(lis)`: the server's methods are served at `addr` once `Serve` runs (a call
+before `Serve` accepts waits, or fails: an error for the client). After it the server can no longer
 register a service (grpc's `RegisterService` after `Serve` is fatal).
 
-**The replies' size** (`grpcRepliesFit`, a premise of `grpc.start`, 2026-10-31,
+**The replies' size** (`grpcRepliesFit`, a premise of `grpc.start'`, 2026-10-31,
 `notes/reply-size.md`): grpc marshals a reply before any size check, and the codec's `make` panics
 above Go's `maxAlloc` (`grpcReplyMax`). The start takes the named workload premise that no reply of
 the run (the replies to the program's own clients' calls) exceeds it; the facts it makes exist only
@@ -52,7 +51,7 @@ in such a run, so the trusted `Serve` model's leaves (`respond`'s size claim), r
 `grpcServeTok`, are true under it, and so is every result built on them (the served results
 `etcd_kv_served`, `ServedOn`, `AuthnServedOn`, v3rpc's, whose statements do not show it). The token
 yields `grpcRepliesFit` (it is a conjunct of `grpcServeTok`), which holds wherever the token is made:
-it is `grpc.start`'s premise.
+it is `grpc.start'`'s premise.
 
 **The health service** (`grpcHealthSrv hs`, persistent, axiomatized): grpc's `*health.Server`
 `hs` (`health.NewServer()`), whose `SetServingStatus` is safe from any goroutine.
@@ -123,6 +122,19 @@ without the stream interceptor (`server.go:1446-1450`, test T10b), which the `Se
 represent. -/
 axiom grpcSrvNew {GF : BundledGFunctors} [GooseExts] (gs : Loc) (ics sics : List GoFunc)
   (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF
+
+/-- **The server being built, bound to the listener `lis` at `addr`** (exclusive; phase 7's switch,
+SW1, 2026-11-24, the review's finding 1; interim, retired with decision E's table form of no-refusal):
+what `etcd_noRefusal` and `etcd_noOtherRefusal` make of `grpcSrvNew gs … ∗ netListenerAt lis addr`
+when they certify `gs`'s answers at `addr` (`noRefusalAt addr`, a fact about the address string).
+Nothing gives the server or the listener back: `grpcServeTok` holds it in place of `grpcSrvNew gs … ∗
+netListenerOpen lis addr` (`grpc.startBound`), so the server `Serve` runs at `addr` is the one the fact
+was certified of. Without it a program could take the certificate, drop `gs`, and serve another server
+`gs2` (one whose KV `Range` answers with the learner's refusal) on the same listener: `grpcInvokerOk`
+would then promise the client a refusal it receives. -/
+axiom grpcSrvBound {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (addr : GoString)
+  (ics sics : List GoFunc) (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
+  IProp GF
 
 /-- **grpc's health server `hs`** (persistent; see the file header). -/
 axiom grpcHealthSrv {GF : BundledGFunctors} [GooseExts] (hs : Loc) : IProp GF
@@ -403,24 +415,6 @@ returns a reply sharing a submessage or byte slice many times. A theorem taking 
 nothing about such runs. The client's send side has its own checked premise (`grpcInvokerOk`'s
 `Req.wireLen m < grpcMsgMax`). -/
 opaque grpcRepliesFit : Prop
-
-/-- **The start** (an axiom; see the file header; restated in per-type stage B, B1b): the server
-being built, with jointly distinct full names, and a listener bound at `addr` become a server `γ`
-listening at `addr`, with Go's configuration, and the right to accept its calls on the listener.
-True of grpc: `Serve(lis)` serves every call accepted on `lis` with the server's chains and its
-registered methods (`handleStream`: the method of the call's path `/<service>/<method>` in
-`services[service]`, its methods before its streams), and no registration is made after it; the
-joint distinctness makes the one entry named by a path the handler grpc's split lookup finds (test
-T9b). One server per address: `netListenerAt` is consumed (`grpcAddrIs_agree`). Under the named
-workload premise `grpcRepliesFit` (2026-10-31, `notes/reply-size.md`), which `grpcServeTok`
-carries. -/
-axiom grpc.start (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
-    (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
-  grpcRepliesFit → ((regs ++ sregs).map Prod.fst).Nodup →
-  grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
-    |={⊤}=> ∃ γ : GName, grpcAddrIs addr γ ∗
-      grpcSrvCfg γ ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF) ∗
-      grpcSrvLink gs lis γ
 
 end defs
 

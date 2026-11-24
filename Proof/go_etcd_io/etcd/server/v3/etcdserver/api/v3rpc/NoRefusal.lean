@@ -49,7 +49,10 @@ server's own, none of the six strings; grpc's server-side errors carry grpc's me
 the old balancer's two strings occurs in grpc v1.84). Not every method of `gs` is refusal-free,
 which is why the claim is about the KV service: the Auth service's `UserAdd` of an empty name
 returns `auth.ErrUserEmpty` with authentication off (`authStore.UserAdd`), and the watch stream's
-cancel reasons use the auth strings. Not proved: the server's specs describe its errors by
+cancel reasons use the auth strings. (Phase 7's switch, SW1, 2026-11-24, the review's finding 1)
+The server and its listener come back bound (`grpcSrvBound`, which only `grpc.startBound` takes): until
+then they came back separately, and a program could serve another server on the listener under the
+certificate. Not proved: the server's specs describe its errors by
 structure, not identity (`notes/read-retry-plan.md` R1), and `IsLearner`'s spec returns any
 boolean, so the voter fact rests on this axiom too. -/
 axiom etcd_noRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface) (E : apply.AEnv GF)
@@ -60,14 +63,15 @@ axiom etcd_noRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface) (E :
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
     grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
-  grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ∗ ⌜noRefusalAt addr⌝
+  grpcSrvBound gs lis addr ics sics svcs regs sregs ∗ ⌜noRefusalAt addr⌝
 
 /-- **An etcd member never answers a KV call with a non-auth refusal, in either auth mode** (an
 axiom; F-S2 part 1, 2026-10-29, approved by the user; reviewed: survives under the voter condition,
 `notes/axiom-review/etcd-noOtherRefusal.md`). As `etcd_noRefusal`, without its premise
 `E.authOn = false`, over the server's view in its mode (`isServerReqM E.authOn`), and with the
 conclusion narrowed to the descriptions that do not depend on authentication
-(`noOtherRefusalAt addr`: the learner's refusal and the old balancer's two).
+(`noOtherRefusalAt addr`: the learner's refusal and the old balancer's two); the server and its
+listener come back bound (`grpcSrvBound`, SW1).
 
 True of etcd at the pin, by its code: the learner refusal (`rpctypes.ErrGRPCNotSupportedForLearner`)
 is returned only by the interceptors' learner branch (`interceptor.go:54` unary, `:225` stream),
@@ -90,7 +94,7 @@ axiom etcd_noOtherRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface)
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
     grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
-  grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ∗ ⌜noOtherRefusalAt addr⌝
+  grpcSrvBound gs lis addr ics sics svcs regs sregs ∗ ⌜noOtherRefusalAt addr⌝
 
 end axioms
 

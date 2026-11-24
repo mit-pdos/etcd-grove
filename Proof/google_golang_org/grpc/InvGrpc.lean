@@ -236,76 +236,8 @@ theorem grpcGoSvc_some (ics : List GoFunc) (regs : List (GoString × GoFunc × G
   have hm : name ∈ regs.map Prod.fst := List.mem_map.2 ⟨_, hin, rfl⟩
   simp [grpcGoSvc, hm, hty]
 
-/-- **The server listening at `addr` is `γ`, built with the unary chain `ics` and the unary methods
-`regs`, and `addr` serves Go's configuration at the models `tys`** (persistent; per-type stage B,
-B1b; the table since phase 7 S2's interface): Go's configuration of `γ` (`grpcSrvCfg`), whatever its
-stream chain and streams, and the address's table `grpcGoSvc ics regs tys`. Made by `grpc.start'`
-from `grpc.start`'s facts. Several registrations of one Go handler at different specs are each a true
-fact about it. -/
-def grpcServerAt (addr : GoString) (ics : List GoFunc)
-    (regs : List (GoString × GoFunc × GoInterface))
-    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (γ : GName) : IProp GF :=
-  iprop(grpcAddrIs addr γ ∗ (∃ (sics : List GoFunc) (sregs : List (GoString × GoFunc × GoInterface)),
-    grpcSrvCfg γ ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF)) ∗
-    ∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
-      grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr (grpcGoSvc ics regs tys))
-
-instance grpcServerAt_persistent (addr : GoString) (ics : List GoFunc)
-    (regs : List (GoString × GoFunc × GoInterface))
-    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (γ : GName) :
-    Persistent (grpcServerAt (GF := GF) addr ics regs tys γ) := by
-  unfold grpcServerAt; infer_instance
-
-/-- **Serving** (a theorem since per-type stage B, B1b; it was an axiom whose caller-chosen run
-resource and count made every handler meet every spec, `axiom/grpc-serve-pool`; over the address's
-table since phase 7 S2's interface): the methods `ms` of the server at `addr` with the unary chain
-`ics`, the registrations `regs` and the table's models `tys` (`grpcServerAt`, made by `grpc.start'`),
-each registered with its handler and service, at its models, and meeting its run contract
-(`grpcRunOkMd`), are registered at `addr` (`isGrpcRpcMd`): the table's entry is met by the method's
-spec (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`). What runs the handlers is `Server.Serve` (its
-trust-boundary axiom). -/
-theorem grpc.serve (addr : GoString) (ics : List GoFunc)
-    (regs : List (GoString × GoFunc × GoInterface))
-    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (ms : List (GrpcMethod GF)) (γ : GName) :
-    (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) →
-    (∀ m ∈ ms, tys m.name = some (m.Req, m.Rep)) →
-    grpcServerAt addr ics regs tys γ ∗ □ ([∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv ics m.spec) ⊢
-    |={⊤}=> [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
-  intro hreg hty
-  iintro ⟨#Hs, #Hms⟩
-  iunfold grpcServerAt at Hs
-  icases Hs with ⟨-, -, %hX, %π, %σ, #Ha⟩
-  imodintro
-  have Hm : iprop(□ grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr
-      (grpcGoSvc ics regs tys)) ⊢ [∗list] m ∈ ms, (grpcRunOkMd #m.handler m.srv ics m.spec -∗ isGrpcRpcMd addr m.name m.spec) :=
-    BigSepL.bigSepL_intro (fun _ m hk => by
-      have hm : m ∈ ms := List.mem_of_getElem? hk
-      have he := grpcGoSvc_some ics regs tys m.name m.handler m.srv m.Req m.Rep (hreg m hm) (hty m hm)
-      have Hg' : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr (grpcGoSvc ics regs tys) ⊢
-          grpcSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr m.name m.Req.toProtoMsg.wire
-            m.Rep.toProtoMsg.wire (grpcGoEntry ics regs m.name m.Req m.Rep).spec :=
-        grpcSvcAt_of_addr (Gg := hG.goose_globalGS) addr m.name (grpcGoSvc ics regs tys)
-          (grpcGoEntry ics regs m.name m.Req m.Rep) he
-      iintro #Ha #Hr
-      ihave #Hg := Hg' $$ Ha
-      unfold isGrpcRpcMd
-      iexists addr, hX, π, σ
-      isplitl []
-      · unfold grpcReach; ileft; ipureintro; rfl
-      iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) addr m.name m.Req.toProtoMsg.wire
-        m.Rep.toProtoMsg.wire (grpcGoEntry ics regs m.name m.Req m.Rep).spec m.spec) $$ [] Hg
-      imodintro
-      iintro %md %x %Φ %Ψe HS
-      imodintro
-      unfold grpcGoEntry
-      iexists m.handler, m.srv, m.spec
-      isplitr
-      · ipureintro; exact hreg m hm
-      iframe HS
-      iexact Hr)
-  ihave Hw := Hm $$ []
-  · imodintro; iexact Ha
-  iapply BigSepL.bigSepL_wand $$ Hms Hw
+/-! `grpcServerAt` and `grpc.serve` are in `InvGrpcRun.lean` since phase 7's switch (SW1,
+2026-11-24): the table they read (`grpcStartSvc`) holds the streams too. -/
 
 /-! ## The client side: one attempt, the interceptor chain (unit P3a) -/
 

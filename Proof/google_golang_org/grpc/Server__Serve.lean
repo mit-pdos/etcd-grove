@@ -31,12 +31,20 @@ acceptor protocol (`grpcSrvPI Svc`) given that the dialer met `grpcCliPI Svc`: a
 method with an entry `e` runs Go's handler for it (`grpcServes`) on the request the call's deposit
 holds, with the deposit `e.spec md m Φ Ψe` at the run's incoming metadata, and the reply's `Φ m'`
 (or `Ψe d` for a handler's description `d`) is what the attempt gets back; a method without an entry
-gets `Unimplemented`; a stream runs as the stream pair states (`InvGrpcRun.lean`, "The pair": the
-registrations `isGrpcStreamAt γ` of a started server, the only ones `NewStream` takes). One run per
-deposit: one stream per connection, dispatched once; transparent retry only of a refused,
-undispatched stream; no retry policy (`grpcResolverAt`). Both protocols are opaque: no program but
-grpc's transport reads or writes a connection to `a` meaningfully, which is the model's claim "both
-ends run the model" (`models/README.md`). Under `grpcRepliesFit`. -/
+gets `Unimplemented`. (Phase 7's switch, SW1, 2026-11-24, `notes/phase7-endstate.md` §1.3: the text
+unchanged, `grpcServeTok` one form, `grpcServes` a clause per entry kind.) A stream of a method with a
+stream entry `e` runs Go's stream handler for it (`grpcServes`' stream clause) as `ClientConn.NewStream`'s
+axiom pairs it: both ends share the stream's names `γ`; the dispatched metadata is an attempt's and both
+ends agree on it (`streamMdIs`); the handler is given its specification at its content family, and its
+responses' content converts to the entry's `dn₀ md γ`, which the client receives; messages are
+delivered in order, intact, once; a server `SendMsg` after the status may return `nil` undelivered
+(R3). A unary call of a stream's name and a stream of a unary method's name are excluded by the kind
+clauses (C3 and its mirror). One run per deposit or stream: one stream per connection, dispatched
+once; transparent retry only of a refused, undispatched first attempt; no retry policy
+(`grpcResolverAt`). A head naming no entry is written only by `Invoke`/`NewStream`, which take an
+entry. Both protocols are opaque: no program but grpc's transport reads or writes a connection to `a`
+meaningfully, which is the model's claim "both ends run the model" (`models/README.md`). Under
+`grpcRepliesFit`. -/
 axiom grpc.Server.Serve.wp_proof : grpc.Server.Serve.spec (GF := GF) (hG := hG)
 
 end proof

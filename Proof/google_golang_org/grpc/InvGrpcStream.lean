@@ -50,9 +50,10 @@ the handler's premise: the serving layer fixes `Dn` at the stream's creation); t
 and gives it back; until B1b the run kept its slot and a pool `grpcSlotPool` took it back). `Spec` is
 satisfiable per stream at every metadata (`□ ∀ md, streamSpecOk (Spec md)`): the transport picks `Dn` with `□ Spec md γ Dn`, at the stream's metadata `md`, and gives a
 copy to each end. A run is a fork of grpc's `Server.Serve` (its trusted model), given the fork's
-thread token and one later credit (`grpcStreamRunOk`, the run contract); `grpc.serveStream` (a
-theorem since B1b) registers the streams of Go's configuration of the server at `addr`
-(`grpcStreamServerAt addr sics sregs γ`, from `grpc.start'`); `isGrpcStreamMd addr name Up Spec` is
+thread token and one later credit (`grpcStreamRunOk`, the run contract); since phase 7's switch (SW1,
+2026-11-24) a registration is read off the address's service table (`isGrpcStreamMd addr name Up Spec`,
+`grpcStreamSvcAt`; `grpc.start'` registers the streams of Go's configuration, `grpc.serveStream`,
+`isGrpcStreamAt` and `grpcStreamServerAt` are deleted); `isGrpcStreamMd addr name Up Spec` is
 what a client needs (`isGrpcStream`, its instance at a spec that ignores the metadata, the form of a registration with no auth).
 
 **Per-type message models** (stage A; moved here from the prototype's `grpc/PerType.lean`, CP2;
@@ -1359,6 +1360,10 @@ structure GrpcStreamMethod (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] 
   Rep : StreamMsgT GF
   Up : Nat → Req.M → IProp GF
   spec : GrpcMd → StreamSpec Rep.toStreamMsg
+  /-- **The content of its responses** at the metadata a stream was dispatched with (phase 7's
+  switch, SW1, 2026-11-24): the family the specification holds at (`grpc.start'`'s premise `□ ∀ md γ,
+  spec md γ (dn md γ)`), a Lean function, which Iris cannot extract from `streamSpecOk`'s `∀ ∃`. -/
+  dn : GrpcMd → StreamNames → Nat → Rep.M → IProp GF
   handler : GoFunc
   srv : GoInterface
   reqReg : streamReqModelOf GF Req.ty = some Req
@@ -1376,8 +1381,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The run contract of a stream handler**: `grpcStreamMethodOk`'s text with the per-run resource
-fixed to the fork's thread token and later credit, and the post returning the token: the stream
-specification is satisfiable per stream (`streamSpecOk`, at every metadata), and a run, given
+fixed to the fork's thread token and later credit, and the post returning the token (without its
+first conjunct since phase 7's switch, SW1, 2026-11-24: the stream specification's satisfiability,
+`streamSpecOk`, is carried as an explicit content family by `grpc.start'`'s premise and `grpcServes`,
+`notes/phase7-endstate.md` §1.5 item 7): a run, given
 `Spec md γ Dn` at its context's metadata, the token and the credit, the run's raw server end (both
 tokens at `[]`) and grpc's `info`, through the chain, terminates or not, returning an error grpc's
 `status` takes and the token. The chain is at the trivial resource (`srvStreamChainWP iprop(True)`,
@@ -1386,8 +1393,7 @@ calls the composed stream interceptor and the handler synchronously on the strea
 lends what it needs along the chain through the interceptors' own resources. -/
 def grpcStreamRunOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (sics : List GoFunc)
     (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
-  iprop((□ ∀ md, streamSpecOk (Spec md)) ∗
-    □ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
+  iprop(□ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (info : Loc),
       grpcStreamSpecAt Spec ci γ Dn -∗ threadTok -∗ £ 1 -∗
       srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
