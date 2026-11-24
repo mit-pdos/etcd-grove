@@ -31,17 +31,6 @@ theorem plain_okB (s : List w8) (h : PlainStr s) : ∀ c ∈ s, okB c := by
   · intro e; subst e; exact h3 rfl
   · intro e; subst e; exact h4 rfl
 
-theorem decN_okB (n : Nat) : ∀ c ∈ decN n, okB c := by
-  intro c hc
-  have h := decN_digits n c hc
-  simp only [isDig, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨h1, h2⟩ := h
-  have a1 : 48 ≤ c.toNat := h1
-  have a2 : c.toNat ≤ 57 := h2
-  refine ⟨by omega, by omega, ?_, ?_⟩
-  · intro e; subst e; simp at a1
-  · intro e; subst e; simp at a2
-
 theorem mkObj_ok (ms : List (List w8 × JV)) (h : ∀ p ∈ ms, (∀ c ∈ p.1, okB c) ∧ p.2.ok) :
     (mkObj ms).ok := by
   induction ms with

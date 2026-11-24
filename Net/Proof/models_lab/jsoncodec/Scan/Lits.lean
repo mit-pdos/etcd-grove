@@ -200,6 +200,19 @@ theorem valD_le_append (a b : List w8) : valD a ≤ valD (a ++ b) := by
   have := Nat.mul_le_mul_left (valD a) this
   omega
 
+/-- The digits of a number are plain string bytes. -/
+theorem decN_okB (n : Nat) : ∀ c ∈ decN n, okB c := by
+  intro c hc
+  have h := decN_digits n c hc
+  simp only [isDig, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨h1, h2⟩ := h
+  have a1 : 48 ≤ c.toNat := h1
+  have a2 : c.toNat ≤ 57 := h2
+  refine ⟨by omega, by omega, ?_, ?_⟩
+  · intro e; subst e; simp at a1
+  · intro e; subst e; simp at a2
+
+
 /-! ## A number or a plain string alone in the scanner -/
 
 theorem goL_num_top (n : Nat) (c : w8) (r : List w8) (hc : numEnd c) (i : Nat) (eOK eof : Bool) :
