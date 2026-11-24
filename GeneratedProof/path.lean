@@ -49,11 +49,11 @@ noncomputable instance lazybuf_access_load_s (l : Loc) (v : path.lazybuf) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazybuf_access_store_s (l : Loc) (v : path.lazybuf) (s' : GoString) :
+noncomputable instance lazybuf_access_store_s (l : Loc) (v : path.lazybuf) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef path.lazybuf go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef path.lazybuf go!"s" l) s' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : path.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef path.lazybuf go!"s" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : path.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -65,11 +65,11 @@ noncomputable instance lazybuf_access_load_buf (l : Loc) (v : path.lazybuf) (dq 
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazybuf_access_store_buf (l : Loc) (v : path.lazybuf) (buf' : GoSlice) :
+noncomputable instance lazybuf_access_store_buf (l : Loc) (v : path.lazybuf) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef path.lazybuf go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef path.lazybuf go!"buf" l) buf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := buf' } : path.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef path.lazybuf go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : path.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -81,11 +81,11 @@ noncomputable instance lazybuf_access_load_w (l : Loc) (v : path.lazybuf) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazybuf_access_store_w (l : Loc) (v : path.lazybuf) (w' : w64) :
+noncomputable instance lazybuf_access_store_w (l : Loc) (v : path.lazybuf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef path.lazybuf go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef path.lazybuf go!"w" l) w' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := w' } : path.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef path.lazybuf go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : path.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

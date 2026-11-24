@@ -539,7 +539,7 @@ noncomputable def envVarFeatureGates.getEnabledMapFromEnvVar.impl [GooseExts] [G
   (App (Val (GoInstruction (GoStore FeatureSpec.ty))) (Pair (Var "featureSpec") (Var "$value")))))))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef envVarFeatureGates.ty go!"readEnvVars"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType envVarFeatureGates.ty)))) (Var "f")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef envVarFeatureGates.ty go!"readEnvVars"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType envVarFeatureGates.ty)))) (Var "f")))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.MapType Feature.ty go.bool) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType Feature.ty go.bool)))) (Var "featureGatesState")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Value.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef envVarFeatureGates.ty go!"enabledViaEnvVar"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType envVarFeatureGates.ty)))) (Var "f")))) (Var "$a0")))))))
@@ -688,7 +688,7 @@ noncomputable def envVarFeatureGates.hasAlreadyReadEnvVar.impl [GooseExts] [GoGl
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType envVarFeatureGates.ty)))) (Var "f"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef envVarFeatureGates.ty go!"readEnvVars"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType envVarFeatureGates.ty)))) (Var "f")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef envVarFeatureGates.ty go!"readEnvVars"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType envVarFeatureGates.ty)))) (Var "f")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -965,7 +965,7 @@ structure envVarFeatureGates [GooseExts] where
   enabledViaEnvVar' : _root_.Perennial.sync.atomic.Value
   lockEnabledViaSetMethod' : _root_.Perennial.sync.RWMutex
   enabledViaSetMethod' : GoMap
-  readEnvVars' : _root_.Perennial.sync.atomic.Bool'
+  readEnvVars' : _root_.Perennial.sync.atomic.Bool''
 
 noncomputable instance envVarFeatureGates.zero_val [GooseExts] : ZeroVal envVarFeatureGates :=
   ⟨envVarFeatureGates.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
@@ -977,7 +977,7 @@ noncomputable instance envVarFeatureGates.zero_val [GooseExts] : ZeroVal envVarF
 (go.field_decl.FieldDecl go!"enabledViaEnvVar" _root_.Perennial.sync.atomic.Value.ty),
 (go.field_decl.FieldDecl go!"lockEnabledViaSetMethod" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"enabledViaSetMethod" (go.GoType.MapType Feature.ty go.bool)),
-(go.field_decl.FieldDecl go!"readEnvVars" _root_.Perennial.sync.atomic.Bool'.ty)]
+(go.field_decl.FieldDecl go!"readEnvVars" _root_.Perennial.sync.atomic.Bool''.ty)]
 
 @[irreducible] noncomputable def envVarFeatureGates.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   envVarFeatureGates.fieldsUnsealed
@@ -1005,7 +1005,7 @@ class envVarFeatureGates.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   get_enabledViaSetMethod : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"enabledViaSetMethod") #x (Val #(x.enabledViaSetMethod'))
   set_enabledViaSetMethod : ∀ (x : envVarFeatureGates) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"enabledViaSetMethod") (PairV #x #y) (Val #(({ x with enabledViaSetMethod' := y } : envVarFeatureGates)))
   get_readEnvVars : ∀ (x : envVarFeatureGates), go.IsGoStepPureDetTagged under (StructFieldGet envVarFeatureGates.underlying go!"readEnvVars") #x (Val #(x.readEnvVars'))
-  set_readEnvVars : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.atomic.Bool'), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"readEnvVars") (PairV #x #y) (Val #(({ x with readEnvVars' := y } : envVarFeatureGates)))
+  set_readEnvVars : ∀ (x : envVarFeatureGates) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet envVarFeatureGates.underlying go!"readEnvVars") (PairV #x #y) (Val #(({ x with readEnvVars' := y } : envVarFeatureGates)))
   method_set : go.MethodSetIs envVarFeatureGates.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType envVarFeatureGates.ty) [(go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"Set", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"SetForTesting", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"k8s.io/client-go/features.getEnabledMapFromEnvVar", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty go.bool)]))), (go!"k8s.io/client-go/features.hasAlreadyReadEnvVar", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/features.set", (some (go.signature.Signature [Feature.ty, go.bool, go.bool] false [go.error]))), (go!"k8s.io/client-go/features.wasFeatureEnabledViaSetMethod", (some (go.signature.Signature [Feature.ty] false [go.bool, go.bool])))]
   ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType envVarFeatureGates.ty) go!"Enabled" envVarFeatureGates.Enabled.impl

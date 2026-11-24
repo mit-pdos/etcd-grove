@@ -291,7 +291,7 @@ class response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   get_writeContinueMu : ∀ (x : response), go.IsGoStepPureDetTagged under (StructFieldGet response.underlying go!"writeContinueMu") #x (Val #(x.writeContinueMu'))
   set_writeContinueMu : ∀ (x : response) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet response.underlying go!"writeContinueMu") (PairV #x #y) (Val #(({ x with writeContinueMu' := y } : response)))
   get_canWriteContinue : ∀ (x : response), go.IsGoStepPureDetTagged under (StructFieldGet response.underlying go!"canWriteContinue") #x (Val #(x.canWriteContinue'))
-  set_canWriteContinue : ∀ (x : response) (y : _root_.Perennial.sync.atomic.Bool'), go.IsGoStepPureDetTagged under (StructFieldSet response.underlying go!"canWriteContinue") (PairV #x #y) (Val #(({ x with canWriteContinue' := y } : response)))
+  set_canWriteContinue : ∀ (x : response) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet response.underlying go!"canWriteContinue") (PairV #x #y) (Val #(({ x with canWriteContinue' := y } : response)))
   get_w : ∀ (x : response), go.IsGoStepPureDetTagged under (StructFieldGet response.underlying go!"w") #x (Val #(x.w'))
   set_w : ∀ (x : response) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet response.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : response)))
   get_cw : ∀ (x : response), go.IsGoStepPureDetTagged under (StructFieldGet response.underlying go!"cw") #x (Val #(x.cw'))
@@ -315,7 +315,7 @@ class response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   get_trailers : ∀ (x : response), go.IsGoStepPureDetTagged under (StructFieldGet response.underlying go!"trailers") #x (Val #(x.trailers'))
   set_trailers : ∀ (x : response) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet response.underlying go!"trailers") (PairV #x #y) (Val #(({ x with trailers' := y } : response)))
   get_handlerDone : ∀ (x : response), go.IsGoStepPureDetTagged under (StructFieldGet response.underlying go!"handlerDone") #x (Val #(x.handlerDone'))
-  set_handlerDone : ∀ (x : response) (y : _root_.Perennial.sync.atomic.Bool'), go.IsGoStepPureDetTagged under (StructFieldSet response.underlying go!"handlerDone") (PairV #x #y) (Val #(({ x with handlerDone' := y } : response)))
+  set_handlerDone : ∀ (x : response) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet response.underlying go!"handlerDone") (PairV #x #y) (Val #(({ x with handlerDone' := y } : response)))
   get_dateBuf : ∀ (x : response), go.IsGoStepPureDetTagged under (StructFieldGet response.underlying go!"dateBuf") #x (Val #(x.dateBuf'))
   set_dateBuf : ∀ (x : response) (y : (GoArray w8 29)), go.IsGoStepPureDetTagged under (StructFieldSet response.underlying go!"dateBuf") (PairV #x #y) (Val #(({ x with dateBuf' := y } : response)))
   get_clenBuf : ∀ (x : response), go.IsGoStepPureDetTagged under (StructFieldGet response.underlying go!"clenBuf") #x (Val #(x.clenBuf'))
@@ -608,7 +608,7 @@ class expectContinueReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   get_readCloser : ∀ (x : expectContinueReader), go.IsGoStepPureDetTagged under (StructFieldGet expectContinueReader.underlying go!"readCloser") #x (Val #(x.readCloser'))
   set_readCloser : ∀ (x : expectContinueReader) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet expectContinueReader.underlying go!"readCloser") (PairV #x #y) (Val #(({ x with readCloser' := y } : expectContinueReader)))
   get_closed : ∀ (x : expectContinueReader), go.IsGoStepPureDetTagged under (StructFieldGet expectContinueReader.underlying go!"closed") #x (Val #(x.closed'))
-  set_closed : ∀ (x : expectContinueReader) (y : _root_.Perennial.sync.atomic.Bool'), go.IsGoStepPureDetTagged under (StructFieldSet expectContinueReader.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : expectContinueReader)))
+  set_closed : ∀ (x : expectContinueReader) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet expectContinueReader.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : expectContinueReader)))
   method_set : go.MethodSetIs expectContinueReader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType expectContinueReader.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
@@ -835,9 +835,9 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   get_DisableClientPriority : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"DisableClientPriority") #x (Val #(x.DisableClientPriority'))
   set_DisableClientPriority : ∀ (x : Server) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"DisableClientPriority") (PairV #x #y) (Val #(({ x with DisableClientPriority' := y } : Server)))
   get_inShutdown : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"inShutdown") #x (Val #(x.inShutdown'))
-  set_inShutdown : ∀ (x : Server) (y : _root_.Perennial.sync.atomic.Bool'), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"inShutdown") (PairV #x #y) (Val #(({ x with inShutdown' := y } : Server)))
+  set_inShutdown : ∀ (x : Server) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"inShutdown") (PairV #x #y) (Val #(({ x with inShutdown' := y } : Server)))
   get_disableKeepAlives : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"disableKeepAlives") #x (Val #(x.disableKeepAlives'))
-  set_disableKeepAlives : ∀ (x : Server) (y : _root_.Perennial.sync.atomic.Bool'), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"disableKeepAlives") (PairV #x #y) (Val #(({ x with disableKeepAlives' := y } : Server)))
+  set_disableKeepAlives : ∀ (x : Server) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"disableKeepAlives") (PairV #x #y) (Val #(({ x with disableKeepAlives' := y } : Server)))
   get_nextProtoOnce : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"nextProtoOnce") #x (Val #(x.nextProtoOnce'))
   set_nextProtoOnce : ∀ (x : Server) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"nextProtoOnce") (PairV #x #y) (Val #(({ x with nextProtoOnce' := y } : Server)))
   get_nextProtoErr : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"nextProtoErr") #x (Val #(x.nextProtoErr'))

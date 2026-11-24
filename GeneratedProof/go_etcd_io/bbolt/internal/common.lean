@@ -56,11 +56,11 @@ noncomputable instance InBucket_access_load_root (l : Loc) (v : go_etcd_io.bbolt
  by
   solve_pointsto_access_struct
 
-noncomputable instance InBucket_access_store_root (l : Loc) (v : go_etcd_io.bbolt.internal.common.InBucket) (root' : go_etcd_io.bbolt.internal.common.Pgid) :
+noncomputable instance InBucket_access_store_root (l : Loc) (v : go_etcd_io.bbolt.internal.common.InBucket) (y : go_etcd_io.bbolt.internal.common.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.InBucket go!"root" l) v.root' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.InBucket go!"root" l) root' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := root' } : go_etcd_io.bbolt.internal.common.InBucket) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.InBucket go!"root" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := y } : go_etcd_io.bbolt.internal.common.InBucket) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -72,11 +72,11 @@ noncomputable instance InBucket_access_load_sequence (l : Loc) (v : go_etcd_io.b
  by
   solve_pointsto_access_struct
 
-noncomputable instance InBucket_access_store_sequence (l : Loc) (v : go_etcd_io.bbolt.internal.common.InBucket) (sequence' : w64) :
+noncomputable instance InBucket_access_store_sequence (l : Loc) (v : go_etcd_io.bbolt.internal.common.InBucket) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.InBucket go!"sequence" l) v.sequence' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.InBucket go!"sequence" l) sequence' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sequence' := sequence' } : go_etcd_io.bbolt.internal.common.InBucket) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.InBucket go!"sequence" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sequence' := y } : go_etcd_io.bbolt.internal.common.InBucket) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -115,11 +115,11 @@ noncomputable instance Inode_access_load_flags (l : Loc) (v : go_etcd_io.bbolt.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inode_access_store_flags (l : Loc) (v : go_etcd_io.bbolt.internal.common.Inode) (flags' : w32) :
+noncomputable instance Inode_access_store_flags (l : Loc) (v : go_etcd_io.bbolt.internal.common.Inode) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"flags" l) v.flags' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"flags" l) flags' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flags' := flags' } : go_etcd_io.bbolt.internal.common.Inode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"flags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flags' := y } : go_etcd_io.bbolt.internal.common.Inode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -131,11 +131,11 @@ noncomputable instance Inode_access_load_pgid (l : Loc) (v : go_etcd_io.bbolt.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inode_access_store_pgid (l : Loc) (v : go_etcd_io.bbolt.internal.common.Inode) (pgid' : go_etcd_io.bbolt.internal.common.Pgid) :
+noncomputable instance Inode_access_store_pgid (l : Loc) (v : go_etcd_io.bbolt.internal.common.Inode) (y : go_etcd_io.bbolt.internal.common.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"pgid" l) v.pgid' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"pgid" l) pgid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pgid' := pgid' } : go_etcd_io.bbolt.internal.common.Inode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"pgid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pgid' := y } : go_etcd_io.bbolt.internal.common.Inode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -147,11 +147,11 @@ noncomputable instance Inode_access_load_key (l : Loc) (v : go_etcd_io.bbolt.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inode_access_store_key (l : Loc) (v : go_etcd_io.bbolt.internal.common.Inode) (key' : GoSlice) :
+noncomputable instance Inode_access_store_key (l : Loc) (v : go_etcd_io.bbolt.internal.common.Inode) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"key" l) v.key' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"key" l) key' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : go_etcd_io.bbolt.internal.common.Inode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : go_etcd_io.bbolt.internal.common.Inode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -163,11 +163,11 @@ noncomputable instance Inode_access_load_value (l : Loc) (v : go_etcd_io.bbolt.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Inode_access_store_value (l : Loc) (v : go_etcd_io.bbolt.internal.common.Inode) (value' : GoSlice) :
+noncomputable instance Inode_access_store_value (l : Loc) (v : go_etcd_io.bbolt.internal.common.Inode) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"value" l) value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := value' } : go_etcd_io.bbolt.internal.common.Inode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Inode go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : go_etcd_io.bbolt.internal.common.Inode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -211,11 +211,11 @@ noncomputable instance Meta_access_load_magic (l : Loc) (v : go_etcd_io.bbolt.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_magic (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (magic' : w32) :
+noncomputable instance Meta_access_store_magic (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"magic" l) v.magic' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"magic" l) magic' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with magic' := magic' } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"magic" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with magic' := y } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -227,11 +227,11 @@ noncomputable instance Meta_access_load_version (l : Loc) (v : go_etcd_io.bbolt.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_version (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (version' : w32) :
+noncomputable instance Meta_access_store_version (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"version" l) v.version' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"version" l) version' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with version' := version' } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"version" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with version' := y } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -243,11 +243,11 @@ noncomputable instance Meta_access_load_pageSize (l : Loc) (v : go_etcd_io.bbolt
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_pageSize (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (pageSize' : w32) :
+noncomputable instance Meta_access_store_pageSize (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"pageSize" l) v.pageSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"pageSize" l) pageSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pageSize' := pageSize' } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"pageSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pageSize' := y } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -259,11 +259,11 @@ noncomputable instance Meta_access_load_flags (l : Loc) (v : go_etcd_io.bbolt.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_flags (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (flags' : w32) :
+noncomputable instance Meta_access_store_flags (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"flags" l) v.flags' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"flags" l) flags' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flags' := flags' } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"flags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flags' := y } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -275,11 +275,11 @@ noncomputable instance Meta_access_load_root (l : Loc) (v : go_etcd_io.bbolt.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_root (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (root' : go_etcd_io.bbolt.internal.common.InBucket) :
+noncomputable instance Meta_access_store_root (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (y : go_etcd_io.bbolt.internal.common.InBucket) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"root" l) v.root' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"root" l) root' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := root' } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"root" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := y } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -291,11 +291,11 @@ noncomputable instance Meta_access_load_freelist (l : Loc) (v : go_etcd_io.bbolt
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_freelist (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (freelist' : go_etcd_io.bbolt.internal.common.Pgid) :
+noncomputable instance Meta_access_store_freelist (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (y : go_etcd_io.bbolt.internal.common.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"freelist" l) v.freelist' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"freelist" l) freelist' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freelist' := freelist' } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"freelist" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freelist' := y } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -307,11 +307,11 @@ noncomputable instance Meta_access_load_pgid (l : Loc) (v : go_etcd_io.bbolt.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_pgid (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (pgid' : go_etcd_io.bbolt.internal.common.Pgid) :
+noncomputable instance Meta_access_store_pgid (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (y : go_etcd_io.bbolt.internal.common.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"pgid" l) v.pgid' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"pgid" l) pgid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pgid' := pgid' } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"pgid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pgid' := y } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -323,11 +323,11 @@ noncomputable instance Meta_access_load_txid (l : Loc) (v : go_etcd_io.bbolt.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_txid (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (txid' : go_etcd_io.bbolt.internal.common.Txid) :
+noncomputable instance Meta_access_store_txid (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (y : go_etcd_io.bbolt.internal.common.Txid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"txid" l) v.txid' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"txid" l) txid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with txid' := txid' } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"txid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with txid' := y } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -339,11 +339,11 @@ noncomputable instance Meta_access_load_checksum (l : Loc) (v : go_etcd_io.bbolt
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_checksum (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (checksum' : w64) :
+noncomputable instance Meta_access_store_checksum (l : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"checksum" l) v.checksum' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"checksum" l) checksum' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with checksum' := checksum' } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Meta go!"checksum" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with checksum' := y } : go_etcd_io.bbolt.internal.common.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -382,11 +382,11 @@ noncomputable instance Page_access_load_id (l : Loc) (v : go_etcd_io.bbolt.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_store_id (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (id' : go_etcd_io.bbolt.internal.common.Pgid) :
+noncomputable instance Page_access_store_id (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (y : go_etcd_io.bbolt.internal.common.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : go_etcd_io.bbolt.internal.common.Page) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : go_etcd_io.bbolt.internal.common.Page) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -398,11 +398,11 @@ noncomputable instance Page_access_load_flags (l : Loc) (v : go_etcd_io.bbolt.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_store_flags (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (flags' : w16) :
+noncomputable instance Page_access_store_flags (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"flags" l) v.flags' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"flags" l) flags' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flags' := flags' } : go_etcd_io.bbolt.internal.common.Page) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"flags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flags' := y } : go_etcd_io.bbolt.internal.common.Page) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -414,11 +414,11 @@ noncomputable instance Page_access_load_count (l : Loc) (v : go_etcd_io.bbolt.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_store_count (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (count' : w16) :
+noncomputable instance Page_access_store_count (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"count" l) v.count' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"count" l) count' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with count' := count' } : go_etcd_io.bbolt.internal.common.Page) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with count' := y } : go_etcd_io.bbolt.internal.common.Page) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -430,11 +430,11 @@ noncomputable instance Page_access_load_overflow (l : Loc) (v : go_etcd_io.bbolt
  by
   solve_pointsto_access_struct
 
-noncomputable instance Page_access_store_overflow (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (overflow' : w32) :
+noncomputable instance Page_access_store_overflow (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"overflow" l) v.overflow' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"overflow" l) overflow' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with overflow' := overflow' } : go_etcd_io.bbolt.internal.common.Page) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.Page go!"overflow" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with overflow' := y } : go_etcd_io.bbolt.internal.common.Page) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -472,11 +472,11 @@ noncomputable instance branchPageElement_access_load_pos (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance branchPageElement_access_store_pos (l : Loc) (v : go_etcd_io.bbolt.internal.common.branchPageElement) (pos' : w32) :
+noncomputable instance branchPageElement_access_store_pos (l : Loc) (v : go_etcd_io.bbolt.internal.common.branchPageElement) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.branchPageElement go!"pos" l) v.pos' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.branchPageElement go!"pos" l) pos' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pos' := pos' } : go_etcd_io.bbolt.internal.common.branchPageElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.branchPageElement go!"pos" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pos' := y } : go_etcd_io.bbolt.internal.common.branchPageElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -488,11 +488,11 @@ noncomputable instance branchPageElement_access_load_ksize (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance branchPageElement_access_store_ksize (l : Loc) (v : go_etcd_io.bbolt.internal.common.branchPageElement) (ksize' : w32) :
+noncomputable instance branchPageElement_access_store_ksize (l : Loc) (v : go_etcd_io.bbolt.internal.common.branchPageElement) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.branchPageElement go!"ksize" l) v.ksize' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.branchPageElement go!"ksize" l) ksize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ksize' := ksize' } : go_etcd_io.bbolt.internal.common.branchPageElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.branchPageElement go!"ksize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ksize' := y } : go_etcd_io.bbolt.internal.common.branchPageElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -504,11 +504,11 @@ noncomputable instance branchPageElement_access_load_pgid (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance branchPageElement_access_store_pgid (l : Loc) (v : go_etcd_io.bbolt.internal.common.branchPageElement) (pgid' : go_etcd_io.bbolt.internal.common.Pgid) :
+noncomputable instance branchPageElement_access_store_pgid (l : Loc) (v : go_etcd_io.bbolt.internal.common.branchPageElement) (y : go_etcd_io.bbolt.internal.common.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.branchPageElement go!"pgid" l) v.pgid' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.branchPageElement go!"pgid" l) pgid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pgid' := pgid' } : go_etcd_io.bbolt.internal.common.branchPageElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.branchPageElement go!"pgid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pgid' := y } : go_etcd_io.bbolt.internal.common.branchPageElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -547,11 +547,11 @@ noncomputable instance leafPageElement_access_load_flags (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance leafPageElement_access_store_flags (l : Loc) (v : go_etcd_io.bbolt.internal.common.leafPageElement) (flags' : w32) :
+noncomputable instance leafPageElement_access_store_flags (l : Loc) (v : go_etcd_io.bbolt.internal.common.leafPageElement) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"flags" l) v.flags' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"flags" l) flags' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flags' := flags' } : go_etcd_io.bbolt.internal.common.leafPageElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"flags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flags' := y } : go_etcd_io.bbolt.internal.common.leafPageElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -563,11 +563,11 @@ noncomputable instance leafPageElement_access_load_pos (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance leafPageElement_access_store_pos (l : Loc) (v : go_etcd_io.bbolt.internal.common.leafPageElement) (pos' : w32) :
+noncomputable instance leafPageElement_access_store_pos (l : Loc) (v : go_etcd_io.bbolt.internal.common.leafPageElement) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"pos" l) v.pos' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"pos" l) pos' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pos' := pos' } : go_etcd_io.bbolt.internal.common.leafPageElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"pos" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pos' := y } : go_etcd_io.bbolt.internal.common.leafPageElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -579,11 +579,11 @@ noncomputable instance leafPageElement_access_load_ksize (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance leafPageElement_access_store_ksize (l : Loc) (v : go_etcd_io.bbolt.internal.common.leafPageElement) (ksize' : w32) :
+noncomputable instance leafPageElement_access_store_ksize (l : Loc) (v : go_etcd_io.bbolt.internal.common.leafPageElement) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"ksize" l) v.ksize' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"ksize" l) ksize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ksize' := ksize' } : go_etcd_io.bbolt.internal.common.leafPageElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"ksize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ksize' := y } : go_etcd_io.bbolt.internal.common.leafPageElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -595,11 +595,11 @@ noncomputable instance leafPageElement_access_load_vsize (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance leafPageElement_access_store_vsize (l : Loc) (v : go_etcd_io.bbolt.internal.common.leafPageElement) (vsize' : w32) :
+noncomputable instance leafPageElement_access_store_vsize (l : Loc) (v : go_etcd_io.bbolt.internal.common.leafPageElement) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"vsize" l) v.vsize' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"vsize" l) vsize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vsize' := vsize' } : go_etcd_io.bbolt.internal.common.leafPageElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.leafPageElement go!"vsize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vsize' := y } : go_etcd_io.bbolt.internal.common.leafPageElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -638,11 +638,11 @@ noncomputable instance PageInfo_access_load_ID (l : Loc) (v : go_etcd_io.bbolt.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageInfo_access_store_ID (l : Loc) (v : go_etcd_io.bbolt.internal.common.PageInfo) (ID' : w64) :
+noncomputable instance PageInfo_access_store_ID (l : Loc) (v : go_etcd_io.bbolt.internal.common.PageInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"ID" l) v.ID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"ID" l) ID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.bbolt.internal.common.PageInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"ID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : go_etcd_io.bbolt.internal.common.PageInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -654,11 +654,11 @@ noncomputable instance PageInfo_access_load_Type (l : Loc) (v : go_etcd_io.bbolt
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageInfo_access_store_Type (l : Loc) (v : go_etcd_io.bbolt.internal.common.PageInfo) (Type' : GoString) :
+noncomputable instance PageInfo_access_store_Type (l : Loc) (v : go_etcd_io.bbolt.internal.common.PageInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : go_etcd_io.bbolt.internal.common.PageInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : go_etcd_io.bbolt.internal.common.PageInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -670,11 +670,11 @@ noncomputable instance PageInfo_access_load_Count (l : Loc) (v : go_etcd_io.bbol
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageInfo_access_store_Count (l : Loc) (v : go_etcd_io.bbolt.internal.common.PageInfo) (Count' : w64) :
+noncomputable instance PageInfo_access_store_Count (l : Loc) (v : go_etcd_io.bbolt.internal.common.PageInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"Count" l) v.Count' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"Count" l) Count' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := Count' } : go_etcd_io.bbolt.internal.common.PageInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"Count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : go_etcd_io.bbolt.internal.common.PageInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -686,11 +686,11 @@ noncomputable instance PageInfo_access_load_OverflowCount (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageInfo_access_store_OverflowCount (l : Loc) (v : go_etcd_io.bbolt.internal.common.PageInfo) (OverflowCount' : w64) :
+noncomputable instance PageInfo_access_store_OverflowCount (l : Loc) (v : go_etcd_io.bbolt.internal.common.PageInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"OverflowCount" l) v.OverflowCount' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"OverflowCount" l) OverflowCount' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OverflowCount' := OverflowCount' } : go_etcd_io.bbolt.internal.common.PageInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.common.PageInfo go!"OverflowCount" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OverflowCount' := y } : go_etcd_io.bbolt.internal.common.PageInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

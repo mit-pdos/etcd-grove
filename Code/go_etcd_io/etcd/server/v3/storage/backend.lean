@@ -3762,7 +3762,7 @@ noncomputable def VerifyBackendConsistency.impl [GooseExts] [GoGlobalContext] : 
   (Let "$a0" (Val #(go!"verifyBackendConsistency"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"skipSafeRangeBucket"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "skipSafeRangeBucket"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Bool' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Bool'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)

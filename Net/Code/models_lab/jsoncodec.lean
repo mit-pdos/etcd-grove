@@ -45,7 +45,7 @@ attribute [irreducible] NotModelled.ty
 @[reducible] noncomputable def hexDigits [GooseExts] [GoGlobalContext] : val :=
   #(go!"0123456789abcdef")
 
-@[reducible] noncomputable def Set' [GooseExts] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Set'' [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
 @[reducible] noncomputable def Keep [GooseExts] [GoGlobalContext] : val :=
@@ -162,7 +162,7 @@ noncomputable def QuotedUint [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def noEscape [GooseExts] [GoGlobalContext] : GoString :=
   go!"models.lab/jsoncodec.noEscape"
 
-noncomputable def Int' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Int'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"models.lab/jsoncodec.Int"
 
 noncomputable def QuotedInt [GooseExts] [GoGlobalContext] : GoString :=
@@ -180,7 +180,7 @@ noncomputable def signed [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def String [GooseExts] [GoGlobalContext] : GoString :=
   go!"models.lab/jsoncodec.String"
 
-noncomputable def Bool' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Bool'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"models.lab/jsoncodec.Bool"
 
 /-- IsSpace reports whether c is JSON whitespace.
@@ -2684,7 +2684,7 @@ noncomputable def Uint.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x"))
-  (Let "$r1" (Val Set')
+  (Let "$r1" (Val Set'')
   (Let "$r2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2812,7 +2812,7 @@ noncomputable def QuotedUint.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x"))
-  (Let "$r1" (Val Set')
+  (Let "$r1" (Val Set'')
   (Let "$r2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2948,7 +2948,7 @@ noncomputable def noEscape.impl [GooseExts] [GoGlobalContext] : val :=
     status and the index after the value.
 
     go: jsoncodec.go:779:6 -/
-noncomputable def Int.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
   (Lam "max"
@@ -3307,7 +3307,7 @@ noncomputable def statusOf.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val Set')
+  (Let "$r0" (Val Set'')
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -3533,7 +3533,7 @@ noncomputable def String.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
-  (Let "$r1" (Val Set')
+  (Let "$r1" (Val Set'')
   (Let "$r2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3561,7 +3561,7 @@ noncomputable def String.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Bool decodes the value at or after i into a bool.
 
     go: jsoncodec.go:879:6 -/
-noncomputable def Bool.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Bool''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -3622,7 +3622,7 @@ noncomputable def Bool.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 102)))))
   (Let "$r0" (Val #false)
-  (Let "$r1" (Val Set')
+  (Let "$r1" (Val Set'')
   (Let "$r2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3639,7 +3639,7 @@ noncomputable def Bool.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 116)))))
   (Let "$r0" (Val #true)
-  (Let "$r1" (Val Set')
+  (Let "$r1" (Val Set'')
   (Let "$r2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3767,13 +3767,13 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Uint_unfold : FuncUnfold Uint [] Uint.impl
   QuotedUint_unfold : FuncUnfold QuotedUint [] QuotedUint.impl
   noEscape_unfold : FuncUnfold noEscape [] noEscape.impl
-  Int_unfold : FuncUnfold Int' [] Int.impl
+  Int_unfold : FuncUnfold Int'' [] Int''.impl
   QuotedInt_unfold : FuncUnfold QuotedInt [] QuotedInt.impl
   signedParts_unfold : FuncUnfold signedParts [] signedParts.impl
   statusOf_unfold : FuncUnfold statusOf [] statusOf.impl
   signed_unfold : FuncUnfold signed [] signed.impl
   String_unfold : FuncUnfold String [] String.impl
-  Bool_unfold : FuncUnfold Bool' [] Bool.impl
+  Bool_unfold : FuncUnfold Bool'' [] Bool''.impl
 
 attribute [instance] Assumptions.Error_instance
   Assumptions.NotModelled_instance

@@ -56,11 +56,11 @@ noncomputable instance wrappingCollector_access_load_wrappedCollector (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingCollector_access_store_wrappedCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingCollector) (wrappedCollector' : github_com.prometheus.client_golang.prometheus.Collector) :
+noncomputable instance wrappingCollector_access_store_wrappedCollector (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingCollector) (y : github_com.prometheus.client_golang.prometheus.Collector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingCollector go!"wrappedCollector" l) v.wrappedCollector' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingCollector go!"wrappedCollector" l) wrappedCollector' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wrappedCollector' := wrappedCollector' } : github_com.prometheus.client_golang.prometheus.wrappingCollector) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingCollector go!"wrappedCollector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wrappedCollector' := y } : github_com.prometheus.client_golang.prometheus.wrappingCollector) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -72,11 +72,11 @@ noncomputable instance wrappingCollector_access_load_prefix (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingCollector_access_store_prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingCollector) (prefix' : GoString) :
+noncomputable instance wrappingCollector_access_store_prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingCollector) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingCollector go!"prefix" l) v.prefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingCollector go!"prefix" l) prefix' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := prefix' } : github_com.prometheus.client_golang.prometheus.wrappingCollector) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingCollector go!"prefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := y } : github_com.prometheus.client_golang.prometheus.wrappingCollector) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -88,11 +88,11 @@ noncomputable instance wrappingCollector_access_load_labels (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingCollector_access_store_labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingCollector) (labels' : github_com.prometheus.client_golang.prometheus.Labels) :
+noncomputable instance wrappingCollector_access_store_labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingCollector) (y : github_com.prometheus.client_golang.prometheus.Labels) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingCollector go!"labels" l) v.labels' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingCollector go!"labels" l) labels' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with labels' := labels' } : github_com.prometheus.client_golang.prometheus.wrappingCollector) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingCollector go!"labels" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with labels' := y } : github_com.prometheus.client_golang.prometheus.wrappingCollector) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -130,11 +130,11 @@ noncomputable instance wrappingMetric_access_load_wrappedMetric (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingMetric_access_store_wrappedMetric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (wrappedMetric' : github_com.prometheus.client_golang.prometheus.Metric) :
+noncomputable instance wrappingMetric_access_store_wrappedMetric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (y : github_com.prometheus.client_golang.prometheus.Metric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"wrappedMetric" l) v.wrappedMetric' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"wrappedMetric" l) wrappedMetric' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wrappedMetric' := wrappedMetric' } : github_com.prometheus.client_golang.prometheus.wrappingMetric) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"wrappedMetric" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wrappedMetric' := y } : github_com.prometheus.client_golang.prometheus.wrappingMetric) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -146,11 +146,11 @@ noncomputable instance wrappingMetric_access_load_prefix (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingMetric_access_store_prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (prefix' : GoString) :
+noncomputable instance wrappingMetric_access_store_prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"prefix" l) v.prefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"prefix" l) prefix' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := prefix' } : github_com.prometheus.client_golang.prometheus.wrappingMetric) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"prefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := y } : github_com.prometheus.client_golang.prometheus.wrappingMetric) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -162,11 +162,11 @@ noncomputable instance wrappingMetric_access_load_labels (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance wrappingMetric_access_store_labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (labels' : github_com.prometheus.client_golang.prometheus.Labels) :
+noncomputable instance wrappingMetric_access_store_labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (y : github_com.prometheus.client_golang.prometheus.Labels) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"labels" l) v.labels' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"labels" l) labels' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with labels' := labels' } : github_com.prometheus.client_golang.prometheus.wrappingMetric) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"labels" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with labels' := y } : github_com.prometheus.client_golang.prometheus.wrappingMetric) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

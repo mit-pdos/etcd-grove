@@ -213,7 +213,7 @@ noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ResourceVersionMatch.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"ResourceVersionMatch"))) (Var "options")))
   (Let "requestedResourceVersionMatch" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ResourceVersionMatch.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ResourceVersionMatch.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "list" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Val #())))
+  (Let "list" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Val #())))
   (Let "$r0" (Val #false)
   (Let "paginatedResult" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -238,7 +238,7 @@ noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Val #())))
+  (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -250,7 +250,7 @@ noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "m"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!""))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -265,9 +265,9 @@ noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"ResourceVersion"))) (Var "options")) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Continue"))) (Var "options")) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "m"))) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list")))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty) _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Var "list")))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))
   (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -288,7 +288,7 @@ noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty go!"Items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty go!"Items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Var "list"))))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -300,7 +300,7 @@ noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty go!"Items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty go!"Items"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Var "list"))) (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
   (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))))) (Var "eachListItemFunc")) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -332,23 +332,23 @@ noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))] false [go.error]))))) (Pair (Var "eachListItemFunc") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Val UntypedNil)))))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty))) (Let "$v0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)]))) (Val #())) (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Limit"))) (Var "options"))) (Val #(W64 1)))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Items")) (ElementExpression (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty) (Var "$v0")))]))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Var "list")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty))) (Let "$v0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)]))) (Val #())) (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Limit"))) (Var "options"))) (Val #(W64 1)))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Items")) (ElementExpression (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty) (Var "$v0")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetResourceVersion"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"GetResourceVersion"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "m"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetSelfLink"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"GetSelfLink"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "m"))) (Val #()))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty go!"SelfLink"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty go!"ListMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list")))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty go!"SelfLink"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty go!"ListMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Var "list")))) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty go!"ResourceVersion"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty go!"ListMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list")))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta.ty go!"ResourceVersion"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty go!"ListMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Var "list")))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Pair (Var "list") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Pair (Var "list") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
-  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Var "list")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.ty)))) (Val UntypedNil)))) (Val #false)))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "m"))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Var "list")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.ty)))) (Val UntypedNil)))) (Val #false)))
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "paginatedResult"))
   (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
@@ -388,7 +388,7 @@ noncomputable def ListPager.list.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Pair (Var "m") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Pair (Var "m") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
@@ -793,16 +793,16 @@ noncomputable def ListPager.eachListChunk.impl [GooseExts] [GoGlobalContext] : v
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Val #())))
+  (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "m"))) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty go!"Continue"))) (Var "options")) (Var "$r0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "m"))) (Val #()))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"GetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "m"))) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -842,7 +842,7 @@ noncomputable def ListPager.eachListChunk.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Pair (Var "m") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Pair (Var "m") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon

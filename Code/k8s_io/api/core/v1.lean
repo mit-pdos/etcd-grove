@@ -305,7 +305,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Event_instance : Event.TypeAssumptions
   EventSeries_instance : EventSeries.TypeAssumptions
   EventList_instance : EventList.TypeAssumptions
-  List_instance : List.TypeAssumptions
+  List_instance : List''.TypeAssumptions
   LimitType_instance : LimitType.TypeAssumptions
   LimitRangeItem_instance : LimitRangeItem.TypeAssumptions
   LimitRangeSpec_instance : LimitRangeSpec.TypeAssumptions

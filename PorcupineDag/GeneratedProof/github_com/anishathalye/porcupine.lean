@@ -58,11 +58,11 @@ noncomputable instance entry_access_load_kind (l : Loc) (v : github_com.anishath
  by
   solve_pointsto_access_struct
 
-noncomputable instance entry_access_store_kind (l : Loc) (v : github_com.anishathalye.porcupine.entry) (kind' : github_com.anishathalye.porcupine.entryKind) :
+noncomputable instance entry_access_store_kind (l : Loc) (v : github_com.anishathalye.porcupine.entry) (y : github_com.anishathalye.porcupine.entryKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"kind" l) v.kind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"kind" l) kind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kind' := kind' } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"kind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kind' := y } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -74,11 +74,11 @@ noncomputable instance entry_access_load_value (l : Loc) (v : github_com.anishat
  by
   solve_pointsto_access_struct
 
-noncomputable instance entry_access_store_value (l : Loc) (v : github_com.anishathalye.porcupine.entry) (value' : GoInterface) :
+noncomputable instance entry_access_store_value (l : Loc) (v : github_com.anishathalye.porcupine.entry) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"value" l) value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := value' } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -90,11 +90,11 @@ noncomputable instance entry_access_load_id (l : Loc) (v : github_com.anishathal
  by
   solve_pointsto_access_struct
 
-noncomputable instance entry_access_store_id (l : Loc) (v : github_com.anishathalye.porcupine.entry) (id' : w64) :
+noncomputable instance entry_access_store_id (l : Loc) (v : github_com.anishathalye.porcupine.entry) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -106,11 +106,11 @@ noncomputable instance entry_access_load_time (l : Loc) (v : github_com.anishath
  by
   solve_pointsto_access_struct
 
-noncomputable instance entry_access_store_time (l : Loc) (v : github_com.anishathalye.porcupine.entry) (time' : w64) :
+noncomputable instance entry_access_store_time (l : Loc) (v : github_com.anishathalye.porcupine.entry) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"time" l) v.time' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"time" l) time' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with time' := time' } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"time" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with time' := y } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -122,11 +122,11 @@ noncomputable instance entry_access_load_clientId (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance entry_access_store_clientId (l : Loc) (v : github_com.anishathalye.porcupine.entry) (clientId' : w64) :
+noncomputable instance entry_access_store_clientId (l : Loc) (v : github_com.anishathalye.porcupine.entry) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"clientId" l) v.clientId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"clientId" l) clientId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientId' := clientId' } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"clientId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientId' := y } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -138,11 +138,11 @@ noncomputable instance entry_access_load_opKind (l : Loc) (v : github_com.anisha
  by
   solve_pointsto_access_struct
 
-noncomputable instance entry_access_store_opKind (l : Loc) (v : github_com.anishathalye.porcupine.entry) (opKind' : github_com.anishathalye.porcupine.OperationKind) :
+noncomputable instance entry_access_store_opKind (l : Loc) (v : github_com.anishathalye.porcupine.entry) (y : github_com.anishathalye.porcupine.OperationKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"opKind" l) v.opKind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"opKind" l) opKind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opKind' := opKind' } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"opKind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opKind' := y } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -154,11 +154,11 @@ noncomputable instance entry_access_load_metadata (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance entry_access_store_metadata (l : Loc) (v : github_com.anishathalye.porcupine.entry) (metadata' : GoInterface) :
+noncomputable instance entry_access_store_metadata (l : Loc) (v : github_com.anishathalye.porcupine.entry) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"metadata" l) v.metadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"metadata" l) metadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with metadata' := metadata' } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"metadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with metadata' := y } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -170,11 +170,11 @@ noncomputable instance entry_access_load_hint (l : Loc) (v : github_com.anishath
  by
   solve_pointsto_access_struct
 
-noncomputable instance entry_access_store_hint (l : Loc) (v : github_com.anishathalye.porcupine.entry) (hint' : GoInterface) :
+noncomputable instance entry_access_store_hint (l : Loc) (v : github_com.anishathalye.porcupine.entry) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"hint" l) v.hint' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"hint" l) hint' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hint' := hint' } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.entry go!"hint" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hint' := y } : github_com.anishathalye.porcupine.entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -212,11 +212,11 @@ noncomputable instance LinearizationInfo_access_load_history (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance LinearizationInfo_access_store_history (l : Loc) (v : github_com.anishathalye.porcupine.LinearizationInfo) (history' : GoSlice) :
+noncomputable instance LinearizationInfo_access_store_history (l : Loc) (v : github_com.anishathalye.porcupine.LinearizationInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.LinearizationInfo go!"history" l) v.history' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.LinearizationInfo go!"history" l) history' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with history' := history' } : github_com.anishathalye.porcupine.LinearizationInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.LinearizationInfo go!"history" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with history' := y } : github_com.anishathalye.porcupine.LinearizationInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -228,11 +228,11 @@ noncomputable instance LinearizationInfo_access_load_partialLinearizations (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LinearizationInfo_access_store_partialLinearizations (l : Loc) (v : github_com.anishathalye.porcupine.LinearizationInfo) (partialLinearizations' : GoSlice) :
+noncomputable instance LinearizationInfo_access_store_partialLinearizations (l : Loc) (v : github_com.anishathalye.porcupine.LinearizationInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.LinearizationInfo go!"partialLinearizations" l) v.partialLinearizations' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.LinearizationInfo go!"partialLinearizations" l) partialLinearizations' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with partialLinearizations' := partialLinearizations' } : github_com.anishathalye.porcupine.LinearizationInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.LinearizationInfo go!"partialLinearizations" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with partialLinearizations' := y } : github_com.anishathalye.porcupine.LinearizationInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -244,11 +244,11 @@ noncomputable instance LinearizationInfo_access_load_annotations (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LinearizationInfo_access_store_annotations (l : Loc) (v : github_com.anishathalye.porcupine.LinearizationInfo) (annotations' : GoSlice) :
+noncomputable instance LinearizationInfo_access_store_annotations (l : Loc) (v : github_com.anishathalye.porcupine.LinearizationInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.LinearizationInfo go!"annotations" l) v.annotations' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.LinearizationInfo go!"annotations" l) annotations' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with annotations' := annotations' } : github_com.anishathalye.porcupine.LinearizationInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.LinearizationInfo go!"annotations" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with annotations' := y } : github_com.anishathalye.porcupine.LinearizationInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -285,11 +285,11 @@ noncomputable instance cacheEntry_access_load_linearized (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance cacheEntry_access_store_linearized (l : Loc) (v : github_com.anishathalye.porcupine.cacheEntry) (linearized' : github_com.anishathalye.porcupine.bitset) :
+noncomputable instance cacheEntry_access_store_linearized (l : Loc) (v : github_com.anishathalye.porcupine.cacheEntry) (y : github_com.anishathalye.porcupine.bitset) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.cacheEntry go!"linearized" l) v.linearized' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.cacheEntry go!"linearized" l) linearized' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with linearized' := linearized' } : github_com.anishathalye.porcupine.cacheEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.cacheEntry go!"linearized" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with linearized' := y } : github_com.anishathalye.porcupine.cacheEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -301,11 +301,11 @@ noncomputable instance cacheEntry_access_load_state (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance cacheEntry_access_store_state (l : Loc) (v : github_com.anishathalye.porcupine.cacheEntry) (state' : GoInterface) :
+noncomputable instance cacheEntry_access_store_state (l : Loc) (v : github_com.anishathalye.porcupine.cacheEntry) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.cacheEntry go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.cacheEntry go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : github_com.anishathalye.porcupine.cacheEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.cacheEntry go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : github_com.anishathalye.porcupine.cacheEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -342,11 +342,11 @@ noncomputable instance Validity_access_load_Init (l : Loc) (v : github_com.anish
  by
   solve_pointsto_access_struct
 
-noncomputable instance Validity_access_store_Init (l : Loc) (v : github_com.anishathalye.porcupine.Validity) (Init' : GoFunc) :
+noncomputable instance Validity_access_store_Init (l : Loc) (v : github_com.anishathalye.porcupine.Validity) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Validity go!"Init" l) v.Init' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Validity go!"Init" l) Init' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Init' := Init' } : github_com.anishathalye.porcupine.Validity) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Validity go!"Init" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Init' := y } : github_com.anishathalye.porcupine.Validity) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -358,11 +358,11 @@ noncomputable instance Validity_access_load_Step (l : Loc) (v : github_com.anish
  by
   solve_pointsto_access_struct
 
-noncomputable instance Validity_access_store_Step (l : Loc) (v : github_com.anishathalye.porcupine.Validity) (Step' : GoFunc) :
+noncomputable instance Validity_access_store_Step (l : Loc) (v : github_com.anishathalye.porcupine.Validity) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Validity go!"Step" l) v.Step' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Validity go!"Step" l) Step' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Step' := Step' } : github_com.anishathalye.porcupine.Validity) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Validity go!"Step" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Step' := y } : github_com.anishathalye.porcupine.Validity) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -399,11 +399,11 @@ noncomputable instance Consistency_access_load_Oracles (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consistency_access_store_Oracles (l : Loc) (v : github_com.anishathalye.porcupine.Consistency) (Oracles' : GoSlice) :
+noncomputable instance Consistency_access_store_Oracles (l : Loc) (v : github_com.anishathalye.porcupine.Consistency) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Consistency go!"Oracles" l) v.Oracles' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Consistency go!"Oracles" l) Oracles' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Oracles' := Oracles' } : github_com.anishathalye.porcupine.Consistency) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Consistency go!"Oracles" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Oracles' := y } : github_com.anishathalye.porcupine.Consistency) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -415,11 +415,11 @@ noncomputable instance Consistency_access_load_Valid (l : Loc) (v : github_com.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consistency_access_store_Valid (l : Loc) (v : github_com.anishathalye.porcupine.Consistency) (Valid' : github_com.anishathalye.porcupine.Validity) :
+noncomputable instance Consistency_access_store_Valid (l : Loc) (v : github_com.anishathalye.porcupine.Consistency) (y : github_com.anishathalye.porcupine.Validity) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Consistency go!"Valid" l) v.Valid' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Consistency go!"Valid" l) Valid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Valid' := Valid' } : github_com.anishathalye.porcupine.Consistency) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Consistency go!"Valid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Valid' := y } : github_com.anishathalye.porcupine.Consistency) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -463,11 +463,11 @@ noncomputable instance Operation_access_load_ClientId (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (ClientId' : w64) :
+noncomputable instance Operation_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"ClientId" l) v.ClientId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"ClientId" l) ClientId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := ClientId' } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"ClientId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := y } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -479,11 +479,11 @@ noncomputable instance Operation_access_load_OpKind (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_store_OpKind (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (OpKind' : github_com.anishathalye.porcupine.OperationKind) :
+noncomputable instance Operation_access_store_OpKind (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (y : github_com.anishathalye.porcupine.OperationKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"OpKind" l) v.OpKind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"OpKind" l) OpKind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OpKind' := OpKind' } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"OpKind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OpKind' := y } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -495,11 +495,11 @@ noncomputable instance Operation_access_load_Input (l : Loc) (v : github_com.ani
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_store_Input (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (Input' : GoInterface) :
+noncomputable instance Operation_access_store_Input (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Input" l) v.Input' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Input" l) Input' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Input' := Input' } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Input" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Input' := y } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -511,11 +511,11 @@ noncomputable instance Operation_access_load_Call (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_store_Call (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (Call' : w64) :
+noncomputable instance Operation_access_store_Call (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Call" l) v.Call' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Call" l) Call' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Call' := Call' } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Call" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Call' := y } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -527,11 +527,11 @@ noncomputable instance Operation_access_load_Output (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_store_Output (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (Output' : GoInterface) :
+noncomputable instance Operation_access_store_Output (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Output" l) v.Output' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Output" l) Output' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Output' := Output' } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Output" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Output' := y } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -543,11 +543,11 @@ noncomputable instance Operation_access_load_Return (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_store_Return (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (Return' : w64) :
+noncomputable instance Operation_access_store_Return (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Return" l) v.Return' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Return" l) Return' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Return' := Return' } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Return" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Return' := y } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -559,11 +559,11 @@ noncomputable instance Operation_access_load_Metadata (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_store_Metadata (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (Metadata' : GoInterface) :
+noncomputable instance Operation_access_store_Metadata (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Metadata" l) v.Metadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Metadata" l) Metadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := Metadata' } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Metadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := y } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -575,11 +575,11 @@ noncomputable instance Operation_access_load_OrderHint (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_store_OrderHint (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (OrderHint' : GoInterface) :
+noncomputable instance Operation_access_store_OrderHint (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"OrderHint" l) v.OrderHint' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"OrderHint" l) OrderHint' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OrderHint' := OrderHint' } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"OrderHint" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OrderHint' := y } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -591,11 +591,11 @@ noncomputable instance «Operation_access_load__#8» (l : Loc) (v : github_com.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance «Operation_access_store__#8» (l : Loc) (v : github_com.anishathalye.porcupine.Operation) («_#8'» : Unit) :
+noncomputable instance «Operation_access_store__#8» (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (y : Unit) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_#8" l) v.«_#8'» (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_#8" l) «_#8'» (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#8'» := «_#8'» } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_#8" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#8'» := y } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -635,11 +635,11 @@ noncomputable instance clientOperation_access_load_Op (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientOperation_access_store_Op (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (Op' : github_com.anishathalye.porcupine.Operation) :
+noncomputable instance clientOperation_access_store_Op (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (y : github_com.anishathalye.porcupine.Operation) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"Op" l) v.Op' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"Op" l) Op' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := Op' } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"Op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := y } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -651,11 +651,11 @@ noncomputable instance clientOperation_access_load_globalId (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientOperation_access_store_globalId (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (globalId' : w64) :
+noncomputable instance clientOperation_access_store_globalId (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"globalId" l) v.globalId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"globalId" l) globalId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with globalId' := globalId' } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"globalId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with globalId' := y } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -667,11 +667,11 @@ noncomputable instance clientOperation_access_load_id (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientOperation_access_store_id (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (id' : w64) :
+noncomputable instance clientOperation_access_store_id (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -683,11 +683,11 @@ noncomputable instance clientOperation_access_load_firstUnk (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientOperation_access_store_firstUnk (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (firstUnk' : GoSlice) :
+noncomputable instance clientOperation_access_store_firstUnk (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"firstUnk" l) v.firstUnk' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"firstUnk" l) firstUnk' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with firstUnk' := firstUnk' } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"firstUnk" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with firstUnk' := y } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -699,11 +699,11 @@ noncomputable instance clientOperation_access_load_visited (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientOperation_access_store_visited (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (visited' : Bool) :
+noncomputable instance clientOperation_access_store_visited (l : Loc) (v : github_com.anishathalye.porcupine.clientOperation) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"visited" l) v.visited' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"visited" l) visited' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with visited' := visited' } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.clientOperation go!"visited" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with visited' := y } : github_com.anishathalye.porcupine.clientOperation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -742,11 +742,11 @@ noncomputable instance client_access_load_id (l : Loc) (v : github_com.anishatha
  by
   solve_pointsto_access_struct
 
-noncomputable instance client_access_store_id (l : Loc) (v : github_com.anishathalye.porcupine.client) (id' : w64) :
+noncomputable instance client_access_store_id (l : Loc) (v : github_com.anishathalye.porcupine.client) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : github_com.anishathalye.porcupine.client) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.anishathalye.porcupine.client) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -758,11 +758,11 @@ noncomputable instance client_access_load_cltOps (l : Loc) (v : github_com.anish
  by
   solve_pointsto_access_struct
 
-noncomputable instance client_access_store_cltOps (l : Loc) (v : github_com.anishathalye.porcupine.client) (cltOps' : GoSlice) :
+noncomputable instance client_access_store_cltOps (l : Loc) (v : github_com.anishathalye.porcupine.client) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"cltOps" l) v.cltOps' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"cltOps" l) cltOps' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cltOps' := cltOps' } : github_com.anishathalye.porcupine.client) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"cltOps" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cltOps' := y } : github_com.anishathalye.porcupine.client) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -774,11 +774,11 @@ noncomputable instance client_access_load_head (l : Loc) (v : github_com.anishat
  by
   solve_pointsto_access_struct
 
-noncomputable instance client_access_store_head (l : Loc) (v : github_com.anishathalye.porcupine.client) (head' : w64) :
+noncomputable instance client_access_store_head (l : Loc) (v : github_com.anishathalye.porcupine.client) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"head" l) v.head' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"head" l) head' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with head' := head' } : github_com.anishathalye.porcupine.client) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"head" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with head' := y } : github_com.anishathalye.porcupine.client) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -790,11 +790,11 @@ noncomputable instance client_access_load_nDeps (l : Loc) (v : github_com.anisha
  by
   solve_pointsto_access_struct
 
-noncomputable instance client_access_store_nDeps (l : Loc) (v : github_com.anishathalye.porcupine.client) (nDeps' : w64) :
+noncomputable instance client_access_store_nDeps (l : Loc) (v : github_com.anishathalye.porcupine.client) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"nDeps" l) v.nDeps' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"nDeps" l) nDeps' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nDeps' := nDeps' } : github_com.anishathalye.porcupine.client) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.client go!"nDeps" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nDeps' := y } : github_com.anishathalye.porcupine.client) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -832,11 +832,11 @@ noncomputable instance chains_access_load_clients (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance chains_access_store_clients (l : Loc) (v : github_com.anishathalye.porcupine.chains) (clients' : GoSlice) :
+noncomputable instance chains_access_store_clients (l : Loc) (v : github_com.anishathalye.porcupine.chains) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.chains go!"clients" l) v.clients' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.chains go!"clients" l) clients' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clients' := clients' } : github_com.anishathalye.porcupine.chains) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.chains go!"clients" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clients' := y } : github_com.anishathalye.porcupine.chains) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -848,11 +848,11 @@ noncomputable instance chains_access_load_numOps (l : Loc) (v : github_com.anish
  by
   solve_pointsto_access_struct
 
-noncomputable instance chains_access_store_numOps (l : Loc) (v : github_com.anishathalye.porcupine.chains) (numOps' : w64) :
+noncomputable instance chains_access_store_numOps (l : Loc) (v : github_com.anishathalye.porcupine.chains) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.chains go!"numOps" l) v.numOps' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.chains go!"numOps" l) numOps' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numOps' := numOps' } : github_com.anishathalye.porcupine.chains) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.chains go!"numOps" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numOps' := y } : github_com.anishathalye.porcupine.chains) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -864,11 +864,11 @@ noncomputable instance chains_access_load_frontier (l : Loc) (v : github_com.ani
  by
   solve_pointsto_access_struct
 
-noncomputable instance chains_access_store_frontier (l : Loc) (v : github_com.anishathalye.porcupine.chains) (frontier' : GoSlice) :
+noncomputable instance chains_access_store_frontier (l : Loc) (v : github_com.anishathalye.porcupine.chains) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.chains go!"frontier" l) v.frontier' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.chains go!"frontier" l) frontier' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with frontier' := frontier' } : github_com.anishathalye.porcupine.chains) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.chains go!"frontier" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with frontier' := y } : github_com.anishathalye.porcupine.chains) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -908,11 +908,11 @@ noncomputable instance stackEntry_access_load_opId (l : Loc) (v : github_com.ani
  by
   solve_pointsto_access_struct
 
-noncomputable instance stackEntry_access_store_opId (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (opId' : w64) :
+noncomputable instance stackEntry_access_store_opId (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"opId" l) v.opId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"opId" l) opId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opId' := opId' } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"opId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opId' := y } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -924,11 +924,11 @@ noncomputable instance stackEntry_access_load_clientId (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance stackEntry_access_store_clientId (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (clientId' : w64) :
+noncomputable instance stackEntry_access_store_clientId (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"clientId" l) v.clientId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"clientId" l) clientId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientId' := clientId' } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"clientId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientId' := y } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -940,11 +940,11 @@ noncomputable instance stackEntry_access_load_state (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance stackEntry_access_store_state (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (state' : GoInterface) :
+noncomputable instance stackEntry_access_store_state (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -956,11 +956,11 @@ noncomputable instance stackEntry_access_load_opIdx (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance stackEntry_access_store_opIdx (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (opIdx' : w64) :
+noncomputable instance stackEntry_access_store_opIdx (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"opIdx" l) v.opIdx' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"opIdx" l) opIdx' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opIdx' := opIdx' } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"opIdx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opIdx' := y } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -972,11 +972,11 @@ noncomputable instance stackEntry_access_load_frontierIdx (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance stackEntry_access_store_frontierIdx (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (frontierIdx' : w64) :
+noncomputable instance stackEntry_access_store_frontierIdx (l : Loc) (v : github_com.anishathalye.porcupine.stackEntry) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"frontierIdx" l) v.frontierIdx' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"frontierIdx" l) frontierIdx' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with frontierIdx' := frontierIdx' } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.stackEntry go!"frontierIdx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with frontierIdx' := y } : github_com.anishathalye.porcupine.stackEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1019,11 +1019,11 @@ noncomputable instance Event_access_load_ClientId (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.Event) (ClientId' : w64) :
+noncomputable instance Event_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"ClientId" l) v.ClientId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"ClientId" l) ClientId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := ClientId' } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"ClientId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := y } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1035,11 +1035,11 @@ noncomputable instance Event_access_load_Kind (l : Loc) (v : github_com.anishath
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Kind (l : Loc) (v : github_com.anishathalye.porcupine.Event) (Kind' : github_com.anishathalye.porcupine.EventKind) :
+noncomputable instance Event_access_store_Kind (l : Loc) (v : github_com.anishathalye.porcupine.Event) (y : github_com.anishathalye.porcupine.EventKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Kind" l) v.Kind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Kind" l) Kind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := Kind' } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Kind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := y } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1051,11 +1051,11 @@ noncomputable instance Event_access_load_OpKind (l : Loc) (v : github_com.anisha
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_OpKind (l : Loc) (v : github_com.anishathalye.porcupine.Event) (OpKind' : github_com.anishathalye.porcupine.OperationKind) :
+noncomputable instance Event_access_store_OpKind (l : Loc) (v : github_com.anishathalye.porcupine.Event) (y : github_com.anishathalye.porcupine.OperationKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"OpKind" l) v.OpKind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"OpKind" l) OpKind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OpKind' := OpKind' } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"OpKind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OpKind' := y } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1067,11 +1067,11 @@ noncomputable instance Event_access_load_Value (l : Loc) (v : github_com.anishat
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Value (l : Loc) (v : github_com.anishathalye.porcupine.Event) (Value' : GoInterface) :
+noncomputable instance Event_access_store_Value (l : Loc) (v : github_com.anishathalye.porcupine.Event) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Value" l) Value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := Value' } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1083,11 +1083,11 @@ noncomputable instance Event_access_load_Id (l : Loc) (v : github_com.anishathal
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Id (l : Loc) (v : github_com.anishathalye.porcupine.Event) (Id' : w64) :
+noncomputable instance Event_access_store_Id (l : Loc) (v : github_com.anishathalye.porcupine.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Id" l) v.Id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Id" l) Id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := Id' } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1099,11 +1099,11 @@ noncomputable instance Event_access_load_Metadata (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Metadata (l : Loc) (v : github_com.anishathalye.porcupine.Event) (Metadata' : GoInterface) :
+noncomputable instance Event_access_store_Metadata (l : Loc) (v : github_com.anishathalye.porcupine.Event) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Metadata" l) v.Metadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Metadata" l) Metadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := Metadata' } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Metadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := y } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1115,11 +1115,11 @@ noncomputable instance Event_access_load_Hint (l : Loc) (v : github_com.anishath
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Hint (l : Loc) (v : github_com.anishathalye.porcupine.Event) (Hint' : GoInterface) :
+noncomputable instance Event_access_store_Hint (l : Loc) (v : github_com.anishathalye.porcupine.Event) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Hint" l) v.Hint' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Hint" l) Hint' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hint' := Hint' } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Hint" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hint' := y } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1131,11 +1131,11 @@ noncomputable instance «Event_access_load__#7» (l : Loc) (v : github_com.anish
  by
   solve_pointsto_access_struct
 
-noncomputable instance «Event_access_store__#7» (l : Loc) (v : github_com.anishathalye.porcupine.Event) («_#7'» : Unit) :
+noncomputable instance «Event_access_store__#7» (l : Loc) (v : github_com.anishathalye.porcupine.Event) (y : Unit) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_#7" l) v.«_#7'» (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_#7" l) «_#7'» (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#7'» := «_#7'» } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_#7" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#7'» := y } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1181,11 +1181,11 @@ noncomputable instance Model_access_load_Partition (l : Loc) (v : github_com.ani
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_Partition (l : Loc) (v : github_com.anishathalye.porcupine.Model) (Partition' : GoFunc) :
+noncomputable instance Model_access_store_Partition (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Partition" l) v.Partition' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Partition" l) Partition' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Partition' := Partition' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Partition" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Partition' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1197,11 +1197,11 @@ noncomputable instance Model_access_load_PartitionEvent (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_PartitionEvent (l : Loc) (v : github_com.anishathalye.porcupine.Model) (PartitionEvent' : GoFunc) :
+noncomputable instance Model_access_store_PartitionEvent (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"PartitionEvent" l) v.PartitionEvent' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"PartitionEvent" l) PartitionEvent' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartitionEvent' := PartitionEvent' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"PartitionEvent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartitionEvent' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1213,11 +1213,11 @@ noncomputable instance Model_access_load_Init (l : Loc) (v : github_com.anishath
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_Init (l : Loc) (v : github_com.anishathalye.porcupine.Model) (Init' : GoFunc) :
+noncomputable instance Model_access_store_Init (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Init" l) v.Init' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Init" l) Init' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Init' := Init' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Init" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Init' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1229,11 +1229,11 @@ noncomputable instance Model_access_load_Step (l : Loc) (v : github_com.anishath
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_Step (l : Loc) (v : github_com.anishathalye.porcupine.Model) (Step' : GoFunc) :
+noncomputable instance Model_access_store_Step (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Step" l) v.Step' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Step" l) Step' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Step' := Step' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Step" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Step' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1245,11 +1245,11 @@ noncomputable instance Model_access_load_StepContext (l : Loc) (v : github_com.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_StepContext (l : Loc) (v : github_com.anishathalye.porcupine.Model) (StepContext' : GoFunc) :
+noncomputable instance Model_access_store_StepContext (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"StepContext" l) v.StepContext' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"StepContext" l) StepContext' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StepContext' := StepContext' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"StepContext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StepContext' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1261,11 +1261,11 @@ noncomputable instance Model_access_load_Equal (l : Loc) (v : github_com.anishat
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_Equal (l : Loc) (v : github_com.anishathalye.porcupine.Model) (Equal' : GoFunc) :
+noncomputable instance Model_access_store_Equal (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Equal" l) v.Equal' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Equal" l) Equal' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Equal' := Equal' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Equal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Equal' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1277,11 +1277,11 @@ noncomputable instance Model_access_load_Hash (l : Loc) (v : github_com.anishath
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_Hash (l : Loc) (v : github_com.anishathalye.porcupine.Model) (Hash' : GoFunc) :
+noncomputable instance Model_access_store_Hash (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Hash" l) v.Hash' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Hash" l) Hash' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hash' := Hash' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"Hash" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hash' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1293,11 +1293,11 @@ noncomputable instance Model_access_load_DescribeOperation (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_DescribeOperation (l : Loc) (v : github_com.anishathalye.porcupine.Model) (DescribeOperation' : GoFunc) :
+noncomputable instance Model_access_store_DescribeOperation (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeOperation" l) v.DescribeOperation' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeOperation" l) DescribeOperation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeOperation' := DescribeOperation' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeOperation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeOperation' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1309,11 +1309,11 @@ noncomputable instance Model_access_load_DescribeState (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_DescribeState (l : Loc) (v : github_com.anishathalye.porcupine.Model) (DescribeState' : GoFunc) :
+noncomputable instance Model_access_store_DescribeState (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeState" l) v.DescribeState' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeState" l) DescribeState' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeState' := DescribeState' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeState' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1325,11 +1325,11 @@ noncomputable instance Model_access_load_DescribeOperationMetadata (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store_DescribeOperationMetadata (l : Loc) (v : github_com.anishathalye.porcupine.Model) (DescribeOperationMetadata' : GoFunc) :
+noncomputable instance Model_access_store_DescribeOperationMetadata (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeOperationMetadata" l) v.DescribeOperationMetadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeOperationMetadata" l) DescribeOperationMetadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeOperationMetadata' := DescribeOperationMetadata' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeOperationMetadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeOperationMetadata' := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1341,11 +1341,11 @@ noncomputable instance «Model_access_load__#10» (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance «Model_access_store__#10» (l : Loc) (v : github_com.anishathalye.porcupine.Model) («_#10'» : Unit) :
+noncomputable instance «Model_access_store__#10» (l : Loc) (v : github_com.anishathalye.porcupine.Model) (y : Unit) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_#10" l) v.«_#10'» (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_#10" l) «_#10'» (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#10'» := «_#10'» } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_#10" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#10'» := y } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1391,11 +1391,11 @@ noncomputable instance NondeterministicModel_access_load_Partition (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_Partition (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (Partition' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_Partition (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Partition" l) v.Partition' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Partition" l) Partition' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Partition' := Partition' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Partition" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Partition' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1407,11 +1407,11 @@ noncomputable instance NondeterministicModel_access_load_PartitionEvent (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_PartitionEvent (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (PartitionEvent' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_PartitionEvent (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"PartitionEvent" l) v.PartitionEvent' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"PartitionEvent" l) PartitionEvent' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartitionEvent' := PartitionEvent' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"PartitionEvent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartitionEvent' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1423,11 +1423,11 @@ noncomputable instance NondeterministicModel_access_load_Init (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_Init (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (Init' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_Init (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Init" l) v.Init' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Init" l) Init' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Init' := Init' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Init" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Init' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1439,11 +1439,11 @@ noncomputable instance NondeterministicModel_access_load_Step (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_Step (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (Step' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_Step (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Step" l) v.Step' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Step" l) Step' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Step' := Step' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Step" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Step' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1455,11 +1455,11 @@ noncomputable instance NondeterministicModel_access_load_StepContext (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_StepContext (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (StepContext' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_StepContext (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"StepContext" l) v.StepContext' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"StepContext" l) StepContext' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StepContext' := StepContext' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"StepContext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StepContext' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1471,11 +1471,11 @@ noncomputable instance NondeterministicModel_access_load_Equal (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_Equal (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (Equal' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_Equal (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Equal" l) v.Equal' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Equal" l) Equal' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Equal' := Equal' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Equal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Equal' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1487,11 +1487,11 @@ noncomputable instance NondeterministicModel_access_load_Hash (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_Hash (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (Hash' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_Hash (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Hash" l) v.Hash' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Hash" l) Hash' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hash' := Hash' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"Hash" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hash' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1503,11 +1503,11 @@ noncomputable instance NondeterministicModel_access_load_DescribeOperation (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_DescribeOperation (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (DescribeOperation' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_DescribeOperation (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeOperation" l) v.DescribeOperation' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeOperation" l) DescribeOperation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeOperation' := DescribeOperation' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeOperation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeOperation' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1519,11 +1519,11 @@ noncomputable instance NondeterministicModel_access_load_DescribeState (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_DescribeState (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (DescribeState' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_DescribeState (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeState" l) v.DescribeState' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeState" l) DescribeState' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeState' := DescribeState' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeState' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1535,11 +1535,11 @@ noncomputable instance NondeterministicModel_access_load_DescribeOperationMetada
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store_DescribeOperationMetadata (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (DescribeOperationMetadata' : GoFunc) :
+noncomputable instance NondeterministicModel_access_store_DescribeOperationMetadata (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeOperationMetadata" l) v.DescribeOperationMetadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeOperationMetadata" l) DescribeOperationMetadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeOperationMetadata' := DescribeOperationMetadata' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeOperationMetadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DescribeOperationMetadata' := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1551,11 +1551,11 @@ noncomputable instance «NondeterministicModel_access_load__#10» (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance «NondeterministicModel_access_store__#10» (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) («_#10'» : Unit) :
+noncomputable instance «NondeterministicModel_access_store__#10» (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (y : Unit) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_#10" l) v.«_#10'» (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_#10" l) «_#10'» (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#10'» := «_#10'» } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_#10" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#10'» := y } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1599,11 +1599,11 @@ noncomputable instance historyElement_access_load_ClientId (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance historyElement_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (ClientId' : w64) :
+noncomputable instance historyElement_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"ClientId" l) v.ClientId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"ClientId" l) ClientId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := ClientId' } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"ClientId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := y } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1615,11 +1615,11 @@ noncomputable instance historyElement_access_load_Start (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance historyElement_access_store_Start (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (Start' : w64) :
+noncomputable instance historyElement_access_store_Start (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Start" l) Start' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := Start' } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1631,11 +1631,11 @@ noncomputable instance historyElement_access_load_OriginalStart (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance historyElement_access_store_OriginalStart (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (OriginalStart' : GoString) :
+noncomputable instance historyElement_access_store_OriginalStart (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"OriginalStart" l) v.OriginalStart' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"OriginalStart" l) OriginalStart' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OriginalStart' := OriginalStart' } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"OriginalStart" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OriginalStart' := y } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1647,11 +1647,11 @@ noncomputable instance historyElement_access_load_End (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance historyElement_access_store_End (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (End' : w64) :
+noncomputable instance historyElement_access_store_End (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"End" l) v.End' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"End" l) End' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := End' } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"End" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1663,11 +1663,11 @@ noncomputable instance historyElement_access_load_OriginalEnd (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance historyElement_access_store_OriginalEnd (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (OriginalEnd' : GoString) :
+noncomputable instance historyElement_access_store_OriginalEnd (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"OriginalEnd" l) v.OriginalEnd' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"OriginalEnd" l) OriginalEnd' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OriginalEnd' := OriginalEnd' } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"OriginalEnd" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OriginalEnd' := y } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1679,11 +1679,11 @@ noncomputable instance historyElement_access_load_Description (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance historyElement_access_store_Description (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (Description' : GoString) :
+noncomputable instance historyElement_access_store_Description (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Description" l) v.Description' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Description" l) Description' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Description' := Description' } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Description" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Description' := y } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1695,11 +1695,11 @@ noncomputable instance historyElement_access_load_Metadata (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance historyElement_access_store_Metadata (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (Metadata' : GoString) :
+noncomputable instance historyElement_access_store_Metadata (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Metadata" l) v.Metadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Metadata" l) Metadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := Metadata' } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Metadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := y } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1711,11 +1711,11 @@ noncomputable instance historyElement_access_load_Id (l : Loc) (v : github_com.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance historyElement_access_store_Id (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (Id' : w64) :
+noncomputable instance historyElement_access_store_Id (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Id" l) v.Id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Id" l) Id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := Id' } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"Id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1727,11 +1727,11 @@ noncomputable instance historyElement_access_load_FirstUnk (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance historyElement_access_store_FirstUnk (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (FirstUnk' : GoSlice) :
+noncomputable instance historyElement_access_store_FirstUnk (l : Loc) (v : github_com.anishathalye.porcupine.historyElement) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"FirstUnk" l) v.FirstUnk' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"FirstUnk" l) FirstUnk' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FirstUnk' := FirstUnk' } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.historyElement go!"FirstUnk" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FirstUnk' := y } : github_com.anishathalye.porcupine.historyElement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1775,11 +1775,11 @@ noncomputable instance annotation_access_load_ClientId (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance annotation_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (ClientId' : w64) :
+noncomputable instance annotation_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"ClientId" l) v.ClientId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"ClientId" l) ClientId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := ClientId' } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"ClientId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := y } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1791,11 +1791,11 @@ noncomputable instance annotation_access_load_Tag (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance annotation_access_store_Tag (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (Tag' : GoString) :
+noncomputable instance annotation_access_store_Tag (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Tag" l) v.Tag' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Tag" l) Tag' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tag' := Tag' } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Tag" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tag' := y } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1807,11 +1807,11 @@ noncomputable instance annotation_access_load_Start (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance annotation_access_store_Start (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (Start' : w64) :
+noncomputable instance annotation_access_store_Start (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Start" l) Start' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := Start' } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1823,11 +1823,11 @@ noncomputable instance annotation_access_load_End (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance annotation_access_store_End (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (End' : w64) :
+noncomputable instance annotation_access_store_End (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"End" l) v.End' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"End" l) End' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := End' } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"End" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1839,11 +1839,11 @@ noncomputable instance annotation_access_load_Description (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance annotation_access_store_Description (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (Description' : GoString) :
+noncomputable instance annotation_access_store_Description (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Description" l) v.Description' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Description" l) Description' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Description' := Description' } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Description" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Description' := y } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1855,11 +1855,11 @@ noncomputable instance annotation_access_load_Details (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance annotation_access_store_Details (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (Details' : GoString) :
+noncomputable instance annotation_access_store_Details (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Details" l) v.Details' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Details" l) Details' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Details' := Details' } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Details" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Details' := y } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1871,11 +1871,11 @@ noncomputable instance annotation_access_load_Annotation (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance annotation_access_store_Annotation (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (Annotation' : Bool) :
+noncomputable instance annotation_access_store_Annotation (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Annotation" l) v.Annotation' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Annotation" l) Annotation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Annotation' := Annotation' } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"Annotation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Annotation' := y } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1887,11 +1887,11 @@ noncomputable instance annotation_access_load_TextColor (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance annotation_access_store_TextColor (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (TextColor' : GoString) :
+noncomputable instance annotation_access_store_TextColor (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"TextColor" l) v.TextColor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"TextColor" l) TextColor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TextColor' := TextColor' } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"TextColor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TextColor' := y } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1903,11 +1903,11 @@ noncomputable instance annotation_access_load_BackgroundColor (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance annotation_access_store_BackgroundColor (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (BackgroundColor' : GoString) :
+noncomputable instance annotation_access_store_BackgroundColor (l : Loc) (v : github_com.anishathalye.porcupine.annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"BackgroundColor" l) v.BackgroundColor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"BackgroundColor" l) BackgroundColor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackgroundColor' := BackgroundColor' } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.annotation go!"BackgroundColor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackgroundColor' := y } : github_com.anishathalye.porcupine.annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1944,11 +1944,11 @@ noncomputable instance linearizationStep_access_load_Index (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance linearizationStep_access_store_Index (l : Loc) (v : github_com.anishathalye.porcupine.linearizationStep) (Index' : w64) :
+noncomputable instance linearizationStep_access_store_Index (l : Loc) (v : github_com.anishathalye.porcupine.linearizationStep) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.linearizationStep go!"Index" l) v.Index' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.linearizationStep go!"Index" l) Index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := Index' } : github_com.anishathalye.porcupine.linearizationStep) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.linearizationStep go!"Index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := y } : github_com.anishathalye.porcupine.linearizationStep) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1960,11 +1960,11 @@ noncomputable instance linearizationStep_access_load_StateDescription (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance linearizationStep_access_store_StateDescription (l : Loc) (v : github_com.anishathalye.porcupine.linearizationStep) (StateDescription' : GoString) :
+noncomputable instance linearizationStep_access_store_StateDescription (l : Loc) (v : github_com.anishathalye.porcupine.linearizationStep) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.linearizationStep go!"StateDescription" l) v.StateDescription' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.linearizationStep go!"StateDescription" l) StateDescription' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StateDescription' := StateDescription' } : github_com.anishathalye.porcupine.linearizationStep) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.linearizationStep go!"StateDescription" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StateDescription' := y } : github_com.anishathalye.porcupine.linearizationStep) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2002,11 +2002,11 @@ noncomputable instance partitionVisualizationData_access_load_History (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance partitionVisualizationData_access_store_History (l : Loc) (v : github_com.anishathalye.porcupine.partitionVisualizationData) (History' : GoSlice) :
+noncomputable instance partitionVisualizationData_access_store_History (l : Loc) (v : github_com.anishathalye.porcupine.partitionVisualizationData) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.partitionVisualizationData go!"History" l) v.History' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.partitionVisualizationData go!"History" l) History' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with History' := History' } : github_com.anishathalye.porcupine.partitionVisualizationData) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.partitionVisualizationData go!"History" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with History' := y } : github_com.anishathalye.porcupine.partitionVisualizationData) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2018,11 +2018,11 @@ noncomputable instance partitionVisualizationData_access_load_PartialLinearizati
  by
   solve_pointsto_access_struct
 
-noncomputable instance partitionVisualizationData_access_store_PartialLinearizations (l : Loc) (v : github_com.anishathalye.porcupine.partitionVisualizationData) (PartialLinearizations' : GoSlice) :
+noncomputable instance partitionVisualizationData_access_store_PartialLinearizations (l : Loc) (v : github_com.anishathalye.porcupine.partitionVisualizationData) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.partitionVisualizationData go!"PartialLinearizations" l) v.PartialLinearizations' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.partitionVisualizationData go!"PartialLinearizations" l) PartialLinearizations' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartialLinearizations' := PartialLinearizations' } : github_com.anishathalye.porcupine.partitionVisualizationData) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.partitionVisualizationData go!"PartialLinearizations" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartialLinearizations' := y } : github_com.anishathalye.porcupine.partitionVisualizationData) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2034,11 +2034,11 @@ noncomputable instance partitionVisualizationData_access_load_Largest (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance partitionVisualizationData_access_store_Largest (l : Loc) (v : github_com.anishathalye.porcupine.partitionVisualizationData) (Largest' : GoMap) :
+noncomputable instance partitionVisualizationData_access_store_Largest (l : Loc) (v : github_com.anishathalye.porcupine.partitionVisualizationData) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.partitionVisualizationData go!"Largest" l) v.Largest' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.partitionVisualizationData go!"Largest" l) Largest' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Largest' := Largest' } : github_com.anishathalye.porcupine.partitionVisualizationData) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.partitionVisualizationData go!"Largest" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Largest' := y } : github_com.anishathalye.porcupine.partitionVisualizationData) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2075,11 +2075,11 @@ noncomputable instance visualizationData_access_load_Partitions (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance visualizationData_access_store_Partitions (l : Loc) (v : github_com.anishathalye.porcupine.visualizationData) (Partitions' : GoSlice) :
+noncomputable instance visualizationData_access_store_Partitions (l : Loc) (v : github_com.anishathalye.porcupine.visualizationData) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.visualizationData go!"Partitions" l) v.Partitions' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.visualizationData go!"Partitions" l) Partitions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Partitions' := Partitions' } : github_com.anishathalye.porcupine.visualizationData) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.visualizationData go!"Partitions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Partitions' := y } : github_com.anishathalye.porcupine.visualizationData) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2091,11 +2091,11 @@ noncomputable instance visualizationData_access_load_Annotations (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance visualizationData_access_store_Annotations (l : Loc) (v : github_com.anishathalye.porcupine.visualizationData) (Annotations' : GoSlice) :
+noncomputable instance visualizationData_access_store_Annotations (l : Loc) (v : github_com.anishathalye.porcupine.visualizationData) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.visualizationData go!"Annotations" l) v.Annotations' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.visualizationData go!"Annotations" l) Annotations' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Annotations' := Annotations' } : github_com.anishathalye.porcupine.visualizationData) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.visualizationData go!"Annotations" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Annotations' := y } : github_com.anishathalye.porcupine.visualizationData) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2139,11 +2139,11 @@ noncomputable instance Annotation_access_load_ClientId (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (ClientId' : w64) :
+noncomputable instance Annotation_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"ClientId" l) v.ClientId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"ClientId" l) ClientId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := ClientId' } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"ClientId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := y } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2155,11 +2155,11 @@ noncomputable instance Annotation_access_load_Tag (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_store_Tag (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (Tag' : GoString) :
+noncomputable instance Annotation_access_store_Tag (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Tag" l) v.Tag' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Tag" l) Tag' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tag' := Tag' } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Tag" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tag' := y } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2171,11 +2171,11 @@ noncomputable instance Annotation_access_load_Start (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_store_Start (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (Start' : w64) :
+noncomputable instance Annotation_access_store_Start (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Start" l) Start' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := Start' } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2187,11 +2187,11 @@ noncomputable instance Annotation_access_load_End (l : Loc) (v : github_com.anis
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_store_End (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (End' : w64) :
+noncomputable instance Annotation_access_store_End (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"End" l) v.End' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"End" l) End' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := End' } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"End" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2203,11 +2203,11 @@ noncomputable instance Annotation_access_load_Description (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_store_Description (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (Description' : GoString) :
+noncomputable instance Annotation_access_store_Description (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Description" l) v.Description' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Description" l) Description' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Description' := Description' } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Description" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Description' := y } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2219,11 +2219,11 @@ noncomputable instance Annotation_access_load_Details (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_store_Details (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (Details' : GoString) :
+noncomputable instance Annotation_access_store_Details (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Details" l) v.Details' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Details" l) Details' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Details' := Details' } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Details" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Details' := y } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2235,11 +2235,11 @@ noncomputable instance Annotation_access_load_TextColor (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_store_TextColor (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (TextColor' : GoString) :
+noncomputable instance Annotation_access_store_TextColor (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"TextColor" l) v.TextColor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"TextColor" l) TextColor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TextColor' := TextColor' } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"TextColor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TextColor' := y } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2251,11 +2251,11 @@ noncomputable instance Annotation_access_load_BackgroundColor (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_store_BackgroundColor (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (BackgroundColor' : GoString) :
+noncomputable instance Annotation_access_store_BackgroundColor (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"BackgroundColor" l) v.BackgroundColor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"BackgroundColor" l) BackgroundColor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackgroundColor' := BackgroundColor' } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"BackgroundColor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackgroundColor' := y } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2267,11 +2267,11 @@ noncomputable instance «Annotation_access_load__#8» (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance «Annotation_access_store__#8» (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) («_#8'» : Unit) :
+noncomputable instance «Annotation_access_store__#8» (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (y : Unit) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_#8" l) v.«_#8'» (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_#8" l) «_#8'» (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#8'» := «_#8'» } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_#8" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#8'» := y } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2314,11 +2314,11 @@ noncomputable instance dagNode_access_load_Id (l : Loc) (v : github_com.anishath
  by
   solve_pointsto_access_struct
 
-noncomputable instance dagNode_access_store_Id (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (Id' : w64) :
+noncomputable instance dagNode_access_store_Id (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Id" l) v.Id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Id" l) Id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := Id' } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2330,11 +2330,11 @@ noncomputable instance dagNode_access_load_ClientId (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance dagNode_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (ClientId' : w64) :
+noncomputable instance dagNode_access_store_ClientId (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"ClientId" l) v.ClientId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"ClientId" l) ClientId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := ClientId' } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"ClientId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientId' := y } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2346,11 +2346,11 @@ noncomputable instance dagNode_access_load_Index (l : Loc) (v : github_com.anish
  by
   solve_pointsto_access_struct
 
-noncomputable instance dagNode_access_store_Index (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (Index' : w64) :
+noncomputable instance dagNode_access_store_Index (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Index" l) v.Index' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Index" l) Index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := Index' } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := y } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2362,11 +2362,11 @@ noncomputable instance dagNode_access_load_Desc (l : Loc) (v : github_com.anisha
  by
   solve_pointsto_access_struct
 
-noncomputable instance dagNode_access_store_Desc (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (Desc' : GoString) :
+noncomputable instance dagNode_access_store_Desc (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Desc" l) v.Desc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Desc" l) Desc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Desc' := Desc' } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Desc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Desc' := y } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2378,11 +2378,11 @@ noncomputable instance dagNode_access_load_Start (l : Loc) (v : github_com.anish
  by
   solve_pointsto_access_struct
 
-noncomputable instance dagNode_access_store_Start (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (Start' : GoString) :
+noncomputable instance dagNode_access_store_Start (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Start" l) Start' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := Start' } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2394,11 +2394,11 @@ noncomputable instance dagNode_access_load_End (l : Loc) (v : github_com.anishat
  by
   solve_pointsto_access_struct
 
-noncomputable instance dagNode_access_store_End (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (End' : GoString) :
+noncomputable instance dagNode_access_store_End (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"End" l) v.End' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"End" l) End' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := End' } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"End" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2410,11 +2410,11 @@ noncomputable instance dagNode_access_load_Level (l : Loc) (v : github_com.anish
  by
   solve_pointsto_access_struct
 
-noncomputable instance dagNode_access_store_Level (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (Level' : w64) :
+noncomputable instance dagNode_access_store_Level (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Level" l) v.Level' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Level" l) Level' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Level' := Level' } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"Level" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Level' := y } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2426,11 +2426,11 @@ noncomputable instance dagNode_access_load_StartInt (l : Loc) (v : github_com.an
  by
   solve_pointsto_access_struct
 
-noncomputable instance dagNode_access_store_StartInt (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (StartInt' : w64) :
+noncomputable instance dagNode_access_store_StartInt (l : Loc) (v : github_com.anishathalye.porcupine.dagNode) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"StartInt" l) v.StartInt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"StartInt" l) StartInt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartInt' := StartInt' } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.dagNode go!"StartInt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartInt' := y } : github_com.anishathalye.porcupine.dagNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

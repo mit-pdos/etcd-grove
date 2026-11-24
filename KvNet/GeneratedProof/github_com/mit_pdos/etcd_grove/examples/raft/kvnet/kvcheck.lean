@@ -57,11 +57,11 @@ noncomputable instance checker_access_load_addrs (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance checker_access_store_addrs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (addrs' : GoSlice) :
+noncomputable instance checker_access_store_addrs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"addrs" l) v.addrs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"addrs" l) addrs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addrs' := addrs' } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"addrs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addrs' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -73,11 +73,11 @@ noncomputable instance checker_access_load_mu (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance checker_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance checker_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -89,11 +89,11 @@ noncomputable instance checker_access_load_nextOp (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance checker_access_store_nextOp (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (nextOp' : w64) :
+noncomputable instance checker_access_store_nextOp (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"nextOp" l) v.nextOp' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"nextOp" l) nextOp' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextOp' := nextOp' } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"nextOp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextOp' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -105,11 +105,11 @@ noncomputable instance checker_access_load_nextRead (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance checker_access_store_nextRead (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (nextRead' : w64) :
+noncomputable instance checker_access_store_nextRead (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"nextRead" l) v.nextRead' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"nextRead" l) nextRead' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextRead' := nextRead' } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"nextRead" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextRead' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -121,11 +121,11 @@ noncomputable instance checker_access_load_lastConf (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance checker_access_store_lastConf (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (lastConf' : Loc) :
+noncomputable instance checker_access_store_lastConf (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"lastConf" l) v.lastConf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"lastConf" l) lastConf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastConf' := lastConf' } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"lastConf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastConf' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

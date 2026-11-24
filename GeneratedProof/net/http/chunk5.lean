@@ -47,11 +47,11 @@ noncomputable instance fileTransport_access_load_fh (l : Loc) (v : net.http.file
  by
   solve_pointsto_access_struct
 
-noncomputable instance fileTransport_access_store_fh (l : Loc) (v : net.http.fileTransport) (fh' : net.http.fileHandler) :
+noncomputable instance fileTransport_access_store_fh (l : Loc) (v : net.http.fileTransport) (y : net.http.fileHandler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) fh' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fh' := fh' } : net.http.fileTransport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fh' := y } : net.http.fileTransport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

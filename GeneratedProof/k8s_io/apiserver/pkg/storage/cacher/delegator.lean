@@ -46,11 +46,11 @@ noncomputable instance Result_access_load_ShouldDelegate (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_store_ShouldDelegate (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (ShouldDelegate' : Bool) :
+noncomputable instance Result_access_store_ShouldDelegate (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) ShouldDelegate' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShouldDelegate' := ShouldDelegate' } : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShouldDelegate' := y } : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -62,11 +62,11 @@ noncomputable instance Result_access_load_ConsistentRead (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Result_access_store_ConsistentRead (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (ConsistentRead' : Bool) :
+noncomputable instance Result_access_store_ConsistentRead (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) ConsistentRead' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConsistentRead' := ConsistentRead' } : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConsistentRead' := y } : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

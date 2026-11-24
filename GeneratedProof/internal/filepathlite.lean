@@ -51,11 +51,11 @@ noncomputable instance lazybuf_access_load_path (l : Loc) (v : internal.filepath
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazybuf_access_store_path (l : Loc) (v : internal.filepathlite.lazybuf) (path' : GoString) :
+noncomputable instance lazybuf_access_store_path (l : Loc) (v : internal.filepathlite.lazybuf) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"path" l) v.path' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"path" l) path' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with path' := path' } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"path" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with path' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -67,11 +67,11 @@ noncomputable instance lazybuf_access_load_buf (l : Loc) (v : internal.filepathl
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazybuf_access_store_buf (l : Loc) (v : internal.filepathlite.lazybuf) (buf' : GoSlice) :
+noncomputable instance lazybuf_access_store_buf (l : Loc) (v : internal.filepathlite.lazybuf) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"buf" l) buf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := buf' } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -83,11 +83,11 @@ noncomputable instance lazybuf_access_load_w (l : Loc) (v : internal.filepathlit
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazybuf_access_store_w (l : Loc) (v : internal.filepathlite.lazybuf) (w' : w64) :
+noncomputable instance lazybuf_access_store_w (l : Loc) (v : internal.filepathlite.lazybuf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"w" l) w' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := w' } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -99,11 +99,11 @@ noncomputable instance lazybuf_access_load_volAndPath (l : Loc) (v : internal.fi
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazybuf_access_store_volAndPath (l : Loc) (v : internal.filepathlite.lazybuf) (volAndPath' : GoString) :
+noncomputable instance lazybuf_access_store_volAndPath (l : Loc) (v : internal.filepathlite.lazybuf) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volAndPath" l) v.volAndPath' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volAndPath" l) volAndPath' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with volAndPath' := volAndPath' } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volAndPath" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with volAndPath' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -115,11 +115,11 @@ noncomputable instance lazybuf_access_load_volLen (l : Loc) (v : internal.filepa
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazybuf_access_store_volLen (l : Loc) (v : internal.filepathlite.lazybuf) (volLen' : w64) :
+noncomputable instance lazybuf_access_store_volLen (l : Loc) (v : internal.filepathlite.lazybuf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volLen" l) v.volLen' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volLen" l) volLen' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with volLen' := volLen' } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volLen" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with volLen' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

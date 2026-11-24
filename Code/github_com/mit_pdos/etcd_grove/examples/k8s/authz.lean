@@ -982,7 +982,7 @@ noncomputable def twoPhase.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "a" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Authorizer.ty))) (Var "a"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "d")) (Val #()))
-  (Let "pd" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)))) (Val #())))
+  (Let "pd" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1004,7 +1004,7 @@ noncomputable def twoPhase.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Var "dec"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)) go!"Has"))) (Var "pd")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)) go!"Has"))) (Var "pd")) (Var "$a0"))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"C2: phase 2 returned a decision phase 1 excluded")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -1023,13 +1023,13 @@ noncomputable def twoPhase.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Pair (Var "dec") (Var "$r0")))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)) go!"Has"))) (Var "pd")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)) go!"Has"))) (Var "pd")) (Var "$a0"))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"FailureDecision"))) (Var "d")) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)) go!"Has"))) (Var "pd")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)) go!"Has"))) (Var "pd")) (Var "$a0"))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"C3: the failure decision is not a possible decision")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -1041,14 +1041,14 @@ noncomputable def twoPhase.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "strict")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"IsAllow"))) (Var "d")) (Val #())) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"FailureDecision"))) (Var "d")) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)) go!"Has"))) (Var "pd")) (Var "$a0")))) (Val #false))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)) go!"Has"))) (Var "pd")) (Var "$a0")))) (Val #false))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"C3 (strict): the failure decision of an Allow is not a possible decision")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)))) (Pair (Var "pd") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty)))) (Pair (Var "pd") (Var "$r0"))))))))))))
   (Val #()))))))
 
 /-- Main runs one request through the two phases and checks C1-C3.

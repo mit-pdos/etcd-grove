@@ -57,11 +57,11 @@ noncomputable instance MemResult_access_load_Ok (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_Ok (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (Ok' : Bool) :
+noncomputable instance MemResult_access_store_Ok (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Ok" l) v.Ok' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Ok" l) Ok' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ok' := Ok' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Ok" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ok' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -73,11 +73,11 @@ noncomputable instance MemResult_access_load_Role (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_Role (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (Role' : GoSlice) :
+noncomputable instance MemResult_access_store_Role (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Role" l) v.Role' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Role" l) Role' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Role' := Role' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Role" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Role' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -89,11 +89,11 @@ noncomputable instance MemResult_access_load_Leaders (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_Leaders (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (Leaders' : GoSlice) :
+noncomputable instance MemResult_access_store_Leaders (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Leaders" l) v.Leaders' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Leaders" l) Leaders' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leaders' := Leaders' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Leaders" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leaders' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -105,11 +105,11 @@ noncomputable instance MemResult_access_load_LedLog (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_LedLog (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (LedLog' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs) :
+noncomputable instance MemResult_access_store_LedLog (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"LedLog" l) v.LedLog' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"LedLog" l) LedLog' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedLog' := LedLog' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"LedLog" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedLog' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -121,11 +121,11 @@ noncomputable instance MemResult_access_load_LedConf (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_LedConf (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (LedConf' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs) :
+noncomputable instance MemResult_access_store_LedConf (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"LedConf" l) v.LedConf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"LedConf" l) LedConf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedConf' := LedConf' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"LedConf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedConf' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -137,11 +137,11 @@ noncomputable instance MemResult_access_load_Config (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_Config (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (Config' : GoSlice) :
+noncomputable instance MemResult_access_store_Config (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Config" l) v.Config' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Config" l) Config' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Config' := Config' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Config" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Config' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -153,11 +153,11 @@ noncomputable instance MemResult_access_load_ConfAt (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_ConfAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (ConfAt' : GoSlice) :
+noncomputable instance MemResult_access_store_ConfAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"ConfAt" l) v.ConfAt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"ConfAt" l) ConfAt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfAt' := ConfAt' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"ConfAt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfAt' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -169,11 +169,11 @@ noncomputable instance MemResult_access_load_LedAt (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_LedAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (LedAt' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
+noncomputable instance MemResult_access_store_LedAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"LedAt" l) v.LedAt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"LedAt" l) LedAt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedAt' := LedAt' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"LedAt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedAt' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -185,11 +185,11 @@ noncomputable instance MemResult_access_load_ElAt (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_ElAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (ElAt' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
+noncomputable instance MemResult_access_store_ElAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"ElAt" l) v.ElAt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"ElAt" l) ElAt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ElAt' := ElAt' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"ElAt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ElAt' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -201,11 +201,11 @@ noncomputable instance MemResult_access_load_Chain (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_Chain (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (Chain' : GoSlice) :
+noncomputable instance MemResult_access_store_Chain (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Chain" l) v.Chain' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Chain" l) Chain' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Chain' := Chain' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Chain" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Chain' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -217,11 +217,11 @@ noncomputable instance MemResult_access_load_TermLen (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_TermLen (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (TermLen' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
+noncomputable instance MemResult_access_store_TermLen (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"TermLen" l) v.TermLen' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"TermLen" l) TermLen' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TermLen' := TermLen' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"TermLen" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TermLen' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -233,11 +233,11 @@ noncomputable instance MemResult_access_load_Viol (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemResult_access_store_Viol (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (Viol' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set') :
+noncomputable instance MemResult_access_store_Viol (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Viol" l) v.Viol' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Viol" l) Viol' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Viol' := Viol' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult go!"Viol" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Viol' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -282,11 +282,11 @@ noncomputable instance onDisk_access_load_s (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_s (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (s' : Loc) :
+noncomputable instance onDisk_access_store_s (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"s" l) s' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"s" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -298,11 +298,11 @@ noncomputable instance onDisk_access_load_n (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_n (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (n' : w64) :
+noncomputable instance onDisk_access_store_n (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"n" l) v.n' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"n" l) n' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := n' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"n" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -314,11 +314,11 @@ noncomputable instance onDisk_access_load_q (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_q (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (q' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.QItem) :
+noncomputable instance onDisk_access_store_q (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.QItem) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"q" l) v.q' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"q" l) q' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with q' := q' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"q" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with q' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -330,11 +330,11 @@ noncomputable instance onDisk_access_load_more (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_more (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (more' : Bool) :
+noncomputable instance onDisk_access_store_more (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"more" l) v.more' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"more" l) more' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with more' := more' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"more" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with more' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -346,11 +346,11 @@ noncomputable instance onDisk_access_load_ro (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_ro (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (ro' : GoSlice) :
+noncomputable instance onDisk_access_store_ro (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ro" l) v.ro' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ro" l) ro' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ro' := ro' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ro" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ro' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -362,11 +362,11 @@ noncomputable instance onDisk_access_load_ld (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_ld (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (ld' : GoSlice) :
+noncomputable instance onDisk_access_store_ld (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ld" l) v.ld' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ld" l) ld' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ld' := ld' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ld" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ld' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -378,11 +378,11 @@ noncomputable instance onDisk_access_load_ll (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_ll (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (ll' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs) :
+noncomputable instance onDisk_access_store_ll (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ll" l) v.ll' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ll" l) ll' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ll' := ll' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ll" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ll' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -394,11 +394,11 @@ noncomputable instance onDisk_access_load_ch (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_ch (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (ch' : GoSlice) :
+noncomputable instance onDisk_access_store_ch (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ch" l) v.ch' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ch" l) ch' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ch' := ch' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"ch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ch' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -410,11 +410,11 @@ noncomputable instance onDisk_access_load_tl (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_tl (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (tl' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
+noncomputable instance onDisk_access_store_tl (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"tl" l) v.tl' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"tl" l) tl' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tl' := tl' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"tl" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tl' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -426,11 +426,11 @@ noncomputable instance onDisk_access_load_vi (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance onDisk_access_store_vi (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (vi' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set') :
+noncomputable instance onDisk_access_store_vi (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"vi" l) v.vi' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"vi" l) vi' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vi' := vi' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk go!"vi" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vi' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -469,11 +469,11 @@ noncomputable instance Verdict_access_load_Kind (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Verdict_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (Kind' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Kind) :
+noncomputable instance Verdict_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Kind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"Kind" l) v.Kind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"Kind" l) Kind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := Kind' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"Kind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -485,11 +485,11 @@ noncomputable instance Verdict_access_load_K (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Verdict_access_store_K (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (K' : w64) :
+noncomputable instance Verdict_access_store_K (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"K" l) K' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := K' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -501,11 +501,11 @@ noncomputable instance Verdict_access_load_Names (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Verdict_access_store_Names (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (Names' : GoSlice) :
+noncomputable instance Verdict_access_store_Names (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"Names" l) v.Names' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"Names" l) Names' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Names' := Names' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"Names" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Names' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -517,11 +517,11 @@ noncomputable instance Verdict_access_load_Err (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Verdict_access_store_Err (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (Err' : GoString) :
+noncomputable instance Verdict_access_store_Err (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"Err" l) v.Err' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"Err" l) Err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := Err' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict go!"Err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -579,11 +579,11 @@ noncomputable instance Event_access_load_E (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_E (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (E' : GoString) :
+noncomputable instance Event_access_store_E (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"E" l) v.E' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"E" l) E' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with E' := E' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"E" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with E' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -595,11 +595,11 @@ noncomputable instance Event_access_load_Node (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Node' : GoString) :
+noncomputable instance Event_access_store_Node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Node" l) v.Node' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Node" l) Node' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Node' := Node' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Node" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Node' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -611,11 +611,11 @@ noncomputable instance Event_access_load_Has (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Has (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Has' : w32) :
+noncomputable instance Event_access_store_Has (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Has" l) v.Has' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Has" l) Has' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Has' := Has' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Has" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Has' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -627,11 +627,11 @@ noncomputable instance Event_access_load_By (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_By (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (By' : GoString) :
+noncomputable instance Event_access_store_By (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"By" l) v.By' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"By" l) By' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with By' := By' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"By" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with By' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -643,11 +643,11 @@ noncomputable instance Event_access_load_Role (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Role (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Role' : GoString) :
+noncomputable instance Event_access_store_Role (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Role" l) v.Role' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Role" l) Role' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Role' := Role' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Role" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Role' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -659,11 +659,11 @@ noncomputable instance Event_access_load_Term (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Term (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Term' : w64) :
+noncomputable instance Event_access_store_Term (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Term" l) v.Term' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Term" l) Term' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := Term' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Term" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -675,11 +675,11 @@ noncomputable instance Event_access_load_Vote (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Vote (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Vote' : GoString) :
+noncomputable instance Event_access_store_Vote (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Vote" l) v.Vote' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Vote" l) Vote' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Vote' := Vote' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Vote" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Vote' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -691,11 +691,11 @@ noncomputable instance Event_access_load_Commit (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Commit (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Commit' : w64) :
+noncomputable instance Event_access_store_Commit (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Commit" l) v.Commit' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Commit" l) Commit' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Commit' := Commit' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Commit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Commit' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -707,11 +707,11 @@ noncomputable instance Event_access_load_First (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_First (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (First' : w64) :
+noncomputable instance Event_access_store_First (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"First" l) v.First' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"First" l) First' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with First' := First' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"First" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with First' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -723,11 +723,11 @@ noncomputable instance Event_access_load_Entries (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Entries (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Entries' : GoSlice) :
+noncomputable instance Event_access_store_Entries (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Entries" l) v.Entries' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Entries" l) Entries' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Entries' := Entries' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Entries" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Entries' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -739,11 +739,11 @@ noncomputable instance Event_access_load_LastIdx (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_LastIdx (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (LastIdx' : w64) :
+noncomputable instance Event_access_store_LastIdx (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"LastIdx" l) v.LastIdx' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"LastIdx" l) LastIdx' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastIdx' := LastIdx' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"LastIdx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastIdx' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -755,11 +755,11 @@ noncomputable instance Event_access_load_LastTerm (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_LastTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (LastTerm' : w64) :
+noncomputable instance Event_access_store_LastTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"LastTerm" l) v.LastTerm' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"LastTerm" l) LastTerm' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastTerm' := LastTerm' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"LastTerm" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastTerm' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -771,11 +771,11 @@ noncomputable instance Event_access_load_Applied (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Applied' : w64) :
+noncomputable instance Event_access_store_Applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Applied" l) v.Applied' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Applied" l) Applied' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Applied' := Applied' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Applied" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Applied' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -787,11 +787,11 @@ noncomputable instance Event_access_load_Voters (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Voters' : GoSlice) :
+noncomputable instance Event_access_store_Voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Voters" l) v.Voters' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Voters" l) Voters' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Voters' := Voters' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Voters" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Voters' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -803,11 +803,11 @@ noncomputable instance Event_access_load_Outgoing (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Outgoing (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Outgoing' : GoSlice) :
+noncomputable instance Event_access_store_Outgoing (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Outgoing" l) v.Outgoing' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Outgoing" l) Outgoing' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Outgoing' := Outgoing' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Outgoing" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Outgoing' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -819,11 +819,11 @@ noncomputable instance Event_access_load_Snap (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Snap' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.SnapRef) :
+noncomputable instance Event_access_store_Snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.SnapRef) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Snap" l) v.Snap' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Snap" l) Snap' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Snap' := Snap' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Snap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Snap' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -835,11 +835,11 @@ noncomputable instance Event_access_load_Msg (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Msg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Msg' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg) :
+noncomputable instance Event_access_store_Msg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Msg" l) v.Msg' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Msg" l) Msg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := Msg' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Msg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -851,11 +851,11 @@ noncomputable instance Event_access_load_Cause (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Cause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Cause' : GoSlice) :
+noncomputable instance Event_access_store_Cause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Cause" l) v.Cause' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Cause" l) Cause' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cause' := Cause' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Cause" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cause' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -867,11 +867,11 @@ noncomputable instance Event_access_load_W (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_W (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (W' : w64) :
+noncomputable instance Event_access_store_W (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"W" l) v.W' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"W" l) W' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with W' := W' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"W" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with W' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -883,11 +883,11 @@ noncomputable instance Event_access_load_More (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_More (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (More' : w64) :
+noncomputable instance Event_access_store_More (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"More" l) v.More' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"More" l) More' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with More' := More' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"More" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with More' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -899,11 +899,11 @@ noncomputable instance Event_access_load_Index (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Index' : w64) :
+noncomputable instance Event_access_store_Index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Index" l) v.Index' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Index" l) Index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := Index' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -915,11 +915,11 @@ noncomputable instance Event_access_load_Ctx (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Ctx (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Ctx' : GoString) :
+noncomputable instance Event_access_store_Ctx (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Ctx" l) v.Ctx' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Ctx" l) Ctx' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ctx' := Ctx' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Ctx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ctx' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -931,11 +931,11 @@ noncomputable instance Event_access_load_Bad (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Bad (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (Bad' : GoString) :
+noncomputable instance Event_access_store_Bad (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Bad" l) v.Bad' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Bad" l) Bad' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bad' := Bad' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event go!"Bad" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bad' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -973,11 +973,11 @@ noncomputable instance Config_access_load_Server (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Server (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (Server' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set') :
+noncomputable instance Config_access_store_Server (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config go!"Server" l) v.Server' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config go!"Server" l) Server' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Server' := Server' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config go!"Server" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Server' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -989,11 +989,11 @@ noncomputable instance Config_access_load_InitVoters (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_InitVoters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (InitVoters' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set') :
+noncomputable instance Config_access_store_InitVoters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config go!"InitVoters" l) v.InitVoters' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config go!"InitVoters" l) InitVoters' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitVoters' := InitVoters' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config go!"InitVoters" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitVoters' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1005,11 +1005,11 @@ noncomputable instance Config_access_load_Bootstrapped (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Bootstrapped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (Bootstrapped' : Bool) :
+noncomputable instance Config_access_store_Bootstrapped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config go!"Bootstrapped" l) v.Bootstrapped' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config go!"Bootstrapped" l) Bootstrapped' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bootstrapped' := Bootstrapped' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config go!"Bootstrapped" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bootstrapped' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1056,11 +1056,11 @@ noncomputable instance Pre_access_load_Term (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Term (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Term' : w64) :
+noncomputable instance Pre_access_store_Term (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Term" l) v.Term' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Term" l) Term' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := Term' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Term" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1072,11 +1072,11 @@ noncomputable instance Pre_access_load_VoteTerm (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_VoteTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (VoteTerm' : w64) :
+noncomputable instance Pre_access_store_VoteTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"VoteTerm" l) v.VoteTerm' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"VoteTerm" l) VoteTerm' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VoteTerm' := VoteTerm' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"VoteTerm" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VoteTerm' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1088,11 +1088,11 @@ noncomputable instance Pre_access_load_VoteFor (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_VoteFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (VoteFor' : GoString) :
+noncomputable instance Pre_access_store_VoteFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"VoteFor" l) v.VoteFor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"VoteFor" l) VoteFor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VoteFor' := VoteFor' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"VoteFor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VoteFor' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1104,11 +1104,11 @@ noncomputable instance Pre_access_load_Commit (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Commit (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Commit' : w64) :
+noncomputable instance Pre_access_store_Commit (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Commit" l) v.Commit' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Commit" l) Commit' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Commit' := Commit' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Commit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Commit' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1120,11 +1120,11 @@ noncomputable instance Pre_access_load_Keep (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Keep (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Keep' : w64) :
+noncomputable instance Pre_access_store_Keep (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Keep" l) v.Keep' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Keep" l) Keep' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Keep' := Keep' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Keep" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Keep' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1136,11 +1136,11 @@ noncomputable instance Pre_access_load_Suffix (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Suffix (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Suffix' : GoSlice) :
+noncomputable instance Pre_access_store_Suffix (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Suffix" l) v.Suffix' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Suffix" l) Suffix' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Suffix' := Suffix' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Suffix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Suffix' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1152,11 +1152,11 @@ noncomputable instance Pre_access_load_Confirmed (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Confirmed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Confirmed' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Confirmed) :
+noncomputable instance Pre_access_store_Confirmed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Confirmed) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Confirmed" l) v.Confirmed' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Confirmed" l) Confirmed' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Confirmed' := Confirmed' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Confirmed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Confirmed' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1168,11 +1168,11 @@ noncomputable instance Pre_access_load_Msgs (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Msgs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Msgs' : GoSlice) :
+noncomputable instance Pre_access_store_Msgs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Msgs" l) v.Msgs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Msgs" l) Msgs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msgs' := Msgs' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Msgs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msgs' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1184,11 +1184,11 @@ noncomputable instance Pre_access_load_Votes (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Votes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Votes' : GoSlice) :
+noncomputable instance Pre_access_store_Votes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Votes" l) v.Votes' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Votes" l) Votes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Votes' := Votes' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Votes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Votes' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1200,11 +1200,11 @@ noncomputable instance Pre_access_load_Acks (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Acks (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Acks' : GoSlice) :
+noncomputable instance Pre_access_store_Acks (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Acks" l) v.Acks' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Acks" l) Acks' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Acks' := Acks' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Acks" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Acks' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1216,11 +1216,11 @@ noncomputable instance Pre_access_load_Low (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Low (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Low' : w64) :
+noncomputable instance Pre_access_store_Low (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Low" l) v.Low' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Low" l) Low' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Low' := Low' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Low" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Low' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1232,11 +1232,11 @@ noncomputable instance Pre_access_load_Made (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pre_access_store_Made (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (Made' : Bool) :
+noncomputable instance Pre_access_store_Made (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Made" l) v.Made' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Made" l) Made' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Made' := Made' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre go!"Made" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Made' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1297,11 +1297,11 @@ noncomputable instance State_access_load_Cfg (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Cfg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Cfg' : Loc) :
+noncomputable instance State_access_store_Cfg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Cfg" l) v.Cfg' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Cfg" l) Cfg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cfg' := Cfg' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Cfg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cfg' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1313,11 +1313,11 @@ noncomputable instance State_access_load_CurrentTerm (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_CurrentTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (CurrentTerm' : GoSlice) :
+noncomputable instance State_access_store_CurrentTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"CurrentTerm" l) v.CurrentTerm' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"CurrentTerm" l) CurrentTerm' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CurrentTerm' := CurrentTerm' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"CurrentTerm" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CurrentTerm' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1329,11 +1329,11 @@ noncomputable instance State_access_load_VoteTerm (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_VoteTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (VoteTerm' : GoSlice) :
+noncomputable instance State_access_store_VoteTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"VoteTerm" l) v.VoteTerm' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"VoteTerm" l) VoteTerm' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VoteTerm' := VoteTerm' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"VoteTerm" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VoteTerm' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1345,11 +1345,11 @@ noncomputable instance State_access_load_VoteFor (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_VoteFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (VoteFor' : GoSlice) :
+noncomputable instance State_access_store_VoteFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"VoteFor" l) v.VoteFor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"VoteFor" l) VoteFor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VoteFor' := VoteFor' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"VoteFor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VoteFor' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1361,11 +1361,11 @@ noncomputable instance State_access_load_Log (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Log' : GoSlice) :
+noncomputable instance State_access_store_Log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Log" l) v.Log' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Log" l) Log' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Log' := Log' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Log" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Log' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1377,11 +1377,11 @@ noncomputable instance State_access_load_CommitIndex (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_CommitIndex (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (CommitIndex' : GoSlice) :
+noncomputable instance State_access_store_CommitIndex (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"CommitIndex" l) v.CommitIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"CommitIndex" l) CommitIndex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommitIndex' := CommitIndex' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"CommitIndex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommitIndex' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1393,11 +1393,11 @@ noncomputable instance State_access_load_Role (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Role (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Role' : GoSlice) :
+noncomputable instance State_access_store_Role (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Role" l) v.Role' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Role" l) Role' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Role' := Role' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Role" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Role' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1409,11 +1409,11 @@ noncomputable instance State_access_load_LastApplied (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_LastApplied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (LastApplied' : GoSlice) :
+noncomputable instance State_access_store_LastApplied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LastApplied" l) v.LastApplied' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LastApplied" l) LastApplied' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastApplied' := LastApplied' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LastApplied" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastApplied' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1425,11 +1425,11 @@ noncomputable instance State_access_load_Config (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Config (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Config' : GoSlice) :
+noncomputable instance State_access_store_Config (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Config" l) v.Config' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Config" l) Config' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Config' := Config' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Config" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Config' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1441,11 +1441,11 @@ noncomputable instance State_access_load_ConfAt (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_ConfAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (ConfAt' : GoSlice) :
+noncomputable instance State_access_store_ConfAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"ConfAt" l) v.ConfAt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"ConfAt" l) ConfAt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfAt' := ConfAt' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"ConfAt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfAt' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1457,11 +1457,11 @@ noncomputable instance State_access_load_Confirmed (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Confirmed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Confirmed' : GoSlice) :
+noncomputable instance State_access_store_Confirmed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Confirmed" l) v.Confirmed' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Confirmed" l) Confirmed' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Confirmed' := Confirmed' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Confirmed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Confirmed' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1473,11 +1473,11 @@ noncomputable instance State_access_load_Msgs (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Msgs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Msgs' : GoSlice) :
+noncomputable instance State_access_store_Msgs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Msgs" l) v.Msgs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Msgs" l) Msgs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msgs' := Msgs' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Msgs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msgs' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1489,11 +1489,11 @@ noncomputable instance State_access_load_Votes (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Votes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Votes' : GoSlice) :
+noncomputable instance State_access_store_Votes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Votes" l) v.Votes' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Votes" l) Votes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Votes' := Votes' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Votes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Votes' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1505,11 +1505,11 @@ noncomputable instance State_access_load_Leaders (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Leaders (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Leaders' : GoSlice) :
+noncomputable instance State_access_store_Leaders (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Leaders" l) v.Leaders' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Leaders" l) Leaders' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leaders' := Leaders' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Leaders" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leaders' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1521,11 +1521,11 @@ noncomputable instance State_access_load_LedLog (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_LedLog (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (LedLog' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs) :
+noncomputable instance State_access_store_LedLog (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLogs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LedLog" l) v.LedLog' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LedLog" l) LedLog' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedLog' := LedLog' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LedLog" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedLog' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1537,11 +1537,11 @@ noncomputable instance State_access_load_LedConf (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_LedConf (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (LedConf' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs) :
+noncomputable instance State_access_store_LedConf (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConfs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LedConf" l) v.LedConf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LedConf" l) LedConf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedConf' := LedConf' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LedConf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedConf' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1553,11 +1553,11 @@ noncomputable instance State_access_load_LedAt (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_LedAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (LedAt' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
+noncomputable instance State_access_store_LedAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LedAt" l) v.LedAt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LedAt" l) LedAt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedAt' := LedAt' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"LedAt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LedAt' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1569,11 +1569,11 @@ noncomputable instance State_access_load_ElAt (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_ElAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (ElAt' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
+noncomputable instance State_access_store_ElAt (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"ElAt" l) v.ElAt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"ElAt" l) ElAt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ElAt' := ElAt' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"ElAt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ElAt' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1585,11 +1585,11 @@ noncomputable instance State_access_load_I (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_I (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (I' : w64) :
+noncomputable instance State_access_store_I (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"I" l) v.I' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"I" l) I' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with I' := I' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"I" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with I' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1601,11 +1601,11 @@ noncomputable instance State_access_load_Undo (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Undo (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Undo' : GoSlice) :
+noncomputable instance State_access_store_Undo (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Undo" l) v.Undo' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Undo" l) Undo' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Undo' := Undo' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Undo" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Undo' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1617,11 +1617,11 @@ noncomputable instance State_access_load_Pending (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Pending (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Pending' : GoSlice) :
+noncomputable instance State_access_store_Pending (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Pending" l) v.Pending' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Pending" l) Pending' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pending' := Pending' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Pending" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pending' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1633,11 +1633,11 @@ noncomputable instance State_access_load_Queue (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Queue (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Queue' : GoSlice) :
+noncomputable instance State_access_store_Queue (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Queue" l) v.Queue' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Queue" l) Queue' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Queue' := Queue' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Queue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Queue' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1649,11 +1649,11 @@ noncomputable instance State_access_load_Reads (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Reads' : GoSlice) :
+noncomputable instance State_access_store_Reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Reads" l) v.Reads' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Reads" l) Reads' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reads' := Reads' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Reads" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reads' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1665,11 +1665,11 @@ noncomputable instance State_access_load_Chain (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Chain (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Chain' : GoSlice) :
+noncomputable instance State_access_store_Chain (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Chain" l) v.Chain' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Chain" l) Chain' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Chain' := Chain' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Chain" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Chain' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1681,11 +1681,11 @@ noncomputable instance State_access_load_TermLen (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_TermLen (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (TermLen' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
+noncomputable instance State_access_store_TermLen (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"TermLen" l) v.TermLen' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"TermLen" l) TermLen' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TermLen' := TermLen' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"TermLen" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TermLen' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1697,11 +1697,11 @@ noncomputable instance State_access_load_Viol (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Viol (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (Viol' : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set') :
+noncomputable instance State_access_store_Viol (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (y : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Viol" l) v.Viol' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Viol" l) Viol' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Viol' := Viol' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State go!"Viol" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Viol' := y } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -63,11 +63,11 @@ noncomputable instance kvSort_access_load_kvs (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSort_access_store_kvs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort) (kvs' : GoSlice) :
+noncomputable instance kvSort_access_store_kvs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort go!"kvs" l) v.kvs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort go!"kvs" l) kvs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvs' := kvs' } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort go!"kvs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvs' := y } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -103,11 +103,11 @@ noncomputable instance kvSortByKey_access_load_kvSort (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByKey_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey) (kvSort' : Loc) :
+noncomputable instance kvSortByKey_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey go!"kvSort" l) v.kvSort' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey go!"kvSort" l) kvSort' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := kvSort' } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey go!"kvSort" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := y } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -143,11 +143,11 @@ noncomputable instance kvSortByVersion_access_load_kvSort (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByVersion_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion) (kvSort' : Loc) :
+noncomputable instance kvSortByVersion_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion go!"kvSort" l) v.kvSort' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion go!"kvSort" l) kvSort' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := kvSort' } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion go!"kvSort" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := y } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -183,11 +183,11 @@ noncomputable instance kvSortByCreate_access_load_kvSort (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByCreate_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate) (kvSort' : Loc) :
+noncomputable instance kvSortByCreate_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate go!"kvSort" l) v.kvSort' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate go!"kvSort" l) kvSort' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := kvSort' } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate go!"kvSort" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := y } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -223,11 +223,11 @@ noncomputable instance kvSortByMod_access_load_kvSort (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByMod_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod) (kvSort' : Loc) :
+noncomputable instance kvSortByMod_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod go!"kvSort" l) v.kvSort' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod go!"kvSort" l) kvSort' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := kvSort' } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod go!"kvSort" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := y } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -263,11 +263,11 @@ noncomputable instance kvSortByValue_access_load_kvSort (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvSortByValue_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue) (kvSort' : Loc) :
+noncomputable instance kvSortByValue_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue go!"kvSort" l) v.kvSort' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue go!"kvSort" l) kvSort' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := kvSort' } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue go!"kvSort" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kvSort' := y } : go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByValue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -99,10 +99,10 @@ noncomputable def ShardedListInterface.ty [GooseExts] [GoGlobalContext] : go.GoT
 
 attribute [irreducible] ShardedListInterface.ty
 
-noncomputable def Type'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def «Type».ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Type" [])
 
-attribute [irreducible] Type'.ty
+attribute [irreducible] «Type».ty
 
 noncomputable def MicroTime.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime" [])
@@ -219,10 +219,10 @@ noncomputable def CauseType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] CauseType.ty
 
-noncomputable def List'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def List''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.List" [])
 
-attribute [irreducible] List'.ty
+attribute [irreducible] List''.ty
 
 noncomputable def APIVersions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.APIVersions" [])
@@ -2540,15 +2540,15 @@ attribute [instance] ShardedListInterface.TypeAssumptions.underlying
   ShardedListInterface.TypeAssumptions.method_set
   ShardedListInterface.TypeAssumptions.ptr_method_set
 
-abbrev Type' [GooseExts] : Type := GoInterface
+abbrev «Type» [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Type'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def «Type».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetAPIVersion" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetKind" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"SetAPIVersion" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetKind" (go.signature.Signature [go.string] false []))])
 
 class «Type».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq Type'.ty Type'.underlying
-  method_set : go.MethodSetIs Type'.ty [(go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetKind", (some (go.signature.Signature [] false [go.string]))), (go!"SetAPIVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetKind", (some (go.signature.Signature [go.string] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Type'.ty) []
+  underlying : go.UnderlyingDirectedEq «Type».ty «Type».underlying
+  method_set : go.MethodSetIs «Type».ty [(go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetKind", (some (go.signature.Signature [] false [go.string]))), (go!"SetAPIVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetKind", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType «Type».ty) []
 
 attribute [instance] «Type».TypeAssumptions.underlying
   «Type».TypeAssumptions.method_set
@@ -3771,52 +3771,52 @@ attribute [instance] StatusCause.TypeAssumptions.type_repr
   StatusCause.TypeAssumptions.method_set
   StatusCause.TypeAssumptions.ptr_method_set
 
-structure List' [GooseExts] where
+structure List'' [GooseExts] where
   mk ::
   TypeMeta' : TypeMeta
   ListMeta' : ListMeta
   Items' : GoSlice
 
-noncomputable instance List'.zero_val [GooseExts] : ZeroVal List' :=
-  ⟨List'.mk zeroValDef zeroValDef zeroValDef⟩
+noncomputable instance List''.zero_val [GooseExts] : ZeroVal List'' :=
+  ⟨List''.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def List.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def List''.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TypeMeta" TypeMeta.ty),
 (go.field_decl.EmbeddedField go!"ListMeta" ListMeta.ty),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension.ty))]
 
-@[irreducible] noncomputable def List.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  List.fieldsUnsealed
+@[irreducible] noncomputable def List''.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  List''.fieldsUnsealed
 
 noncomputable instance equals_unfold_List [GooseExts] [GoGlobalContext] :
-    EqualsUnfold List.fields List.fieldsUnsealed :=
-  ⟨by unfold List.fields; rfl⟩
+    EqualsUnfold List''.fields List''.fieldsUnsealed :=
+  ⟨by unfold List''.fields; rfl⟩
 
-@[reducible] noncomputable def List'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType List.fields)
+@[reducible] noncomputable def List''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType List''.fields)
 
-class List.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying List'.underlying List'
-  underlying : go.UnderlyingDirectedEq List'.ty List'.underlying
-  get_TypeMeta : ∀ (x : List'), go.IsGoStepPureDetTagged under (StructFieldGet List'.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : List') (y : TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet List'.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : List')))
-  get_ListMeta : ∀ (x : List'), go.IsGoStepPureDetTagged under (StructFieldGet List'.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : List') (y : ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet List'.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : List')))
-  get_Items : ∀ (x : List'), go.IsGoStepPureDetTagged under (StructFieldGet List'.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : List') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet List'.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : List')))
-  method_set : go.MethodSetIs List'.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType List'.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType List'.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType List'.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+class List''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying List''.underlying List''
+  underlying : go.UnderlyingDirectedEq List''.ty List''.underlying
+  get_TypeMeta : ∀ (x : List''), go.IsGoStepPureDetTagged under (StructFieldGet List''.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set_TypeMeta : ∀ (x : List'') (y : TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet List''.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : List'')))
+  get_ListMeta : ∀ (x : List''), go.IsGoStepPureDetTagged under (StructFieldGet List''.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
+  set_ListMeta : ∀ (x : List'') (y : ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet List''.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : List'')))
+  get_Items : ∀ (x : List''), go.IsGoStepPureDetTagged under (StructFieldGet List''.underlying go!"Items") #x (Val #(x.Items'))
+  set_Items : ∀ (x : List'') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet List''.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : List'')))
+  method_set : go.MethodSetIs List''.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType List''.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType List''.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType List''.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
-attribute [instance] List.TypeAssumptions.type_repr
-  List.TypeAssumptions.underlying
-  List.TypeAssumptions.get_TypeMeta
-  List.TypeAssumptions.set_TypeMeta
-  List.TypeAssumptions.get_ListMeta
-  List.TypeAssumptions.set_ListMeta
-  List.TypeAssumptions.get_Items
-  List.TypeAssumptions.set_Items
-  List.TypeAssumptions.method_set
-  List.TypeAssumptions.ptr_method_set
+attribute [instance] List''.TypeAssumptions.type_repr
+  List''.TypeAssumptions.underlying
+  List''.TypeAssumptions.get_TypeMeta
+  List''.TypeAssumptions.set_TypeMeta
+  List''.TypeAssumptions.get_ListMeta
+  List''.TypeAssumptions.set_ListMeta
+  List''.TypeAssumptions.get_Items
+  List''.TypeAssumptions.set_Items
+  List''.TypeAssumptions.method_set
+  List''.TypeAssumptions.ptr_method_set
 
 structure APIVersions [GooseExts] where
   mk ::
@@ -5070,7 +5070,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   StatusReason_instance : StatusReason.TypeAssumptions
   StatusCause_instance : StatusCause.TypeAssumptions
   CauseType_instance : CauseType.TypeAssumptions
-  List_instance : List.TypeAssumptions
+  List_instance : List''.TypeAssumptions
   APIVersions_instance : APIVersions.TypeAssumptions
   APIGroupList_instance : APIGroupList.TypeAssumptions
   APIGroup_instance : APIGroup.TypeAssumptions

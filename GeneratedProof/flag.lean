@@ -95,11 +95,11 @@ noncomputable instance FlagSet_access_load_Usage (l : Loc) (v : flag.FlagSet) (d
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_Usage (l : Loc) (v : flag.FlagSet) (Usage' : GoFunc) :
+noncomputable instance FlagSet_access_store_Usage (l : Loc) (v : flag.FlagSet) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"Usage" l) v.Usage' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"Usage" l) Usage' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Usage' := Usage' } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.FlagSet go!"Usage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Usage' := y } : flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -111,11 +111,11 @@ noncomputable instance FlagSet_access_load_name (l : Loc) (v : flag.FlagSet) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_name (l : Loc) (v : flag.FlagSet) (name' : GoString) :
+noncomputable instance FlagSet_access_store_name (l : Loc) (v : flag.FlagSet) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.FlagSet go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -127,11 +127,11 @@ noncomputable instance FlagSet_access_load_parsed (l : Loc) (v : flag.FlagSet) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_parsed (l : Loc) (v : flag.FlagSet) (parsed' : Bool) :
+noncomputable instance FlagSet_access_store_parsed (l : Loc) (v : flag.FlagSet) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"parsed" l) v.parsed' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"parsed" l) parsed' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parsed' := parsed' } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.FlagSet go!"parsed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parsed' := y } : flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -143,11 +143,11 @@ noncomputable instance FlagSet_access_load_actual (l : Loc) (v : flag.FlagSet) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_actual (l : Loc) (v : flag.FlagSet) (actual' : GoMap) :
+noncomputable instance FlagSet_access_store_actual (l : Loc) (v : flag.FlagSet) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"actual" l) v.actual' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"actual" l) actual' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with actual' := actual' } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.FlagSet go!"actual" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with actual' := y } : flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -159,11 +159,11 @@ noncomputable instance FlagSet_access_load_formal (l : Loc) (v : flag.FlagSet) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_formal (l : Loc) (v : flag.FlagSet) (formal' : GoMap) :
+noncomputable instance FlagSet_access_store_formal (l : Loc) (v : flag.FlagSet) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"formal" l) v.formal' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"formal" l) formal' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with formal' := formal' } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.FlagSet go!"formal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with formal' := y } : flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -175,11 +175,11 @@ noncomputable instance FlagSet_access_load_args (l : Loc) (v : flag.FlagSet) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_args (l : Loc) (v : flag.FlagSet) (args' : GoSlice) :
+noncomputable instance FlagSet_access_store_args (l : Loc) (v : flag.FlagSet) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"args" l) v.args' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"args" l) args' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with args' := args' } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.FlagSet go!"args" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with args' := y } : flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -191,11 +191,11 @@ noncomputable instance FlagSet_access_load_errorHandling (l : Loc) (v : flag.Fla
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_errorHandling (l : Loc) (v : flag.FlagSet) (errorHandling' : flag.ErrorHandling) :
+noncomputable instance FlagSet_access_store_errorHandling (l : Loc) (v : flag.FlagSet) (y : flag.ErrorHandling) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"errorHandling" l) v.errorHandling' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"errorHandling" l) errorHandling' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with errorHandling' := errorHandling' } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.FlagSet go!"errorHandling" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with errorHandling' := y } : flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -207,11 +207,11 @@ noncomputable instance FlagSet_access_load_output (l : Loc) (v : flag.FlagSet) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_output (l : Loc) (v : flag.FlagSet) (output' : _root_.Perennial.io.Writer) :
+noncomputable instance FlagSet_access_store_output (l : Loc) (v : flag.FlagSet) (y : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"output" l) v.output' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"output" l) output' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with output' := output' } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.FlagSet go!"output" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with output' := y } : flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -223,11 +223,11 @@ noncomputable instance FlagSet_access_load_undef (l : Loc) (v : flag.FlagSet) (d
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_undef (l : Loc) (v : flag.FlagSet) (undef' : GoMap) :
+noncomputable instance FlagSet_access_store_undef (l : Loc) (v : flag.FlagSet) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"undef" l) v.undef' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"undef" l) undef' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with undef' := undef' } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.FlagSet go!"undef" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with undef' := y } : flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -266,11 +266,11 @@ noncomputable instance Flag_access_load_Name (l : Loc) (v : flag.Flag) (dq : DFr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flag_access_store_Name (l : Loc) (v : flag.Flag) (Name' : GoString) :
+noncomputable instance Flag_access_store_Name (l : Loc) (v : flag.Flag) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.Flag go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.Flag go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : flag.Flag) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.Flag go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : flag.Flag) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -282,11 +282,11 @@ noncomputable instance Flag_access_load_Usage (l : Loc) (v : flag.Flag) (dq : DF
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flag_access_store_Usage (l : Loc) (v : flag.Flag) (Usage' : GoString) :
+noncomputable instance Flag_access_store_Usage (l : Loc) (v : flag.Flag) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.Flag go!"Usage" l) v.Usage' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.Flag go!"Usage" l) Usage' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Usage' := Usage' } : flag.Flag) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.Flag go!"Usage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Usage' := y } : flag.Flag) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -298,11 +298,11 @@ noncomputable instance Flag_access_load_Value (l : Loc) (v : flag.Flag) (dq : DF
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flag_access_store_Value (l : Loc) (v : flag.Flag) (Value' : flag.Value) :
+noncomputable instance Flag_access_store_Value (l : Loc) (v : flag.Flag) (y : flag.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.Flag go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.Flag go!"Value" l) Value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := Value' } : flag.Flag) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.Flag go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : flag.Flag) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -314,11 +314,11 @@ noncomputable instance Flag_access_load_DefValue (l : Loc) (v : flag.Flag) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flag_access_store_DefValue (l : Loc) (v : flag.Flag) (DefValue' : GoString) :
+noncomputable instance Flag_access_store_DefValue (l : Loc) (v : flag.Flag) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.Flag go!"DefValue" l) v.DefValue' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.Flag go!"DefValue" l) DefValue' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DefValue' := DefValue' } : flag.Flag) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef flag.Flag go!"DefValue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DefValue' := y } : flag.Flag) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

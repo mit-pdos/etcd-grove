@@ -62,11 +62,11 @@ noncomputable instance Input_access_load_Kind (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Input_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (Kind' : w8) :
+noncomputable instance Input_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input go!"Kind" l) v.Kind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input go!"Kind" l) Kind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := Kind' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input go!"Kind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -78,11 +78,11 @@ noncomputable instance Input_access_load_Key (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Input_access_store_Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (Key' : GoString) :
+noncomputable instance Input_access_store_Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input go!"Key" l) Key' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := Key' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -94,11 +94,11 @@ noncomputable instance Input_access_load_Val (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Input_access_store_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (Val' : GoString) :
+noncomputable instance Input_access_store_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input go!"Val" l) v.Val' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input go!"Val" l) Val' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Val' := Val' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input go!"Val" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Val' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Input) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -141,11 +141,11 @@ noncomputable instance Options_access_load_Voters (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Options_access_store_Voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (Voters' : w64) :
+noncomputable instance Options_access_store_Voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"Voters" l) v.Voters' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"Voters" l) Voters' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Voters' := Voters' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"Voters" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Voters' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -157,11 +157,11 @@ noncomputable instance Options_access_load_MaxReplicas (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Options_access_store_MaxReplicas (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (MaxReplicas' : w64) :
+noncomputable instance Options_access_store_MaxReplicas (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxReplicas" l) v.MaxReplicas' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxReplicas" l) MaxReplicas' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxReplicas' := MaxReplicas' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxReplicas" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxReplicas' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -173,11 +173,11 @@ noncomputable instance Options_access_load_PreVote (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Options_access_store_PreVote (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (PreVote' : Bool) :
+noncomputable instance Options_access_store_PreVote (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"PreVote" l) v.PreVote' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"PreVote" l) PreVote' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreVote' := PreVote' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"PreVote" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreVote' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -189,11 +189,11 @@ noncomputable instance Options_access_load_CheckQuorum (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Options_access_store_CheckQuorum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (CheckQuorum' : Bool) :
+noncomputable instance Options_access_store_CheckQuorum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"CheckQuorum" l) v.CheckQuorum' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"CheckQuorum" l) CheckQuorum' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CheckQuorum' := CheckQuorum' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"CheckQuorum" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CheckQuorum' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -205,11 +205,11 @@ noncomputable instance Options_access_load_StepDownOnRemoval (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance Options_access_store_StepDownOnRemoval (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (StepDownOnRemoval' : Bool) :
+noncomputable instance Options_access_store_StepDownOnRemoval (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"StepDownOnRemoval" l) v.StepDownOnRemoval' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"StepDownOnRemoval" l) StepDownOnRemoval' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StepDownOnRemoval' := StepDownOnRemoval' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"StepDownOnRemoval" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StepDownOnRemoval' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -221,11 +221,11 @@ noncomputable instance Options_access_load_MaxSizePerMsg (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Options_access_store_MaxSizePerMsg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (MaxSizePerMsg' : w64) :
+noncomputable instance Options_access_store_MaxSizePerMsg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxSizePerMsg" l) v.MaxSizePerMsg' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxSizePerMsg" l) MaxSizePerMsg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxSizePerMsg' := MaxSizePerMsg' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxSizePerMsg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxSizePerMsg' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -237,11 +237,11 @@ noncomputable instance Options_access_load_MaxCommittedSizePerReady (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance Options_access_store_MaxCommittedSizePerReady (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (MaxCommittedSizePerReady' : w64) :
+noncomputable instance Options_access_store_MaxCommittedSizePerReady (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxCommittedSizePerReady" l) v.MaxCommittedSizePerReady' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxCommittedSizePerReady" l) MaxCommittedSizePerReady' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxCommittedSizePerReady' := MaxCommittedSizePerReady' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxCommittedSizePerReady" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxCommittedSizePerReady' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -253,11 +253,11 @@ noncomputable instance Options_access_load_MaxInflightMsgs (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance Options_access_store_MaxInflightMsgs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (MaxInflightMsgs' : w64) :
+noncomputable instance Options_access_store_MaxInflightMsgs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxInflightMsgs" l) v.MaxInflightMsgs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxInflightMsgs" l) MaxInflightMsgs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxInflightMsgs' := MaxInflightMsgs' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options go!"MaxInflightMsgs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxInflightMsgs' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -298,11 +298,11 @@ noncomputable instance Config_access_load_Options (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Options (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (Options' : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) :
+noncomputable instance Config_access_store_Options (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (y : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Options" l) v.Options' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Options" l) Options' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Options' := Options' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Options" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Options' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -314,11 +314,11 @@ noncomputable instance Config_access_load_Clients (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Clients (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (Clients' : w64) :
+noncomputable instance Config_access_store_Clients (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Clients" l) v.Clients' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Clients" l) Clients' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Clients' := Clients' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Clients" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Clients' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -330,11 +330,11 @@ noncomputable instance Config_access_load_Ops (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Ops (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (Ops' : w64) :
+noncomputable instance Config_access_store_Ops (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Ops" l) v.Ops' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Ops" l) Ops' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ops' := Ops' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Ops" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ops' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -346,11 +346,11 @@ noncomputable instance Config_access_load_Proposers (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Proposers (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (Proposers' : w64) :
+noncomputable instance Config_access_store_Proposers (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Proposers" l) v.Proposers' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Proposers" l) Proposers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proposers' := Proposers' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"Proposers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proposers' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -362,11 +362,11 @@ noncomputable instance Config_access_load_ReconfPause (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ReconfPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (ReconfPause' : _root_.Perennial.time.Duration) :
+noncomputable instance Config_access_store_ReconfPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"ReconfPause" l) v.ReconfPause' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"ReconfPause" l) ReconfPause' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReconfPause' := ReconfPause' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"ReconfPause" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReconfPause' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -378,11 +378,11 @@ noncomputable instance Config_access_load_DisruptPause (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_DisruptPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DisruptPause' : _root_.Perennial.time.Duration) :
+noncomputable instance Config_access_store_DisruptPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"DisruptPause" l) v.DisruptPause' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"DisruptPause" l) DisruptPause' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisruptPause' := DisruptPause' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config go!"DisruptPause" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisruptPause' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -456,11 +456,11 @@ noncomputable instance Stats_access_load_SnapshotsTaken (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsTaken (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (SnapshotsTaken' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsTaken (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsTaken" l) v.SnapshotsTaken' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsTaken" l) SnapshotsTaken' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsTaken' := SnapshotsTaken' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsTaken" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsTaken' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -472,11 +472,11 @@ noncomputable instance Stats_access_load_SnapshotsTakenJoint (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsTakenJoint (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (SnapshotsTakenJoint' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsTakenJoint (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsTakenJoint" l) v.SnapshotsTakenJoint' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsTakenJoint" l) SnapshotsTakenJoint' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsTakenJoint' := SnapshotsTakenJoint' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsTakenJoint" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsTakenJoint' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -488,11 +488,11 @@ noncomputable instance Stats_access_load_SnapshotsSent (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsSent (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (SnapshotsSent' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsSent (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsSent" l) v.SnapshotsSent' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsSent" l) SnapshotsSent' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsSent' := SnapshotsSent' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsSent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsSent' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -504,11 +504,11 @@ noncomputable instance Stats_access_load_SnapshotsInstalled (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsInstalled (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (SnapshotsInstalled' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsInstalled (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsInstalled" l) v.SnapshotsInstalled' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsInstalled" l) SnapshotsInstalled' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsInstalled' := SnapshotsInstalled' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsInstalled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsInstalled' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -520,11 +520,11 @@ noncomputable instance Stats_access_load_SnapshotsInstalledJoint (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsInstalledJoint (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (SnapshotsInstalledJoint' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsInstalledJoint (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsInstalledJoint" l) v.SnapshotsInstalledJoint' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsInstalledJoint" l) SnapshotsInstalledJoint' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsInstalledJoint' := SnapshotsInstalledJoint' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsInstalledJoint" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsInstalledJoint' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -536,11 +536,11 @@ noncomputable instance Stats_access_load_SnapshotsInstalledLearners (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsInstalledLearners (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (SnapshotsInstalledLearners' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsInstalledLearners (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsInstalledLearners" l) v.SnapshotsInstalledLearners' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsInstalledLearners" l) SnapshotsInstalledLearners' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsInstalledLearners' := SnapshotsInstalledLearners' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"SnapshotsInstalledLearners" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotsInstalledLearners' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -552,11 +552,11 @@ noncomputable instance Stats_access_load_Compactions (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Compactions (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (Compactions' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Compactions (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Compactions" l) v.Compactions' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Compactions" l) Compactions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Compactions' := Compactions' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Compactions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Compactions' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -568,11 +568,11 @@ noncomputable instance Stats_access_load_ConfChangesProposed (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_ConfChangesProposed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (ConfChangesProposed' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_ConfChangesProposed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ConfChangesProposed" l) v.ConfChangesProposed' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ConfChangesProposed" l) ConfChangesProposed' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChangesProposed' := ConfChangesProposed' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ConfChangesProposed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChangesProposed' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -584,11 +584,11 @@ noncomputable instance Stats_access_load_ConfChangesApplied (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_ConfChangesApplied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (ConfChangesApplied' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_ConfChangesApplied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ConfChangesApplied" l) v.ConfChangesApplied' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ConfChangesApplied" l) ConfChangesApplied' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChangesApplied' := ConfChangesApplied' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ConfChangesApplied" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChangesApplied' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -600,11 +600,11 @@ noncomputable instance Stats_access_load_ConfChangesRejected (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_ConfChangesRejected (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (ConfChangesRejected' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_ConfChangesRejected (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ConfChangesRejected" l) v.ConfChangesRejected' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ConfChangesRejected" l) ConfChangesRejected' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChangesRejected' := ConfChangesRejected' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ConfChangesRejected" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChangesRejected' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -616,11 +616,11 @@ noncomputable instance Stats_access_load_JointEntered (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_JointEntered (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (JointEntered' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_JointEntered (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"JointEntered" l) v.JointEntered' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"JointEntered" l) JointEntered' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with JointEntered' := JointEntered' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"JointEntered" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with JointEntered' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -632,11 +632,11 @@ noncomputable instance Stats_access_load_ReplicasStarted (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_ReplicasStarted (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (ReplicasStarted' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_ReplicasStarted (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ReplicasStarted" l) v.ReplicasStarted' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ReplicasStarted" l) ReplicasStarted' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReplicasStarted' := ReplicasStarted' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"ReplicasStarted" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReplicasStarted' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -648,11 +648,11 @@ noncomputable instance Stats_access_load_Dropped (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Dropped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (Dropped' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Dropped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Dropped" l) v.Dropped' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Dropped" l) Dropped' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Dropped' := Dropped' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Dropped" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Dropped' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -664,11 +664,11 @@ noncomputable instance Stats_access_load_Duplicated (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Duplicated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (Duplicated' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Duplicated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Duplicated" l) v.Duplicated' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Duplicated" l) Duplicated' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Duplicated' := Duplicated' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Duplicated" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Duplicated' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -680,11 +680,11 @@ noncomputable instance Stats_access_load_Delayed (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Delayed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (Delayed' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Delayed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Delayed" l) v.Delayed' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Delayed" l) Delayed' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Delayed' := Delayed' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Delayed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Delayed' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -696,11 +696,11 @@ noncomputable instance Stats_access_load_Retries (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Retries (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (Retries' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Retries (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Retries" l) v.Retries' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Retries" l) Retries' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Retries' := Retries' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats go!"Retries" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Retries' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -742,11 +742,11 @@ noncomputable instance Cluster_access_load_opts (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_opts (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (opts' : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) :
+noncomputable instance Cluster_access_store_opts (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (y : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Options) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"opts" l) v.opts' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"opts" l) opts' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := opts' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"opts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -758,11 +758,11 @@ noncomputable instance Cluster_access_load_Stats (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_Stats (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (Stats' : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) :
+noncomputable instance Cluster_access_store_Stats (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (y : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Stats) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"Stats" l) v.Stats' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"Stats" l) Stats' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stats' := Stats' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"Stats" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stats' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -774,11 +774,11 @@ noncomputable instance Cluster_access_load_boot (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_boot (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (boot' : Loc) :
+noncomputable instance Cluster_access_store_boot (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"boot" l) v.boot' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"boot" l) boot' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with boot' := boot' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"boot" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with boot' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -790,11 +790,11 @@ noncomputable instance Cluster_access_load_mu (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance Cluster_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -806,11 +806,11 @@ noncomputable instance Cluster_access_load_replicas (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_replicas (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (replicas' : GoMap) :
+noncomputable instance Cluster_access_store_replicas (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"replicas" l) v.replicas' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"replicas" l) replicas' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with replicas' := replicas' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"replicas" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with replicas' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -822,11 +822,11 @@ noncomputable instance Cluster_access_load_nextID (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_nextID (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (nextID' : w64) :
+noncomputable instance Cluster_access_store_nextID (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"nextID" l) v.nextID' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"nextID" l) nextID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextID' := nextID' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"nextID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextID' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -838,11 +838,11 @@ noncomputable instance Cluster_access_load_nextOp (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_nextOp (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (nextOp' : w64) :
+noncomputable instance Cluster_access_store_nextOp (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"nextOp" l) v.nextOp' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"nextOp" l) nextOp' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextOp' := nextOp' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster go!"nextOp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextOp' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -879,11 +879,11 @@ noncomputable instance Storage_access_load_MemoryStorage (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Storage_access_store_MemoryStorage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage) (MemoryStorage' : Loc) :
+noncomputable instance Storage_access_store_MemoryStorage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage go!"MemoryStorage" l) v.MemoryStorage' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage go!"MemoryStorage" l) MemoryStorage' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MemoryStorage' := MemoryStorage' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage go!"MemoryStorage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MemoryStorage' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -895,11 +895,11 @@ noncomputable instance Storage_access_load_boot (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Storage_access_store_boot (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage) (boot' : Loc) :
+noncomputable instance Storage_access_store_boot (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage go!"boot" l) v.boot' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage go!"boot" l) boot' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with boot' := boot' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage go!"boot" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with boot' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -952,11 +952,11 @@ noncomputable instance Replica_access_load_id (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (id' : w64) :
+noncomputable instance Replica_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -968,11 +968,11 @@ noncomputable instance Replica_access_load_node (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (node' : _root_.Perennial.go_etcd_io.raft.v3.Node) :
+noncomputable instance Replica_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : _root_.Perennial.go_etcd_io.raft.v3.Node) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"node" l) v.node' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"node" l) node' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := node' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"node" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -984,11 +984,11 @@ noncomputable instance Replica_access_load_storage (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (storage' : Loc) :
+noncomputable instance Replica_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"storage" l) v.storage' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"storage" l) storage' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := storage' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"storage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1000,11 +1000,11 @@ noncomputable instance Replica_access_load_stats (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_stats (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (stats' : Loc) :
+noncomputable instance Replica_access_store_stats (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"stats" l) v.stats' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"stats" l) stats' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stats' := stats' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"stats" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stats' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1016,11 +1016,11 @@ noncomputable instance Replica_access_load_tick (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_tick (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (tick' : _root_.Perennial.time.Duration) :
+noncomputable instance Replica_access_store_tick (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"tick" l) v.tick' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"tick" l) tick' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tick' := tick' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"tick" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tick' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1032,11 +1032,11 @@ noncomputable instance Replica_access_load_stopc (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (stopc' : GoChan) :
+noncomputable instance Replica_access_store_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"stopc" l) v.stopc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"stopc" l) stopc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopc' := stopc' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"stopc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopc' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1048,11 +1048,11 @@ noncomputable instance Replica_access_load_snapc (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_snapc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (snapc' : GoChan) :
+noncomputable instance Replica_access_store_snapc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"snapc" l) v.snapc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"snapc" l) snapc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapc' := snapc' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"snapc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapc' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1064,11 +1064,11 @@ noncomputable instance Replica_access_load_runDone (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_runDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (runDone' : GoChan) :
+noncomputable instance Replica_access_store_runDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"runDone" l) v.runDone' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"runDone" l) runDone' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with runDone' := runDone' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"runDone" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with runDone' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1080,11 +1080,11 @@ noncomputable instance Replica_access_load_tickDone (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_tickDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (tickDone' : GoChan) :
+noncomputable instance Replica_access_store_tickDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"tickDone" l) v.tickDone' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"tickDone" l) tickDone' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tickDone' := tickDone' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"tickDone" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tickDone' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1096,11 +1096,11 @@ noncomputable instance Replica_access_load_snapDone (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_snapDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (snapDone' : GoChan) :
+noncomputable instance Replica_access_store_snapDone (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"snapDone" l) v.snapDone' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"snapDone" l) snapDone' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapDone' := snapDone' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"snapDone" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapDone' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1112,11 +1112,11 @@ noncomputable instance Replica_access_load_mu (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance Replica_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1128,11 +1128,11 @@ noncomputable instance Replica_access_load_kv (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (kv' : GoMap) :
+noncomputable instance Replica_access_store_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"kv" l) v.kv' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"kv" l) kv' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kv' := kv' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"kv" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with kv' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1144,11 +1144,11 @@ noncomputable instance Replica_access_load_applied (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (applied' : GoMap) :
+noncomputable instance Replica_access_store_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"applied" l) v.applied' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"applied" l) applied' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applied' := applied' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"applied" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applied' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1160,11 +1160,11 @@ noncomputable instance Replica_access_load_cs (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_cs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (cs' : Loc) :
+noncomputable instance Replica_access_store_cs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"cs" l) v.cs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"cs" l) cs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cs' := cs' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"cs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cs' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1176,11 +1176,11 @@ noncomputable instance Replica_access_load_index (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (index' : w64) :
+noncomputable instance Replica_access_store_index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"index" l) index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := index' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1192,11 +1192,11 @@ noncomputable instance Replica_access_load_waiters (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (waiters' : GoMap) :
+noncomputable instance Replica_access_store_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"waiters" l) v.waiters' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"waiters" l) waiters' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waiters' := waiters' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"waiters" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waiters' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1208,11 +1208,11 @@ noncomputable instance Replica_access_load_nextRead (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_nextRead (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (nextRead' : w64) :
+noncomputable instance Replica_access_store_nextRead (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"nextRead" l) v.nextRead' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"nextRead" l) nextRead' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextRead' := nextRead' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"nextRead" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextRead' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1224,11 +1224,11 @@ noncomputable instance Replica_access_load_reads (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (reads' : GoMap) :
+noncomputable instance Replica_access_store_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"reads" l) v.reads' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"reads" l) reads' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reads' := reads' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica go!"reads" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reads' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1267,11 +1267,11 @@ noncomputable instance snapReq_access_load_index (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapReq_access_store_index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (index' : w64) :
+noncomputable instance snapReq_access_store_index (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"index" l) index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := index' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1283,11 +1283,11 @@ noncomputable instance snapReq_access_load_cs (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapReq_access_store_cs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (cs' : Loc) :
+noncomputable instance snapReq_access_store_cs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"cs" l) v.cs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"cs" l) cs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cs' := cs' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"cs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cs' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1299,11 +1299,11 @@ noncomputable instance snapReq_access_load_data (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapReq_access_store_data (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (data' : GoSlice) :
+noncomputable instance snapReq_access_store_data (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"data" l) data' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := data' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1315,11 +1315,11 @@ noncomputable instance snapReq_access_load_compact (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapReq_access_store_compact (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (compact' : w64) :
+noncomputable instance snapReq_access_store_compact (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"compact" l) v.compact' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"compact" l) compact' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compact' := compact' } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq go!"compact" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compact' := y } : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.snapReq) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

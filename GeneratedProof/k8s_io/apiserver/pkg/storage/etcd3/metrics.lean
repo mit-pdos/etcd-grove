@@ -67,11 +67,11 @@ noncomputable instance StorageMetrics_access_load_Size (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance StorageMetrics_access_store_Size (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics) (Size' : w64) :
+noncomputable instance StorageMetrics_access_store_Size (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics go!"Size" l) v.Size' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics go!"Size" l) Size' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := Size' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics go!"Size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := y } : k8s_io.apiserver.pkg.storage.etcd3.metrics.StorageMetrics) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -129,11 +129,11 @@ noncomputable instance OperationLatencyTracker_access_load_verb (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_verb (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (verb' : GoString) :
+noncomputable instance OperationLatencyTracker_access_store_verb (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) v.verb' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) verb' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verb' := verb' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verb' := y } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -145,11 +145,11 @@ noncomputable instance OperationLatencyTracker_access_load_groupResource (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (groupResource' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance OperationLatencyTracker_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) v.groupResource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) groupResource' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with groupResource' := groupResource' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with groupResource' := y } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -161,11 +161,11 @@ noncomputable instance OperationLatencyTracker_access_load_latency (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (latency' : _root_.Perennial.k8s_io.component_base.metrics.ObserverMetric) :
+noncomputable instance OperationLatencyTracker_access_store_latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.ObserverMetric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) v.latency' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) latency' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with latency' := latency' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with latency' := y } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -177,11 +177,11 @@ noncomputable instance OperationLatencyTracker_access_load_requests (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (requests' : _root_.Perennial.k8s_io.component_base.metrics.CounterMetric) :
+noncomputable instance OperationLatencyTracker_access_store_requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (y : _root_.Perennial.k8s_io.component_base.metrics.CounterMetric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) v.requests' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) requests' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requests' := requests' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requests' := y } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -217,11 +217,11 @@ noncomputable instance EtcdMetricsTracker_access_load_Get (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdMetricsTracker_access_store_Get (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker) (Get' : Loc) :
+noncomputable instance EtcdMetricsTracker_access_store_Get (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker go!"Get" l) v.Get' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker go!"Get" l) Get' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get' := Get' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker go!"Get" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get' := y } : k8s_io.apiserver.pkg.storage.etcd3.metrics.EtcdMetricsTracker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

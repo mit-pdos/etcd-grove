@@ -50,11 +50,11 @@ noncomputable instance Field_access_load_Key (l : Loc) (v : k8s_io.utils.trace.F
  by
   solve_pointsto_access_struct
 
-noncomputable instance Field_access_store_Key (l : Loc) (v : k8s_io.utils.trace.Field) (Key' : GoString) :
+noncomputable instance Field_access_store_Key (l : Loc) (v : k8s_io.utils.trace.Field) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Field go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Field go!"Key" l) Key' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := Key' } : k8s_io.utils.trace.Field) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Field go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : k8s_io.utils.trace.Field) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -66,11 +66,11 @@ noncomputable instance Field_access_load_Value (l : Loc) (v : k8s_io.utils.trace
  by
   solve_pointsto_access_struct
 
-noncomputable instance Field_access_store_Value (l : Loc) (v : k8s_io.utils.trace.Field) (Value' : GoInterface) :
+noncomputable instance Field_access_store_Value (l : Loc) (v : k8s_io.utils.trace.Field) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Field go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Field go!"Value" l) Value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := Value' } : k8s_io.utils.trace.Field) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Field go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : k8s_io.utils.trace.Field) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -127,11 +127,11 @@ noncomputable instance traceStep_access_load_stepTime (l : Loc) (v : k8s_io.util
  by
   solve_pointsto_access_struct
 
-noncomputable instance traceStep_access_store_stepTime (l : Loc) (v : k8s_io.utils.trace.traceStep) (stepTime' : _root_.Perennial.time.Time) :
+noncomputable instance traceStep_access_store_stepTime (l : Loc) (v : k8s_io.utils.trace.traceStep) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"stepTime" l) v.stepTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"stepTime" l) stepTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stepTime' := stepTime' } : k8s_io.utils.trace.traceStep) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"stepTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stepTime' := y } : k8s_io.utils.trace.traceStep) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -143,11 +143,11 @@ noncomputable instance traceStep_access_load_msg (l : Loc) (v : k8s_io.utils.tra
  by
   solve_pointsto_access_struct
 
-noncomputable instance traceStep_access_store_msg (l : Loc) (v : k8s_io.utils.trace.traceStep) (msg' : GoString) :
+noncomputable instance traceStep_access_store_msg (l : Loc) (v : k8s_io.utils.trace.traceStep) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"msg" l) v.msg' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"msg" l) msg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with msg' := msg' } : k8s_io.utils.trace.traceStep) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"msg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with msg' := y } : k8s_io.utils.trace.traceStep) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -159,11 +159,11 @@ noncomputable instance traceStep_access_load_fields (l : Loc) (v : k8s_io.utils.
  by
   solve_pointsto_access_struct
 
-noncomputable instance traceStep_access_store_fields (l : Loc) (v : k8s_io.utils.trace.traceStep) (fields' : GoSlice) :
+noncomputable instance traceStep_access_store_fields (l : Loc) (v : k8s_io.utils.trace.traceStep) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"fields" l) v.fields' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"fields" l) fields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fields' := fields' } : k8s_io.utils.trace.traceStep) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"fields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fields' := y } : k8s_io.utils.trace.traceStep) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -206,11 +206,11 @@ noncomputable instance Trace_access_load_name (l : Loc) (v : k8s_io.utils.trace.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_name (l : Loc) (v : k8s_io.utils.trace.Trace) (name' : GoString) :
+noncomputable instance Trace_access_store_name (l : Loc) (v : k8s_io.utils.trace.Trace) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -222,11 +222,11 @@ noncomputable instance Trace_access_load_fields (l : Loc) (v : k8s_io.utils.trac
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_fields (l : Loc) (v : k8s_io.utils.trace.Trace) (fields' : GoSlice) :
+noncomputable instance Trace_access_store_fields (l : Loc) (v : k8s_io.utils.trace.Trace) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"fields" l) v.fields' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"fields" l) fields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fields' := fields' } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"fields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fields' := y } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -238,11 +238,11 @@ noncomputable instance Trace_access_load_startTime (l : Loc) (v : k8s_io.utils.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_startTime (l : Loc) (v : k8s_io.utils.trace.Trace) (startTime' : _root_.Perennial.time.Time) :
+noncomputable instance Trace_access_store_startTime (l : Loc) (v : k8s_io.utils.trace.Trace) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"startTime" l) v.startTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"startTime" l) startTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startTime' := startTime' } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"startTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startTime' := y } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -254,11 +254,11 @@ noncomputable instance Trace_access_load_parentTrace (l : Loc) (v : k8s_io.utils
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_parentTrace (l : Loc) (v : k8s_io.utils.trace.Trace) (parentTrace' : Loc) :
+noncomputable instance Trace_access_store_parentTrace (l : Loc) (v : k8s_io.utils.trace.Trace) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"parentTrace" l) v.parentTrace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"parentTrace" l) parentTrace' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parentTrace' := parentTrace' } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"parentTrace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parentTrace' := y } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -270,11 +270,11 @@ noncomputable instance Trace_access_load_lock (l : Loc) (v : k8s_io.utils.trace.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_lock (l : Loc) (v : k8s_io.utils.trace.Trace) (lock' : _root_.Perennial.sync.RWMutex) :
+noncomputable instance Trace_access_store_lock (l : Loc) (v : k8s_io.utils.trace.Trace) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"lock" l) v.lock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"lock" l) lock' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := lock' } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"lock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -286,11 +286,11 @@ noncomputable instance Trace_access_load_threshold (l : Loc) (v : k8s_io.utils.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_threshold (l : Loc) (v : k8s_io.utils.trace.Trace) (threshold' : Loc) :
+noncomputable instance Trace_access_store_threshold (l : Loc) (v : k8s_io.utils.trace.Trace) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"threshold" l) v.threshold' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"threshold" l) threshold' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with threshold' := threshold' } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"threshold" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with threshold' := y } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -302,11 +302,11 @@ noncomputable instance Trace_access_load_endTime (l : Loc) (v : k8s_io.utils.tra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_endTime (l : Loc) (v : k8s_io.utils.trace.Trace) (endTime' : Loc) :
+noncomputable instance Trace_access_store_endTime (l : Loc) (v : k8s_io.utils.trace.Trace) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"endTime" l) v.endTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"endTime" l) endTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endTime' := endTime' } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"endTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endTime' := y } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -318,11 +318,11 @@ noncomputable instance Trace_access_load_traceItems (l : Loc) (v : k8s_io.utils.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_traceItems (l : Loc) (v : k8s_io.utils.trace.Trace) (traceItems' : GoSlice) :
+noncomputable instance Trace_access_store_traceItems (l : Loc) (v : k8s_io.utils.trace.Trace) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"traceItems" l) v.traceItems' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"traceItems" l) traceItems' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceItems' := traceItems' } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"traceItems" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceItems' := y } : k8s_io.utils.trace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

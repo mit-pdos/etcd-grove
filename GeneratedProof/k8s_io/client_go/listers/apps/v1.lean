@@ -52,11 +52,11 @@ noncomputable instance controllerRevisionLister_access_load_ResourceIndexer (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance controllerRevisionLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance controllerRevisionLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) ResourceIndexer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := ResourceIndexer' } : k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -92,11 +92,11 @@ noncomputable instance controllerRevisionNamespaceLister_access_load_ResourceInd
  by
   solve_pointsto_access_struct
 
-noncomputable instance controllerRevisionNamespaceLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance controllerRevisionNamespaceLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) ResourceIndexer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := ResourceIndexer' } : k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -132,11 +132,11 @@ noncomputable instance daemonSetLister_access_load_ResourceIndexer (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance daemonSetLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.daemonSetLister) (ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance daemonSetLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.daemonSetLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) ResourceIndexer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := ResourceIndexer' } : k8s_io.client_go.listers.apps.v1.daemonSetLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.apps.v1.daemonSetLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -172,11 +172,11 @@ noncomputable instance daemonSetNamespaceLister_access_load_ResourceIndexer (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance daemonSetNamespaceLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance daemonSetNamespaceLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) ResourceIndexer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := ResourceIndexer' } : k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -1338,7 +1338,7 @@ noncomputable def ProgressTracker.IsSingleton.impl [GooseExts] [GoGlobalContext]
 noncomputable def matchAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "l" (App (Val (GoInstruction (GoAlloc matchAckIndexer.ty))) (Var "l"))
@@ -1362,7 +1362,7 @@ noncomputable def matchAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (Let "$r0" (Val #(W64 0))
   (Let "$r1" (Val #false)
@@ -1373,20 +1373,20 @@ noncomputable def matchAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Progress.ty)))) (Pair (Var "pr") (Var "$r0")))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- go: tracker.go:261:27 -/
 noncomputable def scopedAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc scopedAckIndexer.ty))) (Var "s"))
@@ -1405,7 +1405,7 @@ noncomputable def scopedAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef scopedAckIndexer.ty go!"scope"))) (Var "s")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1424,14 +1424,14 @@ noncomputable def scopedAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
   (Var "$r0")))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- Committed returns the largest log index known to be committed based on what
     the voting members of the group have acknowledged.
@@ -1456,7 +1456,7 @@ noncomputable def ProgressTracker.Committed.impl [GooseExts] [GoGlobalContext] :
 noncomputable def ProgressTracker.OneLessThanQuorumInReplicationSet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Epoch.ty) go!"ReplicateToWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))) (Val #()))
@@ -1480,17 +1480,17 @@ noncomputable def ProgressTracker.OneLessThanQuorumInReplicationSet.impl [GooseE
   (App (Val (GoInstruction (CompositeLiteral scopedAckIndexer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"indexer")) (ElementExpression matchAckIndexer.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"scope")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.StructType [])) (Var "$v1")))]))))
   (Let "indexer" (App (Val (GoInstruction (GoAlloc scopedAckIndexer.ty))) (App (Val (GoInstruction (GoZeroVal scopedAckIndexer.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (LiteralValue []))
-  (Let "result" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (LiteralValue []))
+  (Let "result" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Var "result"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Var "result"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "w2")) (Val #true) (App (Val (GoInstruction (GoLoad go.bool))) (Var "shared")))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"NonWitnessVoters"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 1))))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1498,29 +1498,29 @@ noncomputable def ProgressTracker.OneLessThanQuorumInReplicationSet.impl [GooseE
   (Let "$a1" (App (Val (GoInstruction (Convert scopedAckIndexer.ty _root_.Perennial.go_etcd_io.raft.v3.quorum.AckedIndexer.ty))) (App (Val (GoInstruction (GoLoad scopedAckIndexer.ty))) (Var "indexer")))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.bool))) (Var "w2"))
   (App (App (App (App (Val (GoInstruction (FuncResolve witnessIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "idx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Val #())))
+  (Let "idx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (map.lookup2 go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Var "result"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"Witness"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 1)))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Var "result"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"Witness"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 1)))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "idx1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Val #())))
+  (Let "idx1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoOp GoLt _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "idx")) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "idx1")))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "idx"))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoOp GoLt _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Var "idx")) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Var "idx1")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Var "idx"))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Var "result"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"Witness"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 1))))))) (Var "$r0"))))
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Var "result"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"Witness"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 1))))))) (Var "$r0"))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "idx1") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "idx1") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "idx") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "idx") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (StructFieldRef scopedAckIndexer.ty go!"scope"))) (Var "indexer")) (Var "$r0"))))))
   (App (Val doExecute)
@@ -1531,11 +1531,11 @@ noncomputable def ProgressTracker.OneLessThanQuorumInReplicationSet.impl [GooseE
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.bool))) (Var "w1"))
   (App (App (App (App (Val (GoInstruction (FuncResolve witnessIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Var "result"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"Witness"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 0))))))) (Var "$r0"))))
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Var "result"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"Witness"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 0))))))) (Var "$r0"))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Pair (Var "result") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Pair (Var "result") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore scopedAckIndexer.ty))) (Pair (Var "indexer") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -1543,19 +1543,19 @@ noncomputable def ProgressTracker.OneLessThanQuorumInReplicationSet.impl [GooseE
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Epoch.ty)))) (Pair (Var "epoch") (Var "$r0")))))))))
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "w1"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "w2"))) (Val #false))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "w2") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "w1") (Var "$r0"))))))))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)))) (Var "$res0"))))))
 
 /-- A shared witness acknowledges one index for both halves. In a half that
     selected it, the witness supplies the last vote. A half that excluded it
@@ -1566,7 +1566,7 @@ noncomputable def witnessIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "voters"
   (Lam "indexer"
   (Lam "selected"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "selected" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "selected"))
   (Let "indexer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.AckedIndexer.ty))) (Var "indexer"))
@@ -1578,7 +1578,7 @@ noncomputable def witnessIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "selected"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.AckedIndexer.ty))) (Var "indexer"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty) go!"OneLessThanQuorum"))) (Var "voters")) (Var "$a0")))
@@ -1586,10 +1586,10 @@ noncomputable def witnessIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))))
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "$res0")))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Var "$res0")))))))
 
 /-- Visit invokes the supplied closure for all tracked progresses in stable order.
 
@@ -2771,7 +2771,7 @@ class ProgressTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   get_Epoch : ∀ (x : ProgressTracker), go.IsGoStepPureDetTagged under (StructFieldGet ProgressTracker.underlying go!"Epoch") #x (Val #(x.Epoch'))
   set_Epoch : ∀ (x : ProgressTracker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProgressTracker.underlying go!"Epoch") (PairV #x #y) (Val #(({ x with Epoch' := y } : ProgressTracker)))
   method_set : go.MethodSetIs ProgressTracker.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProgressTracker.ty) [(go!"ChangeReplicationSet", (some (go.signature.Signature [] false [go.bool]))), (go!"Clone", (some (go.signature.Signature [] false [Config.ty]))), (go!"Committed", (some (go.signature.Signature [] false [go.uint64]))), (go!"ConfState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"IsSingleton", (some (go.signature.Signature [] false [go.bool]))), (go!"LearnerNodes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"OneLessThanQuorumInReplicationSet", (some (go.signature.Signature [] false [(go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)]))), (go!"QuorumActive", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordVote", (some (go.signature.Signature [go.uint64, go.bool] false []))), (go!"ResetReplicationSet", (some (go.signature.Signature [go.bool] false []))), (go!"ResetVotes", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TallyVotes", (some (go.signature.Signature [] false [go.int, go.int, _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty]))), (go!"TallyVotesWithDifference", (some (go.signature.Signature [] false [go.int, go.int, _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty, (go.GoType.ArrayType 2 go.int)]))), (go!"Visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uint64, (go.GoType.PointerType Progress.ty)] false []))] false []))), (go!"VoterNodes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProgressTracker.ty) [(go!"ChangeReplicationSet", (some (go.signature.Signature [] false [go.bool]))), (go!"Clone", (some (go.signature.Signature [] false [Config.ty]))), (go!"Committed", (some (go.signature.Signature [] false [go.uint64]))), (go!"ConfState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"IsSingleton", (some (go.signature.Signature [] false [go.bool]))), (go!"LearnerNodes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"OneLessThanQuorumInReplicationSet", (some (go.signature.Signature [] false [(go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty)]))), (go!"QuorumActive", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordVote", (some (go.signature.Signature [go.uint64, go.bool] false []))), (go!"ResetReplicationSet", (some (go.signature.Signature [go.bool] false []))), (go!"ResetVotes", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TallyVotes", (some (go.signature.Signature [] false [go.int, go.int, _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty]))), (go!"TallyVotesWithDifference", (some (go.signature.Signature [] false [go.int, go.int, _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty, (go.GoType.ArrayType 2 go.int)]))), (go!"Visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uint64, (go.GoType.PointerType Progress.ty)] false []))] false []))), (go!"VoterNodes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)])))]
   String_unfold : MethodUnfold ProgressTracker.ty go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Config.ty go!"String"))) (App (Val (GoInstruction (StructFieldGet ProgressTracker.ty go!"Config"))) (Var "$r"))))
   ptr_ChangeReplicationSet_unfold : MethodUnfold (go.GoType.PointerType ProgressTracker.ty) go!"ChangeReplicationSet" ProgressTracker.ChangeReplicationSet.impl
@@ -2834,8 +2834,8 @@ abbrev matchAckIndexer [GooseExts] : Type := GoMap
 
 class matchAckIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq matchAckIndexer.ty matchAckIndexer.underlying
-  method_set : go.MethodSetIs matchAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType matchAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
+  method_set : go.MethodSetIs matchAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType matchAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty, go.bool])))]
   AckedIndex_unfold : MethodUnfold matchAckIndexer.ty go!"AckedIndex" matchAckIndexer.AckedIndex.impl
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType matchAckIndexer.ty) go!"AckedIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve matchAckIndexer.ty go!"AckedIndex"))) (App (Val (GoInstruction (GoLoad matchAckIndexer.ty))) (Var "$r"))))
@@ -2875,8 +2875,8 @@ class scopedAckIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_indexer : ∀ (x : scopedAckIndexer) (y : _root_.Perennial.go_etcd_io.raft.v3.quorum.AckedIndexer), go.IsGoStepPureDetTagged under (StructFieldSet scopedAckIndexer.underlying go!"indexer") (PairV #x #y) (Val #(({ x with indexer' := y } : scopedAckIndexer)))
   get_scope : ∀ (x : scopedAckIndexer), go.IsGoStepPureDetTagged under (StructFieldGet scopedAckIndexer.underlying go!"scope") #x (Val #(x.scope'))
   set_scope : ∀ (x : scopedAckIndexer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet scopedAckIndexer.underlying go!"scope") (PairV #x #y) (Val #(({ x with scope' := y } : scopedAckIndexer)))
-  method_set : go.MethodSetIs scopedAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType scopedAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
+  method_set : go.MethodSetIs scopedAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType scopedAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty, go.bool])))]
   AckedIndex_unfold : MethodUnfold scopedAckIndexer.ty go!"AckedIndex" scopedAckIndexer.AckedIndex.impl
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType scopedAckIndexer.ty) go!"AckedIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve scopedAckIndexer.ty go!"AckedIndex"))) (App (Val (GoInstruction (GoLoad scopedAckIndexer.ty))) (Var "$r"))))

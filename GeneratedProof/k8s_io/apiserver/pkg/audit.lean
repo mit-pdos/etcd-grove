@@ -122,11 +122,11 @@ noncomputable instance union_access_load_backends (l : Loc) (v : k8s_io.apiserve
  by
   solve_pointsto_access_struct
 
-noncomputable instance union_access_store_backends (l : Loc) (v : k8s_io.apiserver.pkg.audit.union) (backends' : GoSlice) :
+noncomputable instance union_access_store_backends (l : Loc) (v : k8s_io.apiserver.pkg.audit.union) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) backends' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backends' := backends' } : k8s_io.apiserver.pkg.audit.union) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backends' := y } : k8s_io.apiserver.pkg.audit.union) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

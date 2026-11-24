@@ -53,11 +53,11 @@ noncomputable instance NodeAllocatableResourceClaimStatus_access_load_ResourceCl
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeAllocatableResourceClaimStatus_access_store_ResourceClaimName (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (ResourceClaimName' : GoString) :
+noncomputable instance NodeAllocatableResourceClaimStatus_access_store_ResourceClaimName (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"ResourceClaimName" l) v.ResourceClaimName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"ResourceClaimName" l) ResourceClaimName' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceClaimName' := ResourceClaimName' } : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"ResourceClaimName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceClaimName' := y } : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -69,11 +69,11 @@ noncomputable instance NodeAllocatableResourceClaimStatus_access_load_Containers
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeAllocatableResourceClaimStatus_access_store_Containers (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (Containers' : GoSlice) :
+noncomputable instance NodeAllocatableResourceClaimStatus_access_store_Containers (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"Containers" l) v.Containers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"Containers" l) Containers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Containers' := Containers' } : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"Containers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Containers' := y } : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -85,11 +85,11 @@ noncomputable instance NodeAllocatableResourceClaimStatus_access_load_Mapping (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeAllocatableResourceClaimStatus_access_store_Mapping (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (Mapping' : GoSlice) :
+noncomputable instance NodeAllocatableResourceClaimStatus_access_store_Mapping (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"Mapping" l) v.Mapping' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"Mapping" l) Mapping' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mapping' := Mapping' } : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"Mapping" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mapping' := y } : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -101,11 +101,11 @@ noncomputable instance NodeAllocatableResourceClaimStatus_access_load_Overhead (
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeAllocatableResourceClaimStatus_access_store_Overhead (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (Overhead' : GoSlice) :
+noncomputable instance NodeAllocatableResourceClaimStatus_access_store_Overhead (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"Overhead" l) v.Overhead' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"Overhead" l) Overhead' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Overhead' := Overhead' } : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus go!"Overhead" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Overhead' := y } : k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

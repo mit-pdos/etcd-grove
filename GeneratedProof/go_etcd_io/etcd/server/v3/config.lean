@@ -113,11 +113,11 @@ noncomputable instance ServerConfig_access_load_Name (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_Name (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (Name' : GoString) :
+noncomputable instance ServerConfig_access_store_Name (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -129,11 +129,11 @@ noncomputable instance ServerConfig_access_load_DiscoveryCfg (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_DiscoveryCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (DiscoveryCfg' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) :
+noncomputable instance ServerConfig_access_store_DiscoveryCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DiscoveryCfg" l) v.DiscoveryCfg' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DiscoveryCfg" l) DiscoveryCfg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DiscoveryCfg' := DiscoveryCfg' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DiscoveryCfg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DiscoveryCfg' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -145,11 +145,11 @@ noncomputable instance ServerConfig_access_load_ClientURLs (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_ClientURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ClientURLs' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
+noncomputable instance ServerConfig_access_store_ClientURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ClientURLs" l) v.ClientURLs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ClientURLs" l) ClientURLs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientURLs' := ClientURLs' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ClientURLs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientURLs' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -161,11 +161,11 @@ noncomputable instance ServerConfig_access_load_PeerURLs (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_PeerURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (PeerURLs' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
+noncomputable instance ServerConfig_access_store_PeerURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerURLs" l) v.PeerURLs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerURLs" l) PeerURLs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PeerURLs' := PeerURLs' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerURLs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PeerURLs' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -177,11 +177,11 @@ noncomputable instance ServerConfig_access_load_DataDir (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_DataDir (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (DataDir' : GoString) :
+noncomputable instance ServerConfig_access_store_DataDir (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DataDir" l) v.DataDir' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DataDir" l) DataDir' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DataDir' := DataDir' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DataDir" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DataDir' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -193,11 +193,11 @@ noncomputable instance ServerConfig_access_load_DedicatedWALDir (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_DedicatedWALDir (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (DedicatedWALDir' : GoString) :
+noncomputable instance ServerConfig_access_store_DedicatedWALDir (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DedicatedWALDir" l) v.DedicatedWALDir' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DedicatedWALDir" l) DedicatedWALDir' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DedicatedWALDir' := DedicatedWALDir' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DedicatedWALDir" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DedicatedWALDir' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -209,11 +209,11 @@ noncomputable instance ServerConfig_access_load_SnapshotCount (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_SnapshotCount (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (SnapshotCount' : w64) :
+noncomputable instance ServerConfig_access_store_SnapshotCount (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SnapshotCount" l) v.SnapshotCount' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SnapshotCount" l) SnapshotCount' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotCount' := SnapshotCount' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SnapshotCount" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotCount' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -225,11 +225,11 @@ noncomputable instance ServerConfig_access_load_SnapshotCatchUpEntries (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_SnapshotCatchUpEntries (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (SnapshotCatchUpEntries' : w64) :
+noncomputable instance ServerConfig_access_store_SnapshotCatchUpEntries (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SnapshotCatchUpEntries" l) v.SnapshotCatchUpEntries' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SnapshotCatchUpEntries" l) SnapshotCatchUpEntries' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotCatchUpEntries' := SnapshotCatchUpEntries' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SnapshotCatchUpEntries" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotCatchUpEntries' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -241,11 +241,11 @@ noncomputable instance ServerConfig_access_load_MaxWALFiles (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_MaxWALFiles (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (MaxWALFiles' : w64) :
+noncomputable instance ServerConfig_access_store_MaxWALFiles (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxWALFiles" l) v.MaxWALFiles' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxWALFiles" l) MaxWALFiles' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxWALFiles' := MaxWALFiles' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxWALFiles" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxWALFiles' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -257,11 +257,11 @@ noncomputable instance ServerConfig_access_load_BackendBatchInterval (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_BackendBatchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BackendBatchInterval' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_BackendBatchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendBatchInterval" l) v.BackendBatchInterval' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendBatchInterval" l) BackendBatchInterval' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackendBatchInterval' := BackendBatchInterval' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendBatchInterval" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackendBatchInterval' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -273,11 +273,11 @@ noncomputable instance ServerConfig_access_load_BackendBatchLimit (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_BackendBatchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BackendBatchLimit' : w64) :
+noncomputable instance ServerConfig_access_store_BackendBatchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendBatchLimit" l) v.BackendBatchLimit' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendBatchLimit" l) BackendBatchLimit' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackendBatchLimit' := BackendBatchLimit' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendBatchLimit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackendBatchLimit' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -289,11 +289,11 @@ noncomputable instance ServerConfig_access_load_BackendFreelistType (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_BackendFreelistType (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BackendFreelistType' : _root_.Perennial.go_etcd_io.bbolt.FreelistType) :
+noncomputable instance ServerConfig_access_store_BackendFreelistType (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.go_etcd_io.bbolt.FreelistType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendFreelistType" l) v.BackendFreelistType' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendFreelistType" l) BackendFreelistType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackendFreelistType' := BackendFreelistType' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendFreelistType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BackendFreelistType' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -305,11 +305,11 @@ noncomputable instance ServerConfig_access_load_InitialPeerURLsMap (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_InitialPeerURLsMap (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (InitialPeerURLsMap' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap) :
+noncomputable instance ServerConfig_access_store_InitialPeerURLsMap (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialPeerURLsMap" l) v.InitialPeerURLsMap' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialPeerURLsMap" l) InitialPeerURLsMap' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialPeerURLsMap' := InitialPeerURLsMap' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialPeerURLsMap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialPeerURLsMap' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -321,11 +321,11 @@ noncomputable instance ServerConfig_access_load_InitialClusterToken (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_InitialClusterToken (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (InitialClusterToken' : GoString) :
+noncomputable instance ServerConfig_access_store_InitialClusterToken (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialClusterToken" l) v.InitialClusterToken' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialClusterToken" l) InitialClusterToken' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialClusterToken' := InitialClusterToken' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialClusterToken" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialClusterToken' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -337,11 +337,11 @@ noncomputable instance ServerConfig_access_load_NewCluster (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_NewCluster (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (NewCluster' : Bool) :
+noncomputable instance ServerConfig_access_store_NewCluster (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"NewCluster" l) v.NewCluster' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"NewCluster" l) NewCluster' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewCluster' := NewCluster' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"NewCluster" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewCluster' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -353,11 +353,11 @@ noncomputable instance ServerConfig_access_load_PeerTLSInfo (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_PeerTLSInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (PeerTLSInfo' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) :
+noncomputable instance ServerConfig_access_store_PeerTLSInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerTLSInfo" l) v.PeerTLSInfo' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerTLSInfo" l) PeerTLSInfo' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PeerTLSInfo' := PeerTLSInfo' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerTLSInfo" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PeerTLSInfo' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -369,11 +369,11 @@ noncomputable instance ServerConfig_access_load_CORS (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_CORS (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CORS' : GoMap) :
+noncomputable instance ServerConfig_access_store_CORS (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CORS" l) v.CORS' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CORS" l) CORS' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CORS' := CORS' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CORS" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CORS' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -385,11 +385,11 @@ noncomputable instance ServerConfig_access_load_HostWhitelist (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_HostWhitelist (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (HostWhitelist' : GoMap) :
+noncomputable instance ServerConfig_access_store_HostWhitelist (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"HostWhitelist" l) v.HostWhitelist' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"HostWhitelist" l) HostWhitelist' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HostWhitelist' := HostWhitelist' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"HostWhitelist" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HostWhitelist' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -401,11 +401,11 @@ noncomputable instance ServerConfig_access_load_TickMs (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_TickMs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (TickMs' : w64) :
+noncomputable instance ServerConfig_access_store_TickMs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TickMs" l) v.TickMs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TickMs" l) TickMs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TickMs' := TickMs' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TickMs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TickMs' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -417,11 +417,11 @@ noncomputable instance ServerConfig_access_load_ElectionTicks (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_ElectionTicks (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ElectionTicks' : w64) :
+noncomputable instance ServerConfig_access_store_ElectionTicks (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ElectionTicks" l) v.ElectionTicks' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ElectionTicks" l) ElectionTicks' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ElectionTicks' := ElectionTicks' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ElectionTicks" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ElectionTicks' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -433,11 +433,11 @@ noncomputable instance ServerConfig_access_load_InitialElectionTickAdvance (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_InitialElectionTickAdvance (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (InitialElectionTickAdvance' : Bool) :
+noncomputable instance ServerConfig_access_store_InitialElectionTickAdvance (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialElectionTickAdvance" l) v.InitialElectionTickAdvance' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialElectionTickAdvance" l) InitialElectionTickAdvance' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialElectionTickAdvance' := InitialElectionTickAdvance' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialElectionTickAdvance" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialElectionTickAdvance' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -449,11 +449,11 @@ noncomputable instance ServerConfig_access_load_BootstrapTimeout (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_BootstrapTimeout (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BootstrapTimeout' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_BootstrapTimeout (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BootstrapTimeout" l) v.BootstrapTimeout' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BootstrapTimeout" l) BootstrapTimeout' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BootstrapTimeout' := BootstrapTimeout' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BootstrapTimeout" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BootstrapTimeout' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -465,11 +465,11 @@ noncomputable instance ServerConfig_access_load_AutoCompactionRetention (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_AutoCompactionRetention (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (AutoCompactionRetention' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_AutoCompactionRetention (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionRetention" l) v.AutoCompactionRetention' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionRetention" l) AutoCompactionRetention' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AutoCompactionRetention' := AutoCompactionRetention' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionRetention" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AutoCompactionRetention' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -481,11 +481,11 @@ noncomputable instance ServerConfig_access_load_AutoCompactionMode (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_AutoCompactionMode (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (AutoCompactionMode' : GoString) :
+noncomputable instance ServerConfig_access_store_AutoCompactionMode (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionMode" l) v.AutoCompactionMode' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionMode" l) AutoCompactionMode' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AutoCompactionMode' := AutoCompactionMode' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionMode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AutoCompactionMode' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -497,11 +497,11 @@ noncomputable instance ServerConfig_access_load_CompactionBatchLimit (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_CompactionBatchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CompactionBatchLimit' : w64) :
+noncomputable instance ServerConfig_access_store_CompactionBatchLimit (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionBatchLimit" l) v.CompactionBatchLimit' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionBatchLimit" l) CompactionBatchLimit' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactionBatchLimit' := CompactionBatchLimit' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionBatchLimit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactionBatchLimit' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -513,11 +513,11 @@ noncomputable instance ServerConfig_access_load_CompactionSleepInterval (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_CompactionSleepInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CompactionSleepInterval' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_CompactionSleepInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionSleepInterval" l) v.CompactionSleepInterval' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionSleepInterval" l) CompactionSleepInterval' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactionSleepInterval' := CompactionSleepInterval' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionSleepInterval" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactionSleepInterval' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -529,11 +529,11 @@ noncomputable instance ServerConfig_access_load_QuotaBackendBytes (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_QuotaBackendBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (QuotaBackendBytes' : w64) :
+noncomputable instance ServerConfig_access_store_QuotaBackendBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"QuotaBackendBytes" l) v.QuotaBackendBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"QuotaBackendBytes" l) QuotaBackendBytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with QuotaBackendBytes' := QuotaBackendBytes' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"QuotaBackendBytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with QuotaBackendBytes' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -545,11 +545,11 @@ noncomputable instance ServerConfig_access_load_MaxTxnOps (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_MaxTxnOps (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (MaxTxnOps' : w64) :
+noncomputable instance ServerConfig_access_store_MaxTxnOps (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxTxnOps" l) v.MaxTxnOps' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxTxnOps" l) MaxTxnOps' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxTxnOps' := MaxTxnOps' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxTxnOps" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxTxnOps' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -561,11 +561,11 @@ noncomputable instance ServerConfig_access_load_MaxRequestBytes (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_MaxRequestBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (MaxRequestBytes' : w64) :
+noncomputable instance ServerConfig_access_store_MaxRequestBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxRequestBytes" l) v.MaxRequestBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxRequestBytes" l) MaxRequestBytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxRequestBytes' := MaxRequestBytes' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxRequestBytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxRequestBytes' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -577,11 +577,11 @@ noncomputable instance ServerConfig_access_load_MaxConcurrentStreams (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_MaxConcurrentStreams (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (MaxConcurrentStreams' : w32) :
+noncomputable instance ServerConfig_access_store_MaxConcurrentStreams (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxConcurrentStreams" l) v.MaxConcurrentStreams' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxConcurrentStreams" l) MaxConcurrentStreams' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxConcurrentStreams' := MaxConcurrentStreams' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxConcurrentStreams" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxConcurrentStreams' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -593,11 +593,11 @@ noncomputable instance ServerConfig_access_load_WarningApplyDuration (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (WarningApplyDuration' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningApplyDuration" l) v.WarningApplyDuration' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningApplyDuration" l) WarningApplyDuration' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarningApplyDuration' := WarningApplyDuration' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningApplyDuration" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarningApplyDuration' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -609,11 +609,11 @@ noncomputable instance ServerConfig_access_load_WarningUnaryRequestDuration (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_WarningUnaryRequestDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (WarningUnaryRequestDuration' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_WarningUnaryRequestDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningUnaryRequestDuration" l) v.WarningUnaryRequestDuration' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningUnaryRequestDuration" l) WarningUnaryRequestDuration' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarningUnaryRequestDuration' := WarningUnaryRequestDuration' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningUnaryRequestDuration" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarningUnaryRequestDuration' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -625,11 +625,11 @@ noncomputable instance ServerConfig_access_load_StrictReconfigCheck (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_StrictReconfigCheck (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (StrictReconfigCheck' : Bool) :
+noncomputable instance ServerConfig_access_store_StrictReconfigCheck (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"StrictReconfigCheck" l) v.StrictReconfigCheck' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"StrictReconfigCheck" l) StrictReconfigCheck' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StrictReconfigCheck' := StrictReconfigCheck' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"StrictReconfigCheck" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StrictReconfigCheck' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -641,11 +641,11 @@ noncomputable instance ServerConfig_access_load_ClientCertAuthEnabled (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_ClientCertAuthEnabled (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ClientCertAuthEnabled' : Bool) :
+noncomputable instance ServerConfig_access_store_ClientCertAuthEnabled (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ClientCertAuthEnabled" l) v.ClientCertAuthEnabled' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ClientCertAuthEnabled" l) ClientCertAuthEnabled' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientCertAuthEnabled' := ClientCertAuthEnabled' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ClientCertAuthEnabled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientCertAuthEnabled' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -657,11 +657,11 @@ noncomputable instance ServerConfig_access_load_AuthToken (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_AuthToken (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (AuthToken' : GoString) :
+noncomputable instance ServerConfig_access_store_AuthToken (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AuthToken" l) v.AuthToken' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AuthToken" l) AuthToken' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AuthToken' := AuthToken' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AuthToken" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AuthToken' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -673,11 +673,11 @@ noncomputable instance ServerConfig_access_load_BcryptCost (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_BcryptCost (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BcryptCost' : w64) :
+noncomputable instance ServerConfig_access_store_BcryptCost (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BcryptCost" l) v.BcryptCost' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BcryptCost" l) BcryptCost' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BcryptCost' := BcryptCost' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BcryptCost" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BcryptCost' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -689,11 +689,11 @@ noncomputable instance ServerConfig_access_load_TokenTTL (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_TokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (TokenTTL' : w64) :
+noncomputable instance ServerConfig_access_store_TokenTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TokenTTL" l) v.TokenTTL' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TokenTTL" l) TokenTTL' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TokenTTL' := TokenTTL' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TokenTTL" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TokenTTL' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -705,11 +705,11 @@ noncomputable instance ServerConfig_access_load_InitialCorruptCheck (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_InitialCorruptCheck (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (InitialCorruptCheck' : Bool) :
+noncomputable instance ServerConfig_access_store_InitialCorruptCheck (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialCorruptCheck" l) v.InitialCorruptCheck' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialCorruptCheck" l) InitialCorruptCheck' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialCorruptCheck' := InitialCorruptCheck' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialCorruptCheck" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialCorruptCheck' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -721,11 +721,11 @@ noncomputable instance ServerConfig_access_load_CorruptCheckTime (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_CorruptCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CorruptCheckTime' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_CorruptCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CorruptCheckTime" l) v.CorruptCheckTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CorruptCheckTime" l) CorruptCheckTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CorruptCheckTime' := CorruptCheckTime' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CorruptCheckTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CorruptCheckTime' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -737,11 +737,11 @@ noncomputable instance ServerConfig_access_load_CompactHashCheckTime (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_CompactHashCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CompactHashCheckTime' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_CompactHashCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactHashCheckTime" l) v.CompactHashCheckTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactHashCheckTime" l) CompactHashCheckTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactHashCheckTime' := CompactHashCheckTime' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactHashCheckTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactHashCheckTime' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -753,11 +753,11 @@ noncomputable instance ServerConfig_access_load_PreVote (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_PreVote (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (PreVote' : Bool) :
+noncomputable instance ServerConfig_access_store_PreVote (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PreVote" l) v.PreVote' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PreVote" l) PreVote' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreVote' := PreVote' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PreVote" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreVote' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -769,11 +769,11 @@ noncomputable instance ServerConfig_access_load_SocketOpts (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_SocketOpts (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (SocketOpts' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) :
+noncomputable instance ServerConfig_access_store_SocketOpts (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SocketOpts" l) v.SocketOpts' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SocketOpts" l) SocketOpts' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SocketOpts' := SocketOpts' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SocketOpts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SocketOpts' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -785,11 +785,11 @@ noncomputable instance ServerConfig_access_load_Logger (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (Logger' : Loc) :
+noncomputable instance ServerConfig_access_store_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Logger" l) v.Logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Logger" l) Logger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := Logger' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -801,11 +801,11 @@ noncomputable instance ServerConfig_access_load_ForceNewCluster (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_ForceNewCluster (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ForceNewCluster' : Bool) :
+noncomputable instance ServerConfig_access_store_ForceNewCluster (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ForceNewCluster" l) v.ForceNewCluster' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ForceNewCluster" l) ForceNewCluster' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ForceNewCluster' := ForceNewCluster' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ForceNewCluster" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ForceNewCluster' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -817,11 +817,11 @@ noncomputable instance ServerConfig_access_load_LeaseCheckpointInterval (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_LeaseCheckpointInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (LeaseCheckpointInterval' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_LeaseCheckpointInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"LeaseCheckpointInterval" l) v.LeaseCheckpointInterval' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"LeaseCheckpointInterval" l) LeaseCheckpointInterval' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeaseCheckpointInterval' := LeaseCheckpointInterval' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"LeaseCheckpointInterval" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeaseCheckpointInterval' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -833,11 +833,11 @@ noncomputable instance ServerConfig_access_load_EnableGRPCGateway (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_EnableGRPCGateway (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (EnableGRPCGateway' : Bool) :
+noncomputable instance ServerConfig_access_store_EnableGRPCGateway (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"EnableGRPCGateway" l) v.EnableGRPCGateway' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"EnableGRPCGateway" l) EnableGRPCGateway' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableGRPCGateway' := EnableGRPCGateway' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"EnableGRPCGateway" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableGRPCGateway' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -849,11 +849,11 @@ noncomputable instance ServerConfig_access_load_EnableDistributedTracing (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_EnableDistributedTracing (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (EnableDistributedTracing' : Bool) :
+noncomputable instance ServerConfig_access_store_EnableDistributedTracing (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"EnableDistributedTracing" l) v.EnableDistributedTracing' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"EnableDistributedTracing" l) EnableDistributedTracing' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableDistributedTracing' := EnableDistributedTracing' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"EnableDistributedTracing" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableDistributedTracing' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -865,11 +865,11 @@ noncomputable instance ServerConfig_access_load_TracerOptions (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_TracerOptions (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (TracerOptions' : GoSlice) :
+noncomputable instance ServerConfig_access_store_TracerOptions (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TracerOptions" l) v.TracerOptions' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TracerOptions" l) TracerOptions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TracerOptions' := TracerOptions' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TracerOptions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TracerOptions' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -881,11 +881,11 @@ noncomputable instance ServerConfig_access_load_WatchProgressNotifyInterval (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_WatchProgressNotifyInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (WatchProgressNotifyInterval' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_WatchProgressNotifyInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WatchProgressNotifyInterval" l) v.WatchProgressNotifyInterval' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WatchProgressNotifyInterval" l) WatchProgressNotifyInterval' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WatchProgressNotifyInterval' := WatchProgressNotifyInterval' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WatchProgressNotifyInterval" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WatchProgressNotifyInterval' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -897,11 +897,11 @@ noncomputable instance ServerConfig_access_load_UnsafeNoFsync (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_UnsafeNoFsync (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (UnsafeNoFsync' : Bool) :
+noncomputable instance ServerConfig_access_store_UnsafeNoFsync (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"UnsafeNoFsync" l) v.UnsafeNoFsync' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"UnsafeNoFsync" l) UnsafeNoFsync' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnsafeNoFsync' := UnsafeNoFsync' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"UnsafeNoFsync" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnsafeNoFsync' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -913,11 +913,11 @@ noncomputable instance ServerConfig_access_load_DowngradeCheckTime (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_DowngradeCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (DowngradeCheckTime' : _root_.Perennial.time.Duration) :
+noncomputable instance ServerConfig_access_store_DowngradeCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DowngradeCheckTime" l) v.DowngradeCheckTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DowngradeCheckTime" l) DowngradeCheckTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DowngradeCheckTime' := DowngradeCheckTime' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DowngradeCheckTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DowngradeCheckTime' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -929,11 +929,11 @@ noncomputable instance ServerConfig_access_load_MemoryMlock (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_MemoryMlock (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (MemoryMlock' : Bool) :
+noncomputable instance ServerConfig_access_store_MemoryMlock (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MemoryMlock" l) v.MemoryMlock' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MemoryMlock" l) MemoryMlock' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MemoryMlock' := MemoryMlock' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MemoryMlock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MemoryMlock' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -945,11 +945,11 @@ noncomputable instance ServerConfig_access_load_BootstrapDefragThresholdMegabyte
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_BootstrapDefragThresholdMegabytes (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BootstrapDefragThresholdMegabytes' : w64) :
+noncomputable instance ServerConfig_access_store_BootstrapDefragThresholdMegabytes (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BootstrapDefragThresholdMegabytes" l) v.BootstrapDefragThresholdMegabytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BootstrapDefragThresholdMegabytes" l) BootstrapDefragThresholdMegabytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BootstrapDefragThresholdMegabytes' := BootstrapDefragThresholdMegabytes' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BootstrapDefragThresholdMegabytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BootstrapDefragThresholdMegabytes' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -961,11 +961,11 @@ noncomputable instance ServerConfig_access_load_MaxLearners (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_MaxLearners (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (MaxLearners' : w64) :
+noncomputable instance ServerConfig_access_store_MaxLearners (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxLearners" l) v.MaxLearners' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxLearners" l) MaxLearners' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxLearners' := MaxLearners' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxLearners" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxLearners' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -977,11 +977,11 @@ noncomputable instance ServerConfig_access_load_LocalAddress (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_LocalAddress (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (LocalAddress' : GoString) :
+noncomputable instance ServerConfig_access_store_LocalAddress (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"LocalAddress" l) v.LocalAddress' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"LocalAddress" l) LocalAddress' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LocalAddress' := LocalAddress' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"LocalAddress" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LocalAddress' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -993,11 +993,11 @@ noncomputable instance ServerConfig_access_load_ServerFeatureGate (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_ServerFeatureGate (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ServerFeatureGate' : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate) :
+noncomputable instance ServerConfig_access_store_ServerFeatureGate (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ServerFeatureGate" l) v.ServerFeatureGate' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ServerFeatureGate" l) ServerFeatureGate' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServerFeatureGate' := ServerFeatureGate' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ServerFeatureGate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServerFeatureGate' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1009,11 +1009,11 @@ noncomputable instance ServerConfig_access_load_Metrics (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_Metrics (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (Metrics' : GoString) :
+noncomputable instance ServerConfig_access_store_Metrics (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Metrics" l) v.Metrics' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Metrics" l) Metrics' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metrics' := Metrics' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Metrics" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metrics' := y } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

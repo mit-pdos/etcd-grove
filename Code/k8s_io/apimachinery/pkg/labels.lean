@@ -26,10 +26,10 @@ noncomputable def Labels.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Labels.ty
 
-noncomputable def Set'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def Set''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Set" [])
 
-attribute [irreducible] Set'.ty
+attribute [irreducible] Set''.ty
 
 noncomputable def Requirements.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Requirements" [])
@@ -223,14 +223,14 @@ noncomputable def ParseToRequirements [GooseExts] [GoGlobalContext] : GoString :
 /-- Has returns whether the provided label exists in the map.
 
     go: labels.go:55:15 -/
-noncomputable def Set.Has.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.Has.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ls"
   (Lam "label"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "ls" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "ls"))
+  (Let "ls" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "ls"))
   (Let "label" (App (Val (GoInstruction (GoAlloc go.string))) (Var "label"))
-  (Let "__p" (App (App (Val (map.lookup2 go.string go.string)) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "ls"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "label")))
+  (Let "__p" (App (App (Val (map.lookup2 go.string go.string)) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "ls"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "label")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -253,14 +253,14 @@ noncomputable def Set.Has.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Get returns the value in the map for the provided label.
 
     go: labels.go:61:15 -/
-noncomputable def Set.Get.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ls"
   (Lam "label"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "ls" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "ls"))
+  (Let "ls" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "ls"))
   (Let "label" (App (Val (GoInstruction (GoAlloc go.string))) (Var "label"))
-  (Let "$r0" (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "ls"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "label")))
+  (Let "$r0" (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "ls"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "label")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -434,29 +434,29 @@ attribute [instance] Labels.TypeAssumptions.underlying
   Labels.TypeAssumptions.method_set
   Labels.TypeAssumptions.ptr_method_set
 
-abbrev Set' [GooseExts] : Type := GoMap
+abbrev Set'' [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def Set'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Set''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string go.string)
 
-class Set.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq Set'.ty Set'.underlying
-  method_set : go.MethodSetIs Set'.ty [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set'.ty) [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  Get_unfold : MethodUnfold Set'.ty go!"Get" Set.Get.impl
-  Has_unfold : MethodUnfold Set'.ty go!"Has" Set.Has.impl
-  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Get" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
-  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Has" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
+class Set''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Set''.ty Set''.underlying
+  method_set : go.MethodSetIs Set''.ty [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set''.ty) [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  Get_unfold : MethodUnfold Set''.ty go!"Get" Set''.Get.impl
+  Has_unfold : MethodUnfold Set''.ty go!"Has" Set''.Has.impl
+  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
+  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Has" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
 
-attribute [instance] Set.TypeAssumptions.underlying
-  Set.TypeAssumptions.method_set
-  Set.TypeAssumptions.ptr_method_set
-  Set.TypeAssumptions.Get_unfold
-  Set.TypeAssumptions.Has_unfold
-  Set.TypeAssumptions.ptr_Get_unfold
-  Set.TypeAssumptions.ptr_Has_unfold
+attribute [instance] Set''.TypeAssumptions.underlying
+  Set''.TypeAssumptions.method_set
+  Set''.TypeAssumptions.ptr_method_set
+  Set''.TypeAssumptions.Get_unfold
+  Set''.TypeAssumptions.Has_unfold
+  Set''.TypeAssumptions.ptr_Get_unfold
+  Set''.TypeAssumptions.ptr_Has_unfold
 
 abbrev Requirements [GooseExts] : Type := GoSlice
 
@@ -725,10 +725,10 @@ attribute [instance] ParserContext.TypeAssumptions.underlying
   ParserContext.TypeAssumptions.method_set
   ParserContext.TypeAssumptions.ptr_method_set
 
-abbrev ValidatedSetSelector [GooseExts] : Type := Set'
+abbrev ValidatedSetSelector [GooseExts] : Type := Set''
 
 @[reducible] noncomputable def ValidatedSetSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  Set'.ty
+  Set''.ty
 
 class ValidatedSetSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ValidatedSetSelector.ty ValidatedSetSelector.underlying
@@ -741,7 +741,7 @@ attribute [instance] ValidatedSetSelector.TypeAssumptions.underlying
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Labels_instance : Labels.TypeAssumptions
-  Set_instance : Set.TypeAssumptions
+  Set_instance : Set''.TypeAssumptions
   Requirements_instance : Requirements.TypeAssumptions
   Selector_instance : Selector.TypeAssumptions
   nothingSelector_instance : nothingSelector.TypeAssumptions

@@ -54,11 +54,11 @@ noncomputable instance Limiter_access_load_mu (l : Loc) (v : golang_org.x.time.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Limiter_access_store_mu (l : Loc) (v : golang_org.x.time.rate.Limiter) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance Limiter_access_store_mu (l : Loc) (v : golang_org.x.time.rate.Limiter) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -70,11 +70,11 @@ noncomputable instance Limiter_access_load_limit (l : Loc) (v : golang_org.x.tim
  by
   solve_pointsto_access_struct
 
-noncomputable instance Limiter_access_store_limit (l : Loc) (v : golang_org.x.time.rate.Limiter) (limit' : golang_org.x.time.rate.Limit) :
+noncomputable instance Limiter_access_store_limit (l : Loc) (v : golang_org.x.time.rate.Limiter) (y : golang_org.x.time.rate.Limit) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"limit" l) v.limit' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"limit" l) limit' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with limit' := limit' } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"limit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with limit' := y } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -86,11 +86,11 @@ noncomputable instance Limiter_access_load_burst (l : Loc) (v : golang_org.x.tim
  by
   solve_pointsto_access_struct
 
-noncomputable instance Limiter_access_store_burst (l : Loc) (v : golang_org.x.time.rate.Limiter) (burst' : w64) :
+noncomputable instance Limiter_access_store_burst (l : Loc) (v : golang_org.x.time.rate.Limiter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"burst" l) v.burst' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"burst" l) burst' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with burst' := burst' } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"burst" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with burst' := y } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -102,11 +102,11 @@ noncomputable instance Limiter_access_load_tokens (l : Loc) (v : golang_org.x.ti
  by
   solve_pointsto_access_struct
 
-noncomputable instance Limiter_access_store_tokens (l : Loc) (v : golang_org.x.time.rate.Limiter) (tokens' : w64) :
+noncomputable instance Limiter_access_store_tokens (l : Loc) (v : golang_org.x.time.rate.Limiter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"tokens" l) v.tokens' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"tokens" l) tokens' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tokens' := tokens' } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"tokens" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tokens' := y } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -118,11 +118,11 @@ noncomputable instance Limiter_access_load_last (l : Loc) (v : golang_org.x.time
  by
   solve_pointsto_access_struct
 
-noncomputable instance Limiter_access_store_last (l : Loc) (v : golang_org.x.time.rate.Limiter) (last' : _root_.Perennial.time.Time) :
+noncomputable instance Limiter_access_store_last (l : Loc) (v : golang_org.x.time.rate.Limiter) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"last" l) v.last' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"last" l) last' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with last' := last' } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"last" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with last' := y } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -134,11 +134,11 @@ noncomputable instance Limiter_access_load_lastEvent (l : Loc) (v : golang_org.x
  by
   solve_pointsto_access_struct
 
-noncomputable instance Limiter_access_store_lastEvent (l : Loc) (v : golang_org.x.time.rate.Limiter) (lastEvent' : _root_.Perennial.time.Time) :
+noncomputable instance Limiter_access_store_lastEvent (l : Loc) (v : golang_org.x.time.rate.Limiter) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"lastEvent" l) v.lastEvent' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"lastEvent" l) lastEvent' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastEvent' := lastEvent' } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"lastEvent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastEvent' := y } : golang_org.x.time.rate.Limiter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -178,11 +178,11 @@ noncomputable instance Reservation_access_load_ok (l : Loc) (v : golang_org.x.ti
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reservation_access_store_ok (l : Loc) (v : golang_org.x.time.rate.Reservation) (ok' : Bool) :
+noncomputable instance Reservation_access_store_ok (l : Loc) (v : golang_org.x.time.rate.Reservation) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"ok" l) v.ok' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"ok" l) ok' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ok' := ok' } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"ok" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ok' := y } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -194,11 +194,11 @@ noncomputable instance Reservation_access_load_lim (l : Loc) (v : golang_org.x.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reservation_access_store_lim (l : Loc) (v : golang_org.x.time.rate.Reservation) (lim' : Loc) :
+noncomputable instance Reservation_access_store_lim (l : Loc) (v : golang_org.x.time.rate.Reservation) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"lim" l) v.lim' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"lim" l) lim' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lim' := lim' } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"lim" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lim' := y } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -210,11 +210,11 @@ noncomputable instance Reservation_access_load_tokens (l : Loc) (v : golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reservation_access_store_tokens (l : Loc) (v : golang_org.x.time.rate.Reservation) (tokens' : w64) :
+noncomputable instance Reservation_access_store_tokens (l : Loc) (v : golang_org.x.time.rate.Reservation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"tokens" l) v.tokens' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"tokens" l) tokens' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tokens' := tokens' } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"tokens" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tokens' := y } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -226,11 +226,11 @@ noncomputable instance Reservation_access_load_timeToAct (l : Loc) (v : golang_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reservation_access_store_timeToAct (l : Loc) (v : golang_org.x.time.rate.Reservation) (timeToAct' : _root_.Perennial.time.Time) :
+noncomputable instance Reservation_access_store_timeToAct (l : Loc) (v : golang_org.x.time.rate.Reservation) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"timeToAct" l) v.timeToAct' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"timeToAct" l) timeToAct' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timeToAct' := timeToAct' } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"timeToAct" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timeToAct' := y } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -242,11 +242,11 @@ noncomputable instance Reservation_access_load_limit (l : Loc) (v : golang_org.x
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reservation_access_store_limit (l : Loc) (v : golang_org.x.time.rate.Reservation) (limit' : golang_org.x.time.rate.Limit) :
+noncomputable instance Reservation_access_store_limit (l : Loc) (v : golang_org.x.time.rate.Reservation) (y : golang_org.x.time.rate.Limit) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"limit" l) v.limit' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"limit" l) limit' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with limit' := limit' } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"limit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with limit' := y } : golang_org.x.time.rate.Reservation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -287,11 +287,11 @@ noncomputable instance Sometimes_access_load_First (l : Loc) (v : golang_org.x.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sometimes_access_store_First (l : Loc) (v : golang_org.x.time.rate.Sometimes) (First' : w64) :
+noncomputable instance Sometimes_access_store_First (l : Loc) (v : golang_org.x.time.rate.Sometimes) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"First" l) v.First' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"First" l) First' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with First' := First' } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"First" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with First' := y } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -303,11 +303,11 @@ noncomputable instance Sometimes_access_load_Every (l : Loc) (v : golang_org.x.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sometimes_access_store_Every (l : Loc) (v : golang_org.x.time.rate.Sometimes) (Every' : w64) :
+noncomputable instance Sometimes_access_store_Every (l : Loc) (v : golang_org.x.time.rate.Sometimes) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"Every" l) v.Every' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"Every" l) Every' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Every' := Every' } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"Every" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Every' := y } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -319,11 +319,11 @@ noncomputable instance Sometimes_access_load_Interval (l : Loc) (v : golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sometimes_access_store_Interval (l : Loc) (v : golang_org.x.time.rate.Sometimes) (Interval' : _root_.Perennial.time.Duration) :
+noncomputable instance Sometimes_access_store_Interval (l : Loc) (v : golang_org.x.time.rate.Sometimes) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"Interval" l) v.Interval' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"Interval" l) Interval' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Interval' := Interval' } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"Interval" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Interval' := y } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -335,11 +335,11 @@ noncomputable instance Sometimes_access_load_mu (l : Loc) (v : golang_org.x.time
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sometimes_access_store_mu (l : Loc) (v : golang_org.x.time.rate.Sometimes) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance Sometimes_access_store_mu (l : Loc) (v : golang_org.x.time.rate.Sometimes) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -351,11 +351,11 @@ noncomputable instance Sometimes_access_load_count (l : Loc) (v : golang_org.x.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sometimes_access_store_count (l : Loc) (v : golang_org.x.time.rate.Sometimes) (count' : w64) :
+noncomputable instance Sometimes_access_store_count (l : Loc) (v : golang_org.x.time.rate.Sometimes) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"count" l) v.count' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"count" l) count' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with count' := count' } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with count' := y } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -367,11 +367,11 @@ noncomputable instance Sometimes_access_load_last (l : Loc) (v : golang_org.x.ti
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sometimes_access_store_last (l : Loc) (v : golang_org.x.time.rate.Sometimes) (last' : _root_.Perennial.time.Time) :
+noncomputable instance Sometimes_access_store_last (l : Loc) (v : golang_org.x.time.rate.Sometimes) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"last" l) v.last' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"last" l) last' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with last' := last' } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"last" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with last' := y } : golang_org.x.time.rate.Sometimes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

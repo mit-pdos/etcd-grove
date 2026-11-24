@@ -32,10 +32,10 @@ noncomputable def Empty.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Empty.ty
 
-noncomputable def Int'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def Int''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.Int" [])
 
-attribute [irreducible] Int'.ty
+attribute [irreducible] Int''.ty
 
 noncomputable def Int32.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.Int32" [])
@@ -47,10 +47,10 @@ noncomputable def Int64.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Int64.ty
 
-noncomputable def Set'.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def Set''.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.Set" [T])
 
-attribute [irreducible] Set'.ty
+attribute [irreducible] Set''.ty
 
 noncomputable def String.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.String" [])
@@ -93,7 +93,7 @@ noncomputable def KeySet [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Insert [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/sets.Insert"
 
-noncomputable def List' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def List'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/sets.List"
 
 noncomputable def NewString [GooseExts] [GoGlobalContext] : GoString :=
@@ -148,7 +148,7 @@ noncomputable def Byte.Insert.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -168,7 +168,7 @@ noncomputable def Byte.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -188,7 +188,7 @@ noncomputable def Byte.Has.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s"))
   (Let "item" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "item"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -208,7 +208,7 @@ noncomputable def Byte.HasAll.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -228,7 +228,7 @@ noncomputable def Byte.HasAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -246,7 +246,7 @@ noncomputable def Byte.Clone.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Byte.ty))) (App (Val (GoInstruction (GoZeroVal Byte.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -272,7 +272,7 @@ noncomputable def Byte.Difference.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -298,7 +298,7 @@ noncomputable def Byte.SymmetricDifference.impl [GooseExts] [GoGlobalContext] : 
   (Let "s2" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -324,7 +324,7 @@ noncomputable def Byte.Union.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -349,7 +349,7 @@ noncomputable def Byte.Intersection.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -370,7 +370,7 @@ noncomputable def Byte.IsSuperset.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -393,7 +393,7 @@ noncomputable def Byte.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -413,7 +413,7 @@ noncomputable def Byte.List.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve List' [go.byte]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve List'' [go.byte]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -430,7 +430,7 @@ noncomputable def Byte.UnsortedList.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -449,7 +449,7 @@ noncomputable def Byte.PopAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Byte.ty))) (Var "s"))
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.byte) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.byte) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Byte.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.byte]))) (Val #())) (Var "$a0")))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -488,7 +488,7 @@ noncomputable def Byte.Len.impl [GooseExts] [GoGlobalContext] : val :=
     go: int.go:28:6 -/
 noncomputable def NewInt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "items"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int'.ty))) (App (Val (GoInstruction (GoZeroVal Int'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int''.ty))) (App (Val (GoInstruction (GoZeroVal Int''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "items"))
@@ -497,8 +497,8 @@ noncomputable def NewInt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore Int''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$res0")))))
 
 /-- IntKeySet creates a Int from a keys of a map[int](? extends interface{}).
     If the value passed in is not actually a map, this will panic.
@@ -506,7 +506,7 @@ noncomputable def NewInt.impl [GooseExts] [GoGlobalContext] : val :=
     go: int.go:34:6 -/
 noncomputable def IntKeySet.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "theMap"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int'.ty))) (App (Val (GoInstruction (GoZeroVal Int'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int''.ty))) (App (Val (GoInstruction (GoZeroVal Int''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "theMap" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.int T)))) (Var "theMap"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int T)))) (Var "theMap"))
@@ -515,61 +515,61 @@ noncomputable def IntKeySet.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore Int''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$res0")))))
 
 /-- Insert adds items to the set.
 
     go: int.go:39:14 -/
-noncomputable def Int.Insert.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.Insert.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "items"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int'.ty))) (App (Val (GoInstruction (GoZeroVal Int'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int''.ty))) (App (Val (GoInstruction (GoZeroVal Int''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Int''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$res0"))))))
 
 /-- Delete removes all items from the set.
 
     go: int.go:44:14 -/
-noncomputable def Int.Delete.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "items"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int'.ty))) (App (Val (GoInstruction (GoZeroVal Int'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int''.ty))) (App (Val (GoInstruction (GoZeroVal Int''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Int''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$res0"))))))
 
 /-- Has returns true if and only if item is contained in the set.
 
     go: int.go:49:14 -/
-noncomputable def Int.Has.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.Has.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "item"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
   (Let "item" (App (Val (GoInstruction (GoAlloc go.int))) (Var "item"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -581,15 +581,15 @@ noncomputable def Int.Has.impl [GooseExts] [GoGlobalContext] : val :=
 /-- HasAll returns true if and only if all items are contained in the set.
 
     go: int.go:54:14 -/
-noncomputable def Int.HasAll.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.HasAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "items"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -601,15 +601,15 @@ noncomputable def Int.HasAll.impl [GooseExts] [GoGlobalContext] : val :=
 /-- HasAny returns true if any items are contained in the set.
 
     go: int.go:59:14 -/
-noncomputable def Int.HasAny.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.HasAny.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "items"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -621,20 +621,20 @@ noncomputable def Int.HasAny.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Clone returns a new set which is a copy of the current set.
 
     go: int.go:64:14 -/
-noncomputable def Int.Clone.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.Clone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int'.ty))) (App (Val (GoInstruction (GoZeroVal Int'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int''.ty))) (App (Val (GoInstruction (GoZeroVal Int''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Int''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$res0"))))))
 
 /-- Difference returns a set of objects that are not in s2.
     For example:
@@ -644,23 +644,23 @@ noncomputable def Int.Clone.impl [GooseExts] [GoGlobalContext] : val :=
     s2.Difference(s1) = {a4, a5}
 
     go: int.go:74:15 -/
-noncomputable def Int.Difference.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.Difference.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s1"
   (Lam "s2"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int'.ty))) (App (Val (GoInstruction (GoZeroVal Int'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int''.ty))) (App (Val (GoInstruction (GoZeroVal Int''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s2"))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s2"))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s2"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Int''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$res0"))))))
 
 /-- SymmetricDifference returns a set of elements which are in either of the sets, but not in their intersection.
     For example:
@@ -670,23 +670,23 @@ noncomputable def Int.Difference.impl [GooseExts] [GoGlobalContext] : val :=
     s2.SymmetricDifference(s1) = {a3, a4, a5}
 
     go: int.go:84:15 -/
-noncomputable def Int.SymmetricDifference.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.SymmetricDifference.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s1"
   (Lam "s2"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int'.ty))) (App (Val (GoInstruction (GoZeroVal Int'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int''.ty))) (App (Val (GoInstruction (GoZeroVal Int''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s2"))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s2"))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s2"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Int''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$res0"))))))
 
 /-- Union returns a new set which includes items in either s1 or s2.
     For example:
@@ -696,23 +696,23 @@ noncomputable def Int.SymmetricDifference.impl [GooseExts] [GoGlobalContext] : v
     s2.Union(s1) = {a1, a2, a3, a4}
 
     go: int.go:94:15 -/
-noncomputable def Int.Union.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.Union.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s1"
   (Lam "s2"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int'.ty))) (App (Val (GoInstruction (GoZeroVal Int'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int''.ty))) (App (Val (GoInstruction (GoZeroVal Int''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s2"))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s2"))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s2"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Int''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$res0"))))))
 
 /-- Intersection returns a new set which includes the item in BOTH s1 and s2
     For example:
@@ -721,37 +721,37 @@ noncomputable def Int.Union.impl [GooseExts] [GoGlobalContext] : val :=
     s1.Intersection(s2) = {a2}
 
     go: int.go:103:15 -/
-noncomputable def Int.Intersection.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.Intersection.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s1"
   (Lam "s2"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int'.ty))) (App (Val (GoInstruction (GoZeroVal Int'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Int''.ty))) (App (Val (GoInstruction (GoZeroVal Int''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s2"))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s2"))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s2"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Int''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$res0"))))))
 
 /-- IsSuperset returns true if and only if s1 is a superset of s2.
 
     go: int.go:108:15 -/
-noncomputable def Int.IsSuperset.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.IsSuperset.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s1"
   (Lam "s2"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s2"))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s2"))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s2"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -765,16 +765,16 @@ noncomputable def Int.IsSuperset.impl [GooseExts] [GoGlobalContext] : val :=
     (In practice, this means same elements, order doesn't matter)
 
     go: int.go:115:15 -/
-noncomputable def Int.Equal.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s1"
   (Lam "s2"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s2"))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s2"))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s2"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -786,15 +786,15 @@ noncomputable def Int.Equal.impl [GooseExts] [GoGlobalContext] : val :=
 /-- List returns the contents as a sorted int slice.
 
     go: int.go:120:14 -/
-noncomputable def Int.List.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.List.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.int)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve List' [go.int]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve List'' [go.int]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -805,13 +805,13 @@ noncomputable def Int.List.impl [GooseExts] [GoGlobalContext] : val :=
 /-- UnsortedList returns the slice with contents in random order.
 
     go: int.go:125:14 -/
-noncomputable def Int.UnsortedList.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.UnsortedList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.int)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -823,14 +823,14 @@ noncomputable def Int.UnsortedList.impl [GooseExts] [GoGlobalContext] : val :=
 /-- PopAny returns a single element from the set.
 
     go: int.go:130:14 -/
-noncomputable def Int.PopAny.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.PopAny.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int]))) (Val #())) (Var "$a0")))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -849,14 +849,14 @@ noncomputable def Int.PopAny.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Len returns the size of the set.
 
     go: int.go:135:14 -/
-noncomputable def Int.Len.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Int'.ty))) (Var "s"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "s"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Int'.ty]))) (Val #())) (Var "$a0")))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Int''.ty))) (Var "s"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Int''.ty]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -910,7 +910,7 @@ noncomputable def Int32.Insert.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int32)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -930,7 +930,7 @@ noncomputable def Int32.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int32)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -950,7 +950,7 @@ noncomputable def Int32.Has.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s"))
   (Let "item" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "item"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int32))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -970,7 +970,7 @@ noncomputable def Int32.HasAll.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int32)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -990,7 +990,7 @@ noncomputable def Int32.HasAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int32)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1008,7 +1008,7 @@ noncomputable def Int32.Clone.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Int32.ty))) (App (Val (GoInstruction (GoZeroVal Int32.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1034,7 +1034,7 @@ noncomputable def Int32.Difference.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1060,7 +1060,7 @@ noncomputable def Int32.SymmetricDifference.impl [GooseExts] [GoGlobalContext] :
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1086,7 +1086,7 @@ noncomputable def Int32.Union.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1111,7 +1111,7 @@ noncomputable def Int32.Intersection.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1132,7 +1132,7 @@ noncomputable def Int32.IsSuperset.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1155,7 +1155,7 @@ noncomputable def Int32.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1175,7 +1175,7 @@ noncomputable def Int32.List.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve List' [go.int32]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve List'' [go.int32]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1192,7 +1192,7 @@ noncomputable def Int32.UnsortedList.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int32)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.int32)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1211,7 +1211,7 @@ noncomputable def Int32.PopAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Int32.ty))) (Var "s"))
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int32) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int32) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int32.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int32]))) (Val #())) (Var "$a0")))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1291,7 +1291,7 @@ noncomputable def Int64.Insert.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int64)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int64)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1311,7 +1311,7 @@ noncomputable def Int64.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int64)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int64)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1331,7 +1331,7 @@ noncomputable def Int64.Has.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s"))
   (Let "item" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "item"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1351,7 +1351,7 @@ noncomputable def Int64.HasAll.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int64)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int64)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1371,7 +1371,7 @@ noncomputable def Int64.HasAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int64)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int64)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1389,7 +1389,7 @@ noncomputable def Int64.Clone.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Int64.ty))) (App (Val (GoInstruction (GoZeroVal Int64.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1415,7 +1415,7 @@ noncomputable def Int64.Difference.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1441,7 +1441,7 @@ noncomputable def Int64.SymmetricDifference.impl [GooseExts] [GoGlobalContext] :
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1467,7 +1467,7 @@ noncomputable def Int64.Union.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1492,7 +1492,7 @@ noncomputable def Int64.Intersection.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1513,7 +1513,7 @@ noncomputable def Int64.IsSuperset.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1536,7 +1536,7 @@ noncomputable def Int64.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1556,7 +1556,7 @@ noncomputable def Int64.List.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve List' [go.int64]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve List'' [go.int64]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1573,7 +1573,7 @@ noncomputable def Int64.UnsortedList.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.int64)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1592,7 +1592,7 @@ noncomputable def Int64.PopAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Int64.ty))) (Var "s"))
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.int64) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.int64) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Int64.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.int64]))) (Val #())) (Var "$a0")))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1631,7 +1631,7 @@ noncomputable def Int64.Len.impl [GooseExts] [GoGlobalContext] : val :=
     go: set.go:28:6 -/
 noncomputable def cast.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType T Empty.ty)))) (Var "s"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType T Empty.ty)))) (Var "s"))
@@ -1639,8 +1639,8 @@ noncomputable def cast.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val 
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0")))))
 
 /-- New creates a Set from a list of values.
     NOTE: type param must be explicitly instantiated if given items are empty.
@@ -1648,26 +1648,26 @@ noncomputable def cast.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val 
     go: set.go:32:6 -/
 noncomputable def New.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "items"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (Var "items"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(Set'.ty T)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "items"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(Set''.ty T)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "items"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType T)]))) (Val #())) (Var "$a0"))))
-  (Let "ss" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "ss" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "ss"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "ss"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Insert"))) (Var "ss")) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Insert"))) (Var "ss")) (Var "$a0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "ss") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "ss") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0")))))
 
 /-- KeySet creates a Set from a keys of a map[comparable](? extends interface{}).
     If the value passed in is not actually a map, this will panic.
@@ -1675,20 +1675,20 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :
     go: set.go:40:6 -/
 noncomputable def KeySet.impl [GooseExts] [GoGlobalContext] (T V : go.GoType) : val :=
   (LamV "theMap"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "theMap" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType T V)))) (Var "theMap"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(Set'.ty T)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType T V)))) (Var "theMap"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(Set''.ty T)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType T V)))) (Var "theMap"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType T V)]))) (Val #())) (Var "$a0"))))
-  (Let "ret" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "ret" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "ret"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "ret"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType T V)))) (Var "theMap"))
   (Let "keyValue" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (map.forRange T V)) (Var "$range"))
@@ -1698,30 +1698,30 @@ noncomputable def KeySet.impl [GooseExts] [GoGlobalContext] (T V : go.GoType) : 
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "keyValue"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Insert"))) (Var "ret")) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Insert"))) (Var "ret")) (Var "$a0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "keyValue") (Var "$key")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "ret") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "ret") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0")))))
 
 /-- Insert adds items to the set.
 
     go: set.go:49:17 -/
-noncomputable def Set.Insert.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Insert.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam "items"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (Var "items"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "items"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (slice.forRange T)) (Var "$range"))
@@ -1731,47 +1731,47 @@ noncomputable def Set.Insert.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral Empty.ty))) (LiteralValue []))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert T)) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))) (App (Val (GoInstruction (GoLoad T))) (Var "item"))) (Var "$r0"))))))
+  (App (App (App (Val (map.insert T)) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))) (App (Val (GoInstruction (GoLoad T))) (Var "item"))) (Var "$r0"))))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "item") (Var "$value"))))))))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0"))))))
 
 /-- go: set.go:56:6 -/
 noncomputable def Insert.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "set"
   (Lam "items"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (Var "items"))
-  (Let "set" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "set"))
+  (Let "set" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "set"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Insert"))) (Var "set")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Insert"))) (Var "set")) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0"))))))
 
 /-- Delete removes all items from the set.
 
     go: set.go:61:17 -/
-noncomputable def Set.Delete.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Delete.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam "items"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (Var "items"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType T)))) (Var "items"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (slice.forRange T)) (Var "$range"))
@@ -1780,49 +1780,49 @@ noncomputable def Set.Delete.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(Set'.ty T)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(Set''.ty T)]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "item") (Var "$value"))))))))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0"))))))
 
 /-- Clear empties the set.
     It is preferable to replace the set with a newly constructed set,
     but not all callers can do that (when there are other references to the map).
 
     go: set.go:71:17 -/
-noncomputable def Set.Clear.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Clear.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
-  (App (App (Val (GoInstruction (FuncResolve go.clear [(Set'.ty T)]))) (Val #())) (Var "$a0")))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0"))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.clear [(Set''.ty T)]))) (Val #())) (Var "$a0")))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0"))))))
 
 /-- Has returns true if and only if item is contained in the set.
 
     go: set.go:77:17 -/
-noncomputable def Set.Has.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Has.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam "item"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (Var "item"))
-  (Let "__p" (App (App (Val (map.lookup2 T Empty.ty)) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))) (App (Val (GoInstruction (GoLoad T))) (Var "item")))
+  (Let "__p" (App (App (Val (map.lookup2 T Empty.ty)) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))) (App (Val (GoInstruction (GoLoad T))) (Var "item")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -1845,12 +1845,12 @@ noncomputable def Set.Has.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : v
 /-- HasAll returns true if and only if all items are contained in the set.
 
     go: set.go:83:17 -/
-noncomputable def Set.HasAll.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.HasAll.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam "items"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (Var "items"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
@@ -1867,7 +1867,7 @@ noncomputable def Set.HasAll.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Has"))) (Var "s")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Has"))) (Var "s")) (Var "$a0"))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1885,12 +1885,12 @@ noncomputable def Set.HasAll.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
 /-- HasAny returns true if any items are contained in the set.
 
     go: set.go:93:17 -/
-noncomputable def Set.HasAny.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.HasAny.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam "items"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (Var "items"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #false)
@@ -1907,7 +1907,7 @@ noncomputable def Set.HasAny.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Has"))) (Var "s")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Has"))) (Var "s")) (Var "$a0")))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1925,24 +1925,24 @@ noncomputable def Set.HasAny.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
 /-- Clone returns a new set which is a copy of the current set.
 
     go: set.go:103:17 -/
-noncomputable def Set.Clone.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Clone.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(Set'.ty T)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(Set'.ty T)]))) (Val #())) (Var "$a0"))))
-  (Let "result" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(Set''.ty T)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(Set''.ty T)]))) (Val #())) (Var "$a0"))))
+  (Let "result" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "result"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "result"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
   (Let "key" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (map.forRange T Empty.ty)) (Var "$range"))
   (Lam "$key"
@@ -1951,12 +1951,12 @@ noncomputable def Set.Clone.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Insert"))) (Var "result")) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Insert"))) (Var "result")) (Var "$a0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "key") (Var "$key")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "result") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "result") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0"))))))
 
 /-- Difference returns a set of objects that are not in s2.
     For example:
@@ -1966,43 +1966,43 @@ noncomputable def Set.Clone.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
     s2.Difference(s1) = {a4, a5}
 
     go: set.go:117:18 -/
-noncomputable def Set.Difference.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Difference.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s1"
   (Lam "s2"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s2"))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Val #slice.nil)
   (App (App (Val (GoInstruction (FuncResolve New [T]))) (Val #())) (Var "$a0")))
-  (Let "result" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "result" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "result"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "result"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s1"))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s1"))
   (Let "key" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (map.forRange T Empty.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Has"))) (Var "s2")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Has"))) (Var "s2")) (Var "$a0"))))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Insert"))) (Var "result")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Insert"))) (Var "result")) (Var "$a0"))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "key") (Var "$key")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "result") (Var "$r0"))))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "result") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0"))))))
 
 /-- SymmetricDifference returns a set of elements which are in either of the sets, but not in their intersection.
     For example:
@@ -2012,23 +2012,23 @@ noncomputable def Set.Difference.impl [GooseExts] [GoGlobalContext] (T : go.GoTy
     s2.SymmetricDifference(s1) = {a3, a4, a5}
 
     go: set.go:133:18 -/
-noncomputable def Set.SymmetricDifference.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.SymmetricDifference.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s1"
   (Lam "s2"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s2"))
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s1"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Difference"))) (Var "s2")) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s2"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Difference"))) (Var "s1")) (Var "$a0")))) (Var "$a0")))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s2"))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Difference"))) (Var "s2")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s2"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Difference"))) (Var "s1")) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0"))))))
 
 /-- Union returns a new set which includes items in either s1 or s2.
     For example:
@@ -2038,24 +2038,24 @@ noncomputable def Set.SymmetricDifference.impl [GooseExts] [GoGlobalContext] (T 
     s2.Union(s1) = {a1, a2, a3, a4}
 
     go: set.go:143:18 -/
-noncomputable def Set.Union.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Union.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s1"
   (Lam "s2"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s2"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Clone"))) (Var "s1")) (Val #()))
-  (Let "result" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s2"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Clone"))) (Var "s1")) (Val #()))
+  (Let "result" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "result"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "result"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s2"))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s2"))
   (Let "key" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (map.forRange T Empty.ty)) (Var "$range"))
   (Lam "$key"
@@ -2064,12 +2064,12 @@ noncomputable def Set.Union.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Insert"))) (Var "result")) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Insert"))) (Var "result")) (Var "$a0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "key") (Var "$key")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "result") (Var "$r0"))))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "result") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0"))))))
 
 /-- Intersection returns a new set which includes the item in BOTH s1 and s2
     For example:
@@ -2078,72 +2078,72 @@ noncomputable def Set.Union.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
     s1.Intersection(s2) = {a2}
 
     go: set.go:156:18 -/
-noncomputable def Set.Intersection.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Intersection.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s1"
   (Lam "s2"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s2"))
-  (Let "other" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
-  (Let "walk" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s2"))
+  (Let "other" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
+  (Let "walk" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (Let "$r0" (Let "$a0" (Val #slice.nil)
   (App (App (Val (GoInstruction (FuncResolve New [T]))) (Val #())) (Var "$a0")))
-  (Let "result" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set'.ty T)))) (Val #())))
+  (Let "result" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (App (Val (GoInstruction (GoZeroVal (Set''.ty T)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "result"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "result"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "walk"))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "walk"))
   (Let "key" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (map.forRange T Empty.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Has"))) (Var "other")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Has"))) (Var "other")) (Var "$a0")))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Insert"))) (Var "result")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Insert"))) (Var "result")) (Var "$a0"))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "key") (Var "$key")))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Len"))) (Var "s1")) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Len"))) (Var "s2")) (Val #())))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s1"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Len"))) (Var "s1")) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Len"))) (Var "s2")) (Val #())))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s1"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s2"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s2"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "other") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "other") (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "walk") (Var "$r0"))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s2"))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "walk") (Var "$r0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s2"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s1"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s1"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "other") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "other") (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "walk") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "walk") (Var "$r0"))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (Set'.ty T)))) (Pair (Var "result") (Var "$r0"))))))))))))
-  (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (Set''.ty T)))) (Pair (Var "result") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$res0"))))))
 
 /-- IsSuperset returns true if and only if s1 is a superset of s2.
 
     go: set.go:175:18 -/
-noncomputable def Set.IsSuperset.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.IsSuperset.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s1"
   (Lam "s2"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s2"))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s2"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2151,14 +2151,14 @@ noncomputable def Set.IsSuperset.impl [GooseExts] [GoGlobalContext] (T : go.GoTy
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s2"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s2"))
   (Let "item" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (map.forRange T Empty.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Has"))) (Var "s1")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Has"))) (Var "s1")) (Var "$a0"))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2176,17 +2176,17 @@ noncomputable def Set.IsSuperset.impl [GooseExts] [GoGlobalContext] (T : go.GoTy
     (In practice, this means same elements, order doesn't matter)
 
     go: set.go:187:18 -/
-noncomputable def Set.Equal.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Equal.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s1"
   (Lam "s2"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s1"))
-  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s2"))
-  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s1"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(Set'.ty T)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s2"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(Set'.ty T)]))) (Val #())) (Var "$a0"))))) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s2"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"IsSuperset"))) (Var "s1")) (Var "$a0"))) (Val #false))
+  (Let "s1" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s1"))
+  (Let "s2" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s2"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s1"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(Set''.ty T)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s2"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(Set''.ty T)]))) (Val #())) (Var "$a0"))))) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s2"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"IsSuperset"))) (Var "s1")) (Var "$a0"))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2200,12 +2200,12 @@ noncomputable def Set.Equal.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
     by Generic are ordered and only those can be sorted.
 
     go: set.go:195:6 -/
-noncomputable def List.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def List''.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"UnsortedList"))) (Var "s")) (Val #()))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"UnsortedList"))) (Var "s")) (Val #()))
   (Let "res" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2225,14 +2225,14 @@ noncomputable def List.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val 
 /-- UnsortedList returns the slice with contents in random order.
 
     go: set.go:202:17 -/
-noncomputable def Set.UnsortedList.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.UnsortedList.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
-  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType T)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(Set'.ty T)]))) (Val #())) (Var "$a0"))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType T)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(Set''.ty T)]))) (Val #())) (Var "$a0"))))
   (Let "res" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType T)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType T)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2242,7 +2242,7 @@ noncomputable def Set.UnsortedList.impl [GooseExts] [GoGlobalContext] (T : go.Go
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType T)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
   (Let "key" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (map.forRange T Empty.ty)) (Var "$range"))
   (Lam "$key"
@@ -2263,13 +2263,13 @@ noncomputable def Set.UnsortedList.impl [GooseExts] [GoGlobalContext] (T : go.Go
 /-- PopAny returns a single element from the set.
 
     go: set.go:211:17 -/
-noncomputable def Set.PopAny.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.PopAny.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "zeroValue" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "zeroValue"))
@@ -2282,7 +2282,7 @@ noncomputable def Set.PopAny.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
   (Let "key" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
   (App (App (Val (map.forRange T Empty.ty)) (Var "$range"))
   (Lam "$key"
@@ -2302,7 +2302,7 @@ noncomputable def Set.PopAny.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set'.ty T)) go!"Delete"))) (Var "s")) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (Set''.ty T)) go!"Delete"))) (Var "s")) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore T))) (Pair (Var "key") (Var "$key")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
@@ -2310,14 +2310,14 @@ noncomputable def Set.PopAny.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
 /-- Len returns the size of the set.
 
     go: set.go:221:17 -/
-noncomputable def Set.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def Set''.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc (Set'.ty T)))) (Var "s"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "s"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(Set'.ty T)]))) (Val #())) (Var "$a0")))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (Set''.ty T)))) (Var "s"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(Set''.ty T)]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2371,7 +2371,7 @@ noncomputable def String.Insert.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"Insert"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2391,7 +2391,7 @@ noncomputable def String.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"Delete"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2411,7 +2411,7 @@ noncomputable def String.Has.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s"))
   (Let "item" (App (Val (GoInstruction (GoAlloc go.string))) (Var "item"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2431,7 +2431,7 @@ noncomputable def String.HasAll.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"HasAll"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2451,7 +2451,7 @@ noncomputable def String.HasAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s"))
   (Let "items" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "items"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "items"))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"HasAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2469,7 +2469,7 @@ noncomputable def String.Clone.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc String.ty))) (App (Val (GoInstruction (GoZeroVal String.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"Clone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2495,7 +2495,7 @@ noncomputable def String.Difference.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"Difference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2521,7 +2521,7 @@ noncomputable def String.SymmetricDifference.impl [GooseExts] [GoGlobalContext] 
   (Let "s2" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"SymmetricDifference"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2547,7 +2547,7 @@ noncomputable def String.Union.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2572,7 +2572,7 @@ noncomputable def String.Intersection.impl [GooseExts] [GoGlobalContext] : val :
   (Let "s2" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"Intersection"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2593,7 +2593,7 @@ noncomputable def String.IsSuperset.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"IsSuperset"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2616,7 +2616,7 @@ noncomputable def String.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s2" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s2"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s2"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
+  (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"Equal"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s1"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2636,7 +2636,7 @@ noncomputable def String.List.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s"))
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve List' [go.string]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve List'' [go.string]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2653,7 +2653,7 @@ noncomputable def String.UnsortedList.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"UnsortedList"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2672,7 +2672,7 @@ noncomputable def String.PopAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc String.ty))) (Var "s"))
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set'.ty go.string) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (Set''.ty go.string) go!"PopAny"))) (Let "$a0" (App (Val (GoInstruction (GoLoad String.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve cast [go.string]))) (Val #())) (Var "$a0")))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -2843,99 +2843,99 @@ attribute [instance] Empty.TypeAssumptions.type_repr
   Empty.TypeAssumptions.method_set
   Empty.TypeAssumptions.ptr_method_set
 
-abbrev Int' [GooseExts] : Type := GoMap
+abbrev Int'' [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def Int'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Int''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.int Empty.ty)
 
-class Int.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq Int'.ty Int'.underlying
-  method_set : go.MethodSetIs Int'.ty [(go!"Clone", (some (go.signature.Signature [] false [Int'.ty]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [Int'.ty]))), (go!"Difference", (some (go.signature.Signature [Int'.ty] false [Int'.ty]))), (go!"Equal", (some (go.signature.Signature [Int'.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [Int'.ty]))), (go!"Intersection", (some (go.signature.Signature [Int'.ty] false [Int'.ty]))), (go!"IsSuperset", (some (go.signature.Signature [Int'.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int)]))), (go!"PopAny", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [Int'.ty] false [Int'.ty]))), (go!"Union", (some (go.signature.Signature [Int'.ty] false [Int'.ty]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Int'.ty) [(go!"Clone", (some (go.signature.Signature [] false [Int'.ty]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [Int'.ty]))), (go!"Difference", (some (go.signature.Signature [Int'.ty] false [Int'.ty]))), (go!"Equal", (some (go.signature.Signature [Int'.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [Int'.ty]))), (go!"Intersection", (some (go.signature.Signature [Int'.ty] false [Int'.ty]))), (go!"IsSuperset", (some (go.signature.Signature [Int'.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int)]))), (go!"PopAny", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [Int'.ty] false [Int'.ty]))), (go!"Union", (some (go.signature.Signature [Int'.ty] false [Int'.ty]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int)])))]
-  Clone_unfold : MethodUnfold Int'.ty go!"Clone" Int.Clone.impl
-  Delete_unfold : MethodUnfold Int'.ty go!"Delete" Int.Delete.impl
-  Difference_unfold : MethodUnfold Int'.ty go!"Difference" Int.Difference.impl
-  Equal_unfold : MethodUnfold Int'.ty go!"Equal" Int.Equal.impl
-  Has_unfold : MethodUnfold Int'.ty go!"Has" Int.Has.impl
-  HasAll_unfold : MethodUnfold Int'.ty go!"HasAll" Int.HasAll.impl
-  HasAny_unfold : MethodUnfold Int'.ty go!"HasAny" Int.HasAny.impl
-  Insert_unfold : MethodUnfold Int'.ty go!"Insert" Int.Insert.impl
-  Intersection_unfold : MethodUnfold Int'.ty go!"Intersection" Int.Intersection.impl
-  IsSuperset_unfold : MethodUnfold Int'.ty go!"IsSuperset" Int.IsSuperset.impl
-  Len_unfold : MethodUnfold Int'.ty go!"Len" Int.Len.impl
-  List_unfold : MethodUnfold Int'.ty go!"List" Int.List.impl
-  PopAny_unfold : MethodUnfold Int'.ty go!"PopAny" Int.PopAny.impl
-  SymmetricDifference_unfold : MethodUnfold Int'.ty go!"SymmetricDifference" Int.SymmetricDifference.impl
-  Union_unfold : MethodUnfold Int'.ty go!"Union" Int.Union.impl
-  UnsortedList_unfold : MethodUnfold Int'.ty go!"UnsortedList" Int.UnsortedList.impl
-  ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"Clone" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"Clone"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"Delete" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"Delete"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_Difference_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"Difference" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"Difference"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"Equal" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"Equal"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"Has" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"Has"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_HasAll_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"HasAll" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"HasAll"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_HasAny_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"HasAny" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"HasAny"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_Insert_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"Insert" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"Insert"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_Intersection_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"Intersection" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"Intersection"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_IsSuperset_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"IsSuperset" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"IsSuperset"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"Len" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_List_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"List" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"List"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_PopAny_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"PopAny" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"PopAny"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_SymmetricDifference_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"SymmetricDifference" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"SymmetricDifference"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_Union_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"Union" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"Union"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
-  ptr_UnsortedList_unfold : MethodUnfold (go.GoType.PointerType Int'.ty) go!"UnsortedList" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Int'.ty go!"UnsortedList"))) (App (Val (GoInstruction (GoLoad Int'.ty))) (Var "$r"))))
+class Int''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Int''.ty Int''.underlying
+  method_set : go.MethodSetIs Int''.ty [(go!"Clone", (some (go.signature.Signature [] false [Int''.ty]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [Int''.ty]))), (go!"Difference", (some (go.signature.Signature [Int''.ty] false [Int''.ty]))), (go!"Equal", (some (go.signature.Signature [Int''.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [Int''.ty]))), (go!"Intersection", (some (go.signature.Signature [Int''.ty] false [Int''.ty]))), (go!"IsSuperset", (some (go.signature.Signature [Int''.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int)]))), (go!"PopAny", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [Int''.ty] false [Int''.ty]))), (go!"Union", (some (go.signature.Signature [Int''.ty] false [Int''.ty]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Int''.ty) [(go!"Clone", (some (go.signature.Signature [] false [Int''.ty]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [Int''.ty]))), (go!"Difference", (some (go.signature.Signature [Int''.ty] false [Int''.ty]))), (go!"Equal", (some (go.signature.Signature [Int''.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType go.int)] true [Int''.ty]))), (go!"Intersection", (some (go.signature.Signature [Int''.ty] false [Int''.ty]))), (go!"IsSuperset", (some (go.signature.Signature [Int''.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int)]))), (go!"PopAny", (some (go.signature.Signature [] false [go.int, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [Int''.ty] false [Int''.ty]))), (go!"Union", (some (go.signature.Signature [Int''.ty] false [Int''.ty]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int)])))]
+  Clone_unfold : MethodUnfold Int''.ty go!"Clone" Int''.Clone.impl
+  Delete_unfold : MethodUnfold Int''.ty go!"Delete" Int''.Delete.impl
+  Difference_unfold : MethodUnfold Int''.ty go!"Difference" Int''.Difference.impl
+  Equal_unfold : MethodUnfold Int''.ty go!"Equal" Int''.Equal.impl
+  Has_unfold : MethodUnfold Int''.ty go!"Has" Int''.Has.impl
+  HasAll_unfold : MethodUnfold Int''.ty go!"HasAll" Int''.HasAll.impl
+  HasAny_unfold : MethodUnfold Int''.ty go!"HasAny" Int''.HasAny.impl
+  Insert_unfold : MethodUnfold Int''.ty go!"Insert" Int''.Insert.impl
+  Intersection_unfold : MethodUnfold Int''.ty go!"Intersection" Int''.Intersection.impl
+  IsSuperset_unfold : MethodUnfold Int''.ty go!"IsSuperset" Int''.IsSuperset.impl
+  Len_unfold : MethodUnfold Int''.ty go!"Len" Int''.Len.impl
+  List_unfold : MethodUnfold Int''.ty go!"List" Int''.List.impl
+  PopAny_unfold : MethodUnfold Int''.ty go!"PopAny" Int''.PopAny.impl
+  SymmetricDifference_unfold : MethodUnfold Int''.ty go!"SymmetricDifference" Int''.SymmetricDifference.impl
+  Union_unfold : MethodUnfold Int''.ty go!"Union" Int''.Union.impl
+  UnsortedList_unfold : MethodUnfold Int''.ty go!"UnsortedList" Int''.UnsortedList.impl
+  ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"Clone" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"Clone"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"Delete" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"Delete"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_Difference_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"Difference" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"Difference"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"Equal" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"Equal"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"Has" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"Has"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_HasAll_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"HasAll" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"HasAll"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_HasAny_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"HasAny" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"HasAny"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_Insert_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"Insert" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"Insert"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_Intersection_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"Intersection" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"Intersection"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_IsSuperset_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"IsSuperset" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"IsSuperset"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"Len" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_List_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"List" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"List"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_PopAny_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"PopAny" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"PopAny"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_SymmetricDifference_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"SymmetricDifference" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"SymmetricDifference"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_Union_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"Union" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"Union"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
+  ptr_UnsortedList_unfold : MethodUnfold (go.GoType.PointerType Int''.ty) go!"UnsortedList" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Int''.ty go!"UnsortedList"))) (App (Val (GoInstruction (GoLoad Int''.ty))) (Var "$r"))))
 
-attribute [instance] Int.TypeAssumptions.underlying
-  Int.TypeAssumptions.method_set
-  Int.TypeAssumptions.ptr_method_set
-  Int.TypeAssumptions.Clone_unfold
-  Int.TypeAssumptions.Delete_unfold
-  Int.TypeAssumptions.Difference_unfold
-  Int.TypeAssumptions.Equal_unfold
-  Int.TypeAssumptions.Has_unfold
-  Int.TypeAssumptions.HasAll_unfold
-  Int.TypeAssumptions.HasAny_unfold
-  Int.TypeAssumptions.Insert_unfold
-  Int.TypeAssumptions.Intersection_unfold
-  Int.TypeAssumptions.IsSuperset_unfold
-  Int.TypeAssumptions.Len_unfold
-  Int.TypeAssumptions.List_unfold
-  Int.TypeAssumptions.PopAny_unfold
-  Int.TypeAssumptions.SymmetricDifference_unfold
-  Int.TypeAssumptions.Union_unfold
-  Int.TypeAssumptions.UnsortedList_unfold
-  Int.TypeAssumptions.ptr_Clone_unfold
-  Int.TypeAssumptions.ptr_Delete_unfold
-  Int.TypeAssumptions.ptr_Difference_unfold
-  Int.TypeAssumptions.ptr_Equal_unfold
-  Int.TypeAssumptions.ptr_Has_unfold
-  Int.TypeAssumptions.ptr_HasAll_unfold
-  Int.TypeAssumptions.ptr_HasAny_unfold
-  Int.TypeAssumptions.ptr_Insert_unfold
-  Int.TypeAssumptions.ptr_Intersection_unfold
-  Int.TypeAssumptions.ptr_IsSuperset_unfold
-  Int.TypeAssumptions.ptr_Len_unfold
-  Int.TypeAssumptions.ptr_List_unfold
-  Int.TypeAssumptions.ptr_PopAny_unfold
-  Int.TypeAssumptions.ptr_SymmetricDifference_unfold
-  Int.TypeAssumptions.ptr_Union_unfold
-  Int.TypeAssumptions.ptr_UnsortedList_unfold
+attribute [instance] Int''.TypeAssumptions.underlying
+  Int''.TypeAssumptions.method_set
+  Int''.TypeAssumptions.ptr_method_set
+  Int''.TypeAssumptions.Clone_unfold
+  Int''.TypeAssumptions.Delete_unfold
+  Int''.TypeAssumptions.Difference_unfold
+  Int''.TypeAssumptions.Equal_unfold
+  Int''.TypeAssumptions.Has_unfold
+  Int''.TypeAssumptions.HasAll_unfold
+  Int''.TypeAssumptions.HasAny_unfold
+  Int''.TypeAssumptions.Insert_unfold
+  Int''.TypeAssumptions.Intersection_unfold
+  Int''.TypeAssumptions.IsSuperset_unfold
+  Int''.TypeAssumptions.Len_unfold
+  Int''.TypeAssumptions.List_unfold
+  Int''.TypeAssumptions.PopAny_unfold
+  Int''.TypeAssumptions.SymmetricDifference_unfold
+  Int''.TypeAssumptions.Union_unfold
+  Int''.TypeAssumptions.UnsortedList_unfold
+  Int''.TypeAssumptions.ptr_Clone_unfold
+  Int''.TypeAssumptions.ptr_Delete_unfold
+  Int''.TypeAssumptions.ptr_Difference_unfold
+  Int''.TypeAssumptions.ptr_Equal_unfold
+  Int''.TypeAssumptions.ptr_Has_unfold
+  Int''.TypeAssumptions.ptr_HasAll_unfold
+  Int''.TypeAssumptions.ptr_HasAny_unfold
+  Int''.TypeAssumptions.ptr_Insert_unfold
+  Int''.TypeAssumptions.ptr_Intersection_unfold
+  Int''.TypeAssumptions.ptr_IsSuperset_unfold
+  Int''.TypeAssumptions.ptr_Len_unfold
+  Int''.TypeAssumptions.ptr_List_unfold
+  Int''.TypeAssumptions.ptr_PopAny_unfold
+  Int''.TypeAssumptions.ptr_SymmetricDifference_unfold
+  Int''.TypeAssumptions.ptr_Union_unfold
+  Int''.TypeAssumptions.ptr_UnsortedList_unfold
 
 abbrev Int32 [GooseExts] : Type := GoMap
 
@@ -3125,99 +3125,99 @@ attribute [instance] Int64.TypeAssumptions.underlying
   Int64.TypeAssumptions.ptr_Union_unfold
   Int64.TypeAssumptions.ptr_UnsortedList_unfold
 
-abbrev Set' [GooseExts] (T : Type) : Type := GoMap
+abbrev Set'' [GooseExts] (T : Type) : Type := GoMap
 
-@[reducible] noncomputable def Set'.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def Set''.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.MapType T Empty.ty)
 
-class Set.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (Set'.ty T) (Set'.underlying T)
-  method_set : ∀ (T : go.GoType), go.MethodSetIs (Set'.ty T) [(go!"Clear", (some (go.signature.Signature [] false [(Set'.ty T)]))), (go!"Clone", (some (go.signature.Signature [] false [(Set'.ty T)]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType T)] true [(Set'.ty T)]))), (go!"Difference", (some (go.signature.Signature [(Set'.ty T)] false [(Set'.ty T)]))), (go!"Equal", (some (go.signature.Signature [(Set'.ty T)] false [go.bool]))), (go!"Has", (some (go.signature.Signature [T] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType T)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType T)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType T)] true [(Set'.ty T)]))), (go!"Intersection", (some (go.signature.Signature [(Set'.ty T)] false [(Set'.ty T)]))), (go!"IsSuperset", (some (go.signature.Signature [(Set'.ty T)] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"PopAny", (some (go.signature.Signature [] false [T, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [(Set'.ty T)] false [(Set'.ty T)]))), (go!"Union", (some (go.signature.Signature [(Set'.ty T)] false [(Set'.ty T)]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType T)])))]
-  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (Set'.ty T)) [(go!"Clear", (some (go.signature.Signature [] false [(Set'.ty T)]))), (go!"Clone", (some (go.signature.Signature [] false [(Set'.ty T)]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType T)] true [(Set'.ty T)]))), (go!"Difference", (some (go.signature.Signature [(Set'.ty T)] false [(Set'.ty T)]))), (go!"Equal", (some (go.signature.Signature [(Set'.ty T)] false [go.bool]))), (go!"Has", (some (go.signature.Signature [T] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType T)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType T)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType T)] true [(Set'.ty T)]))), (go!"Intersection", (some (go.signature.Signature [(Set'.ty T)] false [(Set'.ty T)]))), (go!"IsSuperset", (some (go.signature.Signature [(Set'.ty T)] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"PopAny", (some (go.signature.Signature [] false [T, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [(Set'.ty T)] false [(Set'.ty T)]))), (go!"Union", (some (go.signature.Signature [(Set'.ty T)] false [(Set'.ty T)]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType T)])))]
-  Clear_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Clear" (Set.Clear.impl T)
-  Clone_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Clone" (Set.Clone.impl T)
-  Delete_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Delete" (Set.Delete.impl T)
-  Difference_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Difference" (Set.Difference.impl T)
-  Equal_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Equal" (Set.Equal.impl T)
-  Has_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Has" (Set.Has.impl T)
-  HasAll_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"HasAll" (Set.HasAll.impl T)
-  HasAny_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"HasAny" (Set.HasAny.impl T)
-  Insert_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Insert" (Set.Insert.impl T)
-  Intersection_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Intersection" (Set.Intersection.impl T)
-  IsSuperset_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"IsSuperset" (Set.IsSuperset.impl T)
-  Len_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Len" (Set.Len.impl T)
-  PopAny_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"PopAny" (Set.PopAny.impl T)
-  SymmetricDifference_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"SymmetricDifference" (Set.SymmetricDifference.impl T)
-  Union_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"Union" (Set.Union.impl T)
-  UnsortedList_unfold : ∀ (T : go.GoType), MethodUnfold (Set'.ty T) go!"UnsortedList" (Set.UnsortedList.impl T)
-  ptr_Clear_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Clear" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Clear"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_Clone_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Clone" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Clone"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_Delete_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Delete" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Delete"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_Difference_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Difference" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Difference"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_Equal_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Equal" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Equal"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_Has_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Has" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Has"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_HasAll_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"HasAll" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"HasAll"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_HasAny_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"HasAny" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"HasAny"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_Insert_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Insert" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Insert"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_Intersection_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Intersection" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Intersection"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_IsSuperset_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"IsSuperset" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"IsSuperset"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Len" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Len"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_PopAny_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"PopAny" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"PopAny"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_SymmetricDifference_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"SymmetricDifference" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"SymmetricDifference"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_Union_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"Union" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"Union"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
-  ptr_UnsortedList_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set'.ty T)) go!"UnsortedList" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (Set'.ty T) go!"UnsortedList"))) (App (Val (GoInstruction (GoLoad (Set'.ty T)))) (Var "$r"))))
+class Set''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (Set''.ty T) (Set''.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (Set''.ty T) [(go!"Clear", (some (go.signature.Signature [] false [(Set''.ty T)]))), (go!"Clone", (some (go.signature.Signature [] false [(Set''.ty T)]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType T)] true [(Set''.ty T)]))), (go!"Difference", (some (go.signature.Signature [(Set''.ty T)] false [(Set''.ty T)]))), (go!"Equal", (some (go.signature.Signature [(Set''.ty T)] false [go.bool]))), (go!"Has", (some (go.signature.Signature [T] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType T)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType T)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType T)] true [(Set''.ty T)]))), (go!"Intersection", (some (go.signature.Signature [(Set''.ty T)] false [(Set''.ty T)]))), (go!"IsSuperset", (some (go.signature.Signature [(Set''.ty T)] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"PopAny", (some (go.signature.Signature [] false [T, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [(Set''.ty T)] false [(Set''.ty T)]))), (go!"Union", (some (go.signature.Signature [(Set''.ty T)] false [(Set''.ty T)]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType T)])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (Set''.ty T)) [(go!"Clear", (some (go.signature.Signature [] false [(Set''.ty T)]))), (go!"Clone", (some (go.signature.Signature [] false [(Set''.ty T)]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType T)] true [(Set''.ty T)]))), (go!"Difference", (some (go.signature.Signature [(Set''.ty T)] false [(Set''.ty T)]))), (go!"Equal", (some (go.signature.Signature [(Set''.ty T)] false [go.bool]))), (go!"Has", (some (go.signature.Signature [T] false [go.bool]))), (go!"HasAll", (some (go.signature.Signature [(go.GoType.SliceType T)] true [go.bool]))), (go!"HasAny", (some (go.signature.Signature [(go.GoType.SliceType T)] true [go.bool]))), (go!"Insert", (some (go.signature.Signature [(go.GoType.SliceType T)] true [(Set''.ty T)]))), (go!"Intersection", (some (go.signature.Signature [(Set''.ty T)] false [(Set''.ty T)]))), (go!"IsSuperset", (some (go.signature.Signature [(Set''.ty T)] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"PopAny", (some (go.signature.Signature [] false [T, go.bool]))), (go!"SymmetricDifference", (some (go.signature.Signature [(Set''.ty T)] false [(Set''.ty T)]))), (go!"Union", (some (go.signature.Signature [(Set''.ty T)] false [(Set''.ty T)]))), (go!"UnsortedList", (some (go.signature.Signature [] false [(go.GoType.SliceType T)])))]
+  Clear_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Clear" (Set''.Clear.impl T)
+  Clone_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Clone" (Set''.Clone.impl T)
+  Delete_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Delete" (Set''.Delete.impl T)
+  Difference_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Difference" (Set''.Difference.impl T)
+  Equal_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Equal" (Set''.Equal.impl T)
+  Has_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Has" (Set''.Has.impl T)
+  HasAll_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"HasAll" (Set''.HasAll.impl T)
+  HasAny_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"HasAny" (Set''.HasAny.impl T)
+  Insert_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Insert" (Set''.Insert.impl T)
+  Intersection_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Intersection" (Set''.Intersection.impl T)
+  IsSuperset_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"IsSuperset" (Set''.IsSuperset.impl T)
+  Len_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Len" (Set''.Len.impl T)
+  PopAny_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"PopAny" (Set''.PopAny.impl T)
+  SymmetricDifference_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"SymmetricDifference" (Set''.SymmetricDifference.impl T)
+  Union_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"Union" (Set''.Union.impl T)
+  UnsortedList_unfold : ∀ (T : go.GoType), MethodUnfold (Set''.ty T) go!"UnsortedList" (Set''.UnsortedList.impl T)
+  ptr_Clear_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Clear" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Clear"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_Clone_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Clone" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Clone"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_Delete_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Delete" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Delete"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_Difference_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Difference" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Difference"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_Equal_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Equal" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Equal"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_Has_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Has" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Has"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_HasAll_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"HasAll" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"HasAll"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_HasAny_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"HasAny" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"HasAny"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_Insert_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Insert" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Insert"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_Intersection_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Intersection" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Intersection"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_IsSuperset_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"IsSuperset" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"IsSuperset"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Len" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Len"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_PopAny_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"PopAny" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"PopAny"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_SymmetricDifference_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"SymmetricDifference" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"SymmetricDifference"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_Union_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"Union" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"Union"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
+  ptr_UnsortedList_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (Set''.ty T)) go!"UnsortedList" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (Set''.ty T) go!"UnsortedList"))) (App (Val (GoInstruction (GoLoad (Set''.ty T)))) (Var "$r"))))
 
-attribute [instance] Set.TypeAssumptions.underlying
-  Set.TypeAssumptions.method_set
-  Set.TypeAssumptions.ptr_method_set
-  Set.TypeAssumptions.Clear_unfold
-  Set.TypeAssumptions.Clone_unfold
-  Set.TypeAssumptions.Delete_unfold
-  Set.TypeAssumptions.Difference_unfold
-  Set.TypeAssumptions.Equal_unfold
-  Set.TypeAssumptions.Has_unfold
-  Set.TypeAssumptions.HasAll_unfold
-  Set.TypeAssumptions.HasAny_unfold
-  Set.TypeAssumptions.Insert_unfold
-  Set.TypeAssumptions.Intersection_unfold
-  Set.TypeAssumptions.IsSuperset_unfold
-  Set.TypeAssumptions.Len_unfold
-  Set.TypeAssumptions.PopAny_unfold
-  Set.TypeAssumptions.SymmetricDifference_unfold
-  Set.TypeAssumptions.Union_unfold
-  Set.TypeAssumptions.UnsortedList_unfold
-  Set.TypeAssumptions.ptr_Clear_unfold
-  Set.TypeAssumptions.ptr_Clone_unfold
-  Set.TypeAssumptions.ptr_Delete_unfold
-  Set.TypeAssumptions.ptr_Difference_unfold
-  Set.TypeAssumptions.ptr_Equal_unfold
-  Set.TypeAssumptions.ptr_Has_unfold
-  Set.TypeAssumptions.ptr_HasAll_unfold
-  Set.TypeAssumptions.ptr_HasAny_unfold
-  Set.TypeAssumptions.ptr_Insert_unfold
-  Set.TypeAssumptions.ptr_Intersection_unfold
-  Set.TypeAssumptions.ptr_IsSuperset_unfold
-  Set.TypeAssumptions.ptr_Len_unfold
-  Set.TypeAssumptions.ptr_PopAny_unfold
-  Set.TypeAssumptions.ptr_SymmetricDifference_unfold
-  Set.TypeAssumptions.ptr_Union_unfold
-  Set.TypeAssumptions.ptr_UnsortedList_unfold
+attribute [instance] Set''.TypeAssumptions.underlying
+  Set''.TypeAssumptions.method_set
+  Set''.TypeAssumptions.ptr_method_set
+  Set''.TypeAssumptions.Clear_unfold
+  Set''.TypeAssumptions.Clone_unfold
+  Set''.TypeAssumptions.Delete_unfold
+  Set''.TypeAssumptions.Difference_unfold
+  Set''.TypeAssumptions.Equal_unfold
+  Set''.TypeAssumptions.Has_unfold
+  Set''.TypeAssumptions.HasAll_unfold
+  Set''.TypeAssumptions.HasAny_unfold
+  Set''.TypeAssumptions.Insert_unfold
+  Set''.TypeAssumptions.Intersection_unfold
+  Set''.TypeAssumptions.IsSuperset_unfold
+  Set''.TypeAssumptions.Len_unfold
+  Set''.TypeAssumptions.PopAny_unfold
+  Set''.TypeAssumptions.SymmetricDifference_unfold
+  Set''.TypeAssumptions.Union_unfold
+  Set''.TypeAssumptions.UnsortedList_unfold
+  Set''.TypeAssumptions.ptr_Clear_unfold
+  Set''.TypeAssumptions.ptr_Clone_unfold
+  Set''.TypeAssumptions.ptr_Delete_unfold
+  Set''.TypeAssumptions.ptr_Difference_unfold
+  Set''.TypeAssumptions.ptr_Equal_unfold
+  Set''.TypeAssumptions.ptr_Has_unfold
+  Set''.TypeAssumptions.ptr_HasAll_unfold
+  Set''.TypeAssumptions.ptr_HasAny_unfold
+  Set''.TypeAssumptions.ptr_Insert_unfold
+  Set''.TypeAssumptions.ptr_Intersection_unfold
+  Set''.TypeAssumptions.ptr_IsSuperset_unfold
+  Set''.TypeAssumptions.ptr_Len_unfold
+  Set''.TypeAssumptions.ptr_PopAny_unfold
+  Set''.TypeAssumptions.ptr_SymmetricDifference_unfold
+  Set''.TypeAssumptions.ptr_Union_unfold
+  Set''.TypeAssumptions.ptr_UnsortedList_unfold
 
 abbrev String [GooseExts] : Type := GoMap
 
@@ -3316,10 +3316,10 @@ attribute [instance] String.TypeAssumptions.underlying
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Byte_instance : Byte.TypeAssumptions
   Empty_instance : Empty.TypeAssumptions
-  Int_instance : Int.TypeAssumptions
+  Int_instance : Int''.TypeAssumptions
   Int32_instance : Int32.TypeAssumptions
   Int64_instance : Int64.TypeAssumptions
-  Set_instance : Set.TypeAssumptions
+  Set_instance : Set''.TypeAssumptions
   String_instance : String.TypeAssumptions
   NewByte_unfold : FuncUnfold NewByte [] NewByte.impl
   ByteKeySet_unfold : ∀ (T : go.GoType), FuncUnfold ByteKeySet [T] (ByteKeySet.impl T)
@@ -3333,7 +3333,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   New_unfold : ∀ (T : go.GoType), FuncUnfold New [T] (New.impl T)
   KeySet_unfold : ∀ (T V : go.GoType), FuncUnfold KeySet [T, V] (KeySet.impl T V)
   Insert_unfold : ∀ (T : go.GoType), FuncUnfold Insert [T] (Insert.impl T)
-  List_unfold : ∀ (T : go.GoType), FuncUnfold List' [T] (List.impl T)
+  List_unfold : ∀ (T : go.GoType), FuncUnfold List'' [T] (List''.impl T)
   NewString_unfold : FuncUnfold NewString [] NewString.impl
   StringKeySet_unfold : ∀ (T : go.GoType), FuncUnfold StringKeySet [T] (StringKeySet.impl T)
   import_cmp_Assumption : _root_.Perennial.cmp.Assumptions

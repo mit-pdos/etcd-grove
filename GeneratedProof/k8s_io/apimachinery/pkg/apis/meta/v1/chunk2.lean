@@ -50,11 +50,11 @@ noncomputable instance WatchEvent_access_load_Type (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance WatchEvent_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (Type' : GoString) :
+noncomputable instance WatchEvent_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -66,11 +66,11 @@ noncomputable instance WatchEvent_access_load_Object (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance WatchEvent_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (Object' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension) :
+noncomputable instance WatchEvent_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Object" l) v.Object' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Object" l) Object' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := Object' } : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Object" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

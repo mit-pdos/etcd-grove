@@ -86,11 +86,11 @@ noncomputable instance namespaceNameRV_access_load_Namespace (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance namespaceNameRV_access_store_Namespace (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (Namespace' : GoString) :
+noncomputable instance namespaceNameRV_access_store_Namespace (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV go!"Namespace" l) v.Namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV go!"Namespace" l) Namespace' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := Namespace' } : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV go!"Namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -102,11 +102,11 @@ noncomputable instance namespaceNameRV_access_load_Name (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance namespaceNameRV_access_store_Name (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (Name' : GoString) :
+noncomputable instance namespaceNameRV_access_store_Name (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -118,11 +118,11 @@ noncomputable instance namespaceNameRV_access_load_RV (l : Loc) (v : k8s_io.apis
  by
   solve_pointsto_access_struct
 
-noncomputable instance namespaceNameRV_access_store_RV (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (RV' : GoString) :
+noncomputable instance namespaceNameRV_access_store_RV (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV go!"RV" l) v.RV' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV go!"RV" l) RV' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RV' := RV' } : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV go!"RV" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RV' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.namespaceNameRV) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -160,11 +160,11 @@ noncomputable instance diffDetail_access_load_Index (l : Loc) (v : k8s_io.apiser
  by
   solve_pointsto_access_struct
 
-noncomputable instance diffDetail_access_store_Index (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (Index' : w64) :
+noncomputable instance diffDetail_access_store_Index (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail go!"Index" l) v.Index' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail go!"Index" l) Index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := Index' } : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail go!"Index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -176,11 +176,11 @@ noncomputable instance diffDetail_access_load_CacheItem (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance diffDetail_access_store_CacheItem (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (CacheItem' : Loc) :
+noncomputable instance diffDetail_access_store_CacheItem (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail go!"CacheItem" l) v.CacheItem' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail go!"CacheItem" l) CacheItem' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CacheItem' := CacheItem' } : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail go!"CacheItem" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CacheItem' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -192,11 +192,11 @@ noncomputable instance diffDetail_access_load_EtcdItem (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance diffDetail_access_store_EtcdItem (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (EtcdItem' : Loc) :
+noncomputable instance diffDetail_access_store_EtcdItem (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail go!"EtcdItem" l) v.EtcdItem' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail go!"EtcdItem" l) EtcdItem' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EtcdItem' := EtcdItem' } : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail go!"EtcdItem" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EtcdItem' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.diffDetail) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -235,11 +235,11 @@ noncomputable instance Digest_access_load_ResourceVersion (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Digest_access_store_ResourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (ResourceVersion' : GoString) :
+noncomputable instance Digest_access_store_ResourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"ResourceVersion" l) ResourceVersion' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := ResourceVersion' } : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"ResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -251,11 +251,11 @@ noncomputable instance Digest_access_load_CacheDigest (l : Loc) (v : k8s_io.apis
  by
   solve_pointsto_access_struct
 
-noncomputable instance Digest_access_store_CacheDigest (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (CacheDigest' : GoString) :
+noncomputable instance Digest_access_store_CacheDigest (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"CacheDigest" l) v.CacheDigest' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"CacheDigest" l) CacheDigest' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CacheDigest' := CacheDigest' } : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"CacheDigest" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CacheDigest' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -267,11 +267,11 @@ noncomputable instance Digest_access_load_EtcdDigest (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance Digest_access_store_EtcdDigest (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (EtcdDigest' : GoString) :
+noncomputable instance Digest_access_store_EtcdDigest (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"EtcdDigest" l) v.EtcdDigest' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"EtcdDigest" l) EtcdDigest' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EtcdDigest' := EtcdDigest' } : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"EtcdDigest" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EtcdDigest' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -283,11 +283,11 @@ noncomputable instance Digest_access_load_DiffDetail (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance Digest_access_store_DiffDetail (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (DiffDetail' : Loc) :
+noncomputable instance Digest_access_store_DiffDetail (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"DiffDetail" l) v.DiffDetail' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"DiffDetail" l) DiffDetail' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DiffDetail' := DiffDetail' } : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.consistency.Digest go!"DiffDetail" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DiffDetail' := y } : k8s_io.apiserver.pkg.storage.cacher.consistency.Digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

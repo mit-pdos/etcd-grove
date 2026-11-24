@@ -430,7 +430,7 @@ noncomputable def APIObjectVersioner.UpdateList.impl [GooseExts] [GoGlobalContex
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "listAccessor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Val #())))
+  (Let "listAccessor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -450,16 +450,16 @@ noncomputable def APIObjectVersioner.UpdateList.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int64)))) (Var "count"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"SetRemainingItemCount"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "listAccessor"))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"SetRemainingItemCount"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "listAccessor"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "nextKey"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"SetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "listAccessor"))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"SetContinue"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "listAccessor"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "versionString"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"SetResourceVersion"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "listAccessor"))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"SetResourceVersion"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "listAccessor"))) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "versionString") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "listAccessor")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "listAccessor")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -471,7 +471,7 @@ noncomputable def APIObjectVersioner.UpdateList.impl [GooseExts] [GoGlobalContex
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Pair (Var "listAccessor") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Pair (Var "listAccessor") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "resourceVersion")) (Val #(W64 0)))))
   (Let "$r0" (Let "$a0" (Val #(go!"illegal resource version from storage: %d"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "resourceVersion")))
@@ -2227,8 +2227,8 @@ noncomputable def PrepareKey.impl [GooseExts] [GoGlobalContext] : val :=
 /-- go: selection_predicate.go:40:6 -/
 noncomputable def DefaultClusterScopedAttr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "obj"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Val #())))
-  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val #())))
   (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
@@ -2245,11 +2245,11 @@ noncomputable def DefaultClusterScopedAttr.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$k0" (Val #(go!"metadata.name"))
   (Let "$v1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetName"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.string (Var "$v1")))]))))
-  (Let "fieldSet" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.string (Var "$v1")))]))))
+  (Let "fieldSet" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetLabels"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #()))
-  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "fieldSet"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "fieldSet"))
   (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2259,14 +2259,14 @@ noncomputable def DefaultClusterScopedAttr.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "fieldSet") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "fieldSet") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val UntypedNil))
   (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2276,22 +2276,22 @@ noncomputable def DefaultClusterScopedAttr.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Pair (Var "metadata") (Var "$r0"))))))))))))))
-  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))
 
 /-- go: selection_predicate.go:52:6 -/
 noncomputable def DefaultNamespaceScopedAttr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "obj"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Val #())))
-  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val #())))
   (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
@@ -2310,11 +2310,11 @@ noncomputable def DefaultNamespaceScopedAttr.impl [GooseExts] [GoGlobalContext] 
   (Let "$v1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetName"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #()))
   (Let "$k2" (Val #(go!"metadata.namespace"))
   (Let "$v3" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetNamespace"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.string (Var "$v3")))]))))))
-  (Let "fieldSet" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "fieldSet" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetLabels"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #()))
-  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "fieldSet"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "fieldSet"))
   (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2324,14 +2324,14 @@ noncomputable def DefaultNamespaceScopedAttr.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "fieldSet") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "fieldSet") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val UntypedNil))
   (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2341,16 +2341,16 @@ noncomputable def DefaultNamespaceScopedAttr.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Pair (Var "metadata") (Var "$r0"))))))))))))))
-  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))
 
 /-- go: selection_predicate.go:65:19 -/
 noncomputable def AttrFunc.WithFieldMutation.impl [GooseExts] [GoGlobalContext] : val :=
@@ -2361,8 +2361,8 @@ noncomputable def AttrFunc.WithFieldMutation.impl [GooseExts] [GoGlobalContext] 
   (Let "f" (App (Val (GoInstruction (GoAlloc AttrFunc.ty))) (Var "f"))
   (Let "fieldMutator" (App (Val (GoInstruction (GoAlloc FieldMutationFunc.ty))) (Var "fieldMutator"))
   (Let "$r0" (Lam "obj"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Val #())))
-  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val #())))
   (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
@@ -2375,15 +2375,15 @@ noncomputable def AttrFunc.WithFieldMutation.impl [GooseExts] [GoGlobalContext] 
   (Let "$r1" (Var "$ret1")
   (Let "$r2" (Var "$ret2")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "fieldSet" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val #())))
-  (Let "labelSet" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Val #())))
+  (Let "fieldSet" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val #())))
+  (Let "labelSet" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "labelSet"))
-  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "fieldSet"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Var "labelSet"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "fieldSet"))
   (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2393,17 +2393,17 @@ noncomputable def AttrFunc.WithFieldMutation.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "fieldSet"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "fieldSet"))
   (App (App (App (Val (GoInstruction (GoLoad FieldMutationFunc.ty))) (Var "fieldMutator")) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val UntypedNil))
   (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2413,16 +2413,16 @@ noncomputable def AttrFunc.WithFieldMutation.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val UntypedNil))
   (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2432,18 +2432,18 @@ noncomputable def AttrFunc.WithFieldMutation.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "fieldSet") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "fieldSet") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Pair (Var "labelSet") (Var "$r0")))))))))))))))))
-  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Pair (Var "labelSet") (Var "$r0")))))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2476,14 +2476,14 @@ noncomputable def SelectionPredicate.Matches.impl [GooseExts] [GoGlobalContext] 
   (Let "$r1" (Var "$ret1")
   (Let "$r2" (Var "$ret2")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "fields" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Val #())))
-  (Let "labels" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Val #())))
+  (Let "fields" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Val #())))
+  (Let "labels" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "labels"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "fields"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Var "labels"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "fields"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType SelectionPredicate.ty) go!"MatchesObjectAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1"))))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2510,9 +2510,9 @@ noncomputable def SelectionPredicate.Matches.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Pair (Var "fields") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Pair (Var "fields") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Pair (Var "labels") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Pair (Var "labels") (Var "$r0")))))))))))))))))
   (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType SelectionPredicate.ty) go!"labelFieldEmpty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s"))) (Val #()))
   (Let "$r0" (Val #true)
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
@@ -2566,10 +2566,10 @@ noncomputable def SelectionPredicate.MatchesObjectAttributes.impl [GooseExts] [G
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s"))
-  (Let "f" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "f"))
-  (Let "l" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "l"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "f"))
+  (Let "l" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Var "l"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (App (Val (GoInstruction (StructFieldRef SelectionPredicate.ty go!"Label"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Val UntypedNil)))) (Val #true) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "l")))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (App (Val (GoInstruction (StructFieldRef SelectionPredicate.ty go!"Label"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Val UntypedNil)))) (Val #true) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Var "l")))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (App (Val (GoInstruction (StructFieldRef SelectionPredicate.ty go!"Label"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s"))))) (Var "$a0"))))
   (Let "matched" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2581,7 +2581,7 @@ noncomputable def SelectionPredicate.MatchesObjectAttributes.impl [GooseExts] [G
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "matched")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (App (Val (GoInstruction (StructFieldRef SelectionPredicate.ty go!"Field"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (Val UntypedNil))))) (Val #false))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty _root_.Perennial.k8s_io.apimachinery.pkg.fields.Fields.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty))) (Var "f")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty _root_.Perennial.k8s_io.apimachinery.pkg.fields.Fields.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty))) (Var "f")))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty))) (App (Val (GoInstruction (StructFieldRef SelectionPredicate.ty go!"Field"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s"))))) (Var "$a0")))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "matched") (Var "$r0")))))
@@ -4090,7 +4090,7 @@ attribute [instance] GetOptions.TypeAssumptions.type_repr
 abbrev AttrFunc [GooseExts] : Type := GoFunc
 
 @[reducible] noncomputable def AttrFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty, go.error]))
+  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty, go.error]))
 
 class AttrFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AttrFunc.ty AttrFunc.underlying
@@ -4164,7 +4164,7 @@ class SelectionPredicate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   get_ShardSelector : ∀ (x : SelectionPredicate), go.IsGoStepPureDetTagged under (StructFieldGet SelectionPredicate.underlying go!"ShardSelector") #x (Val #(x.ShardSelector'))
   set_ShardSelector : ∀ (x : SelectionPredicate) (y : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector), go.IsGoStepPureDetTagged under (StructFieldSet SelectionPredicate.underlying go!"ShardSelector") (PairV #x #y) (Val #(({ x with ShardSelector' := y } : SelectionPredicate)))
   method_set : go.MethodSetIs SelectionPredicate.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SelectionPredicate.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"MatcherIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.SliceType MatchValue.ty)]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"MatchesObjectAttributes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty] false [go.bool]))), (go!"MatchesSharding", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"MatchesSingle", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"MatchesSingleNamespace", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"SetShardInfoOnList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false []))), (go!"ShardingEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage.labelFieldEmpty", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SelectionPredicate.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"MatcherIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.SliceType MatchValue.ty)]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"MatchesObjectAttributes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty] false [go.bool]))), (go!"MatchesSharding", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"MatchesSingle", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"MatchesSingleNamespace", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"SetShardInfoOnList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false []))), (go!"ShardingEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage.labelFieldEmpty", (some (go.signature.Signature [] false [go.bool])))]
   ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType SelectionPredicate.ty) go!"Empty" SelectionPredicate.Empty.impl
   ptr_MatcherIndex_unfold : MethodUnfold (go.GoType.PointerType SelectionPredicate.ty) go!"MatcherIndex" SelectionPredicate.MatcherIndex.impl
   ptr_Matches_unfold : MethodUnfold (go.GoType.PointerType SelectionPredicate.ty) go!"Matches" SelectionPredicate.Matches.impl
@@ -4387,7 +4387,7 @@ attribute [instance] ReverseKeyFunc.TypeAssumptions.underlying
 abbrev FieldMutationFunc [GooseExts] : Type := GoFunc
 
 @[reducible] noncomputable def FieldMutationFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty] false [go.error]))
+  (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty] false [go.error]))
 
 class FieldMutationFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FieldMutationFunc.ty FieldMutationFunc.underlying

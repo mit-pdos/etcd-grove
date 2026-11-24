@@ -49,11 +49,11 @@ noncomputable instance DiscoveryConfig_access_load_ConfigSpec (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance DiscoveryConfig_access_store_ConfigSpec (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (ConfigSpec' : _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec) :
+noncomputable instance DiscoveryConfig_access_store_ConfigSpec (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) v.ConfigSpec' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) ConfigSpec' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfigSpec' := ConfigSpec' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfigSpec' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -65,11 +65,11 @@ noncomputable instance DiscoveryConfig_access_load_Token (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance DiscoveryConfig_access_store_Token (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (Token' : GoString) :
+noncomputable instance DiscoveryConfig_access_store_Token (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"Token" l) v.Token' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"Token" l) Token' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Token' := Token' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"Token" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Token' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -107,11 +107,11 @@ noncomputable instance memberInfo_access_load_peerRegKey (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance memberInfo_access_store_peerRegKey (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (peerRegKey' : GoString) :
+noncomputable instance memberInfo_access_store_peerRegKey (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerRegKey" l) v.peerRegKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerRegKey" l) peerRegKey' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peerRegKey' := peerRegKey' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerRegKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peerRegKey' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -123,11 +123,11 @@ noncomputable instance memberInfo_access_load_peerURLsMap (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance memberInfo_access_store_peerURLsMap (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (peerURLsMap' : GoString) :
+noncomputable instance memberInfo_access_store_peerURLsMap (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerURLsMap" l) v.peerURLsMap' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerURLsMap" l) peerURLsMap' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peerURLsMap' := peerURLsMap' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"peerURLsMap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peerURLsMap' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -139,11 +139,11 @@ noncomputable instance memberInfo_access_load_createRev (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance memberInfo_access_store_createRev (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (createRev' : w64) :
+noncomputable instance memberInfo_access_store_createRev (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"createRev" l) v.createRev' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"createRev" l) createRev' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with createRev' := createRev' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo go!"createRev" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with createRev' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.memberInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -180,11 +180,11 @@ noncomputable instance clusterInfo_access_load_clusterToken (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance clusterInfo_access_store_clusterToken (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (clusterToken' : GoString) :
+noncomputable instance clusterInfo_access_store_clusterToken (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"clusterToken" l) v.clusterToken' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"clusterToken" l) clusterToken' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clusterToken' := clusterToken' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"clusterToken" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clusterToken' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -196,11 +196,11 @@ noncomputable instance clusterInfo_access_load_members (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance clusterInfo_access_store_members (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (members' : GoSlice) :
+noncomputable instance clusterInfo_access_store_members (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"members" l) v.members' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"members" l) members' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with members' := members' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo go!"members" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with members' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.clusterInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

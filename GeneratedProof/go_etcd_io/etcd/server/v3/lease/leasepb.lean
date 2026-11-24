@@ -52,11 +52,11 @@ noncomputable instance Lease_access_load_state (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lease_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Lease_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -68,11 +68,11 @@ noncomputable instance Lease_access_load_ID (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lease_access_store_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (ID' : w64) :
+noncomputable instance Lease_access_store_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"ID" l) v.ID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"ID" l) ID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"ID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -84,11 +84,11 @@ noncomputable instance Lease_access_load_TTL (l : Loc) (v : go_etcd_io.etcd.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lease_access_store_TTL (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (TTL' : w64) :
+noncomputable instance Lease_access_store_TTL (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"TTL" l) v.TTL' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"TTL" l) TTL' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TTL' := TTL' } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"TTL" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TTL' := y } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -100,11 +100,11 @@ noncomputable instance Lease_access_load_RemainingTTL (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lease_access_store_RemainingTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (RemainingTTL' : w64) :
+noncomputable instance Lease_access_store_RemainingTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"RemainingTTL" l) v.RemainingTTL' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"RemainingTTL" l) RemainingTTL' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RemainingTTL' := RemainingTTL' } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"RemainingTTL" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RemainingTTL' := y } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -116,11 +116,11 @@ noncomputable instance Lease_access_load_unknownFields (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lease_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (unknownFields' : GoSlice) :
+noncomputable instance Lease_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -132,11 +132,11 @@ noncomputable instance Lease_access_load_sizeCache (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lease_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (sizeCache' : w32) :
+noncomputable instance Lease_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

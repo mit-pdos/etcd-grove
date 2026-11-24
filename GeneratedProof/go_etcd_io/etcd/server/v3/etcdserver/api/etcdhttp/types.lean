@@ -46,11 +46,11 @@ noncomputable instance HTTPError_access_load_Message (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance HTTPError_access_store_Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (Message' : GoString) :
+noncomputable instance HTTPError_access_store_Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) Message' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := Message' } : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -62,11 +62,11 @@ noncomputable instance HTTPError_access_load_Code (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance HTTPError_access_store_Code (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (Code' : w64) :
+noncomputable instance HTTPError_access_store_Code (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) Code' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := Code' } : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -52,11 +52,11 @@ noncomputable instance PartialObjectMetadata_access_load_TypeMeta (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance PartialObjectMetadata_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance PartialObjectMetadata_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := TypeMeta' } : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -68,11 +68,11 @@ noncomputable instance PartialObjectMetadata_access_load_ObjectMeta (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance PartialObjectMetadata_access_store_ObjectMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata) (ObjectMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance PartialObjectMetadata_access_store_ObjectMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := ObjectMeta' } : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata go!"ObjectMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.PartialObjectMetadata) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

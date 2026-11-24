@@ -142,11 +142,11 @@ noncomputable instance WarningHeader_access_load_Code (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance WarningHeader_access_store_Code (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (Code' : w64) :
+noncomputable instance WarningHeader_access_store_Code (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Code" l) v.Code' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Code" l) Code' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := Code' } : k8s_io.apimachinery.pkg.util.net.WarningHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := y } : k8s_io.apimachinery.pkg.util.net.WarningHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -158,11 +158,11 @@ noncomputable instance WarningHeader_access_load_Agent (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance WarningHeader_access_store_Agent (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (Agent' : GoString) :
+noncomputable instance WarningHeader_access_store_Agent (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Agent" l) v.Agent' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Agent" l) Agent' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Agent' := Agent' } : k8s_io.apimachinery.pkg.util.net.WarningHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Agent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Agent' := y } : k8s_io.apimachinery.pkg.util.net.WarningHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -174,11 +174,11 @@ noncomputable instance WarningHeader_access_load_Text (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance WarningHeader_access_store_Text (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (Text' : GoString) :
+noncomputable instance WarningHeader_access_store_Text (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.WarningHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Text" l) v.Text' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Text" l) Text' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Text' := Text' } : k8s_io.apimachinery.pkg.util.net.WarningHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.WarningHeader go!"Text" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Text' := y } : k8s_io.apimachinery.pkg.util.net.WarningHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -252,11 +252,11 @@ noncomputable instance noRoutesError_access_load_message (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance noRoutesError_access_store_message (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.noRoutesError) (message' : GoString) :
+noncomputable instance noRoutesError_access_store_message (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.noRoutesError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.noRoutesError go!"message" l) v.message' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.noRoutesError go!"message" l) message' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with message' := message' } : k8s_io.apimachinery.pkg.util.net.noRoutesError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.noRoutesError go!"message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with message' := y } : k8s_io.apimachinery.pkg.util.net.noRoutesError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -335,11 +335,11 @@ noncomputable instance PortRange_access_load_Base (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance PortRange_access_store_Base (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (Base' : w64) :
+noncomputable instance PortRange_access_store_Base (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Base" l) v.Base' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Base" l) Base' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Base' := Base' } : k8s_io.apimachinery.pkg.util.net.PortRange) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Base" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Base' := y } : k8s_io.apimachinery.pkg.util.net.PortRange) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -351,11 +351,11 @@ noncomputable instance PortRange_access_load_Size (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance PortRange_access_store_Size (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (Size' : w64) :
+noncomputable instance PortRange_access_store_Size (l : Loc) (v : k8s_io.apimachinery.pkg.util.net.PortRange) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Size" l) v.Size' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Size" l) Size' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := Size' } : k8s_io.apimachinery.pkg.util.net.PortRange) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.net.PortRange go!"Size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := y } : k8s_io.apimachinery.pkg.util.net.PortRange) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

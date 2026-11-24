@@ -48,11 +48,11 @@ noncomputable instance Span_access_load_otelSpan (l : Loc) (v : k8s_io.component
  by
   solve_pointsto_access_struct
 
-noncomputable instance Span_access_store_otelSpan (l : Loc) (v : k8s_io.component_base.tracing.Span) (otelSpan' : _root_.Perennial.go_opentelemetry_io.otel.trace.Span) :
+noncomputable instance Span_access_store_otelSpan (l : Loc) (v : k8s_io.component_base.tracing.Span) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.Span) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"otelSpan" l) v.otelSpan' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"otelSpan" l) otelSpan' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with otelSpan' := otelSpan' } : k8s_io.component_base.tracing.Span) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"otelSpan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with otelSpan' := y } : k8s_io.component_base.tracing.Span) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,11 +64,11 @@ noncomputable instance Span_access_load_utilSpan (l : Loc) (v : k8s_io.component
  by
   solve_pointsto_access_struct
 
-noncomputable instance Span_access_store_utilSpan (l : Loc) (v : k8s_io.component_base.tracing.Span) (utilSpan' : Loc) :
+noncomputable instance Span_access_store_utilSpan (l : Loc) (v : k8s_io.component_base.tracing.Span) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"utilSpan" l) v.utilSpan' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"utilSpan" l) utilSpan' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with utilSpan' := utilSpan' } : k8s_io.component_base.tracing.Span) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.Span go!"utilSpan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with utilSpan' := y } : k8s_io.component_base.tracing.Span) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -123,11 +123,11 @@ noncomputable instance noopTracerProvider_access_load_TracerProvider (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance noopTracerProvider_access_store_TracerProvider (l : Loc) (v : k8s_io.component_base.tracing.noopTracerProvider) (TracerProvider' : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerProvider) :
+noncomputable instance noopTracerProvider_access_store_TracerProvider (l : Loc) (v : k8s_io.component_base.tracing.noopTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerProvider) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_base.tracing.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.tracing.noopTracerProvider go!"TracerProvider" l) TracerProvider' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TracerProvider' := TracerProvider' } : k8s_io.component_base.tracing.noopTracerProvider) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.component_base.tracing.noopTracerProvider go!"TracerProvider" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TracerProvider' := y } : k8s_io.component_base.tracing.noopTracerProvider) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

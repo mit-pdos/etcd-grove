@@ -54,11 +54,11 @@ noncomputable instance AlarmStore_access_load_lg (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlarmStore_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (lg' : Loc) :
+noncomputable instance AlarmStore_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"lg" l) v.lg' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"lg" l) lg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"lg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -70,11 +70,11 @@ noncomputable instance AlarmStore_access_load_mu (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlarmStore_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance AlarmStore_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -86,11 +86,11 @@ noncomputable instance AlarmStore_access_load_types (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlarmStore_access_store_types (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (types' : GoMap) :
+noncomputable instance AlarmStore_access_store_types (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"types" l) v.types' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"types" l) types' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with types' := types' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"types" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with types' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -102,11 +102,11 @@ noncomputable instance AlarmStore_access_load_be (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlarmStore_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend) :
+noncomputable instance AlarmStore_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) v.be' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) be' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := be' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

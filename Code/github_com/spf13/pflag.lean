@@ -443,7 +443,7 @@ noncomputable def BoolVar [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def BoolVarP [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.BoolVarP"
 
-noncomputable def Bool' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Bool'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.Bool"
 
 noncomputable def BoolP [GooseExts] [GoGlobalContext] : GoString :=
@@ -578,7 +578,7 @@ noncomputable def Lookup [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ShorthandLookup [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.ShorthandLookup"
 
-noncomputable def Set' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Set'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.Set"
 
 noncomputable def UnquoteUsage [GooseExts] [GoGlobalContext] : GoString :=
@@ -608,7 +608,7 @@ noncomputable def NArg [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Args [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.Args"
 
-noncomputable def Var' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Var'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.Var"
 
 noncomputable def VarP [GooseExts] [GoGlobalContext] : GoString :=
@@ -737,7 +737,7 @@ noncomputable def IntVar [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def IntVarP [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.IntVarP"
 
-noncomputable def Int' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Int'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/spf13/pflag.Int"
 
 noncomputable def IntP [GooseExts] [GoGlobalContext] : GoString :=

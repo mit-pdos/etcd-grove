@@ -1430,10 +1430,10 @@ noncomputable def EventList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] EventList.ty
 
-noncomputable def List'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def List''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.List" [])
 
-attribute [irreducible] List'.ty
+attribute [irreducible] List''.ty
 
 noncomputable def LimitType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/api/core/v1.LimitType" [])
@@ -17644,10 +17644,10 @@ noncomputable instance equals_unfold_EventList [GooseExts] [GoGlobalContext] :
 @[reducible] noncomputable def EventList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EventList.fields)
 
-abbrev List' [GooseExts] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'
+abbrev List'' [GooseExts] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List''
 
-@[reducible] noncomputable def List'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'.ty
+@[reducible] noncomputable def List''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List''.ty
 
 abbrev LimitType [GooseExts] : Type := GoString
 

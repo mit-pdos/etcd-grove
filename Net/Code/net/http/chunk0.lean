@@ -4105,21 +4105,21 @@ noncomputable def response.disableWriteContinue.impl [GooseExts] [GoGlobalContex
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"writeContinueMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Val #())))))
-  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"canWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Val #()))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"canWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "skipDrain"))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef expectContinueReader.ty go!"closed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType expectContinueReader.ty)))) (App (Val (GoInstruction (StructFieldRef response.ty go!"ecReader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef expectContinueReader.ty go!"closed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType expectContinueReader.ty)))) (App (Val (GoInstruction (StructFieldRef response.ty go!"ecReader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))))) (Var "$a0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef response.ty go!"closeAfterReply"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w"))) (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (Let "$a0" (Val #false)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"canWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Var "$a0")))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"canWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -5590,7 +5590,7 @@ noncomputable def response.write.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType response.ty) go!"WriteHeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w"))) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"canWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Val #()))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"canWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Val #()))
   (App (Val doExecute)
   (Let "$a0" (Val #true)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType response.ty) go!"disableWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w"))) (Var "$a0"))))
@@ -6094,7 +6094,7 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Request.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "req"))) (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"canWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"canWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType expectContinueReader.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef response.ty go!"ecReader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w"))) (Var "$r0"))))))
   (App (Val doExecute)
@@ -6486,7 +6486,7 @@ noncomputable def response.Hijack.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Val #false)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType response.ty) go!"disableWriteContinue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w"))) (Var "$a0")))))))
-  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"handlerDone"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Val #()))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"handlerDone"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Val #()))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"net/http: Hijack called after ServeHTTP finished")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -8037,7 +8037,7 @@ noncomputable def Server.shuttingDown.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"inShutdown"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"inShutdown"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -11779,7 +11779,7 @@ structure response [GooseExts] where
   wantsClose' : Bool
   ecReader' : Loc
   writeContinueMu' : _root_.Perennial.sync.Mutex
-  canWriteContinue' : _root_.Perennial.sync.atomic.Bool'
+  canWriteContinue' : _root_.Perennial.sync.atomic.Bool''
   w' : Loc
   cw' : chunkWriter
   handlerHeader' : Header
@@ -11791,7 +11791,7 @@ structure response [GooseExts] where
   fullDuplex' : Bool
   requestBodyLimitHit' : Bool
   trailers' : GoSlice
-  handlerDone' : _root_.Perennial.sync.atomic.Bool'
+  handlerDone' : _root_.Perennial.sync.atomic.Bool''
   dateBuf' : (GoArray w8 29)
   clenBuf' : (GoArray w8 10)
   statusBuf' : (GoArray w8 3)
@@ -11812,7 +11812,7 @@ noncomputable instance response.zero_val [GooseExts] : ZeroVal response :=
 (go.field_decl.FieldDecl go!"wantsClose" go.bool),
 (go.field_decl.FieldDecl go!"ecReader" (go.GoType.PointerType expectContinueReader.ty)),
 (go.field_decl.FieldDecl go!"writeContinueMu" _root_.Perennial.sync.Mutex.ty),
-(go.field_decl.FieldDecl go!"canWriteContinue" _root_.Perennial.sync.atomic.Bool'.ty),
+(go.field_decl.FieldDecl go!"canWriteContinue" _root_.Perennial.sync.atomic.Bool''.ty),
 (go.field_decl.FieldDecl go!"w" (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)),
 (go.field_decl.FieldDecl go!"cw" chunkWriter.ty),
 (go.field_decl.FieldDecl go!"handlerHeader" Header.ty),
@@ -11824,7 +11824,7 @@ noncomputable instance response.zero_val [GooseExts] : ZeroVal response :=
 (go.field_decl.FieldDecl go!"fullDuplex" go.bool),
 (go.field_decl.FieldDecl go!"requestBodyLimitHit" go.bool),
 (go.field_decl.FieldDecl go!"trailers" (go.GoType.SliceType go.string)),
-(go.field_decl.FieldDecl go!"handlerDone" _root_.Perennial.sync.atomic.Bool'.ty),
+(go.field_decl.FieldDecl go!"handlerDone" _root_.Perennial.sync.atomic.Bool''.ty),
 (go.field_decl.FieldDecl go!"dateBuf" (go.GoType.ArrayType 29 go.byte)),
 (go.field_decl.FieldDecl go!"clenBuf" (go.GoType.ArrayType 10 go.byte)),
 (go.field_decl.FieldDecl go!"statusBuf" (go.GoType.ArrayType 3 go.byte)),
@@ -11974,7 +11974,7 @@ structure expectContinueReader [GooseExts] where
   mk ::
   resp' : Loc
   readCloser' : _root_.Perennial.io.ReadCloser
-  closed' : _root_.Perennial.sync.atomic.Bool'
+  closed' : _root_.Perennial.sync.atomic.Bool''
 
 noncomputable instance expectContinueReader.zero_val [GooseExts] : ZeroVal expectContinueReader :=
   ⟨expectContinueReader.mk zeroValDef zeroValDef zeroValDef⟩
@@ -11982,7 +11982,7 @@ noncomputable instance expectContinueReader.zero_val [GooseExts] : ZeroVal expec
 @[reducible] noncomputable def expectContinueReader.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"resp" (go.GoType.PointerType response.ty)),
 (go.field_decl.FieldDecl go!"readCloser" _root_.Perennial.io.ReadCloser.ty),
-(go.field_decl.FieldDecl go!"closed" _root_.Perennial.sync.atomic.Bool'.ty)]
+(go.field_decl.FieldDecl go!"closed" _root_.Perennial.sync.atomic.Bool''.ty)]
 
 @[irreducible] noncomputable def expectContinueReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   expectContinueReader.fieldsUnsealed
@@ -12172,8 +12172,8 @@ structure Server [GooseExts] where
   HTTP2' : Loc
   Protocols' : Loc
   DisableClientPriority' : Bool
-  inShutdown' : _root_.Perennial.sync.atomic.Bool'
-  disableKeepAlives' : _root_.Perennial.sync.atomic.Bool'
+  inShutdown' : _root_.Perennial.sync.atomic.Bool''
+  disableKeepAlives' : _root_.Perennial.sync.atomic.Bool''
   nextProtoOnce' : _root_.Perennial.sync.Once
   nextProtoErr' : GoError
   mu' : _root_.Perennial.sync.Mutex
@@ -12208,8 +12208,8 @@ noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
 (go.field_decl.FieldDecl go!"HTTP2" (go.GoType.PointerType HTTP2Config.ty)),
 (go.field_decl.FieldDecl go!"Protocols" (go.GoType.PointerType Protocols.ty)),
 (go.field_decl.FieldDecl go!"DisableClientPriority" go.bool),
-(go.field_decl.FieldDecl go!"inShutdown" _root_.Perennial.sync.atomic.Bool'.ty),
-(go.field_decl.FieldDecl go!"disableKeepAlives" _root_.Perennial.sync.atomic.Bool'.ty),
+(go.field_decl.FieldDecl go!"inShutdown" _root_.Perennial.sync.atomic.Bool''.ty),
+(go.field_decl.FieldDecl go!"disableKeepAlives" _root_.Perennial.sync.atomic.Bool''.ty),
 (go.field_decl.FieldDecl go!"nextProtoOnce" _root_.Perennial.sync.Once.ty),
 (go.field_decl.FieldDecl go!"nextProtoErr" go.error),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
@@ -12926,7 +12926,7 @@ structure readTrackingBody [GooseExts] where
   mk ::
   ReadCloser' : _root_.Perennial.io.ReadCloser
   didRead' : Bool
-  didClose' : _root_.Perennial.sync.atomic.Bool'
+  didClose' : _root_.Perennial.sync.atomic.Bool''
 
 noncomputable instance readTrackingBody.zero_val [GooseExts] : ZeroVal readTrackingBody :=
   ⟨readTrackingBody.mk zeroValDef zeroValDef zeroValDef⟩
@@ -12934,7 +12934,7 @@ noncomputable instance readTrackingBody.zero_val [GooseExts] : ZeroVal readTrack
 @[reducible] noncomputable def readTrackingBody.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ReadCloser" _root_.Perennial.io.ReadCloser.ty),
 (go.field_decl.FieldDecl go!"didRead" go.bool),
-(go.field_decl.FieldDecl go!"didClose" _root_.Perennial.sync.atomic.Bool'.ty)]
+(go.field_decl.FieldDecl go!"didClose" _root_.Perennial.sync.atomic.Bool''.ty)]
 
 @[irreducible] noncomputable def readTrackingBody.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   readTrackingBody.fieldsUnsealed

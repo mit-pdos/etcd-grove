@@ -1163,7 +1163,7 @@ class FakeExpirationPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying FakeExpirationPolicy.underlying FakeExpirationPolicy
   underlying : go.UnderlyingDirectedEq FakeExpirationPolicy.ty FakeExpirationPolicy.underlying
   get_NeverExpire : ∀ (x : FakeExpirationPolicy), go.IsGoStepPureDetTagged under (StructFieldGet FakeExpirationPolicy.underlying go!"NeverExpire") #x (Val #(x.NeverExpire'))
-  set_NeverExpire : ∀ (x : FakeExpirationPolicy) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' GoString)), go.IsGoStepPureDetTagged under (StructFieldSet FakeExpirationPolicy.underlying go!"NeverExpire") (PairV #x #y) (Val #(({ x with NeverExpire' := y } : FakeExpirationPolicy)))
+  set_NeverExpire : ∀ (x : FakeExpirationPolicy) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' GoString)), go.IsGoStepPureDetTagged under (StructFieldSet FakeExpirationPolicy.underlying go!"NeverExpire") (PairV #x #y) (Val #(({ x with NeverExpire' := y } : FakeExpirationPolicy)))
   get_RetrieveKeyFunc : ∀ (x : FakeExpirationPolicy), go.IsGoStepPureDetTagged under (StructFieldGet FakeExpirationPolicy.underlying go!"RetrieveKeyFunc") #x (Val #(x.RetrieveKeyFunc'))
   set_RetrieveKeyFunc : ∀ (x : FakeExpirationPolicy) (y : KeyFunc), go.IsGoStepPureDetTagged under (StructFieldSet FakeExpirationPolicy.underlying go!"RetrieveKeyFunc") (PairV #x #y) (Val #(({ x with RetrieveKeyFunc' := y } : FakeExpirationPolicy)))
   method_set : go.MethodSetIs FakeExpirationPolicy.ty []

@@ -160,7 +160,7 @@ noncomputable def withKVs [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def workloadKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin.workloadKeys"
 
-noncomputable def lookup' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def lookup'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin.lookup"
 
 noncomputable def setKey [GooseExts] [GoGlobalContext] : GoString :=
@@ -633,7 +633,7 @@ noncomputable def workloadKeys.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0")))))
 
 /-- go: linkvtxn.go:268:6 -/
-noncomputable def lookup.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def lookup''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc VR.ty))) (App (Val (GoInstruction (GoZeroVal VR.ty))) (Val #())))
@@ -821,7 +821,7 @@ noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "kvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType entry.ty)))) (Var "kvs"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType entry.ty)))) (Var "kvs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
-  (App (App (App (Val (GoInstruction (FuncResolve lookup' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve lookup'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -872,7 +872,7 @@ noncomputable def holds.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "kvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType entry.ty)))) (Var "kvs"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType entry.ty)))) (Var "kvs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Cmp.ty go!"Key"))) (Var "c")))
-  (App (App (App (Val (GoInstruction (FuncResolve lookup' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve lookup'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -960,7 +960,7 @@ noncomputable def runOps.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef TOp.ty go!"Kind"))) (Var "op"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val TGet)))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType entry.ty)))) (Var "kvs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef TOp.ty go!"Key"))) (Var "op")))
-  (App (App (App (Val (GoInstruction (FuncResolve lookup' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve lookup'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -1004,7 +1004,7 @@ noncomputable def runOps.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType entry.ty)))) (Pair (Var "kvs") (Var "$r0"))))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType entry.ty)))) (Var "kvs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef TOp.ty go!"Key"))) (Var "op")))
-  (App (App (App (Val (GoInstruction (FuncResolve lookup' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve lookup'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -1161,7 +1161,7 @@ noncomputable def mstep.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KDel)))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType entry.ty)))) (App (Val (GoInstruction (StructFieldRef store.ty go!"kvs"))) (Var "st")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Key"))) (Var "in")))
-  (App (App (App (Val (GoInstruction (FuncResolve lookup' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve lookup'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -1282,7 +1282,7 @@ noncomputable def mstep.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KGet)))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType entry.ty)))) (App (Val (GoInstruction (StructFieldRef store.ty go!"kvs"))) (Var "st")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Key"))) (Var "in")))
-  (App (App (App (Val (GoInstruction (FuncResolve lookup' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve lookup'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -4824,7 +4824,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   withRes_unfold : FuncUnfold withRes [] withRes.impl
   withKVs_unfold : FuncUnfold withKVs [] withKVs.impl
   workloadKeys_unfold : FuncUnfold workloadKeys [] workloadKeys.impl
-  lookup_unfold : FuncUnfold lookup' [] lookup.impl
+  lookup_unfold : FuncUnfold lookup'' [] lookup''.impl
   setKey_unfold : FuncUnfold setKey [] setKey.impl
   delKey_unfold : FuncUnfold delKey [] delKey.impl
   put_unfold : FuncUnfold put [] put.impl

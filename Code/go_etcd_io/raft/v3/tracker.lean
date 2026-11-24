@@ -1086,7 +1086,7 @@ noncomputable def ProgressTracker.IsSingleton.impl [GooseExts] [GoGlobalContext]
 noncomputable def matchAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "l" (App (Val (GoInstruction (GoAlloc matchAckIndexer.ty))) (Var "l"))
@@ -1110,7 +1110,7 @@ noncomputable def matchAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (Let "$r0" (Val #(W64 0))
   (Let "$r1" (Val #false)
@@ -1121,14 +1121,14 @@ noncomputable def matchAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Progress.ty)))) (Pair (Var "pr") (Var "$r0")))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- Committed returns the largest log index known to be committed based on what
     the voting members of the group have acknowledged.
@@ -1929,8 +1929,8 @@ abbrev matchAckIndexer [GooseExts] : Type := GoMap
 
 class matchAckIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq matchAckIndexer.ty matchAckIndexer.underlying
-  method_set : go.MethodSetIs matchAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType matchAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
+  method_set : go.MethodSetIs matchAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType matchAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty, go.bool])))]
   AckedIndex_unfold : MethodUnfold matchAckIndexer.ty go!"AckedIndex" matchAckIndexer.AckedIndex.impl
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType matchAckIndexer.ty) go!"AckedIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve matchAckIndexer.ty go!"AckedIndex"))) (App (Val (GoInstruction (GoLoad matchAckIndexer.ty))) (Var "$r"))))

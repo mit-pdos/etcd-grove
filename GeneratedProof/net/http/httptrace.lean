@@ -87,11 +87,11 @@ noncomputable instance WroteRequestInfo_access_load_Err (l : Loc) (v : net.http.
  by
   solve_pointsto_access_struct
 
-noncomputable instance WroteRequestInfo_access_store_Err (l : Loc) (v : net.http.httptrace.WroteRequestInfo) (Err' : GoError) :
+noncomputable instance WroteRequestInfo_access_store_Err (l : Loc) (v : net.http.httptrace.WroteRequestInfo) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.httptrace.WroteRequestInfo go!"Err" l) v.Err' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.httptrace.WroteRequestInfo go!"Err" l) Err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := Err' } : net.http.httptrace.WroteRequestInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.httptrace.WroteRequestInfo go!"Err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : net.http.httptrace.WroteRequestInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -127,11 +127,11 @@ noncomputable instance DNSStartInfo_access_load_Host (l : Loc) (v : net.http.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance DNSStartInfo_access_store_Host (l : Loc) (v : net.http.httptrace.DNSStartInfo) (Host' : GoString) :
+noncomputable instance DNSStartInfo_access_store_Host (l : Loc) (v : net.http.httptrace.DNSStartInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.httptrace.DNSStartInfo go!"Host" l) v.Host' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.httptrace.DNSStartInfo go!"Host" l) Host' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Host' := Host' } : net.http.httptrace.DNSStartInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.httptrace.DNSStartInfo go!"Host" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Host' := y } : net.http.httptrace.DNSStartInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

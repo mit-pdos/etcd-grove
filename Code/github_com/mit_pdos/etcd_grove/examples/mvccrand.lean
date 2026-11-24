@@ -1096,7 +1096,7 @@ noncomputable def writer.genLease.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice' []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int64 go.bool)))) (App (Val (GoInstruction (StructFieldRef writer.ty go!"leases"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType writer.ty)))) (Var "w"))))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val (map.forRange go.int64 go.bool)) (Var "$range"))

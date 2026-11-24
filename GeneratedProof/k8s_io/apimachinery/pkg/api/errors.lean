@@ -50,11 +50,11 @@ noncomputable instance StatusError_access_load_ErrStatus (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatusError_access_store_ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (ErrStatus' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) :
+noncomputable instance StatusError_access_store_ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) ErrStatus' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrStatus' := ErrStatus' } : k8s_io.apimachinery.pkg.api.errors.StatusError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrStatus' := y } : k8s_io.apimachinery.pkg.api.errors.StatusError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -111,11 +111,11 @@ noncomputable instance ErrorReporter_access_load_code (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorReporter_access_store_code (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (code' : w64) :
+noncomputable instance ErrorReporter_access_store_code (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"code" l) v.code' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"code" l) code' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := code' } : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := y } : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -127,11 +127,11 @@ noncomputable instance ErrorReporter_access_load_verb (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorReporter_access_store_verb (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (verb' : GoString) :
+noncomputable instance ErrorReporter_access_store_verb (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"verb" l) v.verb' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"verb" l) verb' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verb' := verb' } : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"verb" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verb' := y } : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -143,11 +143,11 @@ noncomputable instance ErrorReporter_access_load_reason (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance ErrorReporter_access_store_reason (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (reason' : GoString) :
+noncomputable instance ErrorReporter_access_store_reason (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"reason" l) v.reason' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"reason" l) reason' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reason' := reason' } : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.ErrorReporter go!"reason" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reason' := y } : k8s_io.apimachinery.pkg.api.errors.ErrorReporter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

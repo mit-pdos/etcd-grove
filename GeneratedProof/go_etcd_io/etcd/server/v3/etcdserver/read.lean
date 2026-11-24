@@ -60,11 +60,11 @@ noncomputable instance Read_access_load_server (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read_access_store_server (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (server' : go_etcd_io.etcd.server.v3.etcdserver.read.server) :
+noncomputable instance Read_access_store_server (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (y : go_etcd_io.etcd.server.v3.etcdserver.read.server) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"server" l) v.server' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"server" l) server' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with server' := server' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"server" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with server' := y } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -76,11 +76,11 @@ noncomputable instance Read_access_load_raft (l : Loc) (v : go_etcd_io.etcd.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read_access_store_raft (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (raft' : go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface) :
+noncomputable instance Read_access_store_raft (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (y : go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"raft" l) v.raft' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"raft" l) raft' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raft' := raft' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"raft" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raft' := y } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -92,11 +92,11 @@ noncomputable instance Read_access_load_mux (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read_access_store_mux (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (mux' : _root_.Perennial.sync.RWMutex) :
+noncomputable instance Read_access_store_mux (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) v.mux' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) mux' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mux' := mux' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mux' := y } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -108,11 +108,11 @@ noncomputable instance Read_access_load_waitC (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read_access_store_waitC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (waitC' : GoChan) :
+noncomputable instance Read_access_store_waitC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"waitC" l) v.waitC' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"waitC" l) waitC' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waitC' := waitC' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"waitC" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waitC' := y } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -124,11 +124,11 @@ noncomputable instance Read_access_load_notifier (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read_access_store_notifier (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (notifier' : Loc) :
+noncomputable instance Read_access_store_notifier (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"notifier" l) v.notifier' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"notifier" l) notifier' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with notifier' := notifier' } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"notifier" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with notifier' := y } : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -165,11 +165,11 @@ noncomputable instance notifier_access_load_c (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance notifier_access_store_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (c' : GoChan) :
+noncomputable instance notifier_access_store_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"c" l) v.c' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"c" l) c' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"c" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := y } : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -181,11 +181,11 @@ noncomputable instance notifier_access_load_err (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance notifier_access_store_err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (err' : GoError) :
+noncomputable instance notifier_access_store_err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -47,11 +47,11 @@ noncomputable instance perRPCCredentialBundle_access_load_rc (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance perRPCCredentialBundle_access_store_rc (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (rc' : Loc) :
+noncomputable instance perRPCCredentialBundle_access_store_rc (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) rc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rc' := rc' } : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rc' := y } : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -88,11 +88,11 @@ noncomputable instance perRPCCredential_access_load_authToken (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance perRPCCredential_access_store_authToken (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (authToken' : GoString) :
+noncomputable instance perRPCCredential_access_store_authToken (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) authToken' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authToken' := authToken' } : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authToken' := y } : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -104,11 +104,11 @@ noncomputable instance perRPCCredential_access_load_authTokenMu (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance perRPCCredential_access_store_authTokenMu (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (authTokenMu' : _root_.Perennial.sync.RWMutex) :
+noncomputable instance perRPCCredential_access_store_authTokenMu (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) authTokenMu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authTokenMu' := authTokenMu' } : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authTokenMu' := y } : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

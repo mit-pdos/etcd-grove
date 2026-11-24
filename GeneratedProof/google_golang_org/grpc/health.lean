@@ -93,11 +93,11 @@ noncomputable instance Server_access_load_UnimplementedHealthServer (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_UnimplementedHealthServer (l : Loc) (v : google_golang_org.grpc.health.Server) (UnimplementedHealthServer' : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer) :
+noncomputable instance Server_access_store_UnimplementedHealthServer (l : Loc) (v : google_golang_org.grpc.health.Server) (y : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"UnimplementedHealthServer" l) v.UnimplementedHealthServer' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"UnimplementedHealthServer" l) UnimplementedHealthServer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnimplementedHealthServer' := UnimplementedHealthServer' } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"UnimplementedHealthServer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnimplementedHealthServer' := y } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -109,11 +109,11 @@ noncomputable instance Server_access_load_mu (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_mu (l : Loc) (v : google_golang_org.grpc.health.Server) (mu' : _root_.Perennial.sync.RWMutex) :
+noncomputable instance Server_access_store_mu (l : Loc) (v : google_golang_org.grpc.health.Server) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -125,11 +125,11 @@ noncomputable instance Server_access_load_shutdown (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_shutdown (l : Loc) (v : google_golang_org.grpc.health.Server) (shutdown' : Bool) :
+noncomputable instance Server_access_store_shutdown (l : Loc) (v : google_golang_org.grpc.health.Server) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"shutdown" l) v.shutdown' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"shutdown" l) shutdown' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shutdown' := shutdown' } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"shutdown" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shutdown' := y } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -141,11 +141,11 @@ noncomputable instance Server_access_load_statusMap (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_statusMap (l : Loc) (v : google_golang_org.grpc.health.Server) (statusMap' : GoMap) :
+noncomputable instance Server_access_store_statusMap (l : Loc) (v : google_golang_org.grpc.health.Server) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"statusMap" l) v.statusMap' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"statusMap" l) statusMap' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with statusMap' := statusMap' } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"statusMap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with statusMap' := y } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -157,11 +157,11 @@ noncomputable instance Server_access_load_updates (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_updates (l : Loc) (v : google_golang_org.grpc.health.Server) (updates' : GoMap) :
+noncomputable instance Server_access_store_updates (l : Loc) (v : google_golang_org.grpc.health.Server) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"updates" l) v.updates' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"updates" l) updates' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with updates' := updates' } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.health.Server go!"updates" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with updates' := y } : google_golang_org.grpc.health.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

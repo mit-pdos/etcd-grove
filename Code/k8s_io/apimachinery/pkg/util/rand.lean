@@ -33,7 +33,7 @@ noncomputable def rng [GooseExts] [GoGlobalContext] : GoString :=
 
 opaque rng.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Int' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Int'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.Int"
 
 noncomputable def Intn [GooseExts] [GoGlobalContext] : GoString :=

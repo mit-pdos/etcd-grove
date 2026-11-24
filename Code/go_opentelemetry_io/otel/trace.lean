@@ -830,7 +830,7 @@ structure TracerConfig [GooseExts] where
   mk ::
   instrumentationVersion' : GoString
   schemaURL' : GoString
-  attrs' : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'
+  attrs' : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set''
 
 noncomputable instance TracerConfig.zero_val [GooseExts] : ZeroVal TracerConfig :=
   ⟨TracerConfig.mk zeroValDef zeroValDef zeroValDef⟩
@@ -838,7 +838,7 @@ noncomputable instance TracerConfig.zero_val [GooseExts] : ZeroVal TracerConfig 
 @[reducible] noncomputable def TracerConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"instrumentationVersion" go.string),
 (go.field_decl.FieldDecl go!"schemaURL" go.string),
-(go.field_decl.FieldDecl go!"attrs" _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'.ty)]
+(go.field_decl.FieldDecl go!"attrs" _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set''.ty)]
 
 @[irreducible] noncomputable def TracerConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TracerConfig.fieldsUnsealed
@@ -858,9 +858,9 @@ class TracerConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   get_schemaURL : ∀ (x : TracerConfig), go.IsGoStepPureDetTagged under (StructFieldGet TracerConfig.underlying go!"schemaURL") #x (Val #(x.schemaURL'))
   set_schemaURL : ∀ (x : TracerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"schemaURL") (PairV #x #y) (Val #(({ x with schemaURL' := y } : TracerConfig)))
   get_attrs : ∀ (x : TracerConfig), go.IsGoStepPureDetTagged under (StructFieldGet TracerConfig.underlying go!"attrs") #x (Val #(x.attrs'))
-  set_attrs : ∀ (x : TracerConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"attrs") (PairV #x #y) (Val #(({ x with attrs' := y } : TracerConfig)))
+  set_attrs : ∀ (x : TracerConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set''), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"attrs") (PairV #x #y) (Val #(({ x with attrs' := y } : TracerConfig)))
   method_set : go.MethodSetIs TracerConfig.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracerConfig.ty) [(go!"InstrumentationAttributes", (some (go.signature.Signature [] false [_root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'.ty]))), (go!"InstrumentationVersion", (some (go.signature.Signature [] false [go.string]))), (go!"SchemaURL", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracerConfig.ty) [(go!"InstrumentationAttributes", (some (go.signature.Signature [] false [_root_.Perennial.go_opentelemetry_io.otel.«attribute».Set''.ty]))), (go!"InstrumentationVersion", (some (go.signature.Signature [] false [go.string]))), (go!"SchemaURL", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] TracerConfig.TypeAssumptions.type_repr
   TracerConfig.TypeAssumptions.underlying

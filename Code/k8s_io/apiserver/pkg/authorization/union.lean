@@ -460,13 +460,13 @@ noncomputable def unionAuthzHandler.EvaluateConditions.impl [GooseExts] [GoGloba
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Var "decision"))
-  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty) go!"Has"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "unevaluatedSubDecision")) (Val #()))) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty) go!"Has"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "unevaluatedSubDecision")) (Val #()))) (Var "$a0"))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"FailureDecision"))) (Var "unevaluatedSubDecision")) (Val #()))
   (Let "$r1" (Val #(go!"failed closed"))
   (Let "$r2" (Let "$a0" (Val #(go!"evaluated to decision %s, but only %v were possible"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Var "decision")))
   (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty) go.any))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "unevaluatedSubDecision")) (Val #()))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List' [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List'' [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty]))) (Val #())) (Var "$a0"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon

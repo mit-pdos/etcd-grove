@@ -133,11 +133,11 @@ noncomputable instance payload_access_load_sent (l : Loc) (v : google_golang_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance payload_access_store_sent (l : Loc) (v : google_golang_org.grpc.payload) (sent' : Bool) :
+noncomputable instance payload_access_store_sent (l : Loc) (v : google_golang_org.grpc.payload) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) v.sent' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) sent' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sent' := sent' } : google_golang_org.grpc.payload) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sent' := y } : google_golang_org.grpc.payload) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -149,11 +149,11 @@ noncomputable instance payload_access_load_msg (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance payload_access_store_msg (l : Loc) (v : google_golang_org.grpc.payload) (msg' : GoInterface) :
+noncomputable instance payload_access_store_msg (l : Loc) (v : google_golang_org.grpc.payload) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"msg" l) v.msg' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"msg" l) msg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with msg' := msg' } : google_golang_org.grpc.payload) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"msg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with msg' := y } : google_golang_org.grpc.payload) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -190,11 +190,11 @@ noncomputable instance fmtStringer_access_load_format (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance fmtStringer_access_store_format (l : Loc) (v : google_golang_org.grpc.fmtStringer) (format' : GoString) :
+noncomputable instance fmtStringer_access_store_format (l : Loc) (v : google_golang_org.grpc.fmtStringer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) v.format' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) format' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with format' := format' } : google_golang_org.grpc.fmtStringer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with format' := y } : google_golang_org.grpc.fmtStringer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -206,11 +206,11 @@ noncomputable instance fmtStringer_access_load_a (l : Loc) (v : google_golang_or
  by
   solve_pointsto_access_struct
 
-noncomputable instance fmtStringer_access_store_a (l : Loc) (v : google_golang_org.grpc.fmtStringer) (a' : GoSlice) :
+noncomputable instance fmtStringer_access_store_a (l : Loc) (v : google_golang_org.grpc.fmtStringer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"a" l) v.a' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"a" l) a' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with a' := a' } : google_golang_org.grpc.fmtStringer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"a" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with a' := y } : google_golang_org.grpc.fmtStringer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

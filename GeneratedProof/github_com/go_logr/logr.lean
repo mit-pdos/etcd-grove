@@ -92,11 +92,11 @@ noncomputable instance Logger_access_load_sink (l : Loc) (v : github_com.go_logr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_sink (l : Loc) (v : github_com.go_logr.logr.Logger) (sink' : github_com.go_logr.logr.LogSink) :
+noncomputable instance Logger_access_store_sink (l : Loc) (v : github_com.go_logr.logr.Logger) (y : github_com.go_logr.logr.LogSink) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"sink" l) v.sink' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"sink" l) sink' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sink' := sink' } : github_com.go_logr.logr.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"sink" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sink' := y } : github_com.go_logr.logr.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -108,11 +108,11 @@ noncomputable instance Logger_access_load_level (l : Loc) (v : github_com.go_log
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_level (l : Loc) (v : github_com.go_logr.logr.Logger) (level' : w64) :
+noncomputable instance Logger_access_store_level (l : Loc) (v : github_com.go_logr.logr.Logger) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"level" l) v.level' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"level" l) level' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := level' } : github_com.go_logr.logr.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_logr.logr.Logger go!"level" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := y } : github_com.go_logr.logr.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -148,11 +148,11 @@ noncomputable instance RuntimeInfo_access_load_CallDepth (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance RuntimeInfo_access_store_CallDepth (l : Loc) (v : github_com.go_logr.logr.RuntimeInfo) (CallDepth' : w64) :
+noncomputable instance RuntimeInfo_access_store_CallDepth (l : Loc) (v : github_com.go_logr.logr.RuntimeInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_logr.logr.RuntimeInfo go!"CallDepth" l) v.CallDepth' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_logr.logr.RuntimeInfo go!"CallDepth" l) CallDepth' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CallDepth' := CallDepth' } : github_com.go_logr.logr.RuntimeInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_logr.logr.RuntimeInfo go!"CallDepth" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CallDepth' := y } : github_com.go_logr.logr.RuntimeInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

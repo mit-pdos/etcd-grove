@@ -649,7 +649,7 @@ noncomputable def ConditionsAwareDecision.UnconditionalPartsOrFailClosed.impl [G
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"failed closed from conditional decision (with possible outcomes %v) to %s during unconditional authorization"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.SliceType Decision.ty) go.any))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "d")) (Val #()))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List' [Decision.ty]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List'' [Decision.ty]))) (Val #())) (Var "$a0"))))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Decision.ty) go!"String"))) (Var "failureDecision")) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -684,7 +684,7 @@ noncomputable def ConditionsAwareDecision.UnconditionalPartsOrFailClosed.impl [G
 noncomputable def ConditionsAwareDecision.PossibleDecisions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "d" (App (Val (GoInstruction (GoAlloc ConditionsAwareDecision.ty))) (Var "d"))
   (Let "$sw" (Val #true)
@@ -696,7 +696,7 @@ noncomputable def ConditionsAwareDecision.PossibleDecisions.impl [GooseExts] [Go
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsNoOpinion"))) (Var "d")) (Val #()))))
   (Let "$r0" (Let "$a0" (Let "$sl0" (Val DecisionNoOpinion)
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Decision.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Decision.ty (Var "$sl0")))])))
@@ -705,21 +705,21 @@ noncomputable def ConditionsAwareDecision.PossibleDecisions.impl [GooseExts] [Go
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsConditionsMap"))) (Var "d")) (Val #()))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve ConditionsMap.ty go!"PossibleDecisions"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"ConditionsMap"))) (Var "d")) (Val #()))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"IsUnion"))) (Var "d")) (Val #()))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"PossibleDecisions"))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecision.ty go!"union"))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (Let "$r0" (Let "$a0" (Let "$sl0" (Val DecisionDeny)
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Decision.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Decision.ty (Var "$sl0")))])))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.New [Decision.ty]))) (Val #())) (Var "$a0")))
@@ -727,8 +727,8 @@ noncomputable def ConditionsAwareDecision.PossibleDecisions.impl [GooseExts] [Go
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))))
-  (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Var "$res0"))))))
 
 /-- FailureDecision returns either a Deny or NoOpinion decision that the caller can
     use if the caller encounters an unrecoverable error while processing a
@@ -751,7 +751,7 @@ noncomputable def ConditionsAwareDecision.FailureDecision.impl [GooseExts] [GoGl
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Decision.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (Let "$a0" (Val DecisionDeny)
-  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty) go!"Has"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "d")) (Val #()))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty) go!"Has"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "d")) (Val #()))) (Var "$a0")))
   (Let "$r0" (Val DecisionDeny)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1119,7 +1119,7 @@ noncomputable def ConditionsMap.FailureDecision.impl [GooseExts] [GoGlobalContex
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Decision.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (Let "$a0" (Val DecisionDeny)
-  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty) go!"Has"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsMap.ty) go!"PossibleDecisions"))) (Var "c")) (Val #()))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty) go!"Has"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsMap.ty) go!"PossibleDecisions"))) (Var "c")) (Val #()))) (Var "$a0")))
   (Let "$r0" (Val DecisionDeny)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1157,7 +1157,7 @@ noncomputable def ConditionsMap.Length.impl [GooseExts] [GoGlobalContext] : val 
 noncomputable def ConditionsMap.DenyConditions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc ConditionsMap.ty))) (Var "c"))
   (Let "$r0" (Lam "yield"
@@ -1185,8 +1185,8 @@ noncomputable def ConditionsMap.DenyConditions.impl [GooseExts] [GoGlobalContext
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Var "$res0"))))))
 
 /-- NoOpinionConditions returns the NoOpinion conditions in this map.
     The conditions are returned in the same order as they were supplied to ConditionsAwareDecisionConditionsMap.
@@ -1195,7 +1195,7 @@ noncomputable def ConditionsMap.DenyConditions.impl [GooseExts] [GoGlobalContext
 noncomputable def ConditionsMap.NoOpinionConditions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc ConditionsMap.ty))) (Var "c"))
   (Let "$r0" (Lam "yield"
@@ -1223,8 +1223,8 @@ noncomputable def ConditionsMap.NoOpinionConditions.impl [GooseExts] [GoGlobalCo
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Var "$res0"))))))
 
 /-- AllowConditions returns the Allow conditions in this map.
     The conditions are returned in the same order as they were supplied to ConditionsAwareDecisionConditionsMap.
@@ -1233,7 +1233,7 @@ noncomputable def ConditionsMap.NoOpinionConditions.impl [GooseExts] [GoGlobalCo
 noncomputable def ConditionsMap.AllowConditions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc ConditionsMap.ty))) (Var "c"))
   (Let "$r0" (Lam "yield"
@@ -1261,8 +1261,8 @@ noncomputable def ConditionsMap.AllowConditions.impl [GooseExts] [GoGlobalContex
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Var "$res0"))))))
 
 /-- PossibleDecisions details what are the possible decision outcomes of this
     ConditionsAwareDecision. The return value is a subset of {Allow, Deny, NoOpinion},
@@ -1273,28 +1273,28 @@ noncomputable def ConditionsMap.AllowConditions.impl [GooseExts] [GoGlobalContex
 noncomputable def ConditionsMap.PossibleDecisions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc ConditionsMap.ty))) (Var "c"))
   (Let "$r0" (Let "$a0" (Let "$sl0" (Val DecisionNoOpinion)
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Decision.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Decision.ty (Var "$sl0")))])))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.New [Decision.ty]))) (Val #())) (Var "$a0")))
-  (Let "possibleDecisions" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Val #())))
+  (Let "possibleDecisions" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Var "possibleDecisions"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Var "possibleDecisions"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Condition.ty)))) (App (Val (GoInstruction (StructFieldRef ConditionsMap.ty go!"denyConditions"))) (Var "c")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Condition.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (Val DecisionDeny)
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Decision.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Decision.ty (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)) go!"Insert"))) (Var "possibleDecisions")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)) go!"Insert"))) (Var "possibleDecisions")) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Condition.ty)))) (App (Val (GoInstruction (StructFieldRef ConditionsMap.ty go!"allowConditions"))) (Var "c")))
@@ -1302,12 +1302,12 @@ noncomputable def ConditionsMap.PossibleDecisions.impl [GooseExts] [GoGlobalCont
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (Val DecisionAllow)
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Decision.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Decision.ty (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)) go!"Insert"))) (Var "possibleDecisions")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)) go!"Insert"))) (Var "possibleDecisions")) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "possibleDecisions") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "possibleDecisions") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Var "$res0"))))))
 
 /-- ConditionsAwareDecisionConditionsMap creates a ConditionsMap decision.
     The conditions are grouped by their effects: Deny, NoOpinion and Allow, that function as follows:
@@ -1375,7 +1375,7 @@ noncomputable def ConditionsAwareDecisionConditionsMap.impl [GooseExts] [GoGloba
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #slice.nil)
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.New [go.string]))) (Val #())) (Var "$a0")))
-  (Let "seenIDs" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "seenIDs" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1394,7 +1394,7 @@ noncomputable def ConditionsAwareDecisionConditionsMap.impl [GooseExts] [GoGloba
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ConditionsAwareDecision.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "seenIDs"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "seenIDs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Condition.ty)))) (Var "allowConditions"))
   (App (App (App (Val (GoInstruction (FuncResolve validateConditions []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -1411,7 +1411,7 @@ noncomputable def ConditionsAwareDecisionConditionsMap.impl [GooseExts] [GoGloba
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "seenIDs"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "seenIDs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Condition.ty)))) (Var "noOpinionConditions"))
   (App (App (App (Val (GoInstruction (FuncResolve validateConditions []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -1428,7 +1428,7 @@ noncomputable def ConditionsAwareDecisionConditionsMap.impl [GooseExts] [GoGloba
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "seenIDs"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "seenIDs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Condition.ty)))) (Var "denyConditions"))
   (App (App (App (Val (GoInstruction (FuncResolve validateConditions []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -1446,7 +1446,7 @@ noncomputable def ConditionsAwareDecisionConditionsMap.impl [GooseExts] [GoGloba
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "seenIDs") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "seenIDs") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Condition.ty)))) (Var "denyConditions"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Condition.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Condition.ty)))) (Var "allowConditions"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Condition.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false)))
@@ -1502,7 +1502,7 @@ noncomputable def validateConditions.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "conditions" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Condition.ty)))) (Var "conditions"))
-  (Let "seenIDs" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "seenIDs"))
+  (Let "seenIDs" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "seenIDs"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1621,9 +1621,9 @@ noncomputable def validateConditions.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "id"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Insert"))) (Var "seenIDs")) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Insert"))) (Var "seenIDs")) (Var "$a0")))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "id"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Has"))) (Var "seenIDs")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Has"))) (Var "seenIDs")) (Var "$a0")))
   (Let "$r0" (Let "$a0" (Val #(go!"duplicate condition ID %q"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "id")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
@@ -1763,13 +1763,13 @@ noncomputable def ConditionsAwareDecisionUnion.Add.impl [GooseExts] [GoGlobalCon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty) go!"UnsortedList"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "d")) (Val #()))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)) go!"Insert"))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (Var "$a0"))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Val UntypedNil)))))
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty) go!"UnsortedList"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecision.ty) go!"PossibleDecisions"))) (Var "d")) (Val #()))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)) go!"Insert"))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Val UntypedNil)))))
   (Let "$r0" (Let "$a0" (Val #slice.nil)
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.New [Decision.ty]))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1881,7 +1881,7 @@ noncomputable def ConditionsAwareDecisionUnion.FailureDecision.impl [GooseExts] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Decision.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (Let "$a0" (Val DecisionDeny)
-  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty) go!"Has"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"PossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))) (Val #()))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty) go!"Has"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"PossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))) (Val #()))) (Var "$a0")))
   (Let "$r0" (Val DecisionDeny)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1920,38 +1920,38 @@ noncomputable def ConditionsAwareDecisionUnion.ContainsUnconditionalAllowOrDeny.
 noncomputable def ConditionsAwareDecisionUnion.PossibleDecisions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "unionMap"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "unionMap" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))
   (Let "$r0" (Let "$a0" (Let "$sl0" (Val DecisionNoOpinion)
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Decision.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Decision.ty (Var "$sl0")))])))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.New [Decision.ty]))) (Val #())) (Var "$a0")))
-  (Let "possibleDecisions" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Val #())))
+  (Let "possibleDecisions" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Var "possibleDecisions"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Var "possibleDecisions"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"ContainsUnconditionalAllowOrDeny"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))) (Val #()))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (Val DecisionNoOpinion)
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Decision.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Decision.ty (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)) go!"Delete"))) (Var "possibleDecisions")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)) go!"Delete"))) (Var "possibleDecisions")) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)) go!"UnsortedList"))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)) go!"Insert"))) (Var "possibleDecisions")) (Var "$a0"))))
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)) go!"UnsortedList"))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)) go!"Insert"))) (Var "possibleDecisions")) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "possibleDecisions") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "possibleDecisions") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Var "$res0"))))))
 
 /-- ConditionsAwareDecisionUnion unions some amount of decisions together into a tree structure,
     where Allow/Deny/NoOpinion/ConditionsMap decisions are leafs, and Union decisions are internal
@@ -1971,8 +1971,8 @@ noncomputable def ConditionsAwareDecisionUnion.ToDecision.impl [GooseExts] [GoGl
   (Let "$v1" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType namedConditionsAwareDecision.ty)))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"inner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.Clone [(go.GoType.SliceType namedConditionsAwareDecision.ty), namedConditionsAwareDecision.ty]))) (Val #())) (Var "$a0")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"containsUnconditionalAllowOrDeny"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))))
-  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)) go!"Clone"))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral ConditionsAwareDecisionUnion.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"inner")) (ElementExpression (go.GoType.SliceType namedConditionsAwareDecision.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"containsUnconditionalAllowOrDeny")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"subDecisionsPossibleDecisions")) (ElementExpression (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty) (Var "$v2")))])))))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)) go!"Clone"))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"subDecisionsPossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap")))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral ConditionsAwareDecisionUnion.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"inner")) (ElementExpression (go.GoType.SliceType namedConditionsAwareDecision.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"containsUnconditionalAllowOrDeny")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"subDecisionsPossibleDecisions")) (ElementExpression (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty) (Var "$v2")))])))))
   (App (Val (GoInstruction (CompositeLiteral ConditionsAwareDecision.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"decisionType")) (ElementExpression conditionsAwareDecisionType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"union")) (ElementExpression ConditionsAwareDecisionUnion.ty (Var "$v1")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1980,10 +1980,10 @@ noncomputable def ConditionsAwareDecisionUnion.ToDecision.impl [GooseExts] [GoGl
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ConditionsAwareDecision.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"PossibleDecisions"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))) (Val #()))
-  (Let "possibleDecisions" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Val #())))
+  (Let "possibleDecisions" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)) go!"Len"))) (Var "possibleDecisions")) (Val #())) (Val #(W64 1)))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Decision.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Decision.ty)))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)) go!"UnsortedList"))) (Var "possibleDecisions")) (Val #())) (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)) go!"Len"))) (Var "possibleDecisions")) (Val #())) (Val #(W64 1)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Decision.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Decision.ty)))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)) go!"UnsortedList"))) (Var "possibleDecisions")) (Val #())) (Val #(W64 0)))))
   (Let "onlyPossibleDecision" (App (Val (GoInstruction (GoAlloc Decision.ty))) (App (Val (GoInstruction (GoZeroVal Decision.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "aggregateReasons" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -2079,7 +2079,7 @@ noncomputable def ConditionsAwareDecisionUnion.ToDecision.impl [GooseExts] [GoGl
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)))) (Pair (Var "possibleDecisions") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)))) (Pair (Var "possibleDecisions") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"errs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.error)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (StructFieldRef ConditionsAwareDecisionUnion.ty go!"errs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionsAwareDecisionUnion.ty)))) (Var "unionMap"))))
@@ -2747,7 +2747,7 @@ noncomputable def conditionsToAppliedErroredUnevaluated.impl [GooseExts] [GoGlob
   (Let "appliedDescription" (App (Val (GoInstruction (GoAlloc go.string))) (Var "appliedDescription"))
   (Let "effect" (App (Val (GoInstruction (GoAlloc go.string))) (Var "effect"))
   (Let "evalCond" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [Condition.ty] false [ConditionEvaluationResult.ty]))))) (Var "evalCond"))
-  (Let "conditions" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Var "conditions"))
+  (Let "conditions" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Var "conditions"))
   (Let "errs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.error)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.error)))) (Val #())))
   (Let "unevaluatedConditions" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Condition.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Condition.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2765,7 +2765,7 @@ noncomputable def conditionsToAppliedErroredUnevaluated.impl [GooseExts] [GoGlob
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.error)))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (_root_.Perennial.iter.Seq'.ty Condition.ty)))) (Var "conditions"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (_root_.Perennial.iter.Seq''.ty Condition.ty)))) (Var "conditions"))
   (Let "cond" (App (Val (GoInstruction (GoAlloc Condition.ty))) (App (Val (GoInstruction (GoZeroVal Condition.ty))) (Val #())))
   (App (App (Val (func.forRange 1)) (Var "$range"))
   (Lam "$key"
@@ -3508,8 +3508,8 @@ class ConditionsMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_noOpinionConditions : ∀ (x : ConditionsMap) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsMap.underlying go!"noOpinionConditions") (PairV #x #y) (Val #(({ x with noOpinionConditions' := y } : ConditionsMap)))
   get_allowConditions : ∀ (x : ConditionsMap), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsMap.underlying go!"allowConditions") #x (Val #(x.allowConditions'))
   set_allowConditions : ∀ (x : ConditionsMap) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsMap.underlying go!"allowConditions") (PairV #x #y) (Val #(({ x with allowConditions' := y } : ConditionsMap)))
-  method_set : go.MethodSetIs ConditionsMap.ty [(go!"AllowConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq'.ty Condition.ty)]))), (go!"DenyConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq'.ty Condition.ty)]))), (go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsData.ty, EvaluateConditionFunc.ty] false [Decision.ty, go.string, go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"NoOpinionConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq'.ty Condition.ty)]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionsMap.ty) [(go!"AllowConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq'.ty Condition.ty)]))), (go!"DenyConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq'.ty Condition.ty)]))), (go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsData.ty, EvaluateConditionFunc.ty] false [Decision.ty, go.string, go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"NoOpinionConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq'.ty Condition.ty)]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)])))]
+  method_set : go.MethodSetIs ConditionsMap.ty [(go!"AllowConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"DenyConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsData.ty, EvaluateConditionFunc.ty] false [Decision.ty, go.string, go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"NoOpinionConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionsMap.ty) [(go!"AllowConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"DenyConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"Evaluate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, ConditionsData.ty, EvaluateConditionFunc.ty] false [Decision.ty, go.string, go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"NoOpinionConditions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq''.ty Condition.ty)]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)])))]
   AllowConditions_unfold : MethodUnfold ConditionsMap.ty go!"AllowConditions" ConditionsMap.AllowConditions.impl
   DenyConditions_unfold : MethodUnfold ConditionsMap.ty go!"DenyConditions" ConditionsMap.DenyConditions.impl
   Evaluate_unfold : MethodUnfold ConditionsMap.ty go!"Evaluate" ConditionsMap.Evaluate.impl
@@ -3581,7 +3581,7 @@ structure ConditionsAwareDecisionUnion [GooseExts] where
   inner' : GoSlice
   errs' : GoSlice
   containsUnconditionalAllowOrDeny' : Bool
-  subDecisionsPossibleDecisions' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' Decision)
+  subDecisionsPossibleDecisions' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' Decision)
 
 noncomputable instance ConditionsAwareDecisionUnion.zero_val [GooseExts] : ZeroVal ConditionsAwareDecisionUnion :=
   ⟨ConditionsAwareDecisionUnion.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
@@ -3590,7 +3590,7 @@ noncomputable instance ConditionsAwareDecisionUnion.zero_val [GooseExts] : ZeroV
   [(go.field_decl.FieldDecl go!"inner" (go.GoType.SliceType namedConditionsAwareDecision.ty)),
 (go.field_decl.FieldDecl go!"errs" (go.GoType.SliceType go.error)),
 (go.field_decl.FieldDecl go!"containsUnconditionalAllowOrDeny" go.bool),
-(go.field_decl.FieldDecl go!"subDecisionsPossibleDecisions" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty))]
+(go.field_decl.FieldDecl go!"subDecisionsPossibleDecisions" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty))]
 
 @[irreducible] noncomputable def ConditionsAwareDecisionUnion.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConditionsAwareDecisionUnion.fieldsUnsealed
@@ -3612,9 +3612,9 @@ class ConditionsAwareDecisionUnion.TypeAssumptions [GooseExts] [GoGlobalContext]
   get_containsUnconditionalAllowOrDeny : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"containsUnconditionalAllowOrDeny") #x (Val #(x.containsUnconditionalAllowOrDeny'))
   set_containsUnconditionalAllowOrDeny : ∀ (x : ConditionsAwareDecisionUnion) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"containsUnconditionalAllowOrDeny") (PairV #x #y) (Val #(({ x with containsUnconditionalAllowOrDeny' := y } : ConditionsAwareDecisionUnion)))
   get_subDecisionsPossibleDecisions : ∀ (x : ConditionsAwareDecisionUnion), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecisionUnion.underlying go!"subDecisionsPossibleDecisions") #x (Val #(x.subDecisionsPossibleDecisions'))
-  set_subDecisionsPossibleDecisions : ∀ (x : ConditionsAwareDecisionUnion) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' Decision)), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"subDecisionsPossibleDecisions") (PairV #x #y) (Val #(({ x with subDecisionsPossibleDecisions' := y } : ConditionsAwareDecisionUnion)))
+  set_subDecisionsPossibleDecisions : ∀ (x : ConditionsAwareDecisionUnion) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' Decision)), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecisionUnion.underlying go!"subDecisionsPossibleDecisions") (PairV #x #y) (Val #(({ x with subDecisionsPossibleDecisions' := y } : ConditionsAwareDecisionUnion)))
   method_set : go.MethodSetIs ConditionsAwareDecisionUnion.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) [(go!"Add", (some (go.signature.Signature [go.string, ConditionsAwareDecision.ty] false []))), (go!"ContainsUnconditionalAllowOrDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)]))), (go!"ToDecision", (some (go.signature.Signature [] false [ConditionsAwareDecision.ty]))), (go!"k8s.io/apiserver/pkg/authorization/authorizer.hasConditionalAuthorizerName", (some (go.signature.Signature [go.string] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) [(go!"Add", (some (go.signature.Signature [go.string, ConditionsAwareDecision.ty] false []))), (go!"ContainsUnconditionalAllowOrDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)]))), (go!"ToDecision", (some (go.signature.Signature [] false [ConditionsAwareDecision.ty]))), (go!"k8s.io/apiserver/pkg/authorization/authorizer.hasConditionalAuthorizerName", (some (go.signature.Signature [go.string] false [go.bool])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"Add" ConditionsAwareDecisionUnion.Add.impl
   ptr_ContainsUnconditionalAllowOrDeny_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"ContainsUnconditionalAllowOrDeny" ConditionsAwareDecisionUnion.ContainsUnconditionalAllowOrDeny.impl
   ptr_FailureDecision_unfold : MethodUnfold (go.GoType.PointerType ConditionsAwareDecisionUnion.ty) go!"FailureDecision" ConditionsAwareDecisionUnion.FailureDecision.impl
@@ -3682,8 +3682,8 @@ class ConditionsAwareDecision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   set_reason : ∀ (x : ConditionsAwareDecision) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"reason") (PairV #x #y) (Val #(({ x with reason' := y } : ConditionsAwareDecision)))
   get_err : ∀ (x : ConditionsAwareDecision), go.IsGoStepPureDetTagged under (StructFieldGet ConditionsAwareDecision.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : ConditionsAwareDecision) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet ConditionsAwareDecision.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : ConditionsAwareDecision)))
-  method_set : go.MethodSetIs ConditionsAwareDecision.ty [(go!"ConditionsMap", (some (go.signature.Signature [] false [ConditionsMap.ty]))), (go!"ContainsUnconditionalAllowOrDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [] false [go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"IsAllow", (some (go.signature.Signature [] false [go.bool]))), (go!"IsConditionsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"IsNoOpinion", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnconditional", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnion", (some (go.signature.Signature [] false [go.bool]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)]))), (go!"Reason", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnconditionalPartsOrError", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnconditionalPartsOrFailClosed", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnionedDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty go.string ConditionsAwareDecision.ty)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionsAwareDecision.ty) [(go!"ConditionsMap", (some (go.signature.Signature [] false [ConditionsMap.ty]))), (go!"ContainsUnconditionalAllowOrDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [] false [go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"IsAllow", (some (go.signature.Signature [] false [go.bool]))), (go!"IsConditionsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"IsNoOpinion", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnconditional", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnion", (some (go.signature.Signature [] false [go.bool]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty Decision.ty)]))), (go!"Reason", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnconditionalPartsOrError", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnconditionalPartsOrFailClosed", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnionedDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty go.string ConditionsAwareDecision.ty)])))]
+  method_set : go.MethodSetIs ConditionsAwareDecision.ty [(go!"ConditionsMap", (some (go.signature.Signature [] false [ConditionsMap.ty]))), (go!"ContainsUnconditionalAllowOrDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [] false [go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"IsAllow", (some (go.signature.Signature [] false [go.bool]))), (go!"IsConditionsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"IsNoOpinion", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnconditional", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnion", (some (go.signature.Signature [] false [go.bool]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)]))), (go!"Reason", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnconditionalPartsOrError", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnconditionalPartsOrFailClosed", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnionedDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty go.string ConditionsAwareDecision.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionsAwareDecision.ty) [(go!"ConditionsMap", (some (go.signature.Signature [] false [ConditionsMap.ty]))), (go!"ContainsUnconditionalAllowOrDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [] false [go.error]))), (go!"FailureDecision", (some (go.signature.Signature [] false [Decision.ty]))), (go!"IsAllow", (some (go.signature.Signature [] false [go.bool]))), (go!"IsConditionsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeny", (some (go.signature.Signature [] false [go.bool]))), (go!"IsNoOpinion", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnconditional", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnion", (some (go.signature.Signature [] false [go.bool]))), (go!"PossibleDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty Decision.ty)]))), (go!"Reason", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnconditionalPartsOrError", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnconditionalPartsOrFailClosed", (some (go.signature.Signature [] false [Decision.ty, go.string, go.error]))), (go!"UnionedDecisions", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty go.string ConditionsAwareDecision.ty)])))]
   ConditionsMap_unfold : MethodUnfold ConditionsAwareDecision.ty go!"ConditionsMap" ConditionsAwareDecision.ConditionsMap.impl
   ContainsUnconditionalAllowOrDeny_unfold : MethodUnfold ConditionsAwareDecision.ty go!"ContainsUnconditionalAllowOrDeny" ConditionsAwareDecision.ContainsUnconditionalAllowOrDeny.impl
   Error_unfold : MethodUnfold ConditionsAwareDecision.ty go!"Error" ConditionsAwareDecision.Error.impl

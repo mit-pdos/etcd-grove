@@ -291,10 +291,10 @@ noncomputable def RawFields.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] RawFields.ty
 
-noncomputable def List'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def List''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.List" [])
 
-attribute [irreducible] List'.ty
+attribute [irreducible] List''.ty
 
 noncomputable def Map.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Map" [])
@@ -1622,19 +1622,19 @@ attribute [instance] RawFields.TypeAssumptions.underlying
   RawFields.TypeAssumptions.method_set
   RawFields.TypeAssumptions.ptr_method_set
 
-abbrev List' [GooseExts] : Type := GoInterface
+abbrev List'' [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def List'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def List''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Append" (go.signature.Signature [Value.ty] false [])), (go.InterfaceElem.MethodElem go!"AppendMutable" (go.signature.Signature [] false [Value.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [Value.ty])), (go.InterfaceElem.MethodElem go!"IsValid" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"NewElement" (go.signature.Signature [] false [Value.ty])), (go.InterfaceElem.MethodElem go!"Set" (go.signature.Signature [go.int, Value.ty] false [])), (go.InterfaceElem.MethodElem go!"Truncate" (go.signature.Signature [go.int] false []))])
 
-class List.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq List'.ty List'.underlying
-  method_set : go.MethodSetIs List'.ty [(go!"Append", (some (go.signature.Signature [Value.ty] false []))), (go!"AppendMutable", (some (go.signature.Signature [] false [Value.ty]))), (go!"Get", (some (go.signature.Signature [go.int] false [Value.ty]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NewElement", (some (go.signature.Signature [] false [Value.ty]))), (go!"Set", (some (go.signature.Signature [go.int, Value.ty] false []))), (go!"Truncate", (some (go.signature.Signature [go.int] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType List'.ty) []
+class List''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq List''.ty List''.underlying
+  method_set : go.MethodSetIs List''.ty [(go!"Append", (some (go.signature.Signature [Value.ty] false []))), (go!"AppendMutable", (some (go.signature.Signature [] false [Value.ty]))), (go!"Get", (some (go.signature.Signature [go.int] false [Value.ty]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NewElement", (some (go.signature.Signature [] false [Value.ty]))), (go!"Set", (some (go.signature.Signature [go.int, Value.ty] false []))), (go!"Truncate", (some (go.signature.Signature [go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType List''.ty) []
 
-attribute [instance] List.TypeAssumptions.underlying
-  List.TypeAssumptions.method_set
-  List.TypeAssumptions.ptr_method_set
+attribute [instance] List''.TypeAssumptions.underlying
+  List''.TypeAssumptions.method_set
+  List''.TypeAssumptions.ptr_method_set
 
 abbrev Map [GooseExts] : Type := GoInterface
 
@@ -1676,8 +1676,8 @@ abbrev Value [GooseExts] : Type := value
 
 class Value.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Value.ty Value.underlying
-  method_set : go.MethodSetIs Value.ty [(go!"Bool", (some (go.signature.Signature [] false [go.bool]))), (go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Enum", (some (go.signature.Signature [] false [EnumNumber.ty]))), (go!"Equal", (some (go.signature.Signature [Value.ty] false [go.bool]))), (go!"Float", (some (go.signature.Signature [] false [go.float64]))), (go!"Int", (some (go.signature.Signature [] false [go.int64]))), (go!"Interface", (some (go.signature.Signature [] false [go.any]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"List", (some (go.signature.Signature [] false [List'.ty]))), (go!"Map", (some (go.signature.Signature [] false [Map.ty]))), (go!"MapKey", (some (go.signature.Signature [] false [MapKey.ty]))), (go!"Message", (some (go.signature.Signature [] false [Message.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Uint", (some (go.signature.Signature [] false [go.uint64]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getIface", (some (go.signature.Signature [] false [go.any]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getString", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/protobuf/reflect/protoreflect.panicMessage", (some (go.signature.Signature [go.string] false [go.string]))), (go!"google.golang.org/protobuf/reflect/protoreflect.typeName", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Value.ty) [(go!"Bool", (some (go.signature.Signature [] false [go.bool]))), (go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Enum", (some (go.signature.Signature [] false [EnumNumber.ty]))), (go!"Equal", (some (go.signature.Signature [Value.ty] false [go.bool]))), (go!"Float", (some (go.signature.Signature [] false [go.float64]))), (go!"Int", (some (go.signature.Signature [] false [go.int64]))), (go!"Interface", (some (go.signature.Signature [] false [go.any]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"List", (some (go.signature.Signature [] false [List'.ty]))), (go!"Map", (some (go.signature.Signature [] false [Map.ty]))), (go!"MapKey", (some (go.signature.Signature [] false [MapKey.ty]))), (go!"Message", (some (go.signature.Signature [] false [Message.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Uint", (some (go.signature.Signature [] false [go.uint64]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getIface", (some (go.signature.Signature [] false [go.any]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getString", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/protobuf/reflect/protoreflect.panicMessage", (some (go.signature.Signature [go.string] false [go.string]))), (go!"google.golang.org/protobuf/reflect/protoreflect.typeName", (some (go.signature.Signature [] false [go.string])))]
+  method_set : go.MethodSetIs Value.ty [(go!"Bool", (some (go.signature.Signature [] false [go.bool]))), (go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Enum", (some (go.signature.Signature [] false [EnumNumber.ty]))), (go!"Equal", (some (go.signature.Signature [Value.ty] false [go.bool]))), (go!"Float", (some (go.signature.Signature [] false [go.float64]))), (go!"Int", (some (go.signature.Signature [] false [go.int64]))), (go!"Interface", (some (go.signature.Signature [] false [go.any]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"List", (some (go.signature.Signature [] false [List''.ty]))), (go!"Map", (some (go.signature.Signature [] false [Map.ty]))), (go!"MapKey", (some (go.signature.Signature [] false [MapKey.ty]))), (go!"Message", (some (go.signature.Signature [] false [Message.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Uint", (some (go.signature.Signature [] false [go.uint64]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getIface", (some (go.signature.Signature [] false [go.any]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getString", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/protobuf/reflect/protoreflect.panicMessage", (some (go.signature.Signature [go.string] false [go.string]))), (go!"google.golang.org/protobuf/reflect/protoreflect.typeName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Value.ty) [(go!"Bool", (some (go.signature.Signature [] false [go.bool]))), (go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Enum", (some (go.signature.Signature [] false [EnumNumber.ty]))), (go!"Equal", (some (go.signature.Signature [Value.ty] false [go.bool]))), (go!"Float", (some (go.signature.Signature [] false [go.float64]))), (go!"Int", (some (go.signature.Signature [] false [go.int64]))), (go!"Interface", (some (go.signature.Signature [] false [go.any]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"List", (some (go.signature.Signature [] false [List''.ty]))), (go!"Map", (some (go.signature.Signature [] false [Map.ty]))), (go!"MapKey", (some (go.signature.Signature [] false [MapKey.ty]))), (go!"Message", (some (go.signature.Signature [] false [Message.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Uint", (some (go.signature.Signature [] false [go.uint64]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getIface", (some (go.signature.Signature [] false [go.any]))), (go!"google.golang.org/protobuf/reflect/protoreflect.getString", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/protobuf/reflect/protoreflect.panicMessage", (some (go.signature.Signature [go.string] false [go.string]))), (go!"google.golang.org/protobuf/reflect/protoreflect.typeName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Value.TypeAssumptions.underlying
   Value.TypeAssumptions.method_set
@@ -1931,7 +1931,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Enum_instance : Enum.TypeAssumptions
   Message_instance : Message.TypeAssumptions
   RawFields_instance : RawFields.TypeAssumptions
-  List_instance : List.TypeAssumptions
+  List_instance : List''.TypeAssumptions
   Map_instance : Map.TypeAssumptions
   Value_instance : Value.TypeAssumptions
   MapKey_instance : MapKey.TypeAssumptions

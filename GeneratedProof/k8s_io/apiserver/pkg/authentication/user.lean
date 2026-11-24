@@ -48,11 +48,11 @@ noncomputable instance DefaultInfo_access_load_Name (l : Loc) (v : k8s_io.apiser
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_store_Name (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (Name' : GoString) :
+noncomputable instance DefaultInfo_access_store_Name (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,11 +64,11 @@ noncomputable instance DefaultInfo_access_load_UID (l : Loc) (v : k8s_io.apiserv
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_store_UID (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (UID' : GoString) :
+noncomputable instance DefaultInfo_access_store_UID (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"UID" l) v.UID' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"UID" l) UID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UID' := UID' } : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"UID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UID' := y } : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -80,11 +80,11 @@ noncomputable instance DefaultInfo_access_load_Groups (l : Loc) (v : k8s_io.apis
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_store_Groups (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (Groups' : GoSlice) :
+noncomputable instance DefaultInfo_access_store_Groups (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Groups" l) v.Groups' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Groups" l) Groups' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Groups' := Groups' } : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Groups" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Groups' := y } : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -96,11 +96,11 @@ noncomputable instance DefaultInfo_access_load_Extra (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultInfo_access_store_Extra (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (Extra' : GoMap) :
+noncomputable instance DefaultInfo_access_store_Extra (l : Loc) (v : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Extra" l) v.Extra' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Extra" l) Extra' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Extra' := Extra' } : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authentication.user.DefaultInfo go!"Extra" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Extra' := y } : k8s_io.apiserver.pkg.authentication.user.DefaultInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -90,11 +90,11 @@ noncomputable instance Health_access_load_OK (l : Loc) (v : github_com.xiang90.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Health_access_store_OK (l : Loc) (v : github_com.xiang90.probing.Health) (OK' : Bool) :
+noncomputable instance Health_access_store_OK (l : Loc) (v : github_com.xiang90.probing.Health) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) OK' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OK' := OK' } : github_com.xiang90.probing.Health) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OK' := y } : github_com.xiang90.probing.Health) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -106,11 +106,11 @@ noncomputable instance Health_access_load_Now (l : Loc) (v : github_com.xiang90.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Health_access_store_Now (l : Loc) (v : github_com.xiang90.probing.Health) (Now' : _root_.Perennial.time.Time) :
+noncomputable instance Health_access_store_Now (l : Loc) (v : github_com.xiang90.probing.Health) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) Now' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Now' := Now' } : github_com.xiang90.probing.Health) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Now' := y } : github_com.xiang90.probing.Health) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

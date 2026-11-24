@@ -123,11 +123,11 @@ noncomputable instance PrefixTransformer_access_load_Prefix (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance PrefixTransformer_access_store_Prefix (l : Loc) (v : k8s_io.apiserver.pkg.storage.value.PrefixTransformer) (Prefix' : GoSlice) :
+noncomputable instance PrefixTransformer_access_store_Prefix (l : Loc) (v : k8s_io.apiserver.pkg.storage.value.PrefixTransformer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.PrefixTransformer go!"Prefix" l) v.Prefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.PrefixTransformer go!"Prefix" l) Prefix' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Prefix' := Prefix' } : k8s_io.apiserver.pkg.storage.value.PrefixTransformer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.PrefixTransformer go!"Prefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Prefix' := y } : k8s_io.apiserver.pkg.storage.value.PrefixTransformer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -139,11 +139,11 @@ noncomputable instance PrefixTransformer_access_load_Transformer (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PrefixTransformer_access_store_Transformer (l : Loc) (v : k8s_io.apiserver.pkg.storage.value.PrefixTransformer) (Transformer' : k8s_io.apiserver.pkg.storage.value.Transformer) :
+noncomputable instance PrefixTransformer_access_store_Transformer (l : Loc) (v : k8s_io.apiserver.pkg.storage.value.PrefixTransformer) (y : k8s_io.apiserver.pkg.storage.value.Transformer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.PrefixTransformer go!"Transformer" l) v.Transformer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.PrefixTransformer go!"Transformer" l) Transformer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Transformer' := Transformer' } : k8s_io.apiserver.pkg.storage.value.PrefixTransformer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.PrefixTransformer go!"Transformer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Transformer' := y } : k8s_io.apiserver.pkg.storage.value.PrefixTransformer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -180,11 +180,11 @@ noncomputable instance prefixTransformers_access_load_transformers (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance prefixTransformers_access_store_transformers (l : Loc) (v : k8s_io.apiserver.pkg.storage.value.prefixTransformers) (transformers' : GoSlice) :
+noncomputable instance prefixTransformers_access_store_transformers (l : Loc) (v : k8s_io.apiserver.pkg.storage.value.prefixTransformers) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.prefixTransformers go!"transformers" l) v.transformers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.prefixTransformers go!"transformers" l) transformers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with transformers' := transformers' } : k8s_io.apiserver.pkg.storage.value.prefixTransformers) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.prefixTransformers go!"transformers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with transformers' := y } : k8s_io.apiserver.pkg.storage.value.prefixTransformers) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -196,11 +196,11 @@ noncomputable instance prefixTransformers_access_load_err (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance prefixTransformers_access_store_err (l : Loc) (v : k8s_io.apiserver.pkg.storage.value.prefixTransformers) (err' : GoError) :
+noncomputable instance prefixTransformers_access_store_err (l : Loc) (v : k8s_io.apiserver.pkg.storage.value.prefixTransformers) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.prefixTransformers go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.prefixTransformers go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : k8s_io.apiserver.pkg.storage.value.prefixTransformers) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.value.prefixTransformers go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : k8s_io.apiserver.pkg.storage.value.prefixTransformers) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

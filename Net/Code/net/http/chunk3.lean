@@ -690,7 +690,7 @@ class readTrackingBody.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   get_didRead : ∀ (x : readTrackingBody), go.IsGoStepPureDetTagged under (StructFieldGet readTrackingBody.underlying go!"didRead") #x (Val #(x.didRead'))
   set_didRead : ∀ (x : readTrackingBody) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet readTrackingBody.underlying go!"didRead") (PairV #x #y) (Val #(({ x with didRead' := y } : readTrackingBody)))
   get_didClose : ∀ (x : readTrackingBody), go.IsGoStepPureDetTagged under (StructFieldGet readTrackingBody.underlying go!"didClose") #x (Val #(x.didClose'))
-  set_didClose : ∀ (x : readTrackingBody) (y : _root_.Perennial.sync.atomic.Bool'), go.IsGoStepPureDetTagged under (StructFieldSet readTrackingBody.underlying go!"didClose") (PairV #x #y) (Val #(({ x with didClose' := y } : readTrackingBody)))
+  set_didClose : ∀ (x : readTrackingBody) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet readTrackingBody.underlying go!"didClose") (PairV #x #y) (Val #(({ x with didClose' := y } : readTrackingBody)))
   method_set : go.MethodSetIs readTrackingBody.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType readTrackingBody.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 

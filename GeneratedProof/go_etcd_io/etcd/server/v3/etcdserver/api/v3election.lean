@@ -51,11 +51,11 @@ noncomputable instance electionServer_access_load_c (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance electionServer_access_store_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (c' : Loc) :
+noncomputable instance electionServer_access_store_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) v.c' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) c' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -67,11 +67,11 @@ noncomputable instance electionServer_access_load_UnsafeElectionServer (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance electionServer_access_store_UnsafeElectionServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (UnsafeElectionServer' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnsafeElectionServer) :
+noncomputable instance electionServer_access_store_UnsafeElectionServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnsafeElectionServer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) UnsafeElectionServer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnsafeElectionServer' := UnsafeElectionServer' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnsafeElectionServer' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

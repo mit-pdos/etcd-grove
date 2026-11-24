@@ -51,11 +51,11 @@ noncomputable instance leaderStats_access_load_Leader (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance leaderStats_access_store_Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (Leader' : GoString) :
+noncomputable instance leaderStats_access_store_Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Leader" l) v.Leader' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Leader" l) Leader' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leader' := Leader' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Leader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leader' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -67,11 +67,11 @@ noncomputable instance leaderStats_access_load_Followers (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance leaderStats_access_store_Followers (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (Followers' : GoMap) :
+noncomputable instance leaderStats_access_store_Followers (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Followers" l) v.Followers' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Followers" l) Followers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Followers' := Followers' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Followers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Followers' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -109,11 +109,11 @@ noncomputable instance LeaderStats_access_load_lg (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderStats_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (lg' : Loc) :
+noncomputable instance LeaderStats_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"lg" l) v.lg' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"lg" l) lg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"lg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -125,11 +125,11 @@ noncomputable instance LeaderStats_access_load_leaderStats (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderStats_access_store_leaderStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (leaderStats' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) :
+noncomputable instance LeaderStats_access_store_leaderStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (y : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"leaderStats" l) v.leaderStats' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"leaderStats" l) leaderStats' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderStats' := leaderStats' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"leaderStats" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderStats' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -141,11 +141,11 @@ noncomputable instance LeaderStats_access_load_Mutex (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderStats_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (Mutex' : _root_.Perennial.sync.Mutex) :
+noncomputable instance LeaderStats_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"Mutex" l) Mutex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"Mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -186,11 +186,11 @@ noncomputable instance LatencyStats_access_load_Current (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyStats_access_store_Current (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Current' : w64) :
+noncomputable instance LatencyStats_access_store_Current (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Current" l) v.Current' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Current" l) Current' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Current' := Current' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Current" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Current' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -202,11 +202,11 @@ noncomputable instance LatencyStats_access_load_Average (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyStats_access_store_Average (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Average' : w64) :
+noncomputable instance LatencyStats_access_store_Average (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Average" l) v.Average' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Average" l) Average' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Average' := Average' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Average" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Average' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -218,11 +218,11 @@ noncomputable instance LatencyStats_access_load_averageSquare (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyStats_access_store_averageSquare (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (averageSquare' : w64) :
+noncomputable instance LatencyStats_access_store_averageSquare (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"averageSquare" l) v.averageSquare' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"averageSquare" l) averageSquare' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with averageSquare' := averageSquare' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"averageSquare" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with averageSquare' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -234,11 +234,11 @@ noncomputable instance LatencyStats_access_load_StandardDeviation (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyStats_access_store_StandardDeviation (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (StandardDeviation' : w64) :
+noncomputable instance LatencyStats_access_store_StandardDeviation (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"StandardDeviation" l) v.StandardDeviation' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"StandardDeviation" l) StandardDeviation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StandardDeviation' := StandardDeviation' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"StandardDeviation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StandardDeviation' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -250,11 +250,11 @@ noncomputable instance LatencyStats_access_load_Minimum (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyStats_access_store_Minimum (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Minimum' : w64) :
+noncomputable instance LatencyStats_access_store_Minimum (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Minimum" l) v.Minimum' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Minimum" l) Minimum' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Minimum' := Minimum' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Minimum" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Minimum' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -266,11 +266,11 @@ noncomputable instance LatencyStats_access_load_Maximum (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyStats_access_store_Maximum (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Maximum' : w64) :
+noncomputable instance LatencyStats_access_store_Maximum (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Maximum" l) v.Maximum' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Maximum" l) Maximum' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Maximum' := Maximum' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Maximum" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Maximum' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -307,11 +307,11 @@ noncomputable instance CountsStats_access_load_Fail (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance CountsStats_access_store_Fail (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (Fail' : w64) :
+noncomputable instance CountsStats_access_store_Fail (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Fail" l) v.Fail' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Fail" l) Fail' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Fail' := Fail' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Fail" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Fail' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -323,11 +323,11 @@ noncomputable instance CountsStats_access_load_Success (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance CountsStats_access_store_Success (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (Success' : w64) :
+noncomputable instance CountsStats_access_store_Success (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Success" l) v.Success' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Success" l) Success' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Success' := Success' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Success" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Success' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -365,11 +365,11 @@ noncomputable instance FollowerStats_access_load_Latency (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance FollowerStats_access_store_Latency (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (Latency' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) :
+noncomputable instance FollowerStats_access_store_Latency (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (y : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Latency" l) v.Latency' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Latency" l) Latency' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Latency' := Latency' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Latency" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Latency' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -381,11 +381,11 @@ noncomputable instance FollowerStats_access_load_Counts (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance FollowerStats_access_store_Counts (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (Counts' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) :
+noncomputable instance FollowerStats_access_store_Counts (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (y : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Counts" l) v.Counts' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Counts" l) Counts' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Counts' := Counts' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Counts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Counts' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -397,11 +397,11 @@ noncomputable instance FollowerStats_access_load_Mutex (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance FollowerStats_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (Mutex' : _root_.Perennial.sync.Mutex) :
+noncomputable instance FollowerStats_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Mutex" l) Mutex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -438,11 +438,11 @@ noncomputable instance RequestStats_access_load_SendingTime (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestStats_access_store_SendingTime (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (SendingTime' : _root_.Perennial.time.Time) :
+noncomputable instance RequestStats_access_store_SendingTime (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"SendingTime" l) v.SendingTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"SendingTime" l) SendingTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendingTime' := SendingTime' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"SendingTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendingTime' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -454,11 +454,11 @@ noncomputable instance RequestStats_access_load_Size (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestStats_access_store_Size (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (Size' : w64) :
+noncomputable instance RequestStats_access_store_Size (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"Size" l) v.Size' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"Size" l) Size' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := Size' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"Size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -499,11 +499,11 @@ noncomputable instance statsQueue_access_load_items (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance statsQueue_access_store_items (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (items' : (GoArray Loc 200)) :
+noncomputable instance statsQueue_access_store_items (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (y : (GoArray Loc 200)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"items" l) v.items' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"items" l) items' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := items' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"items" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -515,11 +515,11 @@ noncomputable instance statsQueue_access_load_size (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance statsQueue_access_store_size (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (size' : w64) :
+noncomputable instance statsQueue_access_store_size (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"size" l) v.size' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"size" l) size' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with size' := size' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with size' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -531,11 +531,11 @@ noncomputable instance statsQueue_access_load_front (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance statsQueue_access_store_front (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (front' : w64) :
+noncomputable instance statsQueue_access_store_front (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"front" l) v.front' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"front" l) front' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with front' := front' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"front" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with front' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -547,11 +547,11 @@ noncomputable instance statsQueue_access_load_back (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance statsQueue_access_store_back (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (back' : w64) :
+noncomputable instance statsQueue_access_store_back (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"back" l) v.back' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"back" l) back' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with back' := back' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"back" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with back' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -563,11 +563,11 @@ noncomputable instance statsQueue_access_load_totalReqSize (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance statsQueue_access_store_totalReqSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (totalReqSize' : w64) :
+noncomputable instance statsQueue_access_store_totalReqSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"totalReqSize" l) v.totalReqSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"totalReqSize" l) totalReqSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with totalReqSize' := totalReqSize' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"totalReqSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with totalReqSize' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -579,11 +579,11 @@ noncomputable instance statsQueue_access_load_rwl (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance statsQueue_access_store_rwl (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (rwl' : _root_.Perennial.sync.RWMutex) :
+noncomputable instance statsQueue_access_store_rwl (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"rwl" l) v.rwl' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"rwl" l) rwl' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rwl' := rwl' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"rwl" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rwl' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -621,11 +621,11 @@ noncomputable instance «struct#6de5bf6f_access_load_Name» (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#6de5bf6f_access_store_Name» (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (Name' : GoString) :
+noncomputable instance «struct#6de5bf6f_access_store_Name» (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f» go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f» go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f» go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -637,11 +637,11 @@ noncomputable instance «struct#6de5bf6f_access_load_Uptime» (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#6de5bf6f_access_store_Uptime» (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (Uptime' : GoString) :
+noncomputable instance «struct#6de5bf6f_access_store_Uptime» (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f» go!"Uptime" l) v.Uptime' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f» go!"Uptime" l) Uptime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Uptime' := Uptime' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f» go!"Uptime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Uptime' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -653,11 +653,11 @@ noncomputable instance «struct#6de5bf6f_access_load_StartTime» (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#6de5bf6f_access_store_StartTime» (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (StartTime' : _root_.Perennial.time.Time) :
+noncomputable instance «struct#6de5bf6f_access_store_StartTime» (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f» go!"StartTime" l) v.StartTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f» go!"StartTime" l) StartTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartTime' := StartTime' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f» go!"StartTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartTime' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -705,11 +705,11 @@ noncomputable instance serverStats_access_load_Name (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (Name' : GoString) :
+noncomputable instance serverStats_access_store_Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -721,11 +721,11 @@ noncomputable instance serverStats_access_load_ID (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (ID' : GoString) :
+noncomputable instance serverStats_access_store_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"ID" l) v.ID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"ID" l) ID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"ID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -737,11 +737,11 @@ noncomputable instance serverStats_access_load_State (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_State (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (State' : _root_.Perennial.go_etcd_io.raft.v3.StateType) :
+noncomputable instance serverStats_access_store_State (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : _root_.Perennial.go_etcd_io.raft.v3.StateType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"State" l) v.State' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"State" l) State' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with State' := State' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"State" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with State' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -753,11 +753,11 @@ noncomputable instance serverStats_access_load_StartTime (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_StartTime (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (StartTime' : _root_.Perennial.time.Time) :
+noncomputable instance serverStats_access_store_StartTime (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"StartTime" l) v.StartTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"StartTime" l) StartTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartTime' := StartTime' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"StartTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartTime' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -769,11 +769,11 @@ noncomputable instance serverStats_access_load_LeaderInfo (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_LeaderInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (LeaderInfo' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») :
+noncomputable instance serverStats_access_store_LeaderInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.«struct#6de5bf6f») :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"LeaderInfo" l) v.LeaderInfo' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"LeaderInfo" l) LeaderInfo' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeaderInfo' := LeaderInfo' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"LeaderInfo" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeaderInfo' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -785,11 +785,11 @@ noncomputable instance serverStats_access_load_RecvAppendRequestCnt (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_RecvAppendRequestCnt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (RecvAppendRequestCnt' : w64) :
+noncomputable instance serverStats_access_store_RecvAppendRequestCnt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"RecvAppendRequestCnt" l) v.RecvAppendRequestCnt' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"RecvAppendRequestCnt" l) RecvAppendRequestCnt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvAppendRequestCnt' := RecvAppendRequestCnt' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"RecvAppendRequestCnt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvAppendRequestCnt' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -801,11 +801,11 @@ noncomputable instance serverStats_access_load_RecvingPkgRate (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_RecvingPkgRate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (RecvingPkgRate' : w64) :
+noncomputable instance serverStats_access_store_RecvingPkgRate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"RecvingPkgRate" l) v.RecvingPkgRate' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"RecvingPkgRate" l) RecvingPkgRate' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvingPkgRate' := RecvingPkgRate' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"RecvingPkgRate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvingPkgRate' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -817,11 +817,11 @@ noncomputable instance serverStats_access_load_RecvingBandwidthRate (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_RecvingBandwidthRate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (RecvingBandwidthRate' : w64) :
+noncomputable instance serverStats_access_store_RecvingBandwidthRate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"RecvingBandwidthRate" l) v.RecvingBandwidthRate' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"RecvingBandwidthRate" l) RecvingBandwidthRate' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvingBandwidthRate' := RecvingBandwidthRate' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"RecvingBandwidthRate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvingBandwidthRate' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -833,11 +833,11 @@ noncomputable instance serverStats_access_load_SendAppendRequestCnt (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_SendAppendRequestCnt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (SendAppendRequestCnt' : w64) :
+noncomputable instance serverStats_access_store_SendAppendRequestCnt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"SendAppendRequestCnt" l) v.SendAppendRequestCnt' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"SendAppendRequestCnt" l) SendAppendRequestCnt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendAppendRequestCnt' := SendAppendRequestCnt' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"SendAppendRequestCnt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendAppendRequestCnt' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -849,11 +849,11 @@ noncomputable instance serverStats_access_load_SendingPkgRate (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_SendingPkgRate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (SendingPkgRate' : w64) :
+noncomputable instance serverStats_access_store_SendingPkgRate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"SendingPkgRate" l) v.SendingPkgRate' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"SendingPkgRate" l) SendingPkgRate' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendingPkgRate' := SendingPkgRate' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"SendingPkgRate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendingPkgRate' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -865,11 +865,11 @@ noncomputable instance serverStats_access_load_SendingBandwidthRate (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_SendingBandwidthRate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (SendingBandwidthRate' : w64) :
+noncomputable instance serverStats_access_store_SendingBandwidthRate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"SendingBandwidthRate" l) v.SendingBandwidthRate' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"SendingBandwidthRate" l) SendingBandwidthRate' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendingBandwidthRate' := SendingBandwidthRate' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"SendingBandwidthRate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendingBandwidthRate' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -881,11 +881,11 @@ noncomputable instance serverStats_access_load_sendRateQueue (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_sendRateQueue (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (sendRateQueue' : Loc) :
+noncomputable instance serverStats_access_store_sendRateQueue (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"sendRateQueue" l) v.sendRateQueue' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"sendRateQueue" l) sendRateQueue' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sendRateQueue' := sendRateQueue' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"sendRateQueue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sendRateQueue' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -897,11 +897,11 @@ noncomputable instance serverStats_access_load_recvRateQueue (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverStats_access_store_recvRateQueue (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (recvRateQueue' : Loc) :
+noncomputable instance serverStats_access_store_recvRateQueue (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"recvRateQueue" l) v.recvRateQueue' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"recvRateQueue" l) recvRateQueue' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recvRateQueue' := recvRateQueue' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats go!"recvRateQueue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recvRateQueue' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -938,11 +938,11 @@ noncomputable instance ServerStats_access_load_serverStats (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerStats_access_store_serverStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (serverStats' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) :
+noncomputable instance ServerStats_access_store_serverStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (y : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"serverStats" l) v.serverStats' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"serverStats" l) serverStats' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverStats' := serverStats' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"serverStats" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverStats' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -954,11 +954,11 @@ noncomputable instance ServerStats_access_load_Mutex (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerStats_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (Mutex' : _root_.Perennial.sync.Mutex) :
+noncomputable instance ServerStats_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"Mutex" l) Mutex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"Mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

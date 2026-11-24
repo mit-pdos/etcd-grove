@@ -80,11 +80,11 @@ noncomputable instance SyncRecorder_access_load_mu (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance SyncRecorder_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance SyncRecorder_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -96,11 +96,11 @@ noncomputable instance SyncRecorder_access_load_events (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance SyncRecorder_access_store_events (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder) (events' : GoSlice) :
+noncomputable instance SyncRecorder_access_store_events (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder go!"events" l) v.events' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder go!"events" l) events' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with events' := events' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder go!"events" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with events' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -147,11 +147,11 @@ noncomputable instance CConfig_access_load_Nodes (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_Nodes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (Nodes' : w64) :
+noncomputable instance CConfig_access_store_Nodes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Nodes" l) v.Nodes' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Nodes" l) Nodes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Nodes' := Nodes' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Nodes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Nodes' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -163,11 +163,11 @@ noncomputable instance CConfig_access_load_ExtraNodes (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_ExtraNodes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (ExtraNodes' : w64) :
+noncomputable instance CConfig_access_store_ExtraNodes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"ExtraNodes" l) v.ExtraNodes' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"ExtraNodes" l) ExtraNodes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExtraNodes' := ExtraNodes' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"ExtraNodes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExtraNodes' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -179,11 +179,11 @@ noncomputable instance CConfig_access_load_Proposals (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_Proposals (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (Proposals' : w64) :
+noncomputable instance CConfig_access_store_Proposals (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Proposals" l) v.Proposals' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Proposals" l) Proposals' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proposals' := Proposals' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Proposals" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proposals' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -195,11 +195,11 @@ noncomputable instance CConfig_access_load_ConfChanges (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_ConfChanges (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (ConfChanges' : w64) :
+noncomputable instance CConfig_access_store_ConfChanges (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"ConfChanges" l) v.ConfChanges' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"ConfChanges" l) ConfChanges' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChanges' := ConfChanges' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"ConfChanges" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChanges' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -211,11 +211,11 @@ noncomputable instance CConfig_access_load_ProposeGap (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_ProposeGap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (ProposeGap' : _root_.Perennial.time.Duration) :
+noncomputable instance CConfig_access_store_ProposeGap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"ProposeGap" l) v.ProposeGap' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"ProposeGap" l) ProposeGap' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProposeGap' := ProposeGap' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"ProposeGap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProposeGap' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -227,11 +227,11 @@ noncomputable instance CConfig_access_load_Settle (l : Loc) (v : github_com.mit_
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_Settle (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (Settle' : _root_.Perennial.time.Duration) :
+noncomputable instance CConfig_access_store_Settle (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Settle" l) v.Settle' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Settle" l) Settle' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Settle' := Settle' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Settle" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Settle' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -243,11 +243,11 @@ noncomputable instance CConfig_access_load_Tick (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_Tick (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (Tick' : _root_.Perennial.time.Duration) :
+noncomputable instance CConfig_access_store_Tick (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Tick" l) v.Tick' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Tick" l) Tick' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tick' := Tick' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Tick" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tick' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -259,11 +259,11 @@ noncomputable instance CConfig_access_load_MaxDelay (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_MaxDelay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (MaxDelay' : _root_.Perennial.time.Duration) :
+noncomputable instance CConfig_access_store_MaxDelay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"MaxDelay" l) v.MaxDelay' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"MaxDelay" l) MaxDelay' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxDelay' := MaxDelay' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"MaxDelay" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxDelay' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -275,11 +275,11 @@ noncomputable instance CConfig_access_load_DropPct (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_DropPct (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DropPct' : w64) :
+noncomputable instance CConfig_access_store_DropPct (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"DropPct" l) v.DropPct' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"DropPct" l) DropPct' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DropPct' := DropPct' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"DropPct" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DropPct' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -291,11 +291,11 @@ noncomputable instance CConfig_access_load_SnapshotEvery (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_SnapshotEvery (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (SnapshotEvery' : w64) :
+noncomputable instance CConfig_access_store_SnapshotEvery (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"SnapshotEvery" l) v.SnapshotEvery' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"SnapshotEvery" l) SnapshotEvery' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotEvery' := SnapshotEvery' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"SnapshotEvery" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapshotEvery' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -307,11 +307,11 @@ noncomputable instance CConfig_access_load_Isolations (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_Isolations (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (Isolations' : w64) :
+noncomputable instance CConfig_access_store_Isolations (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Isolations" l) v.Isolations' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Isolations" l) Isolations' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Isolations' := Isolations' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"Isolations" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Isolations' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -323,11 +323,11 @@ noncomputable instance CConfig_access_load_IsolateFor (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance CConfig_access_store_IsolateFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (IsolateFor' : _root_.Perennial.time.Duration) :
+noncomputable instance CConfig_access_store_IsolateFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"IsolateFor" l) v.IsolateFor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"IsolateFor" l) IsolateFor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsolateFor' := IsolateFor' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig go!"IsolateFor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsolateFor' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -368,11 +368,11 @@ noncomputable instance creplica_access_load_id (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance creplica_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (id' : w64) :
+noncomputable instance creplica_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -384,11 +384,11 @@ noncomputable instance creplica_access_load_node (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance creplica_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (node' : _root_.Perennial.go_etcd_io.raft.v3.Node) :
+noncomputable instance creplica_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (y : _root_.Perennial.go_etcd_io.raft.v3.Node) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"node" l) v.node' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"node" l) node' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := node' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"node" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -400,11 +400,11 @@ noncomputable instance creplica_access_load_storage (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance creplica_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (storage' : Loc) :
+noncomputable instance creplica_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"storage" l) v.storage' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"storage" l) storage' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := storage' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"storage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -416,11 +416,11 @@ noncomputable instance creplica_access_load_applied (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance creplica_access_store_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (applied' : w64) :
+noncomputable instance creplica_access_store_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"applied" l) v.applied' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"applied" l) applied' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applied' := applied' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"applied" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applied' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -432,11 +432,11 @@ noncomputable instance creplica_access_load_snapIndex (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance creplica_access_store_snapIndex (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (snapIndex' : w64) :
+noncomputable instance creplica_access_store_snapIndex (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"snapIndex" l) v.snapIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"snapIndex" l) snapIndex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapIndex' := snapIndex' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"snapIndex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapIndex' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -448,11 +448,11 @@ noncomputable instance creplica_access_load_confState (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance creplica_access_store_confState (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (confState' : Loc) :
+noncomputable instance creplica_access_store_confState (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"confState" l) v.confState' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"confState" l) confState' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with confState' := confState' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica go!"confState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with confState' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -500,11 +500,11 @@ noncomputable instance Cluster_access_load_cfg (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_cfg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (cfg' : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) :
+noncomputable instance Cluster_access_store_cfg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"cfg" l) v.cfg' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"cfg" l) cfg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cfg' := cfg' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"cfg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cfg' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -516,11 +516,11 @@ noncomputable instance Cluster_access_load_rec (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_rec (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (rec' : Loc) :
+noncomputable instance Cluster_access_store_rec (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"rec" l) v.rec' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"rec" l) rec' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rec' := rec' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"rec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rec' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -532,11 +532,11 @@ noncomputable instance Cluster_access_load_replicas (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_replicas (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (replicas' : GoSlice) :
+noncomputable instance Cluster_access_store_replicas (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"replicas" l) v.replicas' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"replicas" l) replicas' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with replicas' := replicas' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"replicas" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with replicas' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -548,11 +548,11 @@ noncomputable instance Cluster_access_load_stop (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_stop (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (stop' : GoChan) :
+noncomputable instance Cluster_access_store_stop (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"stop" l) v.stop' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"stop" l) stop' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stop' := stop' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"stop" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stop' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -564,11 +564,11 @@ noncomputable instance Cluster_access_load_isolated (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_isolated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (isolated' : _root_.Perennial.sync.atomic.Uint64) :
+noncomputable instance Cluster_access_store_isolated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"isolated" l) v.isolated' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"isolated" l) isolated' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isolated' := isolated' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"isolated" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isolated' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -580,11 +580,11 @@ noncomputable instance Cluster_access_load_apps (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_apps (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (apps' : _root_.Perennial.sync.WaitGroup) :
+noncomputable instance Cluster_access_store_apps (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"apps" l) v.apps' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"apps" l) apps' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with apps' := apps' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"apps" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with apps' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -596,11 +596,11 @@ noncomputable instance Cluster_access_load_net (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_net (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (net' : _root_.Perennial.sync.WaitGroup) :
+noncomputable instance Cluster_access_store_net (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"net" l) v.net' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"net" l) net' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with net' := net' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"net" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with net' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -612,11 +612,11 @@ noncomputable instance Cluster_access_load_Proposed (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_Proposed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (Proposed' : _root_.Perennial.sync.atomic.Int64) :
+noncomputable instance Cluster_access_store_Proposed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : _root_.Perennial.sync.atomic.Int64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Proposed" l) v.Proposed' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Proposed" l) Proposed' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proposed' := Proposed' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Proposed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proposed' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -628,11 +628,11 @@ noncomputable instance Cluster_access_load_Delivered (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_Delivered (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (Delivered' : _root_.Perennial.sync.atomic.Int64) :
+noncomputable instance Cluster_access_store_Delivered (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : _root_.Perennial.sync.atomic.Int64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Delivered" l) v.Delivered' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Delivered" l) Delivered' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Delivered' := Delivered' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Delivered" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Delivered' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -644,11 +644,11 @@ noncomputable instance Cluster_access_load_Dropped (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_Dropped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (Dropped' : _root_.Perennial.sync.atomic.Int64) :
+noncomputable instance Cluster_access_store_Dropped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : _root_.Perennial.sync.atomic.Int64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Dropped" l) v.Dropped' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Dropped" l) Dropped' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Dropped' := Dropped' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Dropped" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Dropped' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -660,11 +660,11 @@ noncomputable instance Cluster_access_load_Readies (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_Readies (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (Readies' : _root_.Perennial.sync.atomic.Int64) :
+noncomputable instance Cluster_access_store_Readies (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : _root_.Perennial.sync.atomic.Int64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Readies" l) v.Readies' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Readies" l) Readies' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Readies' := Readies' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Readies" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Readies' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -676,11 +676,11 @@ noncomputable instance Cluster_access_load_ConfChanges (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_ConfChanges (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (ConfChanges' : _root_.Perennial.sync.atomic.Int64) :
+noncomputable instance Cluster_access_store_ConfChanges (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : _root_.Perennial.sync.atomic.Int64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"ConfChanges" l) v.ConfChanges' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"ConfChanges" l) ConfChanges' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChanges' := ConfChanges' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"ConfChanges" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChanges' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -692,11 +692,11 @@ noncomputable instance Cluster_access_load_Snapshots (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_Snapshots (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (Snapshots' : _root_.Perennial.sync.atomic.Int64) :
+noncomputable instance Cluster_access_store_Snapshots (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (y : _root_.Perennial.sync.atomic.Int64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Snapshots" l) v.Snapshots' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Snapshots" l) Snapshots' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Snapshots' := Snapshots' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster go!"Snapshots" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Snapshots' := y } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

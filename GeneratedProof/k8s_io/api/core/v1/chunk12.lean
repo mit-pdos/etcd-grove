@@ -53,11 +53,11 @@ noncomputable instance ResourceQuotaSpec_access_load_Hard (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceQuotaSpec_access_store_Hard (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaSpec) (Hard' : k8s_io.api.core.v1.ResourceList) :
+noncomputable instance ResourceQuotaSpec_access_store_Hard (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaSpec) (y : k8s_io.api.core.v1.ResourceList) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaSpec go!"Hard" l) v.Hard' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaSpec go!"Hard" l) Hard' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hard' := Hard' } : k8s_io.api.core.v1.ResourceQuotaSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaSpec go!"Hard" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hard' := y } : k8s_io.api.core.v1.ResourceQuotaSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -69,11 +69,11 @@ noncomputable instance ResourceQuotaSpec_access_load_Scopes (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceQuotaSpec_access_store_Scopes (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaSpec) (Scopes' : GoSlice) :
+noncomputable instance ResourceQuotaSpec_access_store_Scopes (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaSpec) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaSpec go!"Scopes" l) v.Scopes' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaSpec go!"Scopes" l) Scopes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Scopes' := Scopes' } : k8s_io.api.core.v1.ResourceQuotaSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaSpec go!"Scopes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Scopes' := y } : k8s_io.api.core.v1.ResourceQuotaSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -85,11 +85,11 @@ noncomputable instance ResourceQuotaSpec_access_load_ScopeSelector (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceQuotaSpec_access_store_ScopeSelector (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaSpec) (ScopeSelector' : Loc) :
+noncomputable instance ResourceQuotaSpec_access_store_ScopeSelector (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaSpec go!"ScopeSelector" l) v.ScopeSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaSpec go!"ScopeSelector" l) ScopeSelector' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ScopeSelector' := ScopeSelector' } : k8s_io.api.core.v1.ResourceQuotaSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaSpec go!"ScopeSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ScopeSelector' := y } : k8s_io.api.core.v1.ResourceQuotaSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -127,11 +127,11 @@ noncomputable instance ScopedResourceSelectorRequirement_access_load_ScopeName (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ScopedResourceSelectorRequirement_access_store_ScopeName (l : Loc) (v : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (ScopeName' : k8s_io.api.core.v1.ResourceQuotaScope) :
+noncomputable instance ScopedResourceSelectorRequirement_access_store_ScopeName (l : Loc) (v : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (y : k8s_io.api.core.v1.ResourceQuotaScope) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ScopedResourceSelectorRequirement go!"ScopeName" l) v.ScopeName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ScopedResourceSelectorRequirement go!"ScopeName" l) ScopeName' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ScopeName' := ScopeName' } : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ScopedResourceSelectorRequirement go!"ScopeName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ScopeName' := y } : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -143,11 +143,11 @@ noncomputable instance ScopedResourceSelectorRequirement_access_load_Operator (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance ScopedResourceSelectorRequirement_access_store_Operator (l : Loc) (v : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (Operator' : k8s_io.api.core.v1.ScopeSelectorOperator) :
+noncomputable instance ScopedResourceSelectorRequirement_access_store_Operator (l : Loc) (v : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (y : k8s_io.api.core.v1.ScopeSelectorOperator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ScopedResourceSelectorRequirement go!"Operator" l) v.Operator' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ScopedResourceSelectorRequirement go!"Operator" l) Operator' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Operator' := Operator' } : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ScopedResourceSelectorRequirement go!"Operator" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Operator' := y } : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -159,11 +159,11 @@ noncomputable instance ScopedResourceSelectorRequirement_access_load_Values (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ScopedResourceSelectorRequirement_access_store_Values (l : Loc) (v : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (Values' : GoSlice) :
+noncomputable instance ScopedResourceSelectorRequirement_access_store_Values (l : Loc) (v : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ScopedResourceSelectorRequirement go!"Values" l) v.Values' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ScopedResourceSelectorRequirement go!"Values" l) Values' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Values' := Values' } : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ScopedResourceSelectorRequirement go!"Values" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Values' := y } : k8s_io.api.core.v1.ScopedResourceSelectorRequirement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -200,11 +200,11 @@ noncomputable instance ResourceQuotaStatus_access_load_Hard (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceQuotaStatus_access_store_Hard (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaStatus) (Hard' : k8s_io.api.core.v1.ResourceList) :
+noncomputable instance ResourceQuotaStatus_access_store_Hard (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaStatus) (y : k8s_io.api.core.v1.ResourceList) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaStatus go!"Hard" l) v.Hard' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaStatus go!"Hard" l) Hard' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hard' := Hard' } : k8s_io.api.core.v1.ResourceQuotaStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaStatus go!"Hard" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hard' := y } : k8s_io.api.core.v1.ResourceQuotaStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -216,11 +216,11 @@ noncomputable instance ResourceQuotaStatus_access_load_Used (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceQuotaStatus_access_store_Used (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaStatus) (Used' : k8s_io.api.core.v1.ResourceList) :
+noncomputable instance ResourceQuotaStatus_access_store_Used (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaStatus) (y : k8s_io.api.core.v1.ResourceList) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaStatus go!"Used" l) v.Used' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaStatus go!"Used" l) Used' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Used' := Used' } : k8s_io.api.core.v1.ResourceQuotaStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaStatus go!"Used" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Used' := y } : k8s_io.api.core.v1.ResourceQuotaStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -261,11 +261,11 @@ noncomputable instance Secret_access_load_TypeMeta (l : Loc) (v : k8s_io.api.cor
  by
   solve_pointsto_access_struct
 
-noncomputable instance Secret_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Secret) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance Secret_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Secret) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := TypeMeta' } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -277,11 +277,11 @@ noncomputable instance Secret_access_load_ObjectMeta (l : Loc) (v : k8s_io.api.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Secret_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Secret) (ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance Secret_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Secret) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := ObjectMeta' } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"ObjectMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -293,11 +293,11 @@ noncomputable instance Secret_access_load_Immutable (l : Loc) (v : k8s_io.api.co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Secret_access_store_Immutable (l : Loc) (v : k8s_io.api.core.v1.Secret) (Immutable' : Loc) :
+noncomputable instance Secret_access_store_Immutable (l : Loc) (v : k8s_io.api.core.v1.Secret) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"Immutable" l) v.Immutable' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"Immutable" l) Immutable' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Immutable' := Immutable' } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"Immutable" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Immutable' := y } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -309,11 +309,11 @@ noncomputable instance Secret_access_load_Data (l : Loc) (v : k8s_io.api.core.v1
  by
   solve_pointsto_access_struct
 
-noncomputable instance Secret_access_store_Data (l : Loc) (v : k8s_io.api.core.v1.Secret) (Data' : GoMap) :
+noncomputable instance Secret_access_store_Data (l : Loc) (v : k8s_io.api.core.v1.Secret) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"Data" l) v.Data' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"Data" l) Data' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Data' := Data' } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"Data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Data' := y } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -325,11 +325,11 @@ noncomputable instance Secret_access_load_StringData (l : Loc) (v : k8s_io.api.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Secret_access_store_StringData (l : Loc) (v : k8s_io.api.core.v1.Secret) (StringData' : GoMap) :
+noncomputable instance Secret_access_store_StringData (l : Loc) (v : k8s_io.api.core.v1.Secret) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"StringData" l) v.StringData' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"StringData" l) StringData' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StringData' := StringData' } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"StringData" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StringData' := y } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -341,11 +341,11 @@ noncomputable instance Secret_access_load_Type (l : Loc) (v : k8s_io.api.core.v1
  by
   solve_pointsto_access_struct
 
-noncomputable instance Secret_access_store_Type (l : Loc) (v : k8s_io.api.core.v1.Secret) (Type' : k8s_io.api.core.v1.SecretType) :
+noncomputable instance Secret_access_store_Type (l : Loc) (v : k8s_io.api.core.v1.Secret) (y : k8s_io.api.core.v1.SecretType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.Secret go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : k8s_io.api.core.v1.Secret) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -384,11 +384,11 @@ noncomputable instance ComponentCondition_access_load_Type (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ComponentCondition_access_store_Type (l : Loc) (v : k8s_io.api.core.v1.ComponentCondition) (Type' : k8s_io.api.core.v1.ComponentConditionType) :
+noncomputable instance ComponentCondition_access_store_Type (l : Loc) (v : k8s_io.api.core.v1.ComponentCondition) (y : k8s_io.api.core.v1.ComponentConditionType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : k8s_io.api.core.v1.ComponentCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : k8s_io.api.core.v1.ComponentCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -400,11 +400,11 @@ noncomputable instance ComponentCondition_access_load_Status (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ComponentCondition_access_store_Status (l : Loc) (v : k8s_io.api.core.v1.ComponentCondition) (Status' : k8s_io.api.core.v1.ConditionStatus) :
+noncomputable instance ComponentCondition_access_store_Status (l : Loc) (v : k8s_io.api.core.v1.ComponentCondition) (y : k8s_io.api.core.v1.ConditionStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Status" l) v.Status' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Status" l) Status' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := Status' } : k8s_io.api.core.v1.ComponentCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Status" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : k8s_io.api.core.v1.ComponentCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -416,11 +416,11 @@ noncomputable instance ComponentCondition_access_load_Message (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ComponentCondition_access_store_Message (l : Loc) (v : k8s_io.api.core.v1.ComponentCondition) (Message' : GoString) :
+noncomputable instance ComponentCondition_access_store_Message (l : Loc) (v : k8s_io.api.core.v1.ComponentCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Message" l) Message' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := Message' } : k8s_io.api.core.v1.ComponentCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : k8s_io.api.core.v1.ComponentCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -432,11 +432,11 @@ noncomputable instance ComponentCondition_access_load_Error (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ComponentCondition_access_store_Error (l : Loc) (v : k8s_io.api.core.v1.ComponentCondition) (Error' : GoString) :
+noncomputable instance ComponentCondition_access_store_Error (l : Loc) (v : k8s_io.api.core.v1.ComponentCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Error" l) v.Error' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Error" l) Error' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Error' := Error' } : k8s_io.api.core.v1.ComponentCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentCondition go!"Error" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Error' := y } : k8s_io.api.core.v1.ComponentCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -474,11 +474,11 @@ noncomputable instance PortStatus_access_load_Port (l : Loc) (v : k8s_io.api.cor
  by
   solve_pointsto_access_struct
 
-noncomputable instance PortStatus_access_store_Port (l : Loc) (v : k8s_io.api.core.v1.PortStatus) (Port' : w32) :
+noncomputable instance PortStatus_access_store_Port (l : Loc) (v : k8s_io.api.core.v1.PortStatus) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PortStatus go!"Port" l) v.Port' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PortStatus go!"Port" l) Port' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Port' := Port' } : k8s_io.api.core.v1.PortStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.PortStatus go!"Port" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Port' := y } : k8s_io.api.core.v1.PortStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -490,11 +490,11 @@ noncomputable instance PortStatus_access_load_Protocol (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance PortStatus_access_store_Protocol (l : Loc) (v : k8s_io.api.core.v1.PortStatus) (Protocol' : k8s_io.api.core.v1.Protocol) :
+noncomputable instance PortStatus_access_store_Protocol (l : Loc) (v : k8s_io.api.core.v1.PortStatus) (y : k8s_io.api.core.v1.Protocol) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PortStatus go!"Protocol" l) v.Protocol' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PortStatus go!"Protocol" l) Protocol' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Protocol' := Protocol' } : k8s_io.api.core.v1.PortStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.PortStatus go!"Protocol" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Protocol' := y } : k8s_io.api.core.v1.PortStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -506,11 +506,11 @@ noncomputable instance PortStatus_access_load_Error (l : Loc) (v : k8s_io.api.co
  by
   solve_pointsto_access_struct
 
-noncomputable instance PortStatus_access_store_Error (l : Loc) (v : k8s_io.api.core.v1.PortStatus) (Error' : Loc) :
+noncomputable instance PortStatus_access_store_Error (l : Loc) (v : k8s_io.api.core.v1.PortStatus) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PortStatus go!"Error" l) v.Error' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PortStatus go!"Error" l) Error' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Error' := Error' } : k8s_io.api.core.v1.PortStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.PortStatus go!"Error" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Error' := y } : k8s_io.api.core.v1.PortStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -547,11 +547,11 @@ noncomputable instance ImageVolumeSource_access_load_Reference (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance ImageVolumeSource_access_store_Reference (l : Loc) (v : k8s_io.api.core.v1.ImageVolumeSource) (Reference' : GoString) :
+noncomputable instance ImageVolumeSource_access_store_Reference (l : Loc) (v : k8s_io.api.core.v1.ImageVolumeSource) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ImageVolumeSource go!"Reference" l) v.Reference' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ImageVolumeSource go!"Reference" l) Reference' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reference' := Reference' } : k8s_io.api.core.v1.ImageVolumeSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ImageVolumeSource go!"Reference" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reference' := y } : k8s_io.api.core.v1.ImageVolumeSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -563,11 +563,11 @@ noncomputable instance ImageVolumeSource_access_load_PullPolicy (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ImageVolumeSource_access_store_PullPolicy (l : Loc) (v : k8s_io.api.core.v1.ImageVolumeSource) (PullPolicy' : k8s_io.api.core.v1.PullPolicy) :
+noncomputable instance ImageVolumeSource_access_store_PullPolicy (l : Loc) (v : k8s_io.api.core.v1.ImageVolumeSource) (y : k8s_io.api.core.v1.PullPolicy) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ImageVolumeSource go!"PullPolicy" l) v.PullPolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ImageVolumeSource go!"PullPolicy" l) PullPolicy' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PullPolicy' := PullPolicy' } : k8s_io.api.core.v1.ImageVolumeSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.ImageVolumeSource go!"PullPolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PullPolicy' := y } : k8s_io.api.core.v1.ImageVolumeSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -604,11 +604,11 @@ noncomputable instance NodeAllocatableMappedResources_access_load_Name (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeAllocatableMappedResources_access_store_Name (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableMappedResources) (Name' : k8s_io.api.core.v1.ResourceName) :
+noncomputable instance NodeAllocatableMappedResources_access_store_Name (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableMappedResources) (y : k8s_io.api.core.v1.ResourceName) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableMappedResources go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableMappedResources go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : k8s_io.api.core.v1.NodeAllocatableMappedResources) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableMappedResources go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.api.core.v1.NodeAllocatableMappedResources) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -620,11 +620,11 @@ noncomputable instance NodeAllocatableMappedResources_access_load_Quantity (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeAllocatableMappedResources_access_store_Quantity (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableMappedResources) (Quantity' : Loc) :
+noncomputable instance NodeAllocatableMappedResources_access_store_Quantity (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableMappedResources) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableMappedResources go!"Quantity" l) v.Quantity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableMappedResources go!"Quantity" l) Quantity' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Quantity' := Quantity' } : k8s_io.api.core.v1.NodeAllocatableMappedResources) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableMappedResources go!"Quantity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Quantity' := y } : k8s_io.api.core.v1.NodeAllocatableMappedResources) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -662,11 +662,11 @@ noncomputable instance NodeAllocatableOverheadResources_access_load_Name (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeAllocatableOverheadResources_access_store_Name (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (Name' : k8s_io.api.core.v1.ResourceName) :
+noncomputable instance NodeAllocatableOverheadResources_access_store_Name (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (y : k8s_io.api.core.v1.ResourceName) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableOverheadResources go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableOverheadResources go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableOverheadResources go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -678,11 +678,11 @@ noncomputable instance NodeAllocatableOverheadResources_access_load_PerPod (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeAllocatableOverheadResources_access_store_PerPod (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (PerPod' : Loc) :
+noncomputable instance NodeAllocatableOverheadResources_access_store_PerPod (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableOverheadResources go!"PerPod" l) v.PerPod' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableOverheadResources go!"PerPod" l) PerPod' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PerPod' := PerPod' } : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableOverheadResources go!"PerPod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PerPod' := y } : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -694,11 +694,11 @@ noncomputable instance NodeAllocatableOverheadResources_access_load_PerContainer
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeAllocatableOverheadResources_access_store_PerContainer (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (PerContainer' : Loc) :
+noncomputable instance NodeAllocatableOverheadResources_access_store_PerContainer (l : Loc) (v : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableOverheadResources go!"PerContainer" l) v.PerContainer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableOverheadResources go!"PerContainer" l) PerContainer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PerContainer' := PerContainer' } : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeAllocatableOverheadResources go!"PerContainer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PerContainer' := y } : k8s_io.api.core.v1.NodeAllocatableOverheadResources) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

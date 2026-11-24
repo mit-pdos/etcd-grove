@@ -53,11 +53,11 @@ noncomputable instance PageWriter_access_load_w (l : Loc) (v : go_etcd_io.etcd.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageWriter_access_store_w (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (w' : _root_.Perennial.io.Writer) :
+noncomputable instance PageWriter_access_store_w (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (y : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"w" l) w' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := w' } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -69,11 +69,11 @@ noncomputable instance PageWriter_access_load_pageOffset (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageWriter_access_store_pageOffset (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (pageOffset' : w64) :
+noncomputable instance PageWriter_access_store_pageOffset (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"pageOffset" l) v.pageOffset' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"pageOffset" l) pageOffset' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pageOffset' := pageOffset' } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"pageOffset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pageOffset' := y } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -85,11 +85,11 @@ noncomputable instance PageWriter_access_load_pageBytes (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageWriter_access_store_pageBytes (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (pageBytes' : w64) :
+noncomputable instance PageWriter_access_store_pageBytes (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"pageBytes" l) v.pageBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"pageBytes" l) pageBytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pageBytes' := pageBytes' } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"pageBytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pageBytes' := y } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -101,11 +101,11 @@ noncomputable instance PageWriter_access_load_bufferedBytes (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageWriter_access_store_bufferedBytes (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (bufferedBytes' : w64) :
+noncomputable instance PageWriter_access_store_bufferedBytes (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"bufferedBytes" l) v.bufferedBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"bufferedBytes" l) bufferedBytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bufferedBytes' := bufferedBytes' } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"bufferedBytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bufferedBytes' := y } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -117,11 +117,11 @@ noncomputable instance PageWriter_access_load_buf (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageWriter_access_store_buf (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (buf' : GoSlice) :
+noncomputable instance PageWriter_access_store_buf (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"buf" l) buf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := buf' } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -133,11 +133,11 @@ noncomputable instance PageWriter_access_load_bufWatermarkBytes (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance PageWriter_access_store_bufWatermarkBytes (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (bufWatermarkBytes' : w64) :
+noncomputable instance PageWriter_access_store_bufWatermarkBytes (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"bufWatermarkBytes" l) v.bufWatermarkBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"bufWatermarkBytes" l) bufWatermarkBytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bufWatermarkBytes' := bufWatermarkBytes' } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.PageWriter go!"bufWatermarkBytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bufWatermarkBytes' := y } : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -174,11 +174,11 @@ noncomputable instance ReaderAndCloser_access_load_Reader (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReaderAndCloser_access_store_Reader (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser) (Reader' : _root_.Perennial.io.Reader) :
+noncomputable instance ReaderAndCloser_access_store_Reader (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser) (y : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser go!"Reader" l) v.Reader' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser go!"Reader" l) Reader' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reader' := Reader' } : go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser go!"Reader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reader' := y } : go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -190,11 +190,11 @@ noncomputable instance ReaderAndCloser_access_load_Closer (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReaderAndCloser_access_store_Closer (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser) (Closer' : _root_.Perennial.io.Closer) :
+noncomputable instance ReaderAndCloser_access_store_Closer (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser) (y : _root_.Perennial.io.Closer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser go!"Closer" l) v.Closer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser go!"Closer" l) Closer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Closer' := Closer' } : go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser go!"Closer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Closer' := y } : go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -232,11 +232,11 @@ noncomputable instance exactReadCloser_access_load_rc (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance exactReadCloser_access_store_rc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (rc' : _root_.Perennial.io.ReadCloser) :
+noncomputable instance exactReadCloser_access_store_rc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (y : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser go!"rc" l) v.rc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser go!"rc" l) rc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rc' := rc' } : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser go!"rc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rc' := y } : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -248,11 +248,11 @@ noncomputable instance exactReadCloser_access_load_br (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance exactReadCloser_access_store_br (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (br' : w64) :
+noncomputable instance exactReadCloser_access_store_br (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser go!"br" l) v.br' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser go!"br" l) br' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with br' := br' } : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser go!"br" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with br' := y } : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -264,11 +264,11 @@ noncomputable instance exactReadCloser_access_load_totalBytes (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance exactReadCloser_access_store_totalBytes (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (totalBytes' : w64) :
+noncomputable instance exactReadCloser_access_store_totalBytes (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser go!"totalBytes" l) v.totalBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser go!"totalBytes" l) totalBytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with totalBytes' := totalBytes' } : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser go!"totalBytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with totalBytes' := y } : go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -305,11 +305,11 @@ noncomputable instance limitedBufferReader_access_load_r (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance limitedBufferReader_access_store_r (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader) (r' : _root_.Perennial.io.Reader) :
+noncomputable instance limitedBufferReader_access_store_r (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader) (y : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader go!"r" l) v.r' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader go!"r" l) r' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader go!"r" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -321,11 +321,11 @@ noncomputable instance limitedBufferReader_access_load_n (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance limitedBufferReader_access_store_n (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader) (n' : w64) :
+noncomputable instance limitedBufferReader_access_store_n (l : Loc) (v : go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader go!"n" l) v.n' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader go!"n" l) n' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := n' } : go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader go!"n" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := y } : go_etcd_io.etcd.pkg.v3.ioutil.limitedBufferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

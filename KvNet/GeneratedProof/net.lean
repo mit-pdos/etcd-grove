@@ -798,11 +798,11 @@ noncomputable instance OpError_access_load_Op (l : Loc) (v : net.OpError) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance OpError_access_store_Op (l : Loc) (v : net.OpError) (Op' : GoString) :
+noncomputable instance OpError_access_store_Op (l : Loc) (v : net.OpError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.OpError go!"Op" l) v.Op' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.OpError go!"Op" l) Op' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := Op' } : net.OpError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.OpError go!"Op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := y } : net.OpError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -814,11 +814,11 @@ noncomputable instance OpError_access_load_Net (l : Loc) (v : net.OpError) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance OpError_access_store_Net (l : Loc) (v : net.OpError) (Net' : GoString) :
+noncomputable instance OpError_access_store_Net (l : Loc) (v : net.OpError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.OpError go!"Net" l) v.Net' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.OpError go!"Net" l) Net' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Net' := Net' } : net.OpError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.OpError go!"Net" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Net' := y } : net.OpError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -830,11 +830,11 @@ noncomputable instance OpError_access_load_Source (l : Loc) (v : net.OpError) (d
  by
   solve_pointsto_access_struct
 
-noncomputable instance OpError_access_store_Source (l : Loc) (v : net.OpError) (Source' : net.Addr) :
+noncomputable instance OpError_access_store_Source (l : Loc) (v : net.OpError) (y : net.Addr) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.OpError go!"Source" l) v.Source' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.OpError go!"Source" l) Source' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Source' := Source' } : net.OpError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.OpError go!"Source" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Source' := y } : net.OpError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -846,11 +846,11 @@ noncomputable instance OpError_access_load_Addr (l : Loc) (v : net.OpError) (dq 
  by
   solve_pointsto_access_struct
 
-noncomputable instance OpError_access_store_Addr (l : Loc) (v : net.OpError) (Addr' : net.Addr) :
+noncomputable instance OpError_access_store_Addr (l : Loc) (v : net.OpError) (y : net.Addr) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.OpError go!"Addr" l) v.Addr' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.OpError go!"Addr" l) Addr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Addr' := Addr' } : net.OpError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.OpError go!"Addr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Addr' := y } : net.OpError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -862,11 +862,11 @@ noncomputable instance OpError_access_load_Err (l : Loc) (v : net.OpError) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance OpError_access_store_Err (l : Loc) (v : net.OpError) (Err' : GoError) :
+noncomputable instance OpError_access_store_Err (l : Loc) (v : net.OpError) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.OpError go!"Err" l) v.Err' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.OpError go!"Err" l) Err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := Err' } : net.OpError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.OpError go!"Err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : net.OpError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1440,11 +1440,11 @@ noncomputable instance TCPAddr_access_load_IP (l : Loc) (v : net.TCPAddr) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance TCPAddr_access_store_IP (l : Loc) (v : net.TCPAddr) (IP' : net.IP) :
+noncomputable instance TCPAddr_access_store_IP (l : Loc) (v : net.TCPAddr) (y : net.IP) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.TCPAddr go!"IP" l) v.IP' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.TCPAddr go!"IP" l) IP' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IP' := IP' } : net.TCPAddr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.TCPAddr go!"IP" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IP' := y } : net.TCPAddr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1456,11 +1456,11 @@ noncomputable instance TCPAddr_access_load_Port (l : Loc) (v : net.TCPAddr) (dq 
  by
   solve_pointsto_access_struct
 
-noncomputable instance TCPAddr_access_store_Port (l : Loc) (v : net.TCPAddr) (Port' : w64) :
+noncomputable instance TCPAddr_access_store_Port (l : Loc) (v : net.TCPAddr) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.TCPAddr go!"Port" l) v.Port' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.TCPAddr go!"Port" l) Port' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Port' := Port' } : net.TCPAddr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.TCPAddr go!"Port" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Port' := y } : net.TCPAddr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1472,11 +1472,11 @@ noncomputable instance TCPAddr_access_load_Zone (l : Loc) (v : net.TCPAddr) (dq 
  by
   solve_pointsto_access_struct
 
-noncomputable instance TCPAddr_access_store_Zone (l : Loc) (v : net.TCPAddr) (Zone' : GoString) :
+noncomputable instance TCPAddr_access_store_Zone (l : Loc) (v : net.TCPAddr) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.TCPAddr go!"Zone" l) v.Zone' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.TCPAddr go!"Zone" l) Zone' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Zone' := Zone' } : net.TCPAddr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.TCPAddr go!"Zone" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Zone' := y } : net.TCPAddr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

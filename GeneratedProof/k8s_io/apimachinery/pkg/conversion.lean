@@ -47,11 +47,11 @@ noncomputable instance typePair_access_load_source (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance typePair_access_store_source (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (source' : _root_.Perennial.reflect.Type') :
+noncomputable instance typePair_access_store_source (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (y : _root_.Perennial.reflect.«Type») :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) v.source' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) source' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with source' := source' } : k8s_io.apimachinery.pkg.conversion.typePair) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with source' := y } : k8s_io.apimachinery.pkg.conversion.typePair) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -63,11 +63,11 @@ noncomputable instance typePair_access_load_dest (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-noncomputable instance typePair_access_store_dest (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (dest' : _root_.Perennial.reflect.Type') :
+noncomputable instance typePair_access_store_dest (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (y : _root_.Perennial.reflect.«Type») :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) v.dest' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) dest' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dest' := dest' } : k8s_io.apimachinery.pkg.conversion.typePair) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dest' := y } : k8s_io.apimachinery.pkg.conversion.typePair) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -103,11 +103,11 @@ noncomputable instance ConversionFuncs_access_load_untyped (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConversionFuncs_access_store_untyped (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) (untyped' : GoMap) :
+noncomputable instance ConversionFuncs_access_store_untyped (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.ConversionFuncs go!"untyped" l) v.untyped' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.ConversionFuncs go!"untyped" l) untyped' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with untyped' := untyped' } : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.ConversionFuncs go!"untyped" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with untyped' := y } : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -145,11 +145,11 @@ noncomputable instance Converter_access_load_conversionFuncs (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Converter_access_store_conversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (conversionFuncs' : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) :
+noncomputable instance Converter_access_store_conversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (y : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"conversionFuncs" l) v.conversionFuncs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"conversionFuncs" l) conversionFuncs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conversionFuncs' := conversionFuncs' } : k8s_io.apimachinery.pkg.conversion.Converter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"conversionFuncs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conversionFuncs' := y } : k8s_io.apimachinery.pkg.conversion.Converter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -161,11 +161,11 @@ noncomputable instance Converter_access_load_generatedConversionFuncs (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Converter_access_store_generatedConversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (generatedConversionFuncs' : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) :
+noncomputable instance Converter_access_store_generatedConversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (y : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"generatedConversionFuncs" l) v.generatedConversionFuncs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"generatedConversionFuncs" l) generatedConversionFuncs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with generatedConversionFuncs' := generatedConversionFuncs' } : k8s_io.apimachinery.pkg.conversion.Converter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"generatedConversionFuncs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with generatedConversionFuncs' := y } : k8s_io.apimachinery.pkg.conversion.Converter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -177,11 +177,11 @@ noncomputable instance Converter_access_load_ignoredUntypedConversions (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Converter_access_store_ignoredUntypedConversions (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (ignoredUntypedConversions' : GoMap) :
+noncomputable instance Converter_access_store_ignoredUntypedConversions (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"ignoredUntypedConversions" l) v.ignoredUntypedConversions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"ignoredUntypedConversions" l) ignoredUntypedConversions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ignoredUntypedConversions' := ignoredUntypedConversions' } : k8s_io.apimachinery.pkg.conversion.Converter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"ignoredUntypedConversions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ignoredUntypedConversions' := y } : k8s_io.apimachinery.pkg.conversion.Converter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -217,11 +217,11 @@ noncomputable instance Meta_access_load_Context (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-noncomputable instance Meta_access_store_Context (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Meta) (Context' : GoInterface) :
+noncomputable instance Meta_access_store_Context (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Meta) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Meta go!"Context" l) v.Context' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Meta go!"Context" l) Context' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Context' := Context' } : k8s_io.apimachinery.pkg.conversion.Meta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Meta go!"Context" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Context' := y } : k8s_io.apimachinery.pkg.conversion.Meta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -258,11 +258,11 @@ noncomputable instance scope_access_load_converter (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance scope_access_store_converter (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (converter' : Loc) :
+noncomputable instance scope_access_store_converter (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"converter" l) v.converter' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"converter" l) converter' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with converter' := converter' } : k8s_io.apimachinery.pkg.conversion.scope) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"converter" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with converter' := y } : k8s_io.apimachinery.pkg.conversion.scope) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -274,11 +274,11 @@ noncomputable instance scope_access_load_meta (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance scope_access_store_meta (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (meta' : Loc) :
+noncomputable instance scope_access_store_meta (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"meta" l) v.meta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"meta" l) meta' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with meta' := meta' } : k8s_io.apimachinery.pkg.conversion.scope) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"meta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with meta' := y } : k8s_io.apimachinery.pkg.conversion.scope) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

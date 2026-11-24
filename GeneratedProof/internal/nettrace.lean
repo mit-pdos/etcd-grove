@@ -94,11 +94,11 @@ noncomputable instance Trace_access_load_DNSStart (l : Loc) (v : internal.nettra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_DNSStart (l : Loc) (v : internal.nettrace.Trace) (DNSStart' : GoFunc) :
+noncomputable instance Trace_access_store_DNSStart (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSStart" l) v.DNSStart' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSStart" l) DNSStart' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DNSStart' := DNSStart' } : internal.nettrace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSStart" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DNSStart' := y } : internal.nettrace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -110,11 +110,11 @@ noncomputable instance Trace_access_load_DNSDone (l : Loc) (v : internal.nettrac
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_DNSDone (l : Loc) (v : internal.nettrace.Trace) (DNSDone' : GoFunc) :
+noncomputable instance Trace_access_store_DNSDone (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSDone" l) v.DNSDone' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSDone" l) DNSDone' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DNSDone' := DNSDone' } : internal.nettrace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef internal.nettrace.Trace go!"DNSDone" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DNSDone' := y } : internal.nettrace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -126,11 +126,11 @@ noncomputable instance Trace_access_load_ConnectStart (l : Loc) (v : internal.ne
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_ConnectStart (l : Loc) (v : internal.nettrace.Trace) (ConnectStart' : GoFunc) :
+noncomputable instance Trace_access_store_ConnectStart (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectStart" l) v.ConnectStart' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectStart" l) ConnectStart' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConnectStart' := ConnectStart' } : internal.nettrace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectStart" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConnectStart' := y } : internal.nettrace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -142,11 +142,11 @@ noncomputable instance Trace_access_load_ConnectDone (l : Loc) (v : internal.net
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_ConnectDone (l : Loc) (v : internal.nettrace.Trace) (ConnectDone' : GoFunc) :
+noncomputable instance Trace_access_store_ConnectDone (l : Loc) (v : internal.nettrace.Trace) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectDone" l) v.ConnectDone' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectDone" l) ConnectDone' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConnectDone' := ConnectDone' } : internal.nettrace.Trace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef internal.nettrace.Trace go!"ConnectDone" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConnectDone' := y } : internal.nettrace.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -46,11 +46,11 @@ noncomputable instance Pool_access_load_pool {T' : Type} [TypedPointsto (GF := G
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pool_access_store_pool {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (go_uber_org.zap.internal.pool.Pool T')) (pool' : _root_.Perennial.sync.Pool) :
+noncomputable instance Pool_access_store_pool {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (go_uber_org.zap.internal.pool.Pool T')) (y : _root_.Perennial.sync.Pool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (go_uber_org.zap.internal.pool.Pool T') go!"pool" l) v.pool' (DFrac.own 1))
-      (typedPointsto (structFieldRef (go_uber_org.zap.internal.pool.Pool T') go!"pool" l) pool' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pool' := pool' } : (go_uber_org.zap.internal.pool.Pool T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (go_uber_org.zap.internal.pool.Pool T') go!"pool" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pool' := y } : (go_uber_org.zap.internal.pool.Pool T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

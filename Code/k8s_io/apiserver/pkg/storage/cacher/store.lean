@@ -2940,8 +2940,8 @@ structure Element [GooseExts] where
   mk ::
   Key' : GoString
   Object' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object
-  Labels' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'
-  Fields' : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'
+  Labels' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''
+  Fields' : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''
 
 noncomputable instance Element.zero_val [GooseExts] : ZeroVal Element :=
   ⟨Element.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
@@ -2949,8 +2949,8 @@ noncomputable instance Element.zero_val [GooseExts] : ZeroVal Element :=
 @[reducible] noncomputable def Element.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Object" _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty),
-(go.field_decl.FieldDecl go!"Labels" _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty),
-(go.field_decl.FieldDecl go!"Fields" _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty)]
+(go.field_decl.FieldDecl go!"Labels" _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty),
+(go.field_decl.FieldDecl go!"Fields" _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''.ty)]
 
 @[irreducible] noncomputable def Element.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Element.fieldsUnsealed
@@ -2970,9 +2970,9 @@ class Element.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   get_Object : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Object") #x (Val #(x.Object'))
   set_Object : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : Element)))
   get_Labels : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Labels") #x (Val #(x.Labels'))
-  set_Labels : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Labels") (PairV #x #y) (Val #(({ x with Labels' := y } : Element)))
+  set_Labels : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Labels") (PairV #x #y) (Val #(({ x with Labels' := y } : Element)))
   get_Fields : ∀ (x : Element), go.IsGoStepPureDetTagged under (StructFieldGet Element.underlying go!"Fields") #x (Val #(x.Fields'))
-  set_Fields : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Fields") (PairV #x #y) (Val #(({ x with Fields' := y } : Element)))
+  set_Fields : ∀ (x : Element) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set''), go.IsGoStepPureDetTagged under (StructFieldSet Element.underlying go!"Fields") (PairV #x #y) (Val #(({ x with Fields' := y } : Element)))
   method_set : go.MethodSetIs Element.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Element.ty) []
 

@@ -182,7 +182,7 @@ noncomputable def Visit [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Lookup [GooseExts] [GoGlobalContext] : GoString :=
   go!"flag.Lookup"
 
-noncomputable def Set' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Set'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"flag.Set"
 
 noncomputable def isZeroValue [GooseExts] [GoGlobalContext] : GoString :=
@@ -209,13 +209,13 @@ noncomputable def Args [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def BoolVar [GooseExts] [GoGlobalContext] : GoString :=
   go!"flag.BoolVar"
 
-noncomputable def Bool' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Bool'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"flag.Bool"
 
 noncomputable def IntVar [GooseExts] [GoGlobalContext] : GoString :=
   go!"flag.IntVar"
 
-noncomputable def Int' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Int'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"flag.Int"
 
 noncomputable def Int64Var [GooseExts] [GoGlobalContext] : GoString :=
@@ -263,7 +263,7 @@ noncomputable def Func [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def BoolFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"flag.BoolFunc"
 
-noncomputable def Var' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Var'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"flag.Var"
 
 noncomputable def Parse [GooseExts] [GoGlobalContext] : GoString :=

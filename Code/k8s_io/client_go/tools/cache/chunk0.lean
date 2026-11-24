@@ -4748,9 +4748,9 @@ noncomputable def DeltaFIFO.Replace.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "list" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "list"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "list"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "list"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.InterfaceType []))]))) (Val #())) (Var "$a0"))))
-  (Let "keys" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "keys" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val Sync)
   (Let "action" (App (Val (GoInstruction (GoAlloc DeltaType.ty))) (App (Val (GoInstruction (GoZeroVal DeltaType.ty))) (Val #())))
@@ -4772,7 +4772,7 @@ noncomputable def DeltaFIFO.Replace.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef DeltaFIFO.ty go!"populated"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeltaFIFO.ty)))) (Var "f")))))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Len"))) (Var "keys")) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "queuedDeletions"))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Len"))) (Var "keys")) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "queuedDeletions"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DeltaFIFO.ty) go!"checkSynced_locked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeltaFIFO.ty)))) (Var "f"))) (Val #())))))
@@ -4869,7 +4869,7 @@ noncomputable def DeltaFIFO.Replace.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Has"))) (Var "keys")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Has"))) (Var "keys")) (Var "$a0")))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
   (Val #()))))))
@@ -4945,7 +4945,7 @@ noncomputable def DeltaFIFO.Replace.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Delta.ty)))) (Pair (Var "n") (Var "$r0")))))))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Has"))) (Var "keys")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Has"))) (Var "keys")) (Var "$a0")))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
   (Val #()))))))
@@ -4997,7 +4997,7 @@ noncomputable def DeltaFIFO.Replace.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Insert"))) (Var "keys")) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Insert"))) (Var "keys")) (Var "$a0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert KeyError.ty go.error))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "item"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -5026,7 +5026,7 @@ noncomputable def DeltaFIFO.Replace.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore DeltaType.ty))) (Pair (Var "action") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "keys") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "keys") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef DeltaFIFO.ty go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeltaFIFO.ty)))) (Var "f"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -5367,7 +5367,7 @@ noncomputable def nameForHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type'.ty go!"PkgPath"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"PkgPath"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #()))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5378,7 +5378,7 @@ noncomputable def nameForHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type'.ty go!"Name"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"Name"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #()))
   (Let "typeName" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "typeName")) (Val #(go!""))))))
@@ -5395,7 +5395,7 @@ noncomputable def nameForHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.reflect.Kind.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type'.ty go!"Kind"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #())) (Val #(W64 22)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.reflect.Kind.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"Kind"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #())) (Val #(W64 22)))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"IsNil"))) (Var "value")) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Elem"))) (Var "value")) (Val #()))
   (App (Val doExecute)
@@ -5404,7 +5404,7 @@ noncomputable def nameForHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.reflect.Kind.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type'.ty go!"Kind"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #())) (Val #(W64 20)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.reflect.Kind.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"Kind"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Var "value")) (Val #()))) (Val #())) (Val #(W64 20)))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Elem"))) (Var "value")) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.Value.ty))) (Pair (Var "value") (Var "$r0")))))
@@ -6298,7 +6298,7 @@ noncomputable def FakeExpirationPolicy.IsExpired.impl [GooseExts] [GoGlobalConte
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef FakeExpirationPolicy.ty go!"NeverExpire"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FakeExpirationPolicy.ty)))) (Var "p")))) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef FakeExpirationPolicy.ty go!"NeverExpire"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FakeExpirationPolicy.ty)))) (Var "p")))) (Var "$a0"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -8501,8 +8501,8 @@ noncomputable def InformerName.WithResource.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef InformerName.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InformerName.ty)))) (Var "n"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty))) (Var "gvr"))
-  (Let "$v2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.atomic.Bool'.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.sync.atomic.Bool'.ty))) (LiteralValue [])))
-  (App (Val (GoInstruction (CompositeLiteral InformerNameAndResource.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"gvr")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"reserved")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) (Var "$v2")))])))))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.atomic.Bool''.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.sync.atomic.Bool''.ty))) (LiteralValue [])))
+  (App (Val (GoInstruction (CompositeLiteral InformerNameAndResource.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"gvr")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"reserved")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) (Var "$v2")))])))))
   (Let "retval" (App (Val (GoInstruction (GoAlloc InformerNameAndResource.ty))) (App (Val (GoInstruction (GoZeroVal InformerNameAndResource.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8512,8 +8512,8 @@ noncomputable def InformerName.WithResource.impl [GooseExts] [GoGlobalContext] :
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore InformerNameAndResource.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty)))) (App (Val (GoInstruction (StructFieldRef InformerName.ty go!"reserved"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InformerName.ty)))) (Var "n"))))) (Val #()))
-  (Let "__p" (App (App (Val (map.lookup2 _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty))))) (App (Val (GoInstruction (StructFieldRef InformerName.ty go!"gvrs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InformerName.ty)))) (Var "n"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty))) (Var "gvr")))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty)))) (App (Val (GoInstruction (StructFieldRef InformerName.ty go!"reserved"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InformerName.ty)))) (Var "n"))))) (Val #()))
+  (Let "__p" (App (App (Val (map.lookup2 _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty))))) (App (Val (GoInstruction (StructFieldRef InformerName.ty go!"gvrs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InformerName.ty)))) (Var "n"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty))) (Var "gvr")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -8523,12 +8523,12 @@ noncomputable def InformerName.WithResource.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "gvrExists")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty)))) (App (Val (GoInstruction (StructFieldRef InformerNameAndResource.ty go!"reserved"))) (Var "retval")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty)))) (App (Val (GoInstruction (StructFieldRef InformerNameAndResource.ty go!"reserved"))) (Var "retval")))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty))))) (App (Val (GoInstruction (StructFieldRef InformerName.ty go!"gvrs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InformerName.ty)))) (Var "n"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty))) (Var "gvr"))) (Var "$r0"))))))
+  (App (App (App (Val (map.insert _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty))))) (App (Val (GoInstruction (StructFieldRef InformerName.ty go!"gvrs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType InformerName.ty)))) (Var "n"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty))) (Var "gvr"))) (Var "$r0"))))))
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty)))) (App (Val (GoInstruction (StructFieldRef InformerNameAndResource.ty go!"reserved"))) (Var "retval")))) (Var "$a0")))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty)))) (App (Val (GoInstruction (StructFieldRef InformerNameAndResource.ty go!"reserved"))) (Var "retval")))) (Var "$a0")))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (Let "$a1" (Val #(go!"Duplicate informer registration - metrics will not be published"))
@@ -8613,13 +8613,13 @@ noncomputable def InformerNameAndResource.Reserved.impl [GooseExts] [GoGlobalCon
   (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc InformerNameAndResource.ty))) (Var "n"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty)))) (App (Val (GoInstruction (StructFieldRef InformerNameAndResource.ty go!"reserved"))) (Var "n")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty)))) (App (Val (GoInstruction (StructFieldRef InformerNameAndResource.ty go!"reserved"))) (Var "n")))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty)))) (App (Val (GoInstruction (StructFieldRef InformerNameAndResource.ty go!"reserved"))) (Var "n"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty)))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty)))) (App (Val (GoInstruction (StructFieldRef InformerNameAndResource.ty go!"reserved"))) (Var "n"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty)))) (Val UntypedNil)))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -9078,7 +9078,7 @@ noncomputable def ListAll.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetLabels"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #())))
+  (If (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetLabels"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #())))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Var "selector"))) (Var "$a0")))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "m"))
@@ -9184,7 +9184,7 @@ noncomputable def ListAllByNamespace.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetLabels"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #())))
+  (If (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetLabels"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #())))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Var "selector"))) (Var "$a0")))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "m"))
@@ -9245,7 +9245,7 @@ noncomputable def ListAllByNamespace.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetNamespace"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #())) (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace")))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetLabels"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #())))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetNamespace"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #())) (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace")))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty go!"GetLabels"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "metadata"))) (Val #())))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Var "selector"))) (Var "$a0"))) (Val #false))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "m"))
@@ -10292,11 +10292,11 @@ noncomputable def shardedListWatch.ListWithContext.impl [GooseExts] [GoGlobalCon
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "metaObj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Val #())))
+  (Let "metaObj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardedListInterface.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "metaObj")))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ShardedListInterface.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "metaObj")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -10357,7 +10357,7 @@ noncomputable def shardedListWatch.ListWithContext.impl [GooseExts] [GoGlobalCon
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.int64)))) (Val UntypedNil))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"SetRemainingItemCount"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "metaObj"))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"SetRemainingItemCount"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "metaObj"))) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)))) (Var "items"))
   (Let "item" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val #())))
   (App (App (Val (slice.forRange _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)) (Var "$range"))
@@ -10500,7 +10500,7 @@ noncomputable def shardedListWatch.ListWithContext.impl [GooseExts] [GoGlobalCon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Pair (Var "metaObj") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Pair (Var "metaObj") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -13090,7 +13090,7 @@ noncomputable def NewReflectorWithOptions.impl [GooseExts] [GoGlobalContext] : v
   (Let "$v9" (App (Val (GoInstruction (FuncResolve DefaultWatchErrorHandler []))) (Val #()))
   (Let "$v10" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "expectedType"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.reflect.TypeOf []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral Reflector.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"resyncPeriod")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"minWatchTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"maxWatchTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"typeDescription")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"listerWatcher")) (ElementExpression ListerWatcherWithContext.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"store")) (ElementExpression ReflectorStore.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"delayHandler")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.DelayFunc.ty (Var "$v7"))), (KeyedElement (some (KeyField go!"clock")) (ElementExpression _root_.Perennial.k8s_io.utils.clock.Clock.ty (Var "$v8"))), (KeyedElement (some (KeyField go!"watchErrorHandler")) (ElementExpression WatchErrorHandlerWithContext.ty (Var "$v9"))), (KeyedElement (some (KeyField go!"expectedType")) (ElementExpression _root_.Perennial.reflect.Type'.ty (Var "$v10")))]))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Reflector.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"resyncPeriod")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"minWatchTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"maxWatchTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"typeDescription")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"listerWatcher")) (ElementExpression ListerWatcherWithContext.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"store")) (ElementExpression ReflectorStore.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"delayHandler")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.DelayFunc.ty (Var "$v7"))), (KeyedElement (some (KeyField go!"clock")) (ElementExpression _root_.Perennial.k8s_io.utils.clock.Clock.ty (Var "$v8"))), (KeyedElement (some (KeyField go!"watchErrorHandler")) (ElementExpression WatchErrorHandlerWithContext.ty (Var "$v9"))), (KeyedElement (some (KeyField go!"expectedType")) (ElementExpression _root_.Perennial.reflect.«Type».ty (Var "$v10")))]))))))))))))))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Reflector.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Reflector.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -13229,7 +13229,7 @@ noncomputable def getTypeDescriptionFromObject.impl [GooseExts] [GoGlobalContext
   (Seq (App (Val exceptionDo)
   (Let "expectedType" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "expectedType"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type'.ty go!"String"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "expectedType"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"String"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "expectedType"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.reflect.TypeOf []))) (Val #())) (Var "$a0")))) (Val #()))
   (Let "reflectDescription" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -13865,7 +13865,7 @@ noncomputable def Reflector.watch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad ReflectorStore.ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"store"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type'.ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedGVK"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a7" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"typeDescription"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
@@ -14301,11 +14301,11 @@ noncomputable def Reflector.list.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "listMetaInterface" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Val #())))
+  (Let "listMetaInterface" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty go!"GetResourceVersion"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Var "listMetaInterface"))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty go!"GetResourceVersion"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Var "listMetaInterface"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "list"))
@@ -14402,7 +14402,7 @@ noncomputable def Reflector.list.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List'.ty))) (Pair (Var "listMetaInterface") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».List''.ty))) (Pair (Var "listMetaInterface") (Var "$r0")))))))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #false)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reflector.ty) go!"setIsLastSyncResourceVersionUnavailable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))) (Var "$a0")))))))
@@ -14701,7 +14701,7 @@ noncomputable def Reflector.watchList.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad Store.ty))) (Var "temporaryStore"))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type'.ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"expectedGVK"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
   (Let "$a7" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Reflector.ty go!"typeDescription"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reflector.ty)))) (Var "r"))))
@@ -14944,7 +14944,7 @@ noncomputable def handleListWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "expectedTypeName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "expectedTypeName"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "expectedGVK" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "expectedGVK"))
-  (Let "expectedType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type'.ty))) (Var "expectedType"))
+  (Let "expectedType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (Var "expectedType"))
   (Let "store" (App (Val (GoInstruction (GoAlloc Store.ty))) (Var "store"))
   (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "start" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "start"))
@@ -14956,7 +14956,7 @@ noncomputable def handleListWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "$a3" (App (Val (GoInstruction (Convert Store.ty ReflectorStore.ty))) (App (Val (GoInstruction (GoLoad Store.ty))) (Var "store")))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type'.ty))) (Var "expectedType"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "expectedType"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "expectedGVK"))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$a7" (App (Val (GoInstruction (GoLoad go.string))) (Var "expectedTypeName"))
@@ -15006,7 +15006,7 @@ noncomputable def handleWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "expectedTypeName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "expectedTypeName"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "expectedGVK" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "expectedGVK"))
-  (Let "expectedType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type'.ty))) (Var "expectedType"))
+  (Let "expectedType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (Var "expectedType"))
   (Let "store" (App (Val (GoInstruction (GoAlloc ReflectorStore.ty))) (Var "store"))
   (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "start" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "start"))
@@ -15018,7 +15018,7 @@ noncomputable def handleWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty))) (Var "w"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad ReflectorStore.ty))) (Var "store"))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type'.ty))) (Var "expectedType"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "expectedType"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)))) (Var "expectedGVK"))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$a7" (App (Val (GoInstruction (GoLoad go.string))) (Var "expectedTypeName"))
@@ -16938,8 +16938,8 @@ noncomputable def SyncResult.AsError.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc SyncResult.ty))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.string)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type'.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef SyncResult.ty go!"Synced"))) (Var "c")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType _root_.Perennial.reflect.Type'.ty go.bool)]))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.string)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (StructFieldRef SyncResult.ty go!"Synced"))) (Var "c")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)]))) (Val #())) (Var "$a0"))))
   (Let "unsynced" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -16959,17 +16959,17 @@ noncomputable def SyncResult.AsError.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "unsynced"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.string), go.string]))) (Val #())) (Var "$a0")))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.Type'.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef SyncResult.ty go!"Synced"))) (Var "c")))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool)))) (App (Val (GoInstruction (StructFieldRef SyncResult.ty go!"Synced"))) (Var "c")))
   (Let "synced" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.Type'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.Type'.ty))) (Val #())))
-  (App (App (Val (map.forRange _root_.Perennial.reflect.Type'.ty go.bool)) (Var "$range"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.reflect.«Type».ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.reflect.«Type».ty))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.reflect.«Type».ty go.bool)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "synced")))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "unsynced"))
-  (Let "$a1" (Let "$sl0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Type'.ty go!"String"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.Type'.ty))) (Var "t"))) (Val #()))
+  (Let "$a1" (Let "$sl0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.«Type».ty go!"String"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.reflect.«Type».ty))) (Var "t"))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
@@ -16977,7 +16977,7 @@ noncomputable def SyncResult.AsError.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.Type'.ty))) (Pair (Var "t") (Var "$key")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.reflect.«Type».ty))) (Pair (Var "t") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "synced") (Var "$value"))))))))))))))
   (App (Val doExecute)
@@ -21637,8 +21637,8 @@ noncomputable def reconcileReplacement.impl [GooseExts] [GoGlobalContext] : val 
   (Let "knownObjects" (App (Val (GoInstruction (GoAlloc KeyListerGetter.ty))) (Var "knownObjects"))
   (Let "queuedItems" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Delta.ty)))) (Var "queuedItems"))
   (Let "logger" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.klog.v2.Logger.ty))) (Var "logger"))
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (LiteralValue []))
-  (Let "newKeys" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (LiteralValue []))
+  (Let "newKeys" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue []))
@@ -21784,7 +21784,7 @@ noncomputable def reconcileReplacement.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Var "$r0"))))))))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "knownKey"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Has"))) (Var "newKeys")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Has"))) (Var "newKeys")) (Var "$a0")))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
   (Val #()))))))
@@ -21838,7 +21838,7 @@ noncomputable def reconcileReplacement.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Delta.ty))) (Pair (Var "lastQueuedItem") (Var "$r0")))))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "queuedKey"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Has"))) (Var "newKeys")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Has"))) (Var "newKeys")) (Var "$a0")))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
   (Val #()))))))
@@ -21933,7 +21933,7 @@ noncomputable def reconcileReplacement.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Insert"))) (Var "newKeys")) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Insert"))) (Var "newKeys")) (Var "$a0"))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert KeyError.ty go.error))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -21954,7 +21954,7 @@ noncomputable def reconcileReplacement.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "obj") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "newKeys") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "newKeys") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))))))
 
 /-- Resync will ensure that every object in the Store has its key in the queue.
@@ -21972,8 +21972,8 @@ noncomputable def RealFIFO.Resync.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (LiteralValue []))
-  (Let "keysInQueue" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (LiteralValue []))
+  (Let "keysInQueue" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve KeyListerGetter.ty go!"ListKeys"))) (App (Val (GoInstruction (GoLoad KeyListerGetter.ty))) (App (Val (GoInstruction (StructFieldRef RealFIFO.ty go!"knownObjects"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RealFIFO.ty)))) (Var "f"))))) (Val #()))
@@ -22060,7 +22060,7 @@ noncomputable def RealFIFO.Resync.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "knownObj") (Var "$r0")))))))))))))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "knownKey"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Has"))) (Var "keysInQueue")) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Has"))) (Var "keysInQueue")) (Var "$a0")))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
   (Val #()))))))
@@ -22091,7 +22091,7 @@ noncomputable def RealFIFO.Resync.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Insert"))) (Var "keysInQueue")) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Insert"))) (Var "keysInQueue")) (Var "$a0"))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert KeyError.ty go.error))) (Let "$v0" (App (Val (GoInstruction (GoLoad Delta.ty))) (Var "item"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -22112,7 +22112,7 @@ noncomputable def RealFIFO.Resync.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Delta.ty))) (Pair (Var "item") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "keysInQueue") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "keysInQueue") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals KeyListerGetter.ty))) (Pair (App (Val (GoInstruction (GoLoad KeyListerGetter.ty))) (App (Val (GoInstruction (StructFieldRef RealFIFO.ty go!"knownObjects"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RealFIFO.ty)))) (Var "f")))) (App (Val (GoInstruction (Convert go.untypedNil KeyListerGetter.ty))) (Val UntypedNil)))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -22338,7 +22338,7 @@ noncomputable def storeIndex.getKeysFromIndex.impl [GooseExts] [GoGlobalContext]
   (LamV "i"
   (Lam "indexName"
   (Lam "obj"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType storeIndex.ty)))) (Var "i"))
@@ -22362,9 +22362,9 @@ noncomputable def storeIndex.getKeysFromIndex.impl [GooseExts] [GoGlobalContext]
   (Let "$r0" (App (App (Val (map.lookup1 go.string index.ty)) (App (Val (GoInstruction (GoLoad Indices.ty))) (App (Val (GoInstruction (StructFieldRef storeIndex.ty go!"indices"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storeIndex.ty)))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexName")))
   (Let "index" (App (Val (GoInstruction (GoAlloc index.ty))) (App (Val (GoInstruction (GoZeroVal index.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "storeKeySet" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "storeKeySet" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "storeKeySet"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "storeKeySet"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -22373,13 +22373,13 @@ noncomputable def storeIndex.getKeysFromIndex.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "indexedValues"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
-  (Let "$r0" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "indexedValues")) (Val #(W64 0))))))
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "indexedValues")) (Val #(W64 0))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "storeKeySet") (Var "$r0")))))
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (LiteralValue []))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "storeKeySet") (Var "$r0")))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (LiteralValue []))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "indexedValues"))
   (Let "indexedValue" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -22388,7 +22388,7 @@ noncomputable def storeIndex.getKeysFromIndex.impl [GooseExts] [GoGlobalContext]
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexedValue")))
+  (Let "$range" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexedValue")))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (map.forRange go.string _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Empty.ty)) (Var "$range"))
   (Lam "$key"
@@ -22397,7 +22397,7 @@ noncomputable def storeIndex.getKeysFromIndex.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Insert"))) (Var "storeKeySet")) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Insert"))) (Var "storeKeySet")) (Var "$a0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "key") (Var "$key"))))))))))))
   (App (Val doExecute)
@@ -22405,11 +22405,11 @@ noncomputable def storeIndex.getKeysFromIndex.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "indexedValue") (Var "$value"))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "storeKeySet") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "storeKeySet") (Var "$r0")))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore index.ty))) (Pair (Var "index") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -22418,7 +22418,7 @@ noncomputable def storeIndex.getKeysFromIndex.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -22426,7 +22426,7 @@ noncomputable def storeIndex.getKeysFromIndex.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "indexedValues") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals IndexFunc.ty))) (Pair (App (Val (GoInstruction (GoLoad IndexFunc.ty))) (Var "indexFunc")) (App (Val (GoInstruction (Convert go.untypedNil IndexFunc.ty))) (Val UntypedNil)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val UntypedNil))
   (Let "$r1" (Let "$a0" (Val #(go!"Index with name %s does not exist"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexName")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
@@ -22438,19 +22438,19 @@ noncomputable def storeIndex.getKeysFromIndex.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore IndexFunc.ty))) (Pair (Var "indexFunc") (Var "$r0")))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- go: thread_safe_store.go:136:22 -/
 noncomputable def storeIndex.getKeysByIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Lam "indexName"
   (Lam "indexedValue"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType storeIndex.ty)))) (Var "i"))
@@ -22463,7 +22463,7 @@ noncomputable def storeIndex.getKeysByIndex.impl [GooseExts] [GoGlobalContext] :
   (Let "$r0" (App (App (Val (map.lookup1 go.string index.ty)) (App (Val (GoInstruction (GoLoad Indices.ty))) (App (Val (GoInstruction (StructFieldRef storeIndex.ty go!"indices"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storeIndex.ty)))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexName")))
   (Let "index" (App (Val (GoInstruction (GoAlloc index.ty))) (App (Val (GoInstruction (GoZeroVal index.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexedValue")))
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexedValue")))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -22472,11 +22472,11 @@ noncomputable def storeIndex.getKeysByIndex.impl [GooseExts] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore index.ty))) (Pair (Var "index") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals IndexFunc.ty))) (Pair (App (Val (GoInstruction (GoLoad IndexFunc.ty))) (Var "indexFunc")) (App (Val (GoInstruction (Convert go.untypedNil IndexFunc.ty))) (Val UntypedNil)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val UntypedNil))
   (Let "$r1" (Let "$a0" (Val #(go!"Index with name %s does not exist"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexName")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
@@ -22488,12 +22488,12 @@ noncomputable def storeIndex.getKeysByIndex.impl [GooseExts] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore IndexFunc.ty))) (Pair (Var "indexFunc") (Var "$r0")))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- go: thread_safe_store.go:146:22 -/
 noncomputable def storeIndex.getIndexValues.impl [GooseExts] [GoGlobalContext] : val :=
@@ -22519,7 +22519,7 @@ noncomputable def storeIndex.getIndexValues.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (map.forRange go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string))) (Var "$range"))
+  (App (App (Val (map.forRange go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string))) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -22547,11 +22547,11 @@ noncomputable def storeIndex.addIndexers.impl [GooseExts] [GoGlobalContext] : va
   (Let "newIndexers" (App (Val (GoInstruction (GoAlloc Indexers.ty))) (Var "newIndexers"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Indexers.ty))) (App (Val (GoInstruction (StructFieldRef storeIndex.ty go!"indexers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storeIndex.ty)))) (Var "i"))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.KeySet [go.string, IndexFunc.ty]))) (Val #())) (Var "$a0")))
-  (Let "oldKeys" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "oldKeys" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Indexers.ty))) (Var "newIndexers"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.KeySet [go.string, IndexFunc.ty]))) (Val #())) (Var "$a0")))
-  (Let "newKeys" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "newKeys" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -22576,12 +22576,12 @@ noncomputable def storeIndex.addIndexers.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore IndexFunc.ty))) (Pair (Var "v") (Var "$value"))))))))))))))
-  (If (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "newKeys"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List' [go.string]))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"HasAny"))) (Var "oldKeys")) (Var "$a0")))
+  (If (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "newKeys"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List'' [go.string]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"HasAny"))) (Var "oldKeys")) (Var "$a0")))
   (Let "$r0" (Let "$a0" (Val #(go!"indexer conflict: %v"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string) go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "newKeys"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Intersection"))) (Var "oldKeys")) (Var "$a0"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string) go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "newKeys"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Intersection"))) (Var "oldKeys")) (Var "$a0"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -22592,9 +22592,9 @@ noncomputable def storeIndex.addIndexers.impl [GooseExts] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "newKeys") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "newKeys") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "oldKeys") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "oldKeys") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- updateSingleIndex modifies the objects location in the named index:
@@ -22804,26 +22804,26 @@ noncomputable def storeIndex.addKeyToIndex.impl [GooseExts] [GoGlobalContext] : 
   (Let "index" (App (Val (GoInstruction (GoAlloc index.ty))) (Var "index"))
   (Let "indexValue" (App (Val (GoInstruction (GoAlloc go.string))) (Var "indexValue"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
-  (Let "$r0" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexValue")))
-  (Let "set" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexValue")))
+  (Let "set" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Insert"))) (Var "set")) (Var "$a0"))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "set")) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val UntypedNil)))))
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (LiteralValue []))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Insert"))) (Var "set")) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "set")) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (LiteralValue []))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "set"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "set"))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexValue"))) (Var "$r0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))))))))
   (Val #()))))))
 
 /-- go: thread_safe_store.go:241:22 -/
@@ -22837,13 +22837,13 @@ noncomputable def storeIndex.deleteKeyFromIndex.impl [GooseExts] [GoGlobalContex
   (Let "index" (App (Val (GoInstruction (GoAlloc index.ty))) (Var "index"))
   (Let "indexValue" (App (Val (GoInstruction (GoAlloc go.string))) (Var "indexValue"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
-  (Let "$r0" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexValue")))
-  (Let "set" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string))) (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "indexValue")))
+  (Let "set" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "set"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "set"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad index.ty))) (Var "index"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "indexValue"))
@@ -22853,14 +22853,14 @@ noncomputable def storeIndex.deleteKeyFromIndex.impl [GooseExts] [GoGlobalContex
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Delete"))) (Var "set")) (Var "$a0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "set")) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val UntypedNil)))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Delete"))) (Var "set")) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "set")) (App (Val (GoInstruction (Convert go.untypedNil (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val UntypedNil)))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))))))))
   (Val #()))))))
 
 /-- go: thread_safe_store.go:308:25 -/
@@ -23385,11 +23385,11 @@ noncomputable def threadSafeMap.Index.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "storeKeySet" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "storeKeySet" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType (go.GoType.InterfaceType []))]))) (Val #())) (Val #(W64 0))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Len"))) (Var "storeKeySet")) (Val #())))
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType (go.GoType.InterfaceType []))]))) (Val #())) (Val #(W64 0))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Len"))) (Var "storeKeySet")) (Val #())))
   (Let "list" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -23403,7 +23403,7 @@ noncomputable def threadSafeMap.Index.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "storeKeySet"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "storeKeySet"))
   (Let "storeKey" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (map.forRange go.string _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Empty.ty)) (Var "$range"))
   (Lam "$key"
@@ -23435,7 +23435,7 @@ noncomputable def threadSafeMap.Index.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "storeKeySet") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "storeKeySet") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef threadSafeMap.ty go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType threadSafeMap.ty)))) (Var "c"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -23558,11 +23558,11 @@ noncomputable def threadSafeMap.ByIndex.impl [GooseExts] [GoGlobalContext] : val
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "set" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "set" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType (go.GoType.InterfaceType []))]))) (Val #())) (Val #(W64 0))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) go!"Len"))) (Var "set")) (Val #())))
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType (go.GoType.InterfaceType []))]))) (Val #())) (Val #(W64 0))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) go!"Len"))) (Var "set")) (Val #())))
   (Let "list" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -23576,7 +23576,7 @@ noncomputable def threadSafeMap.ByIndex.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "set"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "set"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (map.forRange go.string _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Empty.ty)) (Var "$range"))
   (Lam "$key"
@@ -23608,7 +23608,7 @@ noncomputable def threadSafeMap.ByIndex.impl [GooseExts] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef threadSafeMap.ty go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType threadSafeMap.ty)))) (Var "c"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -23644,12 +23644,12 @@ noncomputable def threadSafeMap.IndexKeys.impl [GooseExts] [GoGlobalContext] : v
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "set" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Val #())))
+  (Let "set" (App (Val (GoInstruction (GoAlloc (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (App (Val (GoInstruction (GoZeroVal (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Var "set"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List' [go.string]))) (Val #())) (Var "$a0")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Var "set"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.List'' [go.string]))) (Val #())) (Var "$a0")))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -23675,7 +23675,7 @@ noncomputable def threadSafeMap.IndexKeys.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))) (Pair (Var "set") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef threadSafeMap.ty go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType threadSafeMap.ty)))) (Var "c"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -24683,7 +24683,7 @@ noncomputable instance InformerNameAndResource.zero_val [GooseExts] : ZeroVal In
 @[reducible] noncomputable def InformerNameAndResource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"name" go.string),
 (go.field_decl.FieldDecl go!"gvr" _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty),
-(go.field_decl.FieldDecl go!"reserved" (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty))]
+(go.field_decl.FieldDecl go!"reserved" (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty))]
 
 @[irreducible] noncomputable def InformerNameAndResource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InformerNameAndResource.fieldsUnsealed
@@ -25020,14 +25020,14 @@ noncomputable instance equals_unfold_fakeThreadSafeMap [GooseExts] [GoGlobalCont
 
 structure FakeExpirationPolicy [GooseExts] where
   mk ::
-  NeverExpire' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' GoString)
+  NeverExpire' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' GoString)
   RetrieveKeyFunc' : KeyFunc
 
 noncomputable instance FakeExpirationPolicy.zero_val [GooseExts] : ZeroVal FakeExpirationPolicy :=
   ⟨FakeExpirationPolicy.mk zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def FakeExpirationPolicy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"NeverExpire" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)),
+  [(go.field_decl.FieldDecl go!"NeverExpire" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)),
 (go.field_decl.FieldDecl go!"RetrieveKeyFunc" KeyFunc.ty)]
 
 @[irreducible] noncomputable def FakeExpirationPolicy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
@@ -25242,8 +25242,8 @@ noncomputable instance InformerName.zero_val [GooseExts] : ZeroVal InformerName 
 @[reducible] noncomputable def InformerName.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"name" go.string),
 (go.field_decl.FieldDecl go!"lock" _root_.Perennial.sync.Mutex.ty),
-(go.field_decl.FieldDecl go!"reserved" (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty)),
-(go.field_decl.FieldDecl go!"gvrs" (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty)))]
+(go.field_decl.FieldDecl go!"reserved" (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty)),
+(go.field_decl.FieldDecl go!"gvrs" (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty)))]
 
 @[irreducible] noncomputable def InformerName.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InformerName.fieldsUnsealed
@@ -25268,7 +25268,7 @@ abbrev IndexFunc [GooseExts] : Type := GoFunc
 abbrev index [GooseExts] : Type := GoMap
 
 @[reducible] noncomputable def index.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.MapType go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string))
+  (go.GoType.MapType go.string (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string))
 
 abbrev Indices [GooseExts] : Type := GoMap
 
@@ -25856,7 +25856,7 @@ structure Reflector [GooseExts] where
   logger' : _root_.Perennial.github_com.go_logr.logr.Logger
   name' : GoString
   typeDescription' : GoString
-  expectedType' : _root_.Perennial.reflect.Type'
+  expectedType' : _root_.Perennial.reflect.«Type»
   expectedGVK' : Loc
   store' : ReflectorStore
   listerWatcher' : ListerWatcherWithContext
@@ -25882,7 +25882,7 @@ noncomputable instance Reflector.zero_val [GooseExts] : ZeroVal Reflector :=
   [(go.field_decl.FieldDecl go!"logger" _root_.Perennial.k8s_io.klog.v2.Logger.ty),
 (go.field_decl.FieldDecl go!"name" go.string),
 (go.field_decl.FieldDecl go!"typeDescription" go.string),
-(go.field_decl.FieldDecl go!"expectedType" _root_.Perennial.reflect.Type'.ty),
+(go.field_decl.FieldDecl go!"expectedType" _root_.Perennial.reflect.«Type».ty),
 (go.field_decl.FieldDecl go!"expectedGVK" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)),
 (go.field_decl.FieldDecl go!"store" ReflectorStore.ty),
 (go.field_decl.FieldDecl go!"listerWatcher" ListerWatcherWithContext.ty),
@@ -26281,7 +26281,7 @@ noncomputable instance SyncResult.zero_val [GooseExts] : ZeroVal SyncResult :=
 
 @[reducible] noncomputable def SyncResult.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Err" go.error),
-(go.field_decl.FieldDecl go!"Synced" (go.GoType.MapType _root_.Perennial.reflect.Type'.ty go.bool))]
+(go.field_decl.FieldDecl go!"Synced" (go.GoType.MapType _root_.Perennial.reflect.«Type».ty go.bool))]
 
 @[irreducible] noncomputable def SyncResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SyncResult.fieldsUnsealed

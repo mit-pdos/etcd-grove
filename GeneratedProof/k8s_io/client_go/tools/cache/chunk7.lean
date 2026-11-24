@@ -92,11 +92,11 @@ noncomputable instance storeIndex_access_load_indexers (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance storeIndex_access_store_indexers (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (indexers' : k8s_io.client_go.tools.cache.Indexers) :
+noncomputable instance storeIndex_access_store_indexers (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (y : k8s_io.client_go.tools.cache.Indexers) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indexers" l) v.indexers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indexers" l) indexers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexers' := indexers' } : k8s_io.client_go.tools.cache.storeIndex) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indexers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexers' := y } : k8s_io.client_go.tools.cache.storeIndex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -108,11 +108,11 @@ noncomputable instance storeIndex_access_load_indices (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance storeIndex_access_store_indices (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (indices' : k8s_io.client_go.tools.cache.Indices) :
+noncomputable instance storeIndex_access_store_indices (l : Loc) (v : k8s_io.client_go.tools.cache.storeIndex) (y : k8s_io.client_go.tools.cache.Indices) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indices" l) v.indices' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indices" l) indices' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indices' := indices' } : k8s_io.client_go.tools.cache.storeIndex) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.storeIndex go!"indices" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indices' := y } : k8s_io.client_go.tools.cache.storeIndex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -149,11 +149,11 @@ noncomputable instance UndeltaStore_access_load_Store (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance UndeltaStore_access_store_Store (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (Store' : k8s_io.client_go.tools.cache.Store) :
+noncomputable instance UndeltaStore_access_store_Store (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (y : k8s_io.client_go.tools.cache.Store) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"Store" l) v.Store' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"Store" l) Store' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := Store' } : k8s_io.client_go.tools.cache.UndeltaStore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"Store" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := y } : k8s_io.client_go.tools.cache.UndeltaStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -165,11 +165,11 @@ noncomputable instance UndeltaStore_access_load_PushFunc (l : Loc) (v : k8s_io.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance UndeltaStore_access_store_PushFunc (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (PushFunc' : GoFunc) :
+noncomputable instance UndeltaStore_access_store_PushFunc (l : Loc) (v : k8s_io.client_go.tools.cache.UndeltaStore) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"PushFunc" l) v.PushFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"PushFunc" l) PushFunc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PushFunc' := PushFunc' } : k8s_io.client_go.tools.cache.UndeltaStore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.UndeltaStore go!"PushFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PushFunc' := y } : k8s_io.client_go.tools.cache.UndeltaStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

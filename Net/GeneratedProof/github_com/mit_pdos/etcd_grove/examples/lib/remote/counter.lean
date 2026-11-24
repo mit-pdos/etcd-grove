@@ -51,11 +51,11 @@ noncomputable instance Out_access_load_Unknown (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_Unknown (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (Unknown' : Bool) :
+noncomputable instance Out_access_store_Unknown (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) v.Unknown' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) Unknown' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := Unknown' } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := y } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -67,11 +67,11 @@ noncomputable instance Out_access_load_N (l : Loc) (v : github_com.mit_pdos.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_N (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (N' : w64) :
+noncomputable instance Out_access_store_N (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) v.N' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) N' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := N' } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := y } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -108,11 +108,11 @@ noncomputable instance State_access_load_Lo (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Lo (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (Lo' : w64) :
+noncomputable instance State_access_store_Lo (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) v.Lo' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) Lo' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lo' := Lo' } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lo' := y } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -124,11 +124,11 @@ noncomputable instance State_access_load_K (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_K (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (K' : w64) :
+noncomputable instance State_access_store_K (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) K' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := K' } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

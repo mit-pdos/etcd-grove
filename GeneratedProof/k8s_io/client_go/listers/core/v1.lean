@@ -867,11 +867,11 @@ noncomputable instance nodeLister_access_load_ResourceIndexer (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance nodeLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.core.v1.nodeLister) (ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance nodeLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.core.v1.nodeLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.listers.core.v1.nodeLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.core.v1.nodeLister go!"ResourceIndexer" l) ResourceIndexer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := ResourceIndexer' } : k8s_io.client_go.listers.core.v1.nodeLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.listers.core.v1.nodeLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.core.v1.nodeLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1021,11 +1021,11 @@ noncomputable instance podLister_access_load_ResourceIndexer (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance podLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.core.v1.podLister) (ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance podLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.core.v1.podLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.listers.core.v1.podLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.core.v1.podLister go!"ResourceIndexer" l) ResourceIndexer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := ResourceIndexer' } : k8s_io.client_go.listers.core.v1.podLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.listers.core.v1.podLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.core.v1.podLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1061,11 +1061,11 @@ noncomputable instance podNamespaceLister_access_load_ResourceIndexer (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance podNamespaceLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.core.v1.podNamespaceLister) (ResourceIndexer' : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance podNamespaceLister_access_store_ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.core.v1.podNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.listers.core.v1.podNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.core.v1.podNamespaceLister go!"ResourceIndexer" l) ResourceIndexer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := ResourceIndexer' } : k8s_io.client_go.listers.core.v1.podNamespaceLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.listers.core.v1.podNamespaceLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.core.v1.podNamespaceLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

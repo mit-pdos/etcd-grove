@@ -49,11 +49,11 @@ noncomputable instance FreeList_access_load_mu {T' : Type} [TypedPointsto (GF :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance FreeList_access_store_mu {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance FreeList_access_store_mu {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -65,11 +65,11 @@ noncomputable instance FreeList_access_load_freelist {T' : Type} [TypedPointsto 
  by
   solve_pointsto_access_struct
 
-noncomputable instance FreeList_access_store_freelist {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (freelist' : GoSlice) :
+noncomputable instance FreeList_access_store_freelist {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"freelist" l) v.freelist' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"freelist" l) freelist' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freelist' := freelist' } : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"freelist" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freelist' := y } : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -107,11 +107,11 @@ noncomputable instance node_access_load_items {T' : Type} [TypedPointsto (GF := 
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_items {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (items' : (k8s_io.utils.third_party.forked.golang.btree.items T')) :
+noncomputable instance node_access_store_items {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (y : (k8s_io.utils.third_party.forked.golang.btree.items T')) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"items" l) v.items' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"items" l) items' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := items' } : (k8s_io.utils.third_party.forked.golang.btree.node T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"items" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := y } : (k8s_io.utils.third_party.forked.golang.btree.node T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -123,11 +123,11 @@ noncomputable instance node_access_load_children {T' : Type} [TypedPointsto (GF 
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_children {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (children' : (k8s_io.utils.third_party.forked.golang.btree.items Loc)) :
+noncomputable instance node_access_store_children {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (y : (k8s_io.utils.third_party.forked.golang.btree.items Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"children" l) v.children' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"children" l) children' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with children' := children' } : (k8s_io.utils.third_party.forked.golang.btree.node T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"children" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with children' := y } : (k8s_io.utils.third_party.forked.golang.btree.node T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -139,11 +139,11 @@ noncomputable instance node_access_load_cow {T' : Type} [TypedPointsto (GF := GF
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (cow' : Loc) :
+noncomputable instance node_access_store_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"cow" l) v.cow' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"cow" l) cow' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cow' := cow' } : (k8s_io.utils.third_party.forked.golang.btree.node T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"cow" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cow' := y } : (k8s_io.utils.third_party.forked.golang.btree.node T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -180,11 +180,11 @@ noncomputable instance optionalItem_access_load_item {T' : Type} [TypedPointsto 
  by
   solve_pointsto_access_struct
 
-noncomputable instance optionalItem_access_store_item {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (item' : T') :
+noncomputable instance optionalItem_access_store_item {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (y : T') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"item" l) v.item' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"item" l) item' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with item' := item' } : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"item" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with item' := y } : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -196,11 +196,11 @@ noncomputable instance optionalItem_access_load_valid {T' : Type} [TypedPointsto
  by
   solve_pointsto_access_struct
 
-noncomputable instance optionalItem_access_store_valid {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (valid' : Bool) :
+noncomputable instance optionalItem_access_store_valid {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"valid" l) v.valid' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"valid" l) valid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with valid' := valid' } : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"valid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with valid' := y } : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -239,11 +239,11 @@ noncomputable instance BTree_access_load_degree {T' : Type} [TypedPointsto (GF :
  by
   solve_pointsto_access_struct
 
-noncomputable instance BTree_access_store_degree {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (degree' : w64) :
+noncomputable instance BTree_access_store_degree {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"degree" l) v.degree' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"degree" l) degree' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with degree' := degree' } : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"degree" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with degree' := y } : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -255,11 +255,11 @@ noncomputable instance BTree_access_load_length {T' : Type} [TypedPointsto (GF :
  by
   solve_pointsto_access_struct
 
-noncomputable instance BTree_access_store_length {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (length' : w64) :
+noncomputable instance BTree_access_store_length {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"length" l) v.length' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"length" l) length' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with length' := length' } : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"length" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with length' := y } : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -271,11 +271,11 @@ noncomputable instance BTree_access_load_root {T' : Type} [TypedPointsto (GF := 
  by
   solve_pointsto_access_struct
 
-noncomputable instance BTree_access_store_root {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (root' : Loc) :
+noncomputable instance BTree_access_store_root {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"root" l) v.root' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"root" l) root' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := root' } : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"root" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := y } : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -287,11 +287,11 @@ noncomputable instance BTree_access_load_cow {T' : Type} [TypedPointsto (GF := G
  by
   solve_pointsto_access_struct
 
-noncomputable instance BTree_access_store_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (cow' : Loc) :
+noncomputable instance BTree_access_store_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"cow" l) v.cow' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"cow" l) cow' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cow' := cow' } : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"cow" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cow' := y } : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -328,11 +328,11 @@ noncomputable instance copyOnWriteContext_access_load_freelist {T' : Type} [Type
  by
   solve_pointsto_access_struct
 
-noncomputable instance copyOnWriteContext_access_store_freelist {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (freelist' : Loc) :
+noncomputable instance copyOnWriteContext_access_store_freelist {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"freelist" l) v.freelist' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"freelist" l) freelist' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freelist' := freelist' } : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"freelist" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freelist' := y } : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -344,11 +344,11 @@ noncomputable instance copyOnWriteContext_access_load_less {T' : Type} [TypedPoi
  by
   solve_pointsto_access_struct
 
-noncomputable instance copyOnWriteContext_access_store_less {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (less' : (k8s_io.utils.third_party.forked.golang.btree.LessFunc T')) :
+noncomputable instance copyOnWriteContext_access_store_less {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (y : (k8s_io.utils.third_party.forked.golang.btree.LessFunc T')) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"less" l) v.less' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"less" l) less' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with less' := less' } : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"less" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with less' := y } : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

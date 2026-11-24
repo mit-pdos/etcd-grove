@@ -73,11 +73,11 @@ noncomputable instance SourceLocation_access_load_Path (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance SourceLocation_access_store_Path (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (Path' : google_golang_org.protobuf.reflect.protoreflect.SourcePath) :
+noncomputable instance SourceLocation_access_store_Path (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (y : google_golang_org.protobuf.reflect.protoreflect.SourcePath) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Path" l) v.Path' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Path" l) Path' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := Path' } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Path" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := y } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -89,11 +89,11 @@ noncomputable instance SourceLocation_access_load_StartLine (l : Loc) (v : googl
  by
   solve_pointsto_access_struct
 
-noncomputable instance SourceLocation_access_store_StartLine (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (StartLine' : w64) :
+noncomputable instance SourceLocation_access_store_StartLine (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartLine" l) v.StartLine' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartLine" l) StartLine' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartLine' := StartLine' } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartLine" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartLine' := y } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -105,11 +105,11 @@ noncomputable instance SourceLocation_access_load_StartColumn (l : Loc) (v : goo
  by
   solve_pointsto_access_struct
 
-noncomputable instance SourceLocation_access_store_StartColumn (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (StartColumn' : w64) :
+noncomputable instance SourceLocation_access_store_StartColumn (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartColumn" l) v.StartColumn' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartColumn" l) StartColumn' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartColumn' := StartColumn' } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartColumn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartColumn' := y } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -121,11 +121,11 @@ noncomputable instance SourceLocation_access_load_EndLine (l : Loc) (v : google_
  by
   solve_pointsto_access_struct
 
-noncomputable instance SourceLocation_access_store_EndLine (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (EndLine' : w64) :
+noncomputable instance SourceLocation_access_store_EndLine (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndLine" l) v.EndLine' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndLine" l) EndLine' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EndLine' := EndLine' } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndLine" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EndLine' := y } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -137,11 +137,11 @@ noncomputable instance SourceLocation_access_load_EndColumn (l : Loc) (v : googl
  by
   solve_pointsto_access_struct
 
-noncomputable instance SourceLocation_access_store_EndColumn (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (EndColumn' : w64) :
+noncomputable instance SourceLocation_access_store_EndColumn (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndColumn" l) v.EndColumn' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndColumn" l) EndColumn' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EndColumn' := EndColumn' } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndColumn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EndColumn' := y } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -153,11 +153,11 @@ noncomputable instance SourceLocation_access_load_LeadingDetachedComments (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance SourceLocation_access_store_LeadingDetachedComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (LeadingDetachedComments' : GoSlice) :
+noncomputable instance SourceLocation_access_store_LeadingDetachedComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingDetachedComments" l) v.LeadingDetachedComments' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingDetachedComments" l) LeadingDetachedComments' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeadingDetachedComments' := LeadingDetachedComments' } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingDetachedComments" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeadingDetachedComments' := y } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -169,11 +169,11 @@ noncomputable instance SourceLocation_access_load_LeadingComments (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance SourceLocation_access_store_LeadingComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (LeadingComments' : GoString) :
+noncomputable instance SourceLocation_access_store_LeadingComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingComments" l) v.LeadingComments' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingComments" l) LeadingComments' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeadingComments' := LeadingComments' } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingComments" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeadingComments' := y } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -185,11 +185,11 @@ noncomputable instance SourceLocation_access_load_TrailingComments (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance SourceLocation_access_store_TrailingComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (TrailingComments' : GoString) :
+noncomputable instance SourceLocation_access_store_TrailingComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"TrailingComments" l) v.TrailingComments' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"TrailingComments" l) TrailingComments' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TrailingComments' := TrailingComments' } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"TrailingComments" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TrailingComments' := y } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -201,11 +201,11 @@ noncomputable instance SourceLocation_access_load_Next (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance SourceLocation_access_store_Next (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (Next' : w64) :
+noncomputable instance SourceLocation_access_store_Next (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Next" l) v.Next' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Next" l) Next' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Next' := Next' } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Next" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Next' := y } : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -243,11 +243,11 @@ noncomputable instance FileImport_access_load_FileDescriptor (l : Loc) (v : goog
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileImport_access_store_FileDescriptor (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (FileDescriptor' : google_golang_org.protobuf.reflect.protoreflect.FileDescriptor) :
+noncomputable instance FileImport_access_store_FileDescriptor (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (y : google_golang_org.protobuf.reflect.protoreflect.FileDescriptor) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"FileDescriptor" l) v.FileDescriptor' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"FileDescriptor" l) FileDescriptor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FileDescriptor' := FileDescriptor' } : google_golang_org.protobuf.reflect.protoreflect.FileImport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"FileDescriptor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FileDescriptor' := y } : google_golang_org.protobuf.reflect.protoreflect.FileImport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -259,11 +259,11 @@ noncomputable instance FileImport_access_load_IsPublic (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileImport_access_store_IsPublic (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (IsPublic' : Bool) :
+noncomputable instance FileImport_access_store_IsPublic (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsPublic" l) v.IsPublic' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsPublic" l) IsPublic' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsPublic' := IsPublic' } : google_golang_org.protobuf.reflect.protoreflect.FileImport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsPublic" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsPublic' := y } : google_golang_org.protobuf.reflect.protoreflect.FileImport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -275,11 +275,11 @@ noncomputable instance FileImport_access_load_IsWeak (l : Loc) (v : google_golan
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileImport_access_store_IsWeak (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (IsWeak' : Bool) :
+noncomputable instance FileImport_access_store_IsWeak (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsWeak" l) v.IsWeak' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsWeak" l) IsWeak' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsWeak' := IsWeak' } : google_golang_org.protobuf.reflect.protoreflect.FileImport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsWeak" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsWeak' := y } : google_golang_org.protobuf.reflect.protoreflect.FileImport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -336,11 +336,11 @@ noncomputable instance «ifaceHeader_access_load__#0» (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance «ifaceHeader_access_store__#0» (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) («_#0'» : (GoArray GoInterface 0)) :
+noncomputable instance «ifaceHeader_access_store__#0» (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (y : (GoArray GoInterface 0)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_#0" l) v.«_#0'» (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_#0" l) «_#0'» (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#0'» := «_#0'» } : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_#0" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#0'» := y } : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -352,11 +352,11 @@ noncomputable instance ifaceHeader_access_load_Type (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance ifaceHeader_access_store_Type (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (Type' : Loc) :
+noncomputable instance ifaceHeader_access_store_Type (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -368,11 +368,11 @@ noncomputable instance ifaceHeader_access_load_Data (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance ifaceHeader_access_store_Data (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (Data' : Loc) :
+noncomputable instance ifaceHeader_access_store_Data (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Data" l) v.Data' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Data" l) Data' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Data' := Data' } : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Data' := y } : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

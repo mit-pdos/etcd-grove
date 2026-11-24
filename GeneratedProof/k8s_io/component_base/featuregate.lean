@@ -52,11 +52,11 @@ noncomputable instance FeatureSpec_access_load_Default (l : Loc) (v : k8s_io.com
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_Default (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (Default' : Bool) :
+noncomputable instance FeatureSpec_access_store_Default (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) v.Default' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) Default' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Default' := Default' } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Default' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -68,11 +68,11 @@ noncomputable instance FeatureSpec_access_load_LockToDefault (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (LockToDefault' : Bool) :
+noncomputable instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) LockToDefault' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LockToDefault' := LockToDefault' } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LockToDefault' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -84,11 +84,11 @@ noncomputable instance FeatureSpec_access_load_PreRelease (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_PreRelease (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (PreRelease' : k8s_io.component_base.featuregate.prerelease) :
+noncomputable instance FeatureSpec_access_store_PreRelease (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : k8s_io.component_base.featuregate.prerelease) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) PreRelease' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreRelease' := PreRelease' } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreRelease' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -100,11 +100,11 @@ noncomputable instance FeatureSpec_access_load_Version (l : Loc) (v : k8s_io.com
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_Version (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (Version' : Loc) :
+noncomputable instance FeatureSpec_access_store_Version (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) v.Version' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) Version' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Version' := Version' } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Version' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -116,11 +116,11 @@ noncomputable instance FeatureSpec_access_load_MinCompatibilityVersion (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_MinCompatibilityVersion (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (MinCompatibilityVersion' : Loc) :
+noncomputable instance FeatureSpec_access_store_MinCompatibilityVersion (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) v.MinCompatibilityVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) MinCompatibilityVersion' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MinCompatibilityVersion' := MinCompatibilityVersion' } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MinCompatibilityVersion' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

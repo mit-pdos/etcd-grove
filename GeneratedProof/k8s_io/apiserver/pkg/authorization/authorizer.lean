@@ -63,11 +63,11 @@ noncomputable instance ConditionsMap_access_load_denyConditions (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsMap_access_store_denyConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (denyConditions' : GoSlice) :
+noncomputable instance ConditionsMap_access_store_denyConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"denyConditions" l) v.denyConditions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"denyConditions" l) denyConditions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with denyConditions' := denyConditions' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"denyConditions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with denyConditions' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -79,11 +79,11 @@ noncomputable instance ConditionsMap_access_load_noOpinionConditions (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsMap_access_store_noOpinionConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (noOpinionConditions' : GoSlice) :
+noncomputable instance ConditionsMap_access_store_noOpinionConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"noOpinionConditions" l) v.noOpinionConditions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"noOpinionConditions" l) noOpinionConditions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with noOpinionConditions' := noOpinionConditions' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"noOpinionConditions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with noOpinionConditions' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -95,11 +95,11 @@ noncomputable instance ConditionsMap_access_load_allowConditions (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsMap_access_store_allowConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (allowConditions' : GoSlice) :
+noncomputable instance ConditionsMap_access_store_allowConditions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"allowConditions" l) v.allowConditions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"allowConditions" l) allowConditions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with allowConditions' := allowConditions' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap go!"allowConditions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with allowConditions' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -138,11 +138,11 @@ noncomputable instance ConditionsAwareDecisionUnion_access_load_inner (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_store_inner (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (inner' : GoSlice) :
+noncomputable instance ConditionsAwareDecisionUnion_access_store_inner (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"inner" l) v.inner' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"inner" l) inner' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with inner' := inner' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"inner" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with inner' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -154,11 +154,11 @@ noncomputable instance ConditionsAwareDecisionUnion_access_load_errs (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_store_errs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (errs' : GoSlice) :
+noncomputable instance ConditionsAwareDecisionUnion_access_store_errs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"errs" l) v.errs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"errs" l) errs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with errs' := errs' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"errs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with errs' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -170,11 +170,11 @@ noncomputable instance ConditionsAwareDecisionUnion_access_load_containsUncondit
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_store_containsUnconditionalAllowOrDeny (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (containsUnconditionalAllowOrDeny' : Bool) :
+noncomputable instance ConditionsAwareDecisionUnion_access_store_containsUnconditionalAllowOrDeny (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"containsUnconditionalAllowOrDeny" l) v.containsUnconditionalAllowOrDeny' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"containsUnconditionalAllowOrDeny" l) containsUnconditionalAllowOrDeny' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with containsUnconditionalAllowOrDeny' := containsUnconditionalAllowOrDeny' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"containsUnconditionalAllowOrDeny" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with containsUnconditionalAllowOrDeny' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -186,11 +186,11 @@ noncomputable instance ConditionsAwareDecisionUnion_access_load_subDecisionsPoss
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_store_subDecisionsPossibleDecisions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (subDecisionsPossibleDecisions' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' k8s_io.apiserver.pkg.authorization.authorizer.Decision)) :
+noncomputable instance ConditionsAwareDecisionUnion_access_store_subDecisionsPossibleDecisions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' k8s_io.apiserver.pkg.authorization.authorizer.Decision)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"subDecisionsPossibleDecisions" l) v.subDecisionsPossibleDecisions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"subDecisionsPossibleDecisions" l) subDecisionsPossibleDecisions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with subDecisionsPossibleDecisions' := subDecisionsPossibleDecisions' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"subDecisionsPossibleDecisions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with subDecisionsPossibleDecisions' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -230,11 +230,11 @@ noncomputable instance ConditionsAwareDecision_access_load_decisionType (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_decisionType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (decisionType' : k8s_io.apiserver.pkg.authorization.authorizer.conditionsAwareDecisionType) :
+noncomputable instance ConditionsAwareDecision_access_store_decisionType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.conditionsAwareDecisionType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"decisionType" l) v.decisionType' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"decisionType" l) decisionType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decisionType' := decisionType' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"decisionType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decisionType' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -246,11 +246,11 @@ noncomputable instance ConditionsAwareDecision_access_load_conditionsMap (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_conditionsMap (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (conditionsMap' : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) :
+noncomputable instance ConditionsAwareDecision_access_store_conditionsMap (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"conditionsMap" l) v.conditionsMap' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"conditionsMap" l) conditionsMap' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conditionsMap' := conditionsMap' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"conditionsMap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conditionsMap' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -262,11 +262,11 @@ noncomputable instance ConditionsAwareDecision_access_load_union (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_union (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (union' : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) :
+noncomputable instance ConditionsAwareDecision_access_store_union (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"union" l) v.union' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"union" l) union' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with union' := union' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"union" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with union' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -278,11 +278,11 @@ noncomputable instance ConditionsAwareDecision_access_load_reason (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_reason (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (reason' : GoString) :
+noncomputable instance ConditionsAwareDecision_access_store_reason (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"reason" l) v.reason' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"reason" l) reason' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reason' := reason' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"reason" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reason' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -294,11 +294,11 @@ noncomputable instance ConditionsAwareDecision_access_load_err (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecision_access_store_err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (err' : GoError) :
+noncomputable instance ConditionsAwareDecision_access_store_err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -338,11 +338,11 @@ noncomputable instance GenericCondition_access_load_ID (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_ID (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (ID' : GoString) :
+noncomputable instance GenericCondition_access_store_ID (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"ID" l) v.ID' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"ID" l) ID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"ID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -354,11 +354,11 @@ noncomputable instance GenericCondition_access_load_Condition (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_Condition (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (Condition' : GoString) :
+noncomputable instance GenericCondition_access_store_Condition (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Condition" l) v.Condition' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Condition" l) Condition' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Condition' := Condition' } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Condition" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Condition' := y } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -370,11 +370,11 @@ noncomputable instance GenericCondition_access_load_Type (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_Type (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (Type' : GoString) :
+noncomputable instance GenericCondition_access_store_Type (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -386,11 +386,11 @@ noncomputable instance GenericCondition_access_load_Description (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_Description (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (Description' : GoString) :
+noncomputable instance GenericCondition_access_store_Description (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Description" l) v.Description' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Description" l) Description' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Description' := Description' } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"Description" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Description' := y } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -402,11 +402,11 @@ noncomputable instance GenericCondition_access_load_EvaluateFunc (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance GenericCondition_access_store_EvaluateFunc (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (EvaluateFunc' : GoFunc) :
+noncomputable instance GenericCondition_access_store_EvaluateFunc (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"EvaluateFunc" l) v.EvaluateFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"EvaluateFunc" l) EvaluateFunc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EvaluateFunc' := EvaluateFunc' } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition go!"EvaluateFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EvaluateFunc' := y } : k8s_io.apiserver.pkg.authorization.authorizer.GenericCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -443,11 +443,11 @@ noncomputable instance namedConditionsAwareDecision_access_load_conditionalAutho
  by
   solve_pointsto_access_struct
 
-noncomputable instance namedConditionsAwareDecision_access_store_conditionalAuthorizerName (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (conditionalAuthorizerName' : GoString) :
+noncomputable instance namedConditionsAwareDecision_access_store_conditionalAuthorizerName (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"conditionalAuthorizerName" l) v.conditionalAuthorizerName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"conditionalAuthorizerName" l) conditionalAuthorizerName' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conditionalAuthorizerName' := conditionalAuthorizerName' } : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"conditionalAuthorizerName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conditionalAuthorizerName' := y } : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -459,11 +459,11 @@ noncomputable instance namedConditionsAwareDecision_access_load_d (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance namedConditionsAwareDecision_access_store_d (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (d' : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) :
+noncomputable instance namedConditionsAwareDecision_access_store_d (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (y : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"d" l) v.d' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"d" l) d' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := d' } : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision go!"d" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := y } : k8s_io.apiserver.pkg.authorization.authorizer.namedConditionsAwareDecision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -500,11 +500,11 @@ noncomputable instance ConditionEvaluationResult_access_load_resultType (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionEvaluationResult_access_store_resultType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (resultType' : k8s_io.apiserver.pkg.authorization.authorizer.partialConditionEvaluationResultType) :
+noncomputable instance ConditionEvaluationResult_access_store_resultType (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (y : k8s_io.apiserver.pkg.authorization.authorizer.partialConditionEvaluationResultType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"resultType" l) v.resultType' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"resultType" l) resultType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resultType' := resultType' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"resultType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resultType' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -516,11 +516,11 @@ noncomputable instance ConditionEvaluationResult_access_load_err (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionEvaluationResult_access_store_err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (err' : GoError) :
+noncomputable instance ConditionEvaluationResult_access_store_err (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -569,11 +569,11 @@ noncomputable instance AttributesRecord_access_load_User (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_User (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (User' : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info) :
+noncomputable instance AttributesRecord_access_store_User (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) v.User' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) User' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with User' := User' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with User' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -585,11 +585,11 @@ noncomputable instance AttributesRecord_access_load_Verb (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Verb (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (Verb' : GoString) :
+noncomputable instance AttributesRecord_access_store_Verb (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Verb" l) v.Verb' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Verb" l) Verb' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verb' := Verb' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Verb" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verb' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -601,11 +601,11 @@ noncomputable instance AttributesRecord_access_load_Namespace (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Namespace (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (Namespace' : GoString) :
+noncomputable instance AttributesRecord_access_store_Namespace (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Namespace" l) v.Namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Namespace" l) Namespace' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := Namespace' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -617,11 +617,11 @@ noncomputable instance AttributesRecord_access_load_APIGroup (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (APIGroup' : GoString) :
+noncomputable instance AttributesRecord_access_store_APIGroup (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIGroup" l) v.APIGroup' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIGroup" l) APIGroup' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with APIGroup' := APIGroup' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIGroup" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with APIGroup' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -633,11 +633,11 @@ noncomputable instance AttributesRecord_access_load_APIVersion (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (APIVersion' : GoString) :
+noncomputable instance AttributesRecord_access_store_APIVersion (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIVersion" l) v.APIVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIVersion" l) APIVersion' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with APIVersion' := APIVersion' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"APIVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with APIVersion' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -649,11 +649,11 @@ noncomputable instance AttributesRecord_access_load_Resource (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Resource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (Resource' : GoString) :
+noncomputable instance AttributesRecord_access_store_Resource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Resource" l) v.Resource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Resource" l) Resource' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resource' := Resource' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Resource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resource' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -665,11 +665,11 @@ noncomputable instance AttributesRecord_access_load_Subresource (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Subresource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (Subresource' : GoString) :
+noncomputable instance AttributesRecord_access_store_Subresource (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Subresource" l) v.Subresource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Subresource" l) Subresource' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Subresource' := Subresource' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Subresource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Subresource' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -681,11 +681,11 @@ noncomputable instance AttributesRecord_access_load_Name (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Name (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (Name' : GoString) :
+noncomputable instance AttributesRecord_access_store_Name (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -697,11 +697,11 @@ noncomputable instance AttributesRecord_access_load_ResourceRequest (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_ResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (ResourceRequest' : Bool) :
+noncomputable instance AttributesRecord_access_store_ResourceRequest (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"ResourceRequest" l) v.ResourceRequest' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"ResourceRequest" l) ResourceRequest' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceRequest' := ResourceRequest' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"ResourceRequest" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceRequest' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -713,11 +713,11 @@ noncomputable instance AttributesRecord_access_load_Path (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_Path (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (Path' : GoString) :
+noncomputable instance AttributesRecord_access_store_Path (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Path" l) v.Path' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Path" l) Path' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := Path' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"Path" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -729,11 +729,11 @@ noncomputable instance AttributesRecord_access_load_FieldSelectorRequirements (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_FieldSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (FieldSelectorRequirements' : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements) :
+noncomputable instance AttributesRecord_access_store_FieldSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorRequirements" l) v.FieldSelectorRequirements' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorRequirements" l) FieldSelectorRequirements' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldSelectorRequirements' := FieldSelectorRequirements' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorRequirements" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldSelectorRequirements' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -745,11 +745,11 @@ noncomputable instance AttributesRecord_access_load_FieldSelectorParsingErr (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_FieldSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (FieldSelectorParsingErr' : GoError) :
+noncomputable instance AttributesRecord_access_store_FieldSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorParsingErr" l) v.FieldSelectorParsingErr' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorParsingErr" l) FieldSelectorParsingErr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldSelectorParsingErr' := FieldSelectorParsingErr' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorParsingErr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldSelectorParsingErr' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -761,11 +761,11 @@ noncomputable instance AttributesRecord_access_load_LabelSelectorRequirements (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_LabelSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (LabelSelectorRequirements' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements) :
+noncomputable instance AttributesRecord_access_store_LabelSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorRequirements" l) v.LabelSelectorRequirements' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorRequirements" l) LabelSelectorRequirements' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LabelSelectorRequirements' := LabelSelectorRequirements' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorRequirements" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LabelSelectorRequirements' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -777,11 +777,11 @@ noncomputable instance AttributesRecord_access_load_LabelSelectorParsingErr (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_LabelSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (LabelSelectorParsingErr' : GoError) :
+noncomputable instance AttributesRecord_access_store_LabelSelectorParsingErr (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorParsingErr" l) v.LabelSelectorParsingErr' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorParsingErr" l) LabelSelectorParsingErr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LabelSelectorParsingErr' := LabelSelectorParsingErr' } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorParsingErr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LabelSelectorParsingErr' := y } : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -820,11 +820,11 @@ noncomputable instance DefaultResourceRuleInfo_access_load_Verbs (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_store_Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (Verbs' : GoSlice) :
+noncomputable instance DefaultResourceRuleInfo_access_store_Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Verbs" l) v.Verbs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Verbs" l) Verbs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verbs' := Verbs' } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Verbs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verbs' := y } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -836,11 +836,11 @@ noncomputable instance DefaultResourceRuleInfo_access_load_APIGroups (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_store_APIGroups (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (APIGroups' : GoSlice) :
+noncomputable instance DefaultResourceRuleInfo_access_store_APIGroups (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"APIGroups" l) v.APIGroups' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"APIGroups" l) APIGroups' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with APIGroups' := APIGroups' } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"APIGroups" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with APIGroups' := y } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -852,11 +852,11 @@ noncomputable instance DefaultResourceRuleInfo_access_load_Resources (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_store_Resources (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (Resources' : GoSlice) :
+noncomputable instance DefaultResourceRuleInfo_access_store_Resources (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Resources" l) v.Resources' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Resources" l) Resources' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resources' := Resources' } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"Resources" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resources' := y } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -868,11 +868,11 @@ noncomputable instance DefaultResourceRuleInfo_access_load_ResourceNames (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultResourceRuleInfo_access_store_ResourceNames (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (ResourceNames' : GoSlice) :
+noncomputable instance DefaultResourceRuleInfo_access_store_ResourceNames (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"ResourceNames" l) v.ResourceNames' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"ResourceNames" l) ResourceNames' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceNames' := ResourceNames' } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo go!"ResourceNames" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceNames' := y } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultResourceRuleInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -909,11 +909,11 @@ noncomputable instance DefaultNonResourceRuleInfo_access_load_Verbs (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultNonResourceRuleInfo_access_store_Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (Verbs' : GoSlice) :
+noncomputable instance DefaultNonResourceRuleInfo_access_store_Verbs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"Verbs" l) v.Verbs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"Verbs" l) Verbs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verbs' := Verbs' } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"Verbs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verbs' := y } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -925,11 +925,11 @@ noncomputable instance DefaultNonResourceRuleInfo_access_load_NonResourceURLs (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance DefaultNonResourceRuleInfo_access_store_NonResourceURLs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (NonResourceURLs' : GoSlice) :
+noncomputable instance DefaultNonResourceRuleInfo_access_store_NonResourceURLs (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"NonResourceURLs" l) v.NonResourceURLs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"NonResourceURLs" l) NonResourceURLs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NonResourceURLs' := NonResourceURLs' } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo go!"NonResourceURLs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NonResourceURLs' := y } : k8s_io.apiserver.pkg.authorization.authorizer.DefaultNonResourceRuleInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

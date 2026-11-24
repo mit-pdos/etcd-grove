@@ -47,11 +47,11 @@ noncomputable instance Notifier_access_load_mu (l : Loc) (v : go_etcd_io.etcd.pk
  by
   solve_pointsto_access_struct
 
-noncomputable instance Notifier_access_store_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (mu' : _root_.Perennial.sync.RWMutex) :
+noncomputable instance Notifier_access_store_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.pkg.v3.notify.Notifier) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : go_etcd_io.etcd.pkg.v3.notify.Notifier) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -63,11 +63,11 @@ noncomputable instance Notifier_access_load_channel (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Notifier_access_store_channel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (channel' : GoChan) :
+noncomputable instance Notifier_access_store_channel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) v.channel' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) channel' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with channel' := channel' } : go_etcd_io.etcd.pkg.v3.notify.Notifier) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"channel" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with channel' := y } : go_etcd_io.etcd.pkg.v3.notify.Notifier) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

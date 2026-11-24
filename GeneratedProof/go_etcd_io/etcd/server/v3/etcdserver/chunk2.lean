@@ -109,11 +109,11 @@ noncomputable instance zapRaftLogger_access_load_lg (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance zapRaftLogger_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (lg' : Loc) :
+noncomputable instance zapRaftLogger_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) lg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := y } : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -125,11 +125,11 @@ noncomputable instance zapRaftLogger_access_load_sugar (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance zapRaftLogger_access_store_sugar (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (sugar' : Loc) :
+noncomputable instance zapRaftLogger_access_store_sugar (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) sugar' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sugar' := sugar' } : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sugar' := y } : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

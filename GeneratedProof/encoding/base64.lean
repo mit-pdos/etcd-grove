@@ -50,11 +50,11 @@ noncomputable instance Encoding_access_load_encode (l : Loc) (v : encoding.base6
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_store_encode (l : Loc) (v : encoding.base64.Encoding) (encode' : (GoArray w8 64)) :
+noncomputable instance Encoding_access_store_encode (l : Loc) (v : encoding.base64.Encoding) (y : (GoArray w8 64)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) v.encode' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) encode' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with encode' := encode' } : encoding.base64.Encoding) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with encode' := y } : encoding.base64.Encoding) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -66,11 +66,11 @@ noncomputable instance Encoding_access_load_decodeMap (l : Loc) (v : encoding.ba
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_store_decodeMap (l : Loc) (v : encoding.base64.Encoding) (decodeMap' : (GoArray w8 256)) :
+noncomputable instance Encoding_access_store_decodeMap (l : Loc) (v : encoding.base64.Encoding) (y : (GoArray w8 256)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) decodeMap' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decodeMap' := decodeMap' } : encoding.base64.Encoding) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decodeMap' := y } : encoding.base64.Encoding) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -82,11 +82,11 @@ noncomputable instance Encoding_access_load_padChar (l : Loc) (v : encoding.base
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_store_padChar (l : Loc) (v : encoding.base64.Encoding) (padChar' : w32) :
+noncomputable instance Encoding_access_store_padChar (l : Loc) (v : encoding.base64.Encoding) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) v.padChar' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) padChar' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with padChar' := padChar' } : encoding.base64.Encoding) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with padChar' := y } : encoding.base64.Encoding) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -98,11 +98,11 @@ noncomputable instance Encoding_access_load_strict (l : Loc) (v : encoding.base6
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoding_access_store_strict (l : Loc) (v : encoding.base64.Encoding) (strict' : Bool) :
+noncomputable instance Encoding_access_store_strict (l : Loc) (v : encoding.base64.Encoding) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) v.strict' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) strict' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with strict' := strict' } : encoding.base64.Encoding) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with strict' := y } : encoding.base64.Encoding) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

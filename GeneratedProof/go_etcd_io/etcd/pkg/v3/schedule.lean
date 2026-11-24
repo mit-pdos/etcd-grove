@@ -50,11 +50,11 @@ noncomputable instance job_access_load_name (l : Loc) (v : go_etcd_io.etcd.pkg.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance job_access_store_name (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.job) (name' : GoString) :
+noncomputable instance job_access_store_name (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.job) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : go_etcd_io.etcd.pkg.v3.schedule.job) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : go_etcd_io.etcd.pkg.v3.schedule.job) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -66,11 +66,11 @@ noncomputable instance job_access_load_do (l : Loc) (v : go_etcd_io.etcd.pkg.v3.
  by
   solve_pointsto_access_struct
 
-noncomputable instance job_access_store_do (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.job) (do' : GoFunc) :
+noncomputable instance job_access_store_do (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.job) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"do" l) v.do' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"do" l) do' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with do' := do' } : go_etcd_io.etcd.pkg.v3.schedule.job) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"do" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with do' := y } : go_etcd_io.etcd.pkg.v3.schedule.job) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -115,11 +115,11 @@ noncomputable instance fifo_access_load_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance fifo_access_store_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -131,11 +131,11 @@ noncomputable instance fifo_access_load_resume (l : Loc) (v : go_etcd_io.etcd.pk
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_resume (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (resume' : GoChan) :
+noncomputable instance fifo_access_store_resume (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"resume" l) v.resume' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"resume" l) resume' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resume' := resume' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"resume" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resume' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -147,11 +147,11 @@ noncomputable instance fifo_access_load_scheduled (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_scheduled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (scheduled' : w64) :
+noncomputable instance fifo_access_store_scheduled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"scheduled" l) v.scheduled' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"scheduled" l) scheduled' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scheduled' := scheduled' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"scheduled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scheduled' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -163,11 +163,11 @@ noncomputable instance fifo_access_load_finished (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_finished (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (finished' : w64) :
+noncomputable instance fifo_access_store_finished (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finished" l) v.finished' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finished" l) finished' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with finished' := finished' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finished" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with finished' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -179,11 +179,11 @@ noncomputable instance fifo_access_load_pendings (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_pendings (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (pendings' : GoSlice) :
+noncomputable instance fifo_access_store_pendings (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"pendings" l) v.pendings' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"pendings" l) pendings' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pendings' := pendings' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"pendings" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pendings' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -195,11 +195,11 @@ noncomputable instance fifo_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.pkg.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (ctx' : _root_.Perennial.context.Context) :
+noncomputable instance fifo_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"ctx" l) v.ctx' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"ctx" l) ctx' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := ctx' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"ctx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -211,11 +211,11 @@ noncomputable instance fifo_access_load_cancel (l : Loc) (v : go_etcd_io.etcd.pk
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (cancel' : _root_.Perennial.context.CancelFunc) :
+noncomputable instance fifo_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"cancel" l) v.cancel' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"cancel" l) cancel' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancel' := cancel' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"cancel" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancel' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -227,11 +227,11 @@ noncomputable instance fifo_access_load_finishCond (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_finishCond (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (finishCond' : Loc) :
+noncomputable instance fifo_access_store_finishCond (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finishCond" l) v.finishCond' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finishCond" l) finishCond' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with finishCond' := finishCond' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finishCond" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with finishCond' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -243,11 +243,11 @@ noncomputable instance fifo_access_load_donec (l : Loc) (v : go_etcd_io.etcd.pkg
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_donec (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (donec' : GoChan) :
+noncomputable instance fifo_access_store_donec (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"donec" l) v.donec' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"donec" l) donec' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with donec' := donec' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"donec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with donec' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -259,11 +259,11 @@ noncomputable instance fifo_access_load_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3
  by
   solve_pointsto_access_struct
 
-noncomputable instance fifo_access_store_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (lg' : Loc) :
+noncomputable instance fifo_access_store_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"lg" l) v.lg' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"lg" l) lg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"lg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := y } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

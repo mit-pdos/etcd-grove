@@ -46,11 +46,11 @@ noncomputable instance componentData_access_load_name (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance componentData_access_store_name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (name' : GoString) :
+noncomputable instance componentData_access_store_name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : google_golang_org.grpc.grpclog.componentData) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : google_golang_org.grpc.grpclog.componentData) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

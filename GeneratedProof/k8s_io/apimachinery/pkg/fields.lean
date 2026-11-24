@@ -89,11 +89,11 @@ noncomputable instance hasTerm_access_load_field (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-noncomputable instance hasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (field' : GoString) :
+noncomputable instance hasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"field" l) field' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := field' } : k8s_io.apimachinery.pkg.fields.hasTerm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : k8s_io.apimachinery.pkg.fields.hasTerm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -105,11 +105,11 @@ noncomputable instance hasTerm_access_load_value (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-noncomputable instance hasTerm_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (value' : GoString) :
+noncomputable instance hasTerm_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"value" l) value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := value' } : k8s_io.apimachinery.pkg.fields.hasTerm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : k8s_io.apimachinery.pkg.fields.hasTerm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -146,11 +146,11 @@ noncomputable instance notHasTerm_access_load_field (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance notHasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (field' : GoString) :
+noncomputable instance notHasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"field" l) field' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := field' } : k8s_io.apimachinery.pkg.fields.notHasTerm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : k8s_io.apimachinery.pkg.fields.notHasTerm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -162,11 +162,11 @@ noncomputable instance notHasTerm_access_load_value (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance notHasTerm_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (value' : GoString) :
+noncomputable instance notHasTerm_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"value" l) value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := value' } : k8s_io.apimachinery.pkg.fields.notHasTerm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : k8s_io.apimachinery.pkg.fields.notHasTerm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -202,11 +202,11 @@ noncomputable instance InvalidEscapeSequence_access_load_sequence (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance InvalidEscapeSequence_access_store_sequence (l : Loc) (v : k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence) (sequence' : GoString) :
+noncomputable instance InvalidEscapeSequence_access_store_sequence (l : Loc) (v : k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence go!"sequence" l) v.sequence' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence go!"sequence" l) sequence' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sequence' := sequence' } : k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence go!"sequence" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sequence' := y } : k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -242,11 +242,11 @@ noncomputable instance UnescapedRune_access_load_r (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnescapedRune_access_store_r (l : Loc) (v : k8s_io.apimachinery.pkg.fields.UnescapedRune) (r' : w32) :
+noncomputable instance UnescapedRune_access_store_r (l : Loc) (v : k8s_io.apimachinery.pkg.fields.UnescapedRune) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.UnescapedRune go!"r" l) v.r' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.UnescapedRune go!"r" l) r' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : k8s_io.apimachinery.pkg.fields.UnescapedRune) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.UnescapedRune go!"r" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : k8s_io.apimachinery.pkg.fields.UnescapedRune) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

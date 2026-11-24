@@ -50,11 +50,11 @@ noncomputable instance EtcdManualResolver_access_load_Resolver (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdManualResolver_access_store_Resolver (l : Loc) (v : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (Resolver' : Loc) :
+noncomputable instance EtcdManualResolver_access_store_Resolver (l : Loc) (v : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver go!"Resolver" l) v.Resolver' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver go!"Resolver" l) Resolver' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resolver' := Resolver' } : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver go!"Resolver" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resolver' := y } : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -66,11 +66,11 @@ noncomputable instance EtcdManualResolver_access_load_endpoints (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdManualResolver_access_store_endpoints (l : Loc) (v : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (endpoints' : GoSlice) :
+noncomputable instance EtcdManualResolver_access_store_endpoints (l : Loc) (v : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver go!"endpoints" l) v.endpoints' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver go!"endpoints" l) endpoints' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endpoints' := endpoints' } : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver go!"endpoints" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endpoints' := y } : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -82,11 +82,11 @@ noncomputable instance EtcdManualResolver_access_load_serviceConfig (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdManualResolver_access_store_serviceConfig (l : Loc) (v : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (serviceConfig' : Loc) :
+noncomputable instance EtcdManualResolver_access_store_serviceConfig (l : Loc) (v : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver go!"serviceConfig" l) v.serviceConfig' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver go!"serviceConfig" l) serviceConfig' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serviceConfig' := serviceConfig' } : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver go!"serviceConfig" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serviceConfig' := y } : go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

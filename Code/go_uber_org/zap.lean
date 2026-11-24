@@ -424,7 +424,7 @@ noncomputable def nilField [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Binary [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.Binary"
 
-noncomputable def Bool' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Bool'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.Bool"
 
 noncomputable def Boolp [GooseExts] [GoGlobalContext] : GoString :=
@@ -457,7 +457,7 @@ noncomputable def Float32 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Float32p [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.Float32p"
 
-noncomputable def Int' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Int'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap.Int"
 
 noncomputable def Intp [GooseExts] [GoGlobalContext] : GoString :=
@@ -830,7 +830,7 @@ noncomputable def Skip.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Bool constructs a field that carries a bool.
 
     go: field.go:63:6 -/
-noncomputable def Bool.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Bool''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "val"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Field.ty))) (App (Val (GoInstruction (GoZeroVal Field.ty))) (Val #())))
@@ -906,7 +906,7 @@ noncomputable def Float64.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Int constructs a field with the given key and value.
 
     go: field.go:152:6 -/
-noncomputable def Int.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "val"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Field.ty))) (App (Val (GoInstruction (GoZeroVal Field.ty))) (Val #())))
@@ -3006,10 +3006,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Error_unfold : FuncUnfold Error [] Error.impl
   NamedError_unfold : FuncUnfold NamedError [] NamedError.impl
   Skip_unfold : FuncUnfold Skip [] Skip.impl
-  Bool_unfold : FuncUnfold Bool' [] Bool.impl
+  Bool_unfold : FuncUnfold Bool'' [] Bool''.impl
   ByteString_unfold : FuncUnfold ByteString [] ByteString.impl
   Float64_unfold : FuncUnfold Float64 [] Float64.impl
-  Int_unfold : FuncUnfold Int' [] Int.impl
+  Int_unfold : FuncUnfold Int'' [] Int''.impl
   Int64_unfold : FuncUnfold Int64 [] Int64.impl
   Int32_unfold : FuncUnfold Int32 [] Int32.impl
   String_unfold : FuncUnfold String [] String.impl

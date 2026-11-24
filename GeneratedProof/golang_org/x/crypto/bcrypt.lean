@@ -51,11 +51,11 @@ noncomputable instance hashed_access_load_hash (l : Loc) (v : golang_org.x.crypt
  by
   solve_pointsto_access_struct
 
-noncomputable instance hashed_access_store_hash (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (hash' : GoSlice) :
+noncomputable instance hashed_access_store_hash (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"hash" l) v.hash' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"hash" l) hash' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hash' := hash' } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"hash" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hash' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -67,11 +67,11 @@ noncomputable instance hashed_access_load_salt (l : Loc) (v : golang_org.x.crypt
  by
   solve_pointsto_access_struct
 
-noncomputable instance hashed_access_store_salt (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (salt' : GoSlice) :
+noncomputable instance hashed_access_store_salt (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"salt" l) v.salt' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"salt" l) salt' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with salt' := salt' } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"salt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with salt' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -83,11 +83,11 @@ noncomputable instance hashed_access_load_cost (l : Loc) (v : golang_org.x.crypt
  by
   solve_pointsto_access_struct
 
-noncomputable instance hashed_access_store_cost (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (cost' : w64) :
+noncomputable instance hashed_access_store_cost (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"cost" l) v.cost' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"cost" l) cost' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cost' := cost' } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"cost" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cost' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -99,11 +99,11 @@ noncomputable instance hashed_access_load_major (l : Loc) (v : golang_org.x.cryp
  by
   solve_pointsto_access_struct
 
-noncomputable instance hashed_access_store_major (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (major' : w8) :
+noncomputable instance hashed_access_store_major (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"major" l) v.major' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"major" l) major' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with major' := major' } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"major" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with major' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -115,11 +115,11 @@ noncomputable instance hashed_access_load_minor (l : Loc) (v : golang_org.x.cryp
  by
   solve_pointsto_access_struct
 
-noncomputable instance hashed_access_store_minor (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (minor' : w8) :
+noncomputable instance hashed_access_store_minor (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"minor" l) v.minor' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"minor" l) minor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minor' := minor' } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"minor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minor' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -47,11 +47,11 @@ noncomputable instance LoggerWrapper_access_load_Logger (l : Loc) (v : google_go
  by
   solve_pointsto_access_struct
 
-noncomputable instance LoggerWrapper_access_store_Logger (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerWrapper) (Logger' : google_golang_org.grpc.grpclog.internal.Logger) :
+noncomputable instance LoggerWrapper_access_store_Logger (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerWrapper) (y : google_golang_org.grpc.grpclog.internal.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) v.Logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) Logger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := Logger' } : google_golang_org.grpc.grpclog.internal.LoggerWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := y } : google_golang_org.grpc.grpclog.internal.LoggerWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -107,11 +107,11 @@ noncomputable instance LoggerV2Config_access_load_Verbosity (l : Loc) (v : googl
  by
   solve_pointsto_access_struct
 
-noncomputable instance LoggerV2Config_access_store_Verbosity (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (Verbosity' : w64) :
+noncomputable instance LoggerV2Config_access_store_Verbosity (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) v.Verbosity' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) Verbosity' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verbosity' := Verbosity' } : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verbosity' := y } : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -123,11 +123,11 @@ noncomputable instance LoggerV2Config_access_load_FormatJSON (l : Loc) (v : goog
  by
   solve_pointsto_access_struct
 
-noncomputable instance LoggerV2Config_access_store_FormatJSON (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (FormatJSON' : Bool) :
+noncomputable instance LoggerV2Config_access_store_FormatJSON (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) v.FormatJSON' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) FormatJSON' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatJSON' := FormatJSON' } : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatJSON' := y } : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

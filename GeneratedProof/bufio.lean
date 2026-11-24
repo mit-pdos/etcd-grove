@@ -55,11 +55,11 @@ noncomputable instance Reader_access_load_buf (l : Loc) (v : bufio.Reader) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reader_access_store_buf (l : Loc) (v : bufio.Reader) (buf' : GoSlice) :
+noncomputable instance Reader_access_store_buf (l : Loc) (v : bufio.Reader) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Reader go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Reader go!"buf" l) buf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := buf' } : bufio.Reader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Reader go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : bufio.Reader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -71,11 +71,11 @@ noncomputable instance Reader_access_load_rd (l : Loc) (v : bufio.Reader) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reader_access_store_rd (l : Loc) (v : bufio.Reader) (rd' : _root_.Perennial.io.Reader) :
+noncomputable instance Reader_access_store_rd (l : Loc) (v : bufio.Reader) (y : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Reader go!"rd" l) v.rd' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Reader go!"rd" l) rd' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rd' := rd' } : bufio.Reader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Reader go!"rd" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rd' := y } : bufio.Reader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -87,11 +87,11 @@ noncomputable instance Reader_access_load_r (l : Loc) (v : bufio.Reader) (dq : D
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reader_access_store_r (l : Loc) (v : bufio.Reader) (r' : w64) :
+noncomputable instance Reader_access_store_r (l : Loc) (v : bufio.Reader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Reader go!"r" l) v.r' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Reader go!"r" l) r' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : bufio.Reader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Reader go!"r" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : bufio.Reader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -103,11 +103,11 @@ noncomputable instance Reader_access_load_w (l : Loc) (v : bufio.Reader) (dq : D
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reader_access_store_w (l : Loc) (v : bufio.Reader) (w' : w64) :
+noncomputable instance Reader_access_store_w (l : Loc) (v : bufio.Reader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Reader go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Reader go!"w" l) w' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := w' } : bufio.Reader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Reader go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : bufio.Reader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -119,11 +119,11 @@ noncomputable instance Reader_access_load_err (l : Loc) (v : bufio.Reader) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reader_access_store_err (l : Loc) (v : bufio.Reader) (err' : GoError) :
+noncomputable instance Reader_access_store_err (l : Loc) (v : bufio.Reader) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Reader go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Reader go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : bufio.Reader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Reader go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : bufio.Reader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -135,11 +135,11 @@ noncomputable instance Reader_access_load_lastByte (l : Loc) (v : bufio.Reader) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reader_access_store_lastByte (l : Loc) (v : bufio.Reader) (lastByte' : w64) :
+noncomputable instance Reader_access_store_lastByte (l : Loc) (v : bufio.Reader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Reader go!"lastByte" l) v.lastByte' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Reader go!"lastByte" l) lastByte' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastByte' := lastByte' } : bufio.Reader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Reader go!"lastByte" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastByte' := y } : bufio.Reader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -151,11 +151,11 @@ noncomputable instance Reader_access_load_lastRuneSize (l : Loc) (v : bufio.Read
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reader_access_store_lastRuneSize (l : Loc) (v : bufio.Reader) (lastRuneSize' : w64) :
+noncomputable instance Reader_access_store_lastRuneSize (l : Loc) (v : bufio.Reader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Reader go!"lastRuneSize" l) v.lastRuneSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Reader go!"lastRuneSize" l) lastRuneSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastRuneSize' := lastRuneSize' } : bufio.Reader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Reader go!"lastRuneSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastRuneSize' := y } : bufio.Reader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -194,11 +194,11 @@ noncomputable instance Writer_access_load_err (l : Loc) (v : bufio.Writer) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writer_access_store_err (l : Loc) (v : bufio.Writer) (err' : GoError) :
+noncomputable instance Writer_access_store_err (l : Loc) (v : bufio.Writer) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Writer go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Writer go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : bufio.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Writer go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : bufio.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -210,11 +210,11 @@ noncomputable instance Writer_access_load_buf (l : Loc) (v : bufio.Writer) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writer_access_store_buf (l : Loc) (v : bufio.Writer) (buf' : GoSlice) :
+noncomputable instance Writer_access_store_buf (l : Loc) (v : bufio.Writer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Writer go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Writer go!"buf" l) buf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := buf' } : bufio.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Writer go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : bufio.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -226,11 +226,11 @@ noncomputable instance Writer_access_load_n (l : Loc) (v : bufio.Writer) (dq : D
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writer_access_store_n (l : Loc) (v : bufio.Writer) (n' : w64) :
+noncomputable instance Writer_access_store_n (l : Loc) (v : bufio.Writer) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Writer go!"n" l) v.n' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Writer go!"n" l) n' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := n' } : bufio.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Writer go!"n" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := y } : bufio.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -242,11 +242,11 @@ noncomputable instance Writer_access_load_wr (l : Loc) (v : bufio.Writer) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writer_access_store_wr (l : Loc) (v : bufio.Writer) (wr' : _root_.Perennial.io.Writer) :
+noncomputable instance Writer_access_store_wr (l : Loc) (v : bufio.Writer) (y : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Writer go!"wr" l) v.wr' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Writer go!"wr" l) wr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wr' := wr' } : bufio.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Writer go!"wr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wr' := y } : bufio.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -283,11 +283,11 @@ noncomputable instance ReadWriter_access_load_Reader (l : Loc) (v : bufio.ReadWr
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadWriter_access_store_Reader (l : Loc) (v : bufio.ReadWriter) (Reader' : Loc) :
+noncomputable instance ReadWriter_access_store_Reader (l : Loc) (v : bufio.ReadWriter) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.ReadWriter go!"Reader" l) v.Reader' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.ReadWriter go!"Reader" l) Reader' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reader' := Reader' } : bufio.ReadWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.ReadWriter go!"Reader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reader' := y } : bufio.ReadWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -299,11 +299,11 @@ noncomputable instance ReadWriter_access_load_Writer (l : Loc) (v : bufio.ReadWr
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadWriter_access_store_Writer (l : Loc) (v : bufio.ReadWriter) (Writer' : Loc) :
+noncomputable instance ReadWriter_access_store_Writer (l : Loc) (v : bufio.ReadWriter) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.ReadWriter go!"Writer" l) v.Writer' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.ReadWriter go!"Writer" l) Writer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Writer' := Writer' } : bufio.ReadWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.ReadWriter go!"Writer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Writer' := y } : bufio.ReadWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -349,11 +349,11 @@ noncomputable instance Scanner_access_load_r (l : Loc) (v : bufio.Scanner) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_r (l : Loc) (v : bufio.Scanner) (r' : _root_.Perennial.io.Reader) :
+noncomputable instance Scanner_access_store_r (l : Loc) (v : bufio.Scanner) (y : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"r" l) v.r' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"r" l) r' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"r" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -365,11 +365,11 @@ noncomputable instance Scanner_access_load_split (l : Loc) (v : bufio.Scanner) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_split (l : Loc) (v : bufio.Scanner) (split' : bufio.SplitFunc) :
+noncomputable instance Scanner_access_store_split (l : Loc) (v : bufio.Scanner) (y : bufio.SplitFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"split" l) v.split' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"split" l) split' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with split' := split' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"split" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with split' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -381,11 +381,11 @@ noncomputable instance Scanner_access_load_maxTokenSize (l : Loc) (v : bufio.Sca
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_maxTokenSize (l : Loc) (v : bufio.Scanner) (maxTokenSize' : w64) :
+noncomputable instance Scanner_access_store_maxTokenSize (l : Loc) (v : bufio.Scanner) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"maxTokenSize" l) v.maxTokenSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"maxTokenSize" l) maxTokenSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxTokenSize' := maxTokenSize' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"maxTokenSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxTokenSize' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -397,11 +397,11 @@ noncomputable instance Scanner_access_load_token (l : Loc) (v : bufio.Scanner) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_token (l : Loc) (v : bufio.Scanner) (token' : GoSlice) :
+noncomputable instance Scanner_access_store_token (l : Loc) (v : bufio.Scanner) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"token" l) v.token' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"token" l) token' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with token' := token' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"token" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with token' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -413,11 +413,11 @@ noncomputable instance Scanner_access_load_buf (l : Loc) (v : bufio.Scanner) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_buf (l : Loc) (v : bufio.Scanner) (buf' : GoSlice) :
+noncomputable instance Scanner_access_store_buf (l : Loc) (v : bufio.Scanner) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"buf" l) buf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := buf' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -429,11 +429,11 @@ noncomputable instance Scanner_access_load_start (l : Loc) (v : bufio.Scanner) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_start (l : Loc) (v : bufio.Scanner) (start' : w64) :
+noncomputable instance Scanner_access_store_start (l : Loc) (v : bufio.Scanner) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"start" l) v.start' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"start" l) start' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with start' := start' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with start' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -445,11 +445,11 @@ noncomputable instance Scanner_access_load_end (l : Loc) (v : bufio.Scanner) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_end (l : Loc) (v : bufio.Scanner) (end' : w64) :
+noncomputable instance Scanner_access_store_end (l : Loc) (v : bufio.Scanner) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"end" l) v.end' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"end" l) end' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with end' := end' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"end" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with end' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -461,11 +461,11 @@ noncomputable instance Scanner_access_load_err (l : Loc) (v : bufio.Scanner) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_err (l : Loc) (v : bufio.Scanner) (err' : GoError) :
+noncomputable instance Scanner_access_store_err (l : Loc) (v : bufio.Scanner) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -477,11 +477,11 @@ noncomputable instance Scanner_access_load_empties (l : Loc) (v : bufio.Scanner)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_empties (l : Loc) (v : bufio.Scanner) (empties' : w64) :
+noncomputable instance Scanner_access_store_empties (l : Loc) (v : bufio.Scanner) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"empties" l) v.empties' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"empties" l) empties' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with empties' := empties' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"empties" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with empties' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -493,11 +493,11 @@ noncomputable instance Scanner_access_load_scanCalled (l : Loc) (v : bufio.Scann
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_scanCalled (l : Loc) (v : bufio.Scanner) (scanCalled' : Bool) :
+noncomputable instance Scanner_access_store_scanCalled (l : Loc) (v : bufio.Scanner) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"scanCalled" l) v.scanCalled' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"scanCalled" l) scanCalled' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scanCalled' := scanCalled' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"scanCalled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scanCalled' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -509,11 +509,11 @@ noncomputable instance Scanner_access_load_done (l : Loc) (v : bufio.Scanner) (d
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_done (l : Loc) (v : bufio.Scanner) (done' : Bool) :
+noncomputable instance Scanner_access_store_done (l : Loc) (v : bufio.Scanner) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"done" l) v.done' (DFrac.own 1))
-      (typedPointsto (structFieldRef bufio.Scanner go!"done" l) done' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := done' } : bufio.Scanner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef bufio.Scanner go!"done" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := y } : bufio.Scanner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

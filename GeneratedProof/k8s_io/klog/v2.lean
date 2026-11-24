@@ -55,11 +55,11 @@ noncomputable instance loggerOptions_access_load_contextualLogger (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggerOptions_access_store_contextualLogger (l : Loc) (v : k8s_io.klog.v2.loggerOptions) (contextualLogger' : Bool) :
+noncomputable instance loggerOptions_access_store_contextualLogger (l : Loc) (v : k8s_io.klog.v2.loggerOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggerOptions go!"contextualLogger" l) v.contextualLogger' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.loggerOptions go!"contextualLogger" l) contextualLogger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contextualLogger' := contextualLogger' } : k8s_io.klog.v2.loggerOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.loggerOptions go!"contextualLogger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contextualLogger' := y } : k8s_io.klog.v2.loggerOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -71,11 +71,11 @@ noncomputable instance loggerOptions_access_load_flush (l : Loc) (v : k8s_io.klo
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggerOptions_access_store_flush (l : Loc) (v : k8s_io.klog.v2.loggerOptions) (flush' : GoFunc) :
+noncomputable instance loggerOptions_access_store_flush (l : Loc) (v : k8s_io.klog.v2.loggerOptions) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggerOptions go!"flush" l) v.flush' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.loggerOptions go!"flush" l) flush' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flush' := flush' } : k8s_io.klog.v2.loggerOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.loggerOptions go!"flush" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flush' := y } : k8s_io.klog.v2.loggerOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -87,11 +87,11 @@ noncomputable instance loggerOptions_access_load_writeKlogBuffer (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggerOptions_access_store_writeKlogBuffer (l : Loc) (v : k8s_io.klog.v2.loggerOptions) (writeKlogBuffer' : GoFunc) :
+noncomputable instance loggerOptions_access_store_writeKlogBuffer (l : Loc) (v : k8s_io.klog.v2.loggerOptions) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggerOptions go!"writeKlogBuffer" l) v.writeKlogBuffer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.loggerOptions go!"writeKlogBuffer" l) writeKlogBuffer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeKlogBuffer' := writeKlogBuffer' } : k8s_io.klog.v2.loggerOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.loggerOptions go!"writeKlogBuffer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeKlogBuffer' := y } : k8s_io.klog.v2.loggerOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -128,11 +128,11 @@ noncomputable instance logWriter_access_load_Logger (l : Loc) (v : k8s_io.klog.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance logWriter_access_store_Logger (l : Loc) (v : k8s_io.klog.v2.logWriter) (Logger' : _root_.Perennial.github_com.go_logr.logr.Logger) :
+noncomputable instance logWriter_access_store_Logger (l : Loc) (v : k8s_io.klog.v2.logWriter) (y : _root_.Perennial.github_com.go_logr.logr.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) v.Logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) Logger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := Logger' } : k8s_io.klog.v2.logWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := y } : k8s_io.klog.v2.logWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -144,11 +144,11 @@ noncomputable instance logWriter_access_load_writeKlogBuffer (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance logWriter_access_store_writeKlogBuffer (l : Loc) (v : k8s_io.klog.v2.logWriter) (writeKlogBuffer' : GoFunc) :
+noncomputable instance logWriter_access_store_writeKlogBuffer (l : Loc) (v : k8s_io.klog.v2.logWriter) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"writeKlogBuffer" l) v.writeKlogBuffer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"writeKlogBuffer" l) writeKlogBuffer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeKlogBuffer' := writeKlogBuffer' } : k8s_io.klog.v2.logWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"writeKlogBuffer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeKlogBuffer' := y } : k8s_io.klog.v2.logWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -184,11 +184,11 @@ noncomputable instance formatAny_access_load_Object (l : Loc) (v : k8s_io.klog.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance formatAny_access_store_Object (l : Loc) (v : k8s_io.klog.v2.formatAny) (Object' : GoInterface) :
+noncomputable instance formatAny_access_store_Object (l : Loc) (v : k8s_io.klog.v2.formatAny) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.formatAny go!"Object" l) v.Object' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.formatAny go!"Object" l) Object' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := Object' } : k8s_io.klog.v2.formatAny) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.formatAny go!"Object" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : k8s_io.klog.v2.formatAny) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -225,11 +225,11 @@ noncomputable instance ObjectRef_access_load_Name (l : Loc) (v : k8s_io.klog.v2.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ObjectRef_access_store_Name (l : Loc) (v : k8s_io.klog.v2.ObjectRef) (Name' : GoString) :
+noncomputable instance ObjectRef_access_store_Name (l : Loc) (v : k8s_io.klog.v2.ObjectRef) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.ObjectRef go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.ObjectRef go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : k8s_io.klog.v2.ObjectRef) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.ObjectRef go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.klog.v2.ObjectRef) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -241,11 +241,11 @@ noncomputable instance ObjectRef_access_load_Namespace (l : Loc) (v : k8s_io.klo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ObjectRef_access_store_Namespace (l : Loc) (v : k8s_io.klog.v2.ObjectRef) (Namespace' : GoString) :
+noncomputable instance ObjectRef_access_store_Namespace (l : Loc) (v : k8s_io.klog.v2.ObjectRef) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.ObjectRef go!"Namespace" l) v.Namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.ObjectRef go!"Namespace" l) Namespace' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := Namespace' } : k8s_io.klog.v2.ObjectRef) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.ObjectRef go!"Namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := y } : k8s_io.klog.v2.ObjectRef) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -281,11 +281,11 @@ noncomputable instance kobjSlice_access_load_arg (l : Loc) (v : k8s_io.klog.v2.k
  by
   solve_pointsto_access_struct
 
-noncomputable instance kobjSlice_access_store_arg (l : Loc) (v : k8s_io.klog.v2.kobjSlice) (arg' : GoInterface) :
+noncomputable instance kobjSlice_access_store_arg (l : Loc) (v : k8s_io.klog.v2.kobjSlice) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.kobjSlice go!"arg" l) v.arg' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.kobjSlice go!"arg" l) arg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with arg' := arg' } : k8s_io.klog.v2.kobjSlice) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.kobjSlice go!"arg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with arg' := y } : k8s_io.klog.v2.kobjSlice) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -321,11 +321,11 @@ noncomputable instance severityValue_access_load_Severity (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance severityValue_access_store_Severity (l : Loc) (v : k8s_io.klog.v2.severityValue) (Severity' : _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity) :
+noncomputable instance severityValue_access_store_Severity (l : Loc) (v : k8s_io.klog.v2.severityValue) (y : _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.severityValue go!"Severity" l) v.Severity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.severityValue go!"Severity" l) Severity' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Severity' := Severity' } : k8s_io.klog.v2.severityValue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.severityValue go!"Severity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Severity' := y } : k8s_io.klog.v2.severityValue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -362,11 +362,11 @@ noncomputable instance OutputStats_access_load_lines (l : Loc) (v : k8s_io.klog.
  by
   solve_pointsto_access_struct
 
-noncomputable instance OutputStats_access_store_lines (l : Loc) (v : k8s_io.klog.v2.OutputStats) (lines' : w64) :
+noncomputable instance OutputStats_access_store_lines (l : Loc) (v : k8s_io.klog.v2.OutputStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.OutputStats go!"lines" l) v.lines' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.OutputStats go!"lines" l) lines' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lines' := lines' } : k8s_io.klog.v2.OutputStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.OutputStats go!"lines" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lines' := y } : k8s_io.klog.v2.OutputStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -378,11 +378,11 @@ noncomputable instance OutputStats_access_load_bytes (l : Loc) (v : k8s_io.klog.
  by
   solve_pointsto_access_struct
 
-noncomputable instance OutputStats_access_store_bytes (l : Loc) (v : k8s_io.klog.v2.OutputStats) (bytes' : w64) :
+noncomputable instance OutputStats_access_store_bytes (l : Loc) (v : k8s_io.klog.v2.OutputStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.OutputStats go!"bytes" l) v.bytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.OutputStats go!"bytes" l) bytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bytes' := bytes' } : k8s_io.klog.v2.OutputStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.OutputStats go!"bytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bytes' := y } : k8s_io.klog.v2.OutputStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -418,11 +418,11 @@ noncomputable instance moduleSpec_access_load_filter (l : Loc) (v : k8s_io.klog.
  by
   solve_pointsto_access_struct
 
-noncomputable instance moduleSpec_access_store_filter (l : Loc) (v : k8s_io.klog.v2.moduleSpec) (filter' : GoSlice) :
+noncomputable instance moduleSpec_access_store_filter (l : Loc) (v : k8s_io.klog.v2.moduleSpec) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.moduleSpec go!"filter" l) v.filter' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.moduleSpec go!"filter" l) filter' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filter' := filter' } : k8s_io.klog.v2.moduleSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.moduleSpec go!"filter" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filter' := y } : k8s_io.klog.v2.moduleSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -460,11 +460,11 @@ noncomputable instance modulePat_access_load_pattern (l : Loc) (v : k8s_io.klog.
  by
   solve_pointsto_access_struct
 
-noncomputable instance modulePat_access_store_pattern (l : Loc) (v : k8s_io.klog.v2.modulePat) (pattern' : GoString) :
+noncomputable instance modulePat_access_store_pattern (l : Loc) (v : k8s_io.klog.v2.modulePat) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.modulePat go!"pattern" l) v.pattern' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.modulePat go!"pattern" l) pattern' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pattern' := pattern' } : k8s_io.klog.v2.modulePat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.modulePat go!"pattern" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pattern' := y } : k8s_io.klog.v2.modulePat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -476,11 +476,11 @@ noncomputable instance modulePat_access_load_literal (l : Loc) (v : k8s_io.klog.
  by
   solve_pointsto_access_struct
 
-noncomputable instance modulePat_access_store_literal (l : Loc) (v : k8s_io.klog.v2.modulePat) (literal' : Bool) :
+noncomputable instance modulePat_access_store_literal (l : Loc) (v : k8s_io.klog.v2.modulePat) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.modulePat go!"literal" l) v.literal' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.modulePat go!"literal" l) literal' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with literal' := literal' } : k8s_io.klog.v2.modulePat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.modulePat go!"literal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with literal' := y } : k8s_io.klog.v2.modulePat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -492,11 +492,11 @@ noncomputable instance modulePat_access_load_level (l : Loc) (v : k8s_io.klog.v2
  by
   solve_pointsto_access_struct
 
-noncomputable instance modulePat_access_store_level (l : Loc) (v : k8s_io.klog.v2.modulePat) (level' : k8s_io.klog.v2.Level) :
+noncomputable instance modulePat_access_store_level (l : Loc) (v : k8s_io.klog.v2.modulePat) (y : k8s_io.klog.v2.Level) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.modulePat go!"level" l) v.level' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.modulePat go!"level" l) level' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := level' } : k8s_io.klog.v2.modulePat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.modulePat go!"level" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := y } : k8s_io.klog.v2.modulePat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -533,11 +533,11 @@ noncomputable instance traceLocation_access_load_file (l : Loc) (v : k8s_io.klog
  by
   solve_pointsto_access_struct
 
-noncomputable instance traceLocation_access_store_file (l : Loc) (v : k8s_io.klog.v2.traceLocation) (file' : GoString) :
+noncomputable instance traceLocation_access_store_file (l : Loc) (v : k8s_io.klog.v2.traceLocation) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.traceLocation go!"file" l) v.file' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.traceLocation go!"file" l) file' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with file' := file' } : k8s_io.klog.v2.traceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.traceLocation go!"file" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with file' := y } : k8s_io.klog.v2.traceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -549,11 +549,11 @@ noncomputable instance traceLocation_access_load_line (l : Loc) (v : k8s_io.klog
  by
   solve_pointsto_access_struct
 
-noncomputable instance traceLocation_access_store_line (l : Loc) (v : k8s_io.klog.v2.traceLocation) (line' : w64) :
+noncomputable instance traceLocation_access_store_line (l : Loc) (v : k8s_io.klog.v2.traceLocation) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.traceLocation go!"line" l) v.line' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.traceLocation go!"line" l) line' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with line' := line' } : k8s_io.klog.v2.traceLocation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.traceLocation go!"line" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with line' := y } : k8s_io.klog.v2.traceLocation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -610,11 +610,11 @@ noncomputable instance settings_access_load_contextualLoggingEnabled (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_contextualLoggingEnabled (l : Loc) (v : k8s_io.klog.v2.settings) (contextualLoggingEnabled' : Bool) :
+noncomputable instance settings_access_store_contextualLoggingEnabled (l : Loc) (v : k8s_io.klog.v2.settings) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"contextualLoggingEnabled" l) v.contextualLoggingEnabled' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"contextualLoggingEnabled" l) contextualLoggingEnabled' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contextualLoggingEnabled' := contextualLoggingEnabled' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"contextualLoggingEnabled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contextualLoggingEnabled' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -626,11 +626,11 @@ noncomputable instance settings_access_load_logger (l : Loc) (v : k8s_io.klog.v2
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_logger (l : Loc) (v : k8s_io.klog.v2.settings) (logger' : Loc) :
+noncomputable instance settings_access_store_logger (l : Loc) (v : k8s_io.klog.v2.settings) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logger" l) v.logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logger" l) logger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := logger' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -642,11 +642,11 @@ noncomputable instance settings_access_load_loggerOptions (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_loggerOptions (l : Loc) (v : k8s_io.klog.v2.settings) (loggerOptions' : k8s_io.klog.v2.loggerOptions) :
+noncomputable instance settings_access_store_loggerOptions (l : Loc) (v : k8s_io.klog.v2.settings) (y : k8s_io.klog.v2.loggerOptions) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"loggerOptions" l) v.loggerOptions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"loggerOptions" l) loggerOptions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with loggerOptions' := loggerOptions' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"loggerOptions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with loggerOptions' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -658,11 +658,11 @@ noncomputable instance settings_access_load_toStderr (l : Loc) (v : k8s_io.klog.
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_toStderr (l : Loc) (v : k8s_io.klog.v2.settings) (toStderr' : Bool) :
+noncomputable instance settings_access_store_toStderr (l : Loc) (v : k8s_io.klog.v2.settings) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"toStderr" l) v.toStderr' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"toStderr" l) toStderr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with toStderr' := toStderr' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"toStderr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with toStderr' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -674,11 +674,11 @@ noncomputable instance settings_access_load_alsoToStderr (l : Loc) (v : k8s_io.k
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_alsoToStderr (l : Loc) (v : k8s_io.klog.v2.settings) (alsoToStderr' : Bool) :
+noncomputable instance settings_access_store_alsoToStderr (l : Loc) (v : k8s_io.klog.v2.settings) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"alsoToStderr" l) v.alsoToStderr' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"alsoToStderr" l) alsoToStderr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alsoToStderr' := alsoToStderr' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"alsoToStderr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alsoToStderr' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -690,11 +690,11 @@ noncomputable instance settings_access_load_legacyStderrThresholdBehavior (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_legacyStderrThresholdBehavior (l : Loc) (v : k8s_io.klog.v2.settings) (legacyStderrThresholdBehavior' : Bool) :
+noncomputable instance settings_access_store_legacyStderrThresholdBehavior (l : Loc) (v : k8s_io.klog.v2.settings) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"legacyStderrThresholdBehavior" l) v.legacyStderrThresholdBehavior' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"legacyStderrThresholdBehavior" l) legacyStderrThresholdBehavior' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with legacyStderrThresholdBehavior' := legacyStderrThresholdBehavior' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"legacyStderrThresholdBehavior" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with legacyStderrThresholdBehavior' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -706,11 +706,11 @@ noncomputable instance settings_access_load_stderrThreshold (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_stderrThreshold (l : Loc) (v : k8s_io.klog.v2.settings) (stderrThreshold' : k8s_io.klog.v2.severityValue) :
+noncomputable instance settings_access_store_stderrThreshold (l : Loc) (v : k8s_io.klog.v2.settings) (y : k8s_io.klog.v2.severityValue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"stderrThreshold" l) v.stderrThreshold' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"stderrThreshold" l) stderrThreshold' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stderrThreshold' := stderrThreshold' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"stderrThreshold" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stderrThreshold' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -722,11 +722,11 @@ noncomputable instance settings_access_load_alsologtostderrthreshold (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_alsologtostderrthreshold (l : Loc) (v : k8s_io.klog.v2.settings) (alsologtostderrthreshold' : k8s_io.klog.v2.severityValue) :
+noncomputable instance settings_access_store_alsologtostderrthreshold (l : Loc) (v : k8s_io.klog.v2.settings) (y : k8s_io.klog.v2.severityValue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"alsologtostderrthreshold" l) v.alsologtostderrthreshold' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"alsologtostderrthreshold" l) alsologtostderrthreshold' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alsologtostderrthreshold' := alsologtostderrthreshold' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"alsologtostderrthreshold" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alsologtostderrthreshold' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -738,11 +738,11 @@ noncomputable instance settings_access_load_file (l : Loc) (v : k8s_io.klog.v2.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_file (l : Loc) (v : k8s_io.klog.v2.settings) (file' : (GoArray _root_.Perennial.io.Writer 4)) :
+noncomputable instance settings_access_store_file (l : Loc) (v : k8s_io.klog.v2.settings) (y : (GoArray _root_.Perennial.io.Writer 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"file" l) v.file' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"file" l) file' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with file' := file' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"file" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with file' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -754,11 +754,11 @@ noncomputable instance settings_access_load_flushInterval (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_flushInterval (l : Loc) (v : k8s_io.klog.v2.settings) (flushInterval' : _root_.Perennial.time.Duration) :
+noncomputable instance settings_access_store_flushInterval (l : Loc) (v : k8s_io.klog.v2.settings) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"flushInterval" l) v.flushInterval' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"flushInterval" l) flushInterval' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flushInterval' := flushInterval' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"flushInterval" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flushInterval' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -770,11 +770,11 @@ noncomputable instance settings_access_load_filterLength (l : Loc) (v : k8s_io.k
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_filterLength (l : Loc) (v : k8s_io.klog.v2.settings) (filterLength' : w32) :
+noncomputable instance settings_access_store_filterLength (l : Loc) (v : k8s_io.klog.v2.settings) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"filterLength" l) v.filterLength' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"filterLength" l) filterLength' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filterLength' := filterLength' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"filterLength" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filterLength' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -786,11 +786,11 @@ noncomputable instance settings_access_load_traceLocation (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_traceLocation (l : Loc) (v : k8s_io.klog.v2.settings) (traceLocation' : k8s_io.klog.v2.traceLocation) :
+noncomputable instance settings_access_store_traceLocation (l : Loc) (v : k8s_io.klog.v2.settings) (y : k8s_io.klog.v2.traceLocation) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"traceLocation" l) v.traceLocation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"traceLocation" l) traceLocation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceLocation' := traceLocation' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"traceLocation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceLocation' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -802,11 +802,11 @@ noncomputable instance settings_access_load_vmodule (l : Loc) (v : k8s_io.klog.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_vmodule (l : Loc) (v : k8s_io.klog.v2.settings) (vmodule' : k8s_io.klog.v2.moduleSpec) :
+noncomputable instance settings_access_store_vmodule (l : Loc) (v : k8s_io.klog.v2.settings) (y : k8s_io.klog.v2.moduleSpec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"vmodule" l) v.vmodule' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"vmodule" l) vmodule' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vmodule' := vmodule' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"vmodule" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vmodule' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -818,11 +818,11 @@ noncomputable instance settings_access_load_verbosity (l : Loc) (v : k8s_io.klog
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_verbosity (l : Loc) (v : k8s_io.klog.v2.settings) (verbosity' : k8s_io.klog.v2.Level) :
+noncomputable instance settings_access_store_verbosity (l : Loc) (v : k8s_io.klog.v2.settings) (y : k8s_io.klog.v2.Level) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"verbosity" l) v.verbosity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"verbosity" l) verbosity' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verbosity' := verbosity' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"verbosity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verbosity' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -834,11 +834,11 @@ noncomputable instance settings_access_load_logDir (l : Loc) (v : k8s_io.klog.v2
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_logDir (l : Loc) (v : k8s_io.klog.v2.settings) (logDir' : GoString) :
+noncomputable instance settings_access_store_logDir (l : Loc) (v : k8s_io.klog.v2.settings) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logDir" l) v.logDir' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logDir" l) logDir' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logDir' := logDir' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logDir" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logDir' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -850,11 +850,11 @@ noncomputable instance settings_access_load_logFile (l : Loc) (v : k8s_io.klog.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_logFile (l : Loc) (v : k8s_io.klog.v2.settings) (logFile' : GoString) :
+noncomputable instance settings_access_store_logFile (l : Loc) (v : k8s_io.klog.v2.settings) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logFile" l) v.logFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logFile" l) logFile' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logFile' := logFile' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logFile' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -866,11 +866,11 @@ noncomputable instance settings_access_load_logFileMaxSizeMB (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_logFileMaxSizeMB (l : Loc) (v : k8s_io.klog.v2.settings) (logFileMaxSizeMB' : w64) :
+noncomputable instance settings_access_store_logFileMaxSizeMB (l : Loc) (v : k8s_io.klog.v2.settings) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logFileMaxSizeMB" l) v.logFileMaxSizeMB' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logFileMaxSizeMB" l) logFileMaxSizeMB' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logFileMaxSizeMB' := logFileMaxSizeMB' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"logFileMaxSizeMB" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logFileMaxSizeMB' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -882,11 +882,11 @@ noncomputable instance settings_access_load_skipHeaders (l : Loc) (v : k8s_io.kl
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_skipHeaders (l : Loc) (v : k8s_io.klog.v2.settings) (skipHeaders' : Bool) :
+noncomputable instance settings_access_store_skipHeaders (l : Loc) (v : k8s_io.klog.v2.settings) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"skipHeaders" l) v.skipHeaders' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"skipHeaders" l) skipHeaders' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with skipHeaders' := skipHeaders' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"skipHeaders" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with skipHeaders' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -898,11 +898,11 @@ noncomputable instance settings_access_load_skipLogHeaders (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_skipLogHeaders (l : Loc) (v : k8s_io.klog.v2.settings) (skipLogHeaders' : Bool) :
+noncomputable instance settings_access_store_skipLogHeaders (l : Loc) (v : k8s_io.klog.v2.settings) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"skipLogHeaders" l) v.skipLogHeaders' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"skipLogHeaders" l) skipLogHeaders' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with skipLogHeaders' := skipLogHeaders' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"skipLogHeaders" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with skipLogHeaders' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -914,11 +914,11 @@ noncomputable instance settings_access_load_addDirHeader (l : Loc) (v : k8s_io.k
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_addDirHeader (l : Loc) (v : k8s_io.klog.v2.settings) (addDirHeader' : Bool) :
+noncomputable instance settings_access_store_addDirHeader (l : Loc) (v : k8s_io.klog.v2.settings) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"addDirHeader" l) v.addDirHeader' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"addDirHeader" l) addDirHeader' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addDirHeader' := addDirHeader' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"addDirHeader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addDirHeader' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -930,11 +930,11 @@ noncomputable instance settings_access_load_oneOutput (l : Loc) (v : k8s_io.klog
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_oneOutput (l : Loc) (v : k8s_io.klog.v2.settings) (oneOutput' : Bool) :
+noncomputable instance settings_access_store_oneOutput (l : Loc) (v : k8s_io.klog.v2.settings) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"oneOutput" l) v.oneOutput' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"oneOutput" l) oneOutput' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with oneOutput' := oneOutput' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"oneOutput" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with oneOutput' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -946,11 +946,11 @@ noncomputable instance settings_access_load_filter (l : Loc) (v : k8s_io.klog.v2
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_filter (l : Loc) (v : k8s_io.klog.v2.settings) (filter' : k8s_io.klog.v2.LogFilter) :
+noncomputable instance settings_access_store_filter (l : Loc) (v : k8s_io.klog.v2.settings) (y : k8s_io.klog.v2.LogFilter) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"filter" l) v.filter' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"filter" l) filter' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filter' := filter' } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"filter" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filter' := y } : k8s_io.klog.v2.settings) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -990,11 +990,11 @@ noncomputable instance loggingT_access_load_settings (l : Loc) (v : k8s_io.klog.
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggingT_access_store_settings (l : Loc) (v : k8s_io.klog.v2.loggingT) (settings' : k8s_io.klog.v2.settings) :
+noncomputable instance loggingT_access_store_settings (l : Loc) (v : k8s_io.klog.v2.loggingT) (y : k8s_io.klog.v2.settings) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"settings" l) v.settings' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"settings" l) settings' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with settings' := settings' } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"settings" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with settings' := y } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1006,11 +1006,11 @@ noncomputable instance loggingT_access_load_flushD (l : Loc) (v : k8s_io.klog.v2
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggingT_access_store_flushD (l : Loc) (v : k8s_io.klog.v2.loggingT) (flushD' : Loc) :
+noncomputable instance loggingT_access_store_flushD (l : Loc) (v : k8s_io.klog.v2.loggingT) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"flushD" l) v.flushD' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"flushD" l) flushD' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flushD' := flushD' } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"flushD" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flushD' := y } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1022,11 +1022,11 @@ noncomputable instance loggingT_access_load_mu (l : Loc) (v : k8s_io.klog.v2.log
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggingT_access_store_mu (l : Loc) (v : k8s_io.klog.v2.loggingT) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance loggingT_access_store_mu (l : Loc) (v : k8s_io.klog.v2.loggingT) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1038,11 +1038,11 @@ noncomputable instance loggingT_access_load_pcs (l : Loc) (v : k8s_io.klog.v2.lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggingT_access_store_pcs (l : Loc) (v : k8s_io.klog.v2.loggingT) (pcs' : (GoArray w64 1)) :
+noncomputable instance loggingT_access_store_pcs (l : Loc) (v : k8s_io.klog.v2.loggingT) (y : (GoArray w64 1)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"pcs" l) v.pcs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"pcs" l) pcs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pcs' := pcs' } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"pcs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pcs' := y } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1054,11 +1054,11 @@ noncomputable instance loggingT_access_load_vmap (l : Loc) (v : k8s_io.klog.v2.l
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggingT_access_store_vmap (l : Loc) (v : k8s_io.klog.v2.loggingT) (vmap' : GoMap) :
+noncomputable instance loggingT_access_store_vmap (l : Loc) (v : k8s_io.klog.v2.loggingT) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"vmap" l) v.vmap' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"vmap" l) vmap' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vmap' := vmap' } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"vmap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vmap' := y } : k8s_io.klog.v2.loggingT) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1096,11 +1096,11 @@ noncomputable instance state_access_load_settings (l : Loc) (v : k8s_io.klog.v2.
  by
   solve_pointsto_access_struct
 
-noncomputable instance state_access_store_settings (l : Loc) (v : k8s_io.klog.v2.state) (settings' : k8s_io.klog.v2.settings) :
+noncomputable instance state_access_store_settings (l : Loc) (v : k8s_io.klog.v2.state) (y : k8s_io.klog.v2.settings) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.state go!"settings" l) v.settings' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.state go!"settings" l) settings' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with settings' := settings' } : k8s_io.klog.v2.state) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.state go!"settings" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with settings' := y } : k8s_io.klog.v2.state) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1112,11 +1112,11 @@ noncomputable instance state_access_load_flushDRunning (l : Loc) (v : k8s_io.klo
  by
   solve_pointsto_access_struct
 
-noncomputable instance state_access_store_flushDRunning (l : Loc) (v : k8s_io.klog.v2.state) (flushDRunning' : Bool) :
+noncomputable instance state_access_store_flushDRunning (l : Loc) (v : k8s_io.klog.v2.state) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.state go!"flushDRunning" l) v.flushDRunning' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.state go!"flushDRunning" l) flushDRunning' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flushDRunning' := flushDRunning' } : k8s_io.klog.v2.state) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.state go!"flushDRunning" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with flushDRunning' := y } : k8s_io.klog.v2.state) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1128,11 +1128,11 @@ noncomputable instance state_access_load_maxSize (l : Loc) (v : k8s_io.klog.v2.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance state_access_store_maxSize (l : Loc) (v : k8s_io.klog.v2.state) (maxSize' : w64) :
+noncomputable instance state_access_store_maxSize (l : Loc) (v : k8s_io.klog.v2.state) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.state go!"maxSize" l) v.maxSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.state go!"maxSize" l) maxSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxSize' := maxSize' } : k8s_io.klog.v2.state) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.state go!"maxSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxSize' := y } : k8s_io.klog.v2.state) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1226,11 +1226,11 @@ noncomputable instance Verbose_access_load_enabled (l : Loc) (v : k8s_io.klog.v2
  by
   solve_pointsto_access_struct
 
-noncomputable instance Verbose_access_store_enabled (l : Loc) (v : k8s_io.klog.v2.Verbose) (enabled' : Bool) :
+noncomputable instance Verbose_access_store_enabled (l : Loc) (v : k8s_io.klog.v2.Verbose) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.Verbose go!"enabled" l) v.enabled' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.Verbose go!"enabled" l) enabled' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enabled' := enabled' } : k8s_io.klog.v2.Verbose) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.Verbose go!"enabled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enabled' := y } : k8s_io.klog.v2.Verbose) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1242,11 +1242,11 @@ noncomputable instance Verbose_access_load_logger (l : Loc) (v : k8s_io.klog.v2.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Verbose_access_store_logger (l : Loc) (v : k8s_io.klog.v2.Verbose) (logger' : Loc) :
+noncomputable instance Verbose_access_store_logger (l : Loc) (v : k8s_io.klog.v2.Verbose) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.Verbose go!"logger" l) v.logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.Verbose go!"logger" l) logger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := logger' } : k8s_io.klog.v2.Verbose) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.Verbose go!"logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : k8s_io.klog.v2.Verbose) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1285,11 +1285,11 @@ noncomputable instance klogger_access_load_callDepth (l : Loc) (v : k8s_io.klog.
  by
   solve_pointsto_access_struct
 
-noncomputable instance klogger_access_store_callDepth (l : Loc) (v : k8s_io.klog.v2.klogger) (callDepth' : w64) :
+noncomputable instance klogger_access_store_callDepth (l : Loc) (v : k8s_io.klog.v2.klogger) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"callDepth" l) v.callDepth' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"callDepth" l) callDepth' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callDepth' := callDepth' } : k8s_io.klog.v2.klogger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"callDepth" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callDepth' := y } : k8s_io.klog.v2.klogger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1301,11 +1301,11 @@ noncomputable instance klogger_access_load_hasPrefix (l : Loc) (v : k8s_io.klog.
  by
   solve_pointsto_access_struct
 
-noncomputable instance klogger_access_store_hasPrefix (l : Loc) (v : k8s_io.klog.v2.klogger) (hasPrefix' : Bool) :
+noncomputable instance klogger_access_store_hasPrefix (l : Loc) (v : k8s_io.klog.v2.klogger) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"hasPrefix" l) v.hasPrefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"hasPrefix" l) hasPrefix' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hasPrefix' := hasPrefix' } : k8s_io.klog.v2.klogger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"hasPrefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hasPrefix' := y } : k8s_io.klog.v2.klogger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1317,11 +1317,11 @@ noncomputable instance klogger_access_load_values (l : Loc) (v : k8s_io.klog.v2.
  by
   solve_pointsto_access_struct
 
-noncomputable instance klogger_access_store_values (l : Loc) (v : k8s_io.klog.v2.klogger) (values' : GoSlice) :
+noncomputable instance klogger_access_store_values (l : Loc) (v : k8s_io.klog.v2.klogger) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"values" l) v.values' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"values" l) values' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with values' := values' } : k8s_io.klog.v2.klogger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"values" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with values' := y } : k8s_io.klog.v2.klogger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1333,11 +1333,11 @@ noncomputable instance klogger_access_load_groups (l : Loc) (v : k8s_io.klog.v2.
  by
   solve_pointsto_access_struct
 
-noncomputable instance klogger_access_store_groups (l : Loc) (v : k8s_io.klog.v2.klogger) (groups' : GoString) :
+noncomputable instance klogger_access_store_groups (l : Loc) (v : k8s_io.klog.v2.klogger) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"groups" l) v.groups' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"groups" l) groups' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with groups' := groups' } : k8s_io.klog.v2.klogger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.klog.v2.klogger go!"groups" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with groups' := y } : k8s_io.klog.v2.klogger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

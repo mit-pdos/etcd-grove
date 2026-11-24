@@ -1185,7 +1185,7 @@ class Reflector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   get_typeDescription : ∀ (x : Reflector), go.IsGoStepPureDetTagged under (StructFieldGet Reflector.underlying go!"typeDescription") #x (Val #(x.typeDescription'))
   set_typeDescription : ∀ (x : Reflector) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Reflector.underlying go!"typeDescription") (PairV #x #y) (Val #(({ x with typeDescription' := y } : Reflector)))
   get_expectedType : ∀ (x : Reflector), go.IsGoStepPureDetTagged under (StructFieldGet Reflector.underlying go!"expectedType") #x (Val #(x.expectedType'))
-  set_expectedType : ∀ (x : Reflector) (y : _root_.Perennial.reflect.Type'), go.IsGoStepPureDetTagged under (StructFieldSet Reflector.underlying go!"expectedType") (PairV #x #y) (Val #(({ x with expectedType' := y } : Reflector)))
+  set_expectedType : ∀ (x : Reflector) (y : _root_.Perennial.reflect.«Type»), go.IsGoStepPureDetTagged under (StructFieldSet Reflector.underlying go!"expectedType") (PairV #x #y) (Val #(({ x with expectedType' := y } : Reflector)))
   get_expectedGVK : ∀ (x : Reflector), go.IsGoStepPureDetTagged under (StructFieldGet Reflector.underlying go!"expectedGVK") #x (Val #(x.expectedGVK'))
   set_expectedGVK : ∀ (x : Reflector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Reflector.underlying go!"expectedGVK") (PairV #x #y) (Val #(({ x with expectedGVK' := y } : Reflector)))
   get_store : ∀ (x : Reflector), go.IsGoStepPureDetTagged under (StructFieldGet Reflector.underlying go!"store") #x (Val #(x.store'))

@@ -52,15 +52,15 @@ noncomputable def ListMetaAccessor.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] ListMetaAccessor.ty
 
-noncomputable def List'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def List''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.List" [])
 
-attribute [irreducible] List'.ty
+attribute [irreducible] List''.ty
 
-noncomputable def Type'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def «Type».ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.Type" [])
 
-attribute [irreducible] Type'.ty
+attribute [irreducible] «Type».ty
 
 noncomputable def MetadataAccessor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.MetadataAccessor" [])
@@ -361,17 +361,17 @@ noncomputable def maybeReset [GooseExts] [GoGlobalContext] : GoString :=
     go: meta.go:69:6 -/
 noncomputable def ListAccessor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "obj"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc List'.ty))) (App (Val (GoInstruction (GoZeroVal List'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc List''.ty))) (App (Val (GoInstruction (GoZeroVal List''.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "obj"))
   (Let "$y" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj"))
-  (Let "__p" (App (Val (GoInstruction (TypeAssert2 List'.ty))) (Var "$y"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 List''.ty))) (Var "$y"))
   (Let "$x" (Fst (Var "__p"))
   (Let "$ok" (Snd (Var "__p"))
   (If (Var "$ok")
-  (Let "t" (App (Val (GoInstruction (GoAlloc List'.ty))) (Var "$x"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad List'.ty))) (Var "t"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc List''.ty))) (Var "$x"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad List''.ty))) (Var "t"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -380,14 +380,14 @@ noncomputable def ListAccessor.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore List'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore List''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 ListMetaAccessor.ty))) (Var "$y"))
   (Let "$x" (Fst (Var "__p"))
   (Let "$ok" (Snd (Var "__p"))
   (If (Var "$ok")
   (Let "t" (App (Val (GoInstruction (GoAlloc ListMetaAccessor.ty))) (Var "$x"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil List'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil List''.ty))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotList))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -396,12 +396,12 @@ noncomputable def ListAccessor.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore List'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore List''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve ListMetaAccessor.ty go!"GetListMeta"))) (App (Val (GoInstruction (GoLoad ListMetaAccessor.ty))) (Var "t"))) (Val #()))
-  (Let "m" (App (Val (GoInstruction (GoAlloc List'.ty))) (App (Val (GoInstruction (GoZeroVal List'.ty))) (Val #())))
+  (Let "m" (App (Val (GoInstruction (GoAlloc List''.ty))) (App (Val (GoInstruction (GoZeroVal List''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals List'.ty))) (Pair (App (Val (GoInstruction (GoLoad List'.ty))) (Var "m")) (App (Val (GoInstruction (Convert go.untypedNil List'.ty))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad List'.ty))) (Var "m"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals List''.ty))) (Pair (App (Val (GoInstruction (GoLoad List''.ty))) (Var "m")) (App (Val (GoInstruction (Convert go.untypedNil List''.ty))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad List''.ty))) (Var "m"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -410,18 +410,18 @@ noncomputable def ListAccessor.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore List'.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore List''.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore List'.ty))) (Pair (Var "m") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore List''.ty))) (Pair (Var "m") (Var "$r0")))))))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMetaAccessor.ty))) (Var "$y"))
   (Let "$x" (Fst (Var "__p"))
   (Let "$ok" (Snd (Var "__p"))
   (If (Var "$ok")
   (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMetaAccessor.ty))) (Var "$x"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil List'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil List''.ty))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotList))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -430,7 +430,7 @@ noncomputable def ListAccessor.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore List'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore List''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMetaAccessor.ty go!"GetListMeta"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMetaAccessor.ty))) (Var "t"))) (Val #()))
   (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -444,12 +444,12 @@ noncomputable def ListAccessor.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore List'.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore List''.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty))) (Pair (Var "m") (Var "$r0")))))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil List'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil List''.ty))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNotList))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -458,8 +458,8 @@ noncomputable def ListAccessor.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore List'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad List'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+  (App (Val (GoInstruction (GoStore List''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad List''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
 /-- Accessor takes an arbitrary object pointer and returns meta.Interface.
     obj must be a pointer to an API type. An error is returned if the minimum
@@ -781,40 +781,40 @@ attribute [instance] FirstHitRESTMapper.TypeAssumptions.type_repr
 abbrev ListMetaAccessor [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def ListMetaAccessor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetListMeta" (go.signature.Signature [] false [List'.ty]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetListMeta" (go.signature.Signature [] false [List''.ty]))])
 
 class ListMetaAccessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ListMetaAccessor.ty ListMetaAccessor.underlying
-  method_set : go.MethodSetIs ListMetaAccessor.ty [(go!"GetListMeta", (some (go.signature.Signature [] false [List'.ty])))]
+  method_set : go.MethodSetIs ListMetaAccessor.ty [(go!"GetListMeta", (some (go.signature.Signature [] false [List''.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListMetaAccessor.ty) []
 
 attribute [instance] ListMetaAccessor.TypeAssumptions.underlying
   ListMetaAccessor.TypeAssumptions.method_set
   ListMetaAccessor.TypeAssumptions.ptr_method_set
 
-abbrev List' [GooseExts] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface
+abbrev List'' [GooseExts] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface
 
-@[reducible] noncomputable def List'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def List''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty
 
-class List.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq List'.ty List'.underlying
-  method_set : go.MethodSetIs List'.ty [(go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType List'.ty) []
+class List''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq List''.ty List''.underlying
+  method_set : go.MethodSetIs List''.ty [(go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType List''.ty) []
 
-attribute [instance] List.TypeAssumptions.underlying
-  List.TypeAssumptions.method_set
-  List.TypeAssumptions.ptr_method_set
+attribute [instance] List''.TypeAssumptions.underlying
+  List''.TypeAssumptions.method_set
+  List''.TypeAssumptions.ptr_method_set
 
-abbrev Type' [GooseExts] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Type'
+abbrev «Type» [GooseExts] : Type := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.«Type»
 
-@[reducible] noncomputable def Type'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Type'.ty
+@[reducible] noncomputable def «Type».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.«Type».ty
 
 class «Type».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq Type'.ty Type'.underlying
-  method_set : go.MethodSetIs Type'.ty [(go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetKind", (some (go.signature.Signature [] false [go.string]))), (go!"SetAPIVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetKind", (some (go.signature.Signature [go.string] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Type'.ty) []
+  underlying : go.UnderlyingDirectedEq «Type».ty «Type».underlying
+  method_set : go.MethodSetIs «Type».ty [(go!"GetAPIVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetKind", (some (go.signature.Signature [] false [go.string]))), (go!"SetAPIVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetKind", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType «Type».ty) []
 
 attribute [instance] «Type».TypeAssumptions.underlying
   «Type».TypeAssumptions.method_set
@@ -1271,7 +1271,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NoKindMatchError_instance : NoKindMatchError.TypeAssumptions
   FirstHitRESTMapper_instance : FirstHitRESTMapper.TypeAssumptions
   ListMetaAccessor_instance : ListMetaAccessor.TypeAssumptions
-  List_instance : List.TypeAssumptions
+  List_instance : List''.TypeAssumptions
   Type_instance : «Type».TypeAssumptions
   MetadataAccessor_instance : MetadataAccessor.TypeAssumptions
   RESTScopeName_instance : RESTScopeName.TypeAssumptions

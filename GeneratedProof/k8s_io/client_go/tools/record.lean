@@ -70,11 +70,11 @@ noncomputable instance EventRecorderAdapter_access_load_recorder (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventRecorderAdapter_access_store_recorder (l : Loc) (v : k8s_io.client_go.tools.record.EventRecorderAdapter) (recorder' : k8s_io.client_go.tools.record.EventRecorderLogger) :
+noncomputable instance EventRecorderAdapter_access_store_recorder (l : Loc) (v : k8s_io.client_go.tools.record.EventRecorderAdapter) (y : k8s_io.client_go.tools.record.EventRecorderLogger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) v.recorder' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) recorder' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recorder' := recorder' } : k8s_io.client_go.tools.record.EventRecorderAdapter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recorder' := y } : k8s_io.client_go.tools.record.EventRecorderAdapter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -265,11 +265,11 @@ noncomputable instance eventLog_access_load_count (l : Loc) (v : k8s_io.client_g
  by
   solve_pointsto_access_struct
 
-noncomputable instance eventLog_access_store_count (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (count' : w64) :
+noncomputable instance eventLog_access_store_count (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) count' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with count' := count' } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with count' := y } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -281,11 +281,11 @@ noncomputable instance eventLog_access_load_firstTimestamp (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance eventLog_access_store_firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (firstTimestamp' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance eventLog_access_store_firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) firstTimestamp' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with firstTimestamp' := firstTimestamp' } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with firstTimestamp' := y } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -297,11 +297,11 @@ noncomputable instance eventLog_access_load_name (l : Loc) (v : k8s_io.client_go
  by
   solve_pointsto_access_struct
 
-noncomputable instance eventLog_access_store_name (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (name' : GoString) :
+noncomputable instance eventLog_access_store_name (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -313,11 +313,11 @@ noncomputable instance eventLog_access_load_resourceVersion (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance eventLog_access_store_resourceVersion (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (resourceVersion' : GoString) :
+noncomputable instance eventLog_access_store_resourceVersion (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) resourceVersion' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := resourceVersion' } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := y } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -374,11 +374,11 @@ noncomputable instance EventCorrelator_access_load_filterFunc (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventCorrelator_access_store_filterFunc (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (filterFunc' : k8s_io.client_go.tools.record.EventFilterFunc) :
+noncomputable instance EventCorrelator_access_store_filterFunc (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (y : k8s_io.client_go.tools.record.EventFilterFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) v.filterFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) filterFunc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filterFunc' := filterFunc' } : k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filterFunc' := y } : k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -390,11 +390,11 @@ noncomputable instance EventCorrelator_access_load_aggregator (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventCorrelator_access_store_aggregator (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (aggregator' : Loc) :
+noncomputable instance EventCorrelator_access_store_aggregator (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) v.aggregator' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) aggregator' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with aggregator' := aggregator' } : k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with aggregator' := y } : k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -406,11 +406,11 @@ noncomputable instance EventCorrelator_access_load_logger (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventCorrelator_access_store_logger (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (logger' : Loc) :
+noncomputable instance EventCorrelator_access_store_logger (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) v.logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) logger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := logger' } : k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -448,11 +448,11 @@ noncomputable instance EventCorrelateResult_access_load_Event (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventCorrelateResult_access_store_Event (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (Event' : Loc) :
+noncomputable instance EventCorrelateResult_access_store_Event (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) Event' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Event' := Event' } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Event' := y } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -464,11 +464,11 @@ noncomputable instance EventCorrelateResult_access_load_Patch (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventCorrelateResult_access_store_Patch (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (Patch' : GoSlice) :
+noncomputable instance EventCorrelateResult_access_store_Patch (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) Patch' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Patch' := Patch' } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Patch' := y } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -480,11 +480,11 @@ noncomputable instance EventCorrelateResult_access_load_Skip (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventCorrelateResult_access_store_Skip (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (Skip' : Bool) :
+noncomputable instance EventCorrelateResult_access_store_Skip (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) Skip' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Skip' := Skip' } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Skip' := y } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -521,11 +521,11 @@ noncomputable instance FakeRecorder_access_load_Events (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakeRecorder_access_store_Events (l : Loc) (v : k8s_io.client_go.tools.record.FakeRecorder) (Events' : GoChan) :
+noncomputable instance FakeRecorder_access_store_Events (l : Loc) (v : k8s_io.client_go.tools.record.FakeRecorder) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) v.Events' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) Events' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Events' := Events' } : k8s_io.client_go.tools.record.FakeRecorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Events' := y } : k8s_io.client_go.tools.record.FakeRecorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -537,11 +537,11 @@ noncomputable instance FakeRecorder_access_load_IncludeObject (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakeRecorder_access_store_IncludeObject (l : Loc) (v : k8s_io.client_go.tools.record.FakeRecorder) (IncludeObject' : Bool) :
+noncomputable instance FakeRecorder_access_store_IncludeObject (l : Loc) (v : k8s_io.client_go.tools.record.FakeRecorder) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) v.IncludeObject' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) IncludeObject' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IncludeObject' := IncludeObject' } : k8s_io.client_go.tools.record.FakeRecorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IncludeObject' := y } : k8s_io.client_go.tools.record.FakeRecorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

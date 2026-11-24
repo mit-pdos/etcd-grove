@@ -56,11 +56,11 @@ noncomputable instance raftSwap_access_load_mu (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance raftSwap_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (mu' : Loc) :
+noncomputable instance raftSwap_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -72,11 +72,11 @@ noncomputable instance raftSwap_access_load_h (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance raftSwap_access_store_h (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (h' : _root_.Perennial.net.http.Handler) :
+noncomputable instance raftSwap_access_store_h (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (y : _root_.Perennial.net.http.Handler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap go!"h" l) v.h' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap go!"h" l) h' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h' := h' } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap go!"h" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h' := y } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -115,11 +115,11 @@ noncomputable instance member_access_load_sw (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance member_access_store_sw (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (sw' : Loc) :
+noncomputable instance member_access_store_sw (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"sw" l) v.sw' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"sw" l) sw' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sw' := sw' } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"sw" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sw' := y } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -131,11 +131,11 @@ noncomputable instance member_access_load_name (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance member_access_store_name (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (name' : GoString) :
+noncomputable instance member_access_store_name (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -147,11 +147,11 @@ noncomputable instance member_access_load_peer (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance member_access_store_peer (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (peer' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
+noncomputable instance member_access_store_peer (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"peer" l) v.peer' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"peer" l) peer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peer' := peer' } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"peer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peer' := y } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -163,11 +163,11 @@ noncomputable instance member_access_load_client (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance member_access_store_client (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (client' : GoString) :
+noncomputable instance member_access_store_client (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"client" l) v.client' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"client" l) client' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with client' := client' } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"client" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with client' := y } : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

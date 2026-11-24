@@ -911,7 +911,7 @@ noncomputable def MatchTopologySelectorTerms.impl [GooseExts] [GoGlobalContext] 
   (Lam "lbls"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "lbls" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "lbls"))
+  (Let "lbls" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Var "lbls"))
   (Let "topologySelectorTerms" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.api.core.v1.TopologySelectorTerm.ty)))) (Var "topologySelectorTerms"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -946,7 +946,7 @@ noncomputable def MatchTopologySelectorTerms.impl [GooseExts] [GoGlobalContext] 
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty))) (Var "lbls")))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty _root_.Perennial.k8s_io.apimachinery.pkg.labels.Labels.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set''.ty))) (Var "lbls")))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty go!"Matches"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty))) (Var "labelSelector"))) (Var "$a0")))))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)

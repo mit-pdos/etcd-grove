@@ -103,11 +103,11 @@ noncomputable instance dotReader_access_load_r (l : Loc) (v : net.textproto.dotR
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotReader_access_store_r (l : Loc) (v : net.textproto.dotReader) (r' : Loc) :
+noncomputable instance dotReader_access_store_r (l : Loc) (v : net.textproto.dotReader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) v.r' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) r' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : net.textproto.dotReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : net.textproto.dotReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -119,11 +119,11 @@ noncomputable instance dotReader_access_load_state (l : Loc) (v : net.textproto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotReader_access_store_state (l : Loc) (v : net.textproto.dotReader) (state' : w64) :
+noncomputable instance dotReader_access_store_state (l : Loc) (v : net.textproto.dotReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : net.textproto.dotReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : net.textproto.dotReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -160,11 +160,11 @@ noncomputable instance Error_access_load_Code (l : Loc) (v : net.textproto.Error
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Code (l : Loc) (v : net.textproto.Error) (Code' : w64) :
+noncomputable instance Error_access_store_Code (l : Loc) (v : net.textproto.Error) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) v.Code' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) Code' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := Code' } : net.textproto.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := y } : net.textproto.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -176,11 +176,11 @@ noncomputable instance Error_access_load_Msg (l : Loc) (v : net.textproto.Error)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Msg (l : Loc) (v : net.textproto.Error) (Msg' : GoString) :
+noncomputable instance Error_access_store_Msg (l : Loc) (v : net.textproto.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) v.Msg' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) Msg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := Msg' } : net.textproto.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := y } : net.textproto.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -255,11 +255,11 @@ noncomputable instance dotWriter_access_load_w (l : Loc) (v : net.textproto.dotW
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotWriter_access_store_w (l : Loc) (v : net.textproto.dotWriter) (w' : Loc) :
+noncomputable instance dotWriter_access_store_w (l : Loc) (v : net.textproto.dotWriter) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) w' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := w' } : net.textproto.dotWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : net.textproto.dotWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -271,11 +271,11 @@ noncomputable instance dotWriter_access_load_state (l : Loc) (v : net.textproto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance dotWriter_access_store_state (l : Loc) (v : net.textproto.dotWriter) (state' : w64) :
+noncomputable instance dotWriter_access_store_state (l : Loc) (v : net.textproto.dotWriter) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : net.textproto.dotWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : net.textproto.dotWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -46,11 +46,11 @@ noncomputable instance ParseResult_access_load_Config (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance ParseResult_access_store_Config (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (Config' : google_golang_org.grpc.serviceconfig.Config) :
+noncomputable instance ParseResult_access_store_Config (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (y : google_golang_org.grpc.serviceconfig.Config) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Config" l) v.Config' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Config" l) Config' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Config' := Config' } : google_golang_org.grpc.serviceconfig.ParseResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Config" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Config' := y } : google_golang_org.grpc.serviceconfig.ParseResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -62,11 +62,11 @@ noncomputable instance ParseResult_access_load_Err (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ParseResult_access_store_Err (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (Err' : GoError) :
+noncomputable instance ParseResult_access_store_Err (l : Loc) (v : google_golang_org.grpc.serviceconfig.ParseResult) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Err" l) v.Err' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Err" l) Err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := Err' } : google_golang_org.grpc.serviceconfig.ParseResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.serviceconfig.ParseResult go!"Err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : google_golang_org.grpc.serviceconfig.ParseResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

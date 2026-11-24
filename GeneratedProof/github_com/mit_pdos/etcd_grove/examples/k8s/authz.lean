@@ -54,11 +54,11 @@ noncomputable instance arbCondition_access_load_id (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance arbCondition_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (id' : GoString) :
+noncomputable instance arbCondition_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -70,11 +70,11 @@ noncomputable instance arbCondition_access_load_typ (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance arbCondition_access_store_typ (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (typ' : GoString) :
+noncomputable instance arbCondition_access_store_typ (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) v.typ' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) typ' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with typ' := typ' } : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with typ' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -110,11 +110,11 @@ noncomputable instance arbAuthorizer_access_load_depth (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance arbAuthorizer_access_store_depth (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (depth' : w64) :
+noncomputable instance arbAuthorizer_access_store_depth (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) v.depth' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) depth' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with depth' := depth' } : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with depth' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

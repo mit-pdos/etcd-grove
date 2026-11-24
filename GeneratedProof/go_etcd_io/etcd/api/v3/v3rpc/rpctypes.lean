@@ -48,11 +48,11 @@ noncomputable instance EtcdError_access_load_code (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdError_access_store_code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (code' : _root_.Perennial.google_golang_org.grpc.codes.Code) :
+noncomputable instance EtcdError_access_store_code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) code' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := code' } : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := y } : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,11 +64,11 @@ noncomputable instance EtcdError_access_load_desc (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdError_access_store_desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (desc' : GoString) :
+noncomputable instance EtcdError_access_store_desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) desc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with desc' := desc' } : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with desc' := y } : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

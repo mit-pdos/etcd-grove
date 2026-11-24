@@ -46,11 +46,11 @@ noncomputable instance Pool_access_load_p (l : Loc) (v : go_uber_org.zap.buffer.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pool_access_store_p (l : Loc) (v : go_uber_org.zap.buffer.Pool) (p' : Loc) :
+noncomputable instance Pool_access_store_p (l : Loc) (v : go_uber_org.zap.buffer.Pool) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.buffer.Pool go!"p" l) v.p' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.buffer.Pool go!"p" l) p' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with p' := p' } : go_uber_org.zap.buffer.Pool) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.buffer.Pool go!"p" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with p' := y } : go_uber_org.zap.buffer.Pool) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -87,11 +87,11 @@ noncomputable instance Buffer_access_load_bs (l : Loc) (v : go_uber_org.zap.buff
  by
   solve_pointsto_access_struct
 
-noncomputable instance Buffer_access_store_bs (l : Loc) (v : go_uber_org.zap.buffer.Buffer) (bs' : GoSlice) :
+noncomputable instance Buffer_access_store_bs (l : Loc) (v : go_uber_org.zap.buffer.Buffer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.buffer.Buffer go!"bs" l) v.bs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.buffer.Buffer go!"bs" l) bs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bs' := bs' } : go_uber_org.zap.buffer.Buffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.buffer.Buffer go!"bs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bs' := y } : go_uber_org.zap.buffer.Buffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -103,11 +103,11 @@ noncomputable instance Buffer_access_load_pool (l : Loc) (v : go_uber_org.zap.bu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Buffer_access_store_pool (l : Loc) (v : go_uber_org.zap.buffer.Buffer) (pool' : go_uber_org.zap.buffer.Pool) :
+noncomputable instance Buffer_access_store_pool (l : Loc) (v : go_uber_org.zap.buffer.Buffer) (y : go_uber_org.zap.buffer.Pool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.buffer.Buffer go!"pool" l) v.pool' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.buffer.Buffer go!"pool" l) pool' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pool' := pool' } : go_uber_org.zap.buffer.Buffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.buffer.Buffer go!"pool" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pool' := y } : go_uber_org.zap.buffer.Buffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

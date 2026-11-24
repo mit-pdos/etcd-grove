@@ -49,11 +49,11 @@ noncomputable instance Position_access_load_Filename (l : Loc) (v : go.token.Pos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Position_access_store_Filename (l : Loc) (v : go.token.Position) (Filename' : GoString) :
+noncomputable instance Position_access_store_Filename (l : Loc) (v : go.token.Position) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.Position go!"Filename" l) v.Filename' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.Position go!"Filename" l) Filename' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Filename' := Filename' } : go.token.Position) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.Position go!"Filename" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Filename' := y } : go.token.Position) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -65,11 +65,11 @@ noncomputable instance Position_access_load_Offset (l : Loc) (v : go.token.Posit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Position_access_store_Offset (l : Loc) (v : go.token.Position) (Offset' : w64) :
+noncomputable instance Position_access_store_Offset (l : Loc) (v : go.token.Position) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.Position go!"Offset" l) v.Offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.Position go!"Offset" l) Offset' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := Offset' } : go.token.Position) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.Position go!"Offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : go.token.Position) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -81,11 +81,11 @@ noncomputable instance Position_access_load_Line (l : Loc) (v : go.token.Positio
  by
   solve_pointsto_access_struct
 
-noncomputable instance Position_access_store_Line (l : Loc) (v : go.token.Position) (Line' : w64) :
+noncomputable instance Position_access_store_Line (l : Loc) (v : go.token.Position) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.Position go!"Line" l) v.Line' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.Position go!"Line" l) Line' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Line' := Line' } : go.token.Position) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.Position go!"Line" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Line' := y } : go.token.Position) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -97,11 +97,11 @@ noncomputable instance Position_access_load_Column (l : Loc) (v : go.token.Posit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Position_access_store_Column (l : Loc) (v : go.token.Position) (Column' : w64) :
+noncomputable instance Position_access_store_Column (l : Loc) (v : go.token.Position) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.Position go!"Column" l) v.Column' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.Position go!"Column" l) Column' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Column' := Column' } : go.token.Position) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.Position go!"Column" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Column' := y } : go.token.Position) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -159,11 +159,11 @@ noncomputable instance lineInfo_access_load_Offset (l : Loc) (v : go.token.lineI
  by
   solve_pointsto_access_struct
 
-noncomputable instance lineInfo_access_store_Offset (l : Loc) (v : go.token.lineInfo) (Offset' : w64) :
+noncomputable instance lineInfo_access_store_Offset (l : Loc) (v : go.token.lineInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.lineInfo go!"Offset" l) v.Offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.lineInfo go!"Offset" l) Offset' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := Offset' } : go.token.lineInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.lineInfo go!"Offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : go.token.lineInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -175,11 +175,11 @@ noncomputable instance lineInfo_access_load_Filename (l : Loc) (v : go.token.lin
  by
   solve_pointsto_access_struct
 
-noncomputable instance lineInfo_access_store_Filename (l : Loc) (v : go.token.lineInfo) (Filename' : GoString) :
+noncomputable instance lineInfo_access_store_Filename (l : Loc) (v : go.token.lineInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.lineInfo go!"Filename" l) v.Filename' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.lineInfo go!"Filename" l) Filename' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Filename' := Filename' } : go.token.lineInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.lineInfo go!"Filename" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Filename' := y } : go.token.lineInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -191,11 +191,11 @@ noncomputable instance lineInfo_access_load_Line (l : Loc) (v : go.token.lineInf
  by
   solve_pointsto_access_struct
 
-noncomputable instance lineInfo_access_store_Line (l : Loc) (v : go.token.lineInfo) (Line' : w64) :
+noncomputable instance lineInfo_access_store_Line (l : Loc) (v : go.token.lineInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.lineInfo go!"Line" l) v.Line' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.lineInfo go!"Line" l) Line' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Line' := Line' } : go.token.lineInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.lineInfo go!"Line" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Line' := y } : go.token.lineInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -207,11 +207,11 @@ noncomputable instance lineInfo_access_load_Column (l : Loc) (v : go.token.lineI
  by
   solve_pointsto_access_struct
 
-noncomputable instance lineInfo_access_store_Column (l : Loc) (v : go.token.lineInfo) (Column' : w64) :
+noncomputable instance lineInfo_access_store_Column (l : Loc) (v : go.token.lineInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.lineInfo go!"Column" l) v.Column' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.lineInfo go!"Column" l) Column' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Column' := Column' } : go.token.lineInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.lineInfo go!"Column" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Column' := y } : go.token.lineInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -270,11 +270,11 @@ noncomputable instance serializedFile_access_load_Name (l : Loc) (v : go.token.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance serializedFile_access_store_Name (l : Loc) (v : go.token.serializedFile) (Name' : GoString) :
+noncomputable instance serializedFile_access_store_Name (l : Loc) (v : go.token.serializedFile) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.serializedFile go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.serializedFile go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : go.token.serializedFile) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.serializedFile go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : go.token.serializedFile) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -286,11 +286,11 @@ noncomputable instance serializedFile_access_load_Base (l : Loc) (v : go.token.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance serializedFile_access_store_Base (l : Loc) (v : go.token.serializedFile) (Base' : w64) :
+noncomputable instance serializedFile_access_store_Base (l : Loc) (v : go.token.serializedFile) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.serializedFile go!"Base" l) v.Base' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.serializedFile go!"Base" l) Base' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Base' := Base' } : go.token.serializedFile) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.serializedFile go!"Base" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Base' := y } : go.token.serializedFile) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -302,11 +302,11 @@ noncomputable instance serializedFile_access_load_Size (l : Loc) (v : go.token.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance serializedFile_access_store_Size (l : Loc) (v : go.token.serializedFile) (Size' : w64) :
+noncomputable instance serializedFile_access_store_Size (l : Loc) (v : go.token.serializedFile) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.serializedFile go!"Size" l) v.Size' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.serializedFile go!"Size" l) Size' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := Size' } : go.token.serializedFile) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.serializedFile go!"Size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := y } : go.token.serializedFile) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -318,11 +318,11 @@ noncomputable instance serializedFile_access_load_Lines (l : Loc) (v : go.token.
  by
   solve_pointsto_access_struct
 
-noncomputable instance serializedFile_access_store_Lines (l : Loc) (v : go.token.serializedFile) (Lines' : GoSlice) :
+noncomputable instance serializedFile_access_store_Lines (l : Loc) (v : go.token.serializedFile) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.serializedFile go!"Lines" l) v.Lines' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.serializedFile go!"Lines" l) Lines' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lines' := Lines' } : go.token.serializedFile) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.serializedFile go!"Lines" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lines' := y } : go.token.serializedFile) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -334,11 +334,11 @@ noncomputable instance serializedFile_access_load_Infos (l : Loc) (v : go.token.
  by
   solve_pointsto_access_struct
 
-noncomputable instance serializedFile_access_store_Infos (l : Loc) (v : go.token.serializedFile) (Infos' : GoSlice) :
+noncomputable instance serializedFile_access_store_Infos (l : Loc) (v : go.token.serializedFile) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.serializedFile go!"Infos" l) v.Infos' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.serializedFile go!"Infos" l) Infos' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Infos' := Infos' } : go.token.serializedFile) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.serializedFile go!"Infos" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Infos' := y } : go.token.serializedFile) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -375,11 +375,11 @@ noncomputable instance serializedFileSet_access_load_Base (l : Loc) (v : go.toke
  by
   solve_pointsto_access_struct
 
-noncomputable instance serializedFileSet_access_store_Base (l : Loc) (v : go.token.serializedFileSet) (Base' : w64) :
+noncomputable instance serializedFileSet_access_store_Base (l : Loc) (v : go.token.serializedFileSet) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.serializedFileSet go!"Base" l) v.Base' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.serializedFileSet go!"Base" l) Base' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Base' := Base' } : go.token.serializedFileSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.serializedFileSet go!"Base" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Base' := y } : go.token.serializedFileSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -391,11 +391,11 @@ noncomputable instance serializedFileSet_access_load_Files (l : Loc) (v : go.tok
  by
   solve_pointsto_access_struct
 
-noncomputable instance serializedFileSet_access_store_Files (l : Loc) (v : go.token.serializedFileSet) (Files' : GoSlice) :
+noncomputable instance serializedFileSet_access_store_Files (l : Loc) (v : go.token.serializedFileSet) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.serializedFileSet go!"Files" l) v.Files' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.serializedFileSet go!"Files" l) Files' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Files' := Files' } : go.token.serializedFileSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.serializedFileSet go!"Files" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Files' := y } : go.token.serializedFileSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -431,11 +431,11 @@ noncomputable instance tree_access_load_root (l : Loc) (v : go.token.tree) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance tree_access_store_root (l : Loc) (v : go.token.tree) (root' : Loc) :
+noncomputable instance tree_access_store_root (l : Loc) (v : go.token.tree) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.tree go!"root" l) v.root' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.tree go!"root" l) root' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := root' } : go.token.tree) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.tree go!"root" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with root' := y } : go.token.tree) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -472,11 +472,11 @@ noncomputable instance key_access_load_start (l : Loc) (v : go.token.key) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance key_access_store_start (l : Loc) (v : go.token.key) (start' : w64) :
+noncomputable instance key_access_store_start (l : Loc) (v : go.token.key) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.key go!"start" l) v.start' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.key go!"start" l) start' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with start' := start' } : go.token.key) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.key go!"start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with start' := y } : go.token.key) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -488,11 +488,11 @@ noncomputable instance key_access_load_end (l : Loc) (v : go.token.key) (dq : DF
  by
   solve_pointsto_access_struct
 
-noncomputable instance key_access_store_end (l : Loc) (v : go.token.key) (end' : w64) :
+noncomputable instance key_access_store_end (l : Loc) (v : go.token.key) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.key go!"end" l) v.end' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.key go!"end" l) end' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with end' := end' } : go.token.key) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.key go!"end" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with end' := y } : go.token.key) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -534,11 +534,11 @@ noncomputable instance node_access_load_parent (l : Loc) (v : go.token.node) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_parent (l : Loc) (v : go.token.node) (parent' : Loc) :
+noncomputable instance node_access_store_parent (l : Loc) (v : go.token.node) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.node go!"parent" l) v.parent' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.node go!"parent" l) parent' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parent' := parent' } : go.token.node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.node go!"parent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parent' := y } : go.token.node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -550,11 +550,11 @@ noncomputable instance node_access_load_left (l : Loc) (v : go.token.node) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_left (l : Loc) (v : go.token.node) (left' : Loc) :
+noncomputable instance node_access_store_left (l : Loc) (v : go.token.node) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.node go!"left" l) v.left' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.node go!"left" l) left' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with left' := left' } : go.token.node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.node go!"left" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with left' := y } : go.token.node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -566,11 +566,11 @@ noncomputable instance node_access_load_right (l : Loc) (v : go.token.node) (dq 
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_right (l : Loc) (v : go.token.node) (right' : Loc) :
+noncomputable instance node_access_store_right (l : Loc) (v : go.token.node) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.node go!"right" l) v.right' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.node go!"right" l) right' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with right' := right' } : go.token.node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.node go!"right" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with right' := y } : go.token.node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -582,11 +582,11 @@ noncomputable instance node_access_load_file (l : Loc) (v : go.token.node) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_file (l : Loc) (v : go.token.node) (file' : Loc) :
+noncomputable instance node_access_store_file (l : Loc) (v : go.token.node) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.node go!"file" l) v.file' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.node go!"file" l) file' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with file' := file' } : go.token.node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.node go!"file" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with file' := y } : go.token.node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -598,11 +598,11 @@ noncomputable instance node_access_load_key (l : Loc) (v : go.token.node) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_key (l : Loc) (v : go.token.node) (key' : go.token.key) :
+noncomputable instance node_access_store_key (l : Loc) (v : go.token.node) (y : go.token.key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.node go!"key" l) v.key' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.node go!"key" l) key' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : go.token.node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.node go!"key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : go.token.node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -614,11 +614,11 @@ noncomputable instance node_access_load_balance (l : Loc) (v : go.token.node) (d
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_balance (l : Loc) (v : go.token.node) (balance' : w32) :
+noncomputable instance node_access_store_balance (l : Loc) (v : go.token.node) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.node go!"balance" l) v.balance' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.node go!"balance" l) balance' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with balance' := balance' } : go.token.node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.node go!"balance" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with balance' := y } : go.token.node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -630,11 +630,11 @@ noncomputable instance node_access_load_height (l : Loc) (v : go.token.node) (dq
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_height (l : Loc) (v : go.token.node) (height' : w32) :
+noncomputable instance node_access_store_height (l : Loc) (v : go.token.node) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go.token.node go!"height" l) v.height' (DFrac.own 1))
-      (typedPointsto (structFieldRef go.token.node go!"height" l) height' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with height' := height' } : go.token.node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go.token.node go!"height" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with height' := y } : go.token.node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

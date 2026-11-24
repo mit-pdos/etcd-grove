@@ -223,7 +223,7 @@ attribute [irreducible] entryPayloadSize.ty
 @[reducible] noncomputable def SnapshotFailure [GooseExts] [GoGlobalContext] : val :=
   #(W64 2)
 
-@[reducible] noncomputable def None' [GooseExts] [GoGlobalContext] : val :=
+@[reducible] noncomputable def None'' [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
 @[reducible] noncomputable def LocalAppendThread [GooseExts] [GoGlobalContext] : val :=
@@ -661,7 +661,7 @@ noncomputable def RawNode.Bootstrap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "ents") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 1))
-  (Let "$a1" (Val None')
+  (Let "$a1" (Val None'')
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"becomeFollower"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"prevHardSt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))) (Var "$r0"))))))))
@@ -3664,7 +3664,7 @@ noncomputable def node.run.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"rn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType raft.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val None')
+  (Let "$r0" (Val None'')
   (Let "lead" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
@@ -3879,7 +3879,7 @@ noncomputable def node.run.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv msgWithResult.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"propc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv msgWithResult.ty)))) (Pair (Var "propc") (Var "$r0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lead")) (Val None'))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lead")) (Val None''))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"raft.node: %x elected leader %x at term %d"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
@@ -4535,16 +4535,16 @@ noncomputable def lockedRand.Intn.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.crypto.rand.Reader))) (Val #())))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.big.NewInt []))) (Val #())) (Var "$a0")))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.crypto.rand.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.crypto.rand.Int'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty)))) (Val #())))
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.math.big.Int''.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.math.big.Int''.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty) go!"Int64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty)))) (Var "v"))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.math.big.Int''.ty) go!"Int64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.math.big.Int''.ty)))) (Var "v"))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -4555,7 +4555,7 @@ noncomputable def lockedRand.Intn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Var "$r1")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.math.big.Int'.ty)))) (Pair (Var "v") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.math.big.Int''.ty)))) (Pair (Var "v") (Var "$r0")))))))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lockedRand.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lockedRand.ty)))) (Var "r")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
@@ -4692,7 +4692,7 @@ noncomputable def Config.validate.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Config.ty)))) (Var "c")))) (Val None'))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Config.ty)))) (Var "c")))) (Val None''))))
   (Let "$r0" (Let "$a0" (Val #(go!"cannot use none as id"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4732,7 +4732,7 @@ noncomputable def newRaft.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc raft.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Config.ty)))) (Var "c"))))
-  (Let "$v1" (Val None')
+  (Let "$v1" (Val None'')
   (Let "$v2" (Val #false)
   (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "raftlog"))
   (Let "$v4" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"MaxSizePerMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Config.ty)))) (Var "c"))))
@@ -4823,7 +4823,7 @@ noncomputable def newRaft.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$value"))))))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
-  (Let "$a1" (Val None')
+  (Let "$a1" (Val None'')
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"becomeFollower"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Config.ty)))) (Var "c")))) (Val #(W64 0)))))
   (App (Val doExecute)
@@ -4899,7 +4899,7 @@ noncomputable def raft.hasLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
-  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'))))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None''))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -5011,7 +5011,7 @@ noncomputable def raft.send.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panicf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val None'))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val None''))))
   (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"From"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Var "$r0")))))
@@ -5580,7 +5580,7 @@ noncomputable def raft.reset.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
   (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "term"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val None')
+  (Let "$r0" (Val None'')
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5641,7 +5641,7 @@ noncomputable def raft.reset.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val None')
+  (Let "$r0" (Val None'')
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0")))))))
   (App (Val doExecute)
@@ -5813,7 +5813,7 @@ noncomputable def raft.tickHeartbeat.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val StateLeader))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"leadTransferee"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None')))) (Val #false)))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val StateLeader))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"leadTransferee"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'')))) (Val #false)))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"abortLeaderTransfer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Val #())))
   (App (Val doExecute)
@@ -5945,7 +5945,7 @@ noncomputable def raft.becomePreCandidate.impl [GooseExts] [GoGlobalContext] : v
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"tickElection"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val None')
+  (Let "$r0" (Val None'')
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val StatePreCandidate)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6465,7 +6465,7 @@ noncomputable def raft.Step.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))
   (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 17)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 5)))))
-  (Let "$r0" (If (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'))) (Val #false))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val #(W32 17)))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #false)))
+  (Let "$r0" (If (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None''))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None''))) (Val #false))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val #(W32 17)))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #false)))
   (Let "canVote" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastEntryID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))
@@ -6575,7 +6575,7 @@ noncomputable def raft.Step.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"becomeFollower"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
-  (Let "$a1" (Val None')
+  (Let "$a1" (Val None'')
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"becomeFollower"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x [term: %d] received a %s message with higher term from %x [term: %d]"))
@@ -6592,7 +6592,7 @@ noncomputable def raft.Step.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Equal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "force" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"checkQuorum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None')))) (Val #false)) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"electionElapsed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"electionTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #false))
+  (Let "$r0" (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"checkQuorum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'')))) (Val #false)) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"electionElapsed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"electionTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #false))
   (Let "inLease" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "force"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "inLease")) (Val #false))
@@ -6890,7 +6890,7 @@ noncomputable def stepLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"responseToReadIndexReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Val #())) (Val None')))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Val #())) (Val None'')))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))
@@ -7038,7 +7038,7 @@ noncomputable def stepLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Debugf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lastLeadTransferee")) (Val None')))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "lastLeadTransferee")) (Val None'')))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -7147,7 +7147,7 @@ noncomputable def stepLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
-  (Let "$a1" (Val None')
+  (Let "$a1" (Val None'')
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"becomeFollower"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x stepped down to follower since quorum is not active"))
@@ -7307,7 +7307,7 @@ noncomputable def stepLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (Var "e") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"leadTransferee"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None')))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"leadTransferee"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'')))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrProposalDropped))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -7476,7 +7476,7 @@ noncomputable def stepCandidate.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Pair (Var "$sw") (Val #(W8 2))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
-  (Let "$a1" (Val None')
+  (Let "$a1" (Val None'')
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"becomeFollower"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))))
@@ -7539,7 +7539,7 @@ noncomputable def stepFollower.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"To"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None''))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrProposalDropped))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -7615,7 +7615,7 @@ noncomputable def stepFollower.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"To"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None''))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -7633,9 +7633,9 @@ noncomputable def stepFollower.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 23))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None')))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'')))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val None')
+  (Let "$r0" (Val None'')
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0")))))))
   (App (Val doExecute)
@@ -7682,7 +7682,7 @@ noncomputable def stepFollower.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"To"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None'))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None''))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8096,7 +8096,7 @@ noncomputable def raft.restore.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #(W64 1))))
-  (Let "$a1" (Val None')
+  (Let "$a1" (Val None'')
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"becomeFollower"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x attempted to restore snapshot as leader; should never happen"))
@@ -8375,7 +8375,7 @@ noncomputable def raft.switchToConfig.impl [GooseExts] [GoGlobalContext] : val :
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"stepDownOnRemoval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
-  (Let "$a1" (Val None')
+  (Let "$a1" (Val None'')
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"becomeFollower"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))
@@ -8488,7 +8488,7 @@ noncomputable def raft.abortLeaderTransfer.impl [GooseExts] [GoGlobalContext] : 
   (Lam BAnon
   (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
-  (Let "$r0" (Val None')
+  (Let "$r0" (Val None'')
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"leadTransferee"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0")))))))
   (Val #()))))
@@ -8540,7 +8540,7 @@ noncomputable def raft.responseToReadIndexReq.impl [GooseExts] [GoGlobalContext]
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "req"))) (Val #())) (Val None'))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "req"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "req"))) (Val #())) (Val None''))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "req"))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ReadState.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"readStates"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
   (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "readIndex"))
   (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetData"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetEntries"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "req"))) (Val #())) (Val #(W64 0)))))) (Val #()))
@@ -8699,7 +8699,7 @@ noncomputable def sendMsgReadIndexResponse.impl [GooseExts] [GoGlobalContext] : 
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"responseToReadIndexReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Val #())) (Val None')))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Val #())) (Val None'')))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))
@@ -8726,7 +8726,7 @@ noncomputable def sendMsgReadIndexResponse.impl [GooseExts] [GoGlobalContext] : 
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"responseToReadIndexReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Val #())) (Val None')))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Val #())) (Val None'')))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))
@@ -10001,7 +10001,7 @@ noncomputable def readOnly.recvAck.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def readOnly.AckedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ro"
   (Lam "voterID"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "ro" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType readOnly.ty)))) (Var "ro"))
@@ -10024,12 +10024,12 @@ noncomputable def readOnly.AckedIndex.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "found") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "idx") (Var "$r0")))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 /-- maybeAdvance uses the existing acknowledgements and current raft
     configuration to confirm and return as many unconfirmed reads as possible.
@@ -11924,7 +11924,7 @@ noncomputable def describeTarget.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
   (Let "$sw" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
-  (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val None')))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val None'')))
   (Let "$r0" (Val #(go!"None"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -14306,7 +14306,7 @@ class readOnly.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   get_confirmedReads : ∀ (x : readOnly), go.IsGoStepPureDetTagged under (StructFieldGet readOnly.underlying go!"confirmedReads") #x (Val #(x.confirmedReads'))
   set_confirmedReads : ∀ (x : readOnly) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet readOnly.underlying go!"confirmedReads") (PairV #x #y) (Val #(({ x with confirmedReads' := y } : readOnly)))
   method_set : go.MethodSetIs readOnly.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType readOnly.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool]))), (go!"go.etcd.io/raft/v3.addRequest", (some (go.signature.Signature [go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/raft/v3.heartbeatCtx", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/raft/v3.maybeAdvance", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty] false [(go.GoType.SliceType (go.GoType.PointerType readIndexRequest.ty))]))), (go!"go.etcd.io/raft/v3.recvAck", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.byte)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType readOnly.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index''.ty, go.bool]))), (go!"go.etcd.io/raft/v3.addRequest", (some (go.signature.Signature [go.uint64, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/raft/v3.heartbeatCtx", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/raft/v3.maybeAdvance", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty] false [(go.GoType.SliceType (go.GoType.PointerType readIndexRequest.ty))]))), (go!"go.etcd.io/raft/v3.recvAck", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.byte)] false [])))]
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType readOnly.ty) go!"AckedIndex" readOnly.AckedIndex.impl
   ptr_addRequest_unfold : MethodUnfold (go.GoType.PointerType readOnly.ty) go!"addRequest" readOnly.addRequest.impl
   ptr_heartbeatCtx_unfold : MethodUnfold (go.GoType.PointerType readOnly.ty) go!"heartbeatCtx" readOnly.heartbeatCtx.impl

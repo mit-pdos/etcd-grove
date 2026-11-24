@@ -47,11 +47,11 @@ noncomputable instance int64Amount_access_load_value (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance int64Amount_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.int64Amount) (value' : w64) :
+noncomputable instance int64Amount_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.int64Amount) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.int64Amount go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.int64Amount go!"value" l) value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := value' } : k8s_io.apimachinery.pkg.api.resource.int64Amount) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.int64Amount go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : k8s_io.apimachinery.pkg.api.resource.int64Amount) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -63,11 +63,11 @@ noncomputable instance int64Amount_access_load_scale (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance int64Amount_access_store_scale (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.int64Amount) (scale' : k8s_io.apimachinery.pkg.api.resource.Scale) :
+noncomputable instance int64Amount_access_store_scale (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.int64Amount) (y : k8s_io.apimachinery.pkg.api.resource.Scale) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.int64Amount go!"scale" l) v.scale' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.int64Amount go!"scale" l) scale' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scale' := scale' } : k8s_io.apimachinery.pkg.api.resource.int64Amount) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.int64Amount go!"scale" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scale' := y } : k8s_io.apimachinery.pkg.api.resource.int64Amount) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -123,11 +123,11 @@ noncomputable instance cachedString_access_load_str (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-noncomputable instance cachedString_access_store_str (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.cachedString) (str' : GoString) :
+noncomputable instance cachedString_access_store_str (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.cachedString) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.cachedString go!"str" l) v.str' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.cachedString go!"str" l) str' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with str' := str' } : k8s_io.apimachinery.pkg.api.resource.cachedString) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.cachedString go!"str" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with str' := y } : k8s_io.apimachinery.pkg.api.resource.cachedString) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -139,11 +139,11 @@ noncomputable instance cachedString_access_load_format (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance cachedString_access_store_format (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.cachedString) (format' : k8s_io.apimachinery.pkg.api.resource.formatCode) :
+noncomputable instance cachedString_access_store_format (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.cachedString) (y : k8s_io.apimachinery.pkg.api.resource.formatCode) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.cachedString go!"format" l) v.format' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.cachedString go!"format" l) format' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with format' := format' } : k8s_io.apimachinery.pkg.api.resource.cachedString) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.cachedString go!"format" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with format' := y } : k8s_io.apimachinery.pkg.api.resource.cachedString) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -182,11 +182,11 @@ noncomputable instance Quantity_access_load_i (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance Quantity_access_store_i (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.Quantity) (i' : k8s_io.apimachinery.pkg.api.resource.int64Amount) :
+noncomputable instance Quantity_access_store_i (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.Quantity) (y : k8s_io.apimachinery.pkg.api.resource.int64Amount) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"i" l) v.i' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"i" l) i' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with i' := i' } : k8s_io.apimachinery.pkg.api.resource.Quantity) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"i" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with i' := y } : k8s_io.apimachinery.pkg.api.resource.Quantity) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -198,11 +198,11 @@ noncomputable instance Quantity_access_load_d (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance Quantity_access_store_d (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.Quantity) (d' : k8s_io.apimachinery.pkg.api.resource.infDecAmount) :
+noncomputable instance Quantity_access_store_d (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.Quantity) (y : k8s_io.apimachinery.pkg.api.resource.infDecAmount) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"d" l) v.d' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"d" l) d' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := d' } : k8s_io.apimachinery.pkg.api.resource.Quantity) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"d" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := y } : k8s_io.apimachinery.pkg.api.resource.Quantity) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -214,11 +214,11 @@ noncomputable instance Quantity_access_load_s (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance Quantity_access_store_s (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.Quantity) (s' : k8s_io.apimachinery.pkg.api.resource.cachedString) :
+noncomputable instance Quantity_access_store_s (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.Quantity) (y : k8s_io.apimachinery.pkg.api.resource.cachedString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"s" l) s' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : k8s_io.apimachinery.pkg.api.resource.Quantity) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"s" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : k8s_io.apimachinery.pkg.api.resource.Quantity) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -230,11 +230,11 @@ noncomputable instance Quantity_access_load_Format (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance Quantity_access_store_Format (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.Quantity) (Format' : k8s_io.apimachinery.pkg.api.resource.Format) :
+noncomputable instance Quantity_access_store_Format (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.Quantity) (y : k8s_io.apimachinery.pkg.api.resource.Format) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"Format" l) v.Format' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"Format" l) Format' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Format' := Format' } : k8s_io.apimachinery.pkg.api.resource.Quantity) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.Quantity go!"Format" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Format' := y } : k8s_io.apimachinery.pkg.api.resource.Quantity) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -270,11 +270,11 @@ noncomputable instance QuantityValue_access_load_Quantity (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance QuantityValue_access_store_Quantity (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.QuantityValue) (Quantity' : k8s_io.apimachinery.pkg.api.resource.Quantity) :
+noncomputable instance QuantityValue_access_store_Quantity (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.QuantityValue) (y : k8s_io.apimachinery.pkg.api.resource.Quantity) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.QuantityValue go!"Quantity" l) v.Quantity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.QuantityValue go!"Quantity" l) Quantity' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Quantity' := Quantity' } : k8s_io.apimachinery.pkg.api.resource.QuantityValue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.QuantityValue go!"Quantity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Quantity' := y } : k8s_io.apimachinery.pkg.api.resource.QuantityValue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -311,11 +311,11 @@ noncomputable instance bePair_access_load_base (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-noncomputable instance bePair_access_store_base (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.bePair) (base' : w32) :
+noncomputable instance bePair_access_store_base (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.bePair) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.bePair go!"base" l) v.base' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.bePair go!"base" l) base' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with base' := base' } : k8s_io.apimachinery.pkg.api.resource.bePair) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.bePair go!"base" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with base' := y } : k8s_io.apimachinery.pkg.api.resource.bePair) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -327,11 +327,11 @@ noncomputable instance bePair_access_load_exponent (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance bePair_access_store_exponent (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.bePair) (exponent' : w32) :
+noncomputable instance bePair_access_store_exponent (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.bePair) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.bePair go!"exponent" l) v.exponent' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.bePair go!"exponent" l) exponent' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with exponent' := exponent' } : k8s_io.apimachinery.pkg.api.resource.bePair) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.bePair go!"exponent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with exponent' := y } : k8s_io.apimachinery.pkg.api.resource.bePair) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -369,11 +369,11 @@ noncomputable instance listSuffixer_access_load_suffixToBE (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance listSuffixer_access_store_suffixToBE (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (suffixToBE' : GoMap) :
+noncomputable instance listSuffixer_access_store_suffixToBE (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.listSuffixer go!"suffixToBE" l) v.suffixToBE' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.listSuffixer go!"suffixToBE" l) suffixToBE' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with suffixToBE' := suffixToBE' } : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.listSuffixer go!"suffixToBE" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with suffixToBE' := y } : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -385,11 +385,11 @@ noncomputable instance listSuffixer_access_load_beToSuffix (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance listSuffixer_access_store_beToSuffix (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (beToSuffix' : GoMap) :
+noncomputable instance listSuffixer_access_store_beToSuffix (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.listSuffixer go!"beToSuffix" l) v.beToSuffix' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.listSuffixer go!"beToSuffix" l) beToSuffix' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with beToSuffix' := beToSuffix' } : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.listSuffixer go!"beToSuffix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with beToSuffix' := y } : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -401,11 +401,11 @@ noncomputable instance listSuffixer_access_load_beToSuffixBytes (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance listSuffixer_access_store_beToSuffixBytes (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (beToSuffixBytes' : GoMap) :
+noncomputable instance listSuffixer_access_store_beToSuffixBytes (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.listSuffixer go!"beToSuffixBytes" l) v.beToSuffixBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.listSuffixer go!"beToSuffixBytes" l) beToSuffixBytes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with beToSuffixBytes' := beToSuffixBytes' } : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.listSuffixer go!"beToSuffixBytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with beToSuffixBytes' := y } : k8s_io.apimachinery.pkg.api.resource.listSuffixer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -442,11 +442,11 @@ noncomputable instance suffixHandler_access_load_decSuffixes (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance suffixHandler_access_store_decSuffixes (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.suffixHandler) (decSuffixes' : k8s_io.apimachinery.pkg.api.resource.listSuffixer) :
+noncomputable instance suffixHandler_access_store_decSuffixes (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.suffixHandler) (y : k8s_io.apimachinery.pkg.api.resource.listSuffixer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.suffixHandler go!"decSuffixes" l) v.decSuffixes' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.suffixHandler go!"decSuffixes" l) decSuffixes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decSuffixes' := decSuffixes' } : k8s_io.apimachinery.pkg.api.resource.suffixHandler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.suffixHandler go!"decSuffixes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decSuffixes' := y } : k8s_io.apimachinery.pkg.api.resource.suffixHandler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -458,11 +458,11 @@ noncomputable instance suffixHandler_access_load_binSuffixes (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance suffixHandler_access_store_binSuffixes (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.suffixHandler) (binSuffixes' : k8s_io.apimachinery.pkg.api.resource.listSuffixer) :
+noncomputable instance suffixHandler_access_store_binSuffixes (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.suffixHandler) (y : k8s_io.apimachinery.pkg.api.resource.listSuffixer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.suffixHandler go!"binSuffixes" l) v.binSuffixes' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.suffixHandler go!"binSuffixes" l) binSuffixes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with binSuffixes' := binSuffixes' } : k8s_io.apimachinery.pkg.api.resource.suffixHandler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.suffixHandler go!"binSuffixes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with binSuffixes' := y } : k8s_io.apimachinery.pkg.api.resource.suffixHandler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -498,11 +498,11 @@ noncomputable instance fastLookup_access_load_suffixHandler (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance fastLookup_access_store_suffixHandler (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.fastLookup) (suffixHandler' : Loc) :
+noncomputable instance fastLookup_access_store_suffixHandler (l : Loc) (v : k8s_io.apimachinery.pkg.api.resource.fastLookup) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.fastLookup go!"suffixHandler" l) v.suffixHandler' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.fastLookup go!"suffixHandler" l) suffixHandler' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with suffixHandler' := suffixHandler' } : k8s_io.apimachinery.pkg.api.resource.fastLookup) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.resource.fastLookup go!"suffixHandler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with suffixHandler' := y } : k8s_io.apimachinery.pkg.api.resource.fastLookup) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

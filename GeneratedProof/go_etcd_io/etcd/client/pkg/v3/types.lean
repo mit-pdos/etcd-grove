@@ -47,11 +47,11 @@ noncomputable instance unsafeSet_access_load_d (l : Loc) (v : go_etcd_io.etcd.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance unsafeSet_access_store_d (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (d' : GoMap) :
+noncomputable instance unsafeSet_access_store_d (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) d' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := d' } : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := y } : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

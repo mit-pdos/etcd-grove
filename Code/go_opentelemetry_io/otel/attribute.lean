@@ -70,10 +70,10 @@ noncomputable def KeyValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] KeyValue.ty
 
-noncomputable def Set'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def Set''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/attribute.Set" [])
 
-attribute [irreducible] Set'.ty
+attribute [irreducible] Set''.ty
 
 noncomputable def Distinct.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/attribute.Distinct" [])
@@ -85,10 +85,10 @@ noncomputable def Sortable.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Sortable.ty
 
-noncomputable def Type'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def «Type».ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/attribute.Type" [])
 
-attribute [irreducible] Type'.ty
+attribute [irreducible] «Type».ty
 
 noncomputable def Value.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/attribute.Value" [])
@@ -221,13 +221,13 @@ noncomputable def NewMergeIterator [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def makeOne [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.makeOne"
 
-noncomputable def Bool' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Bool'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.Bool"
 
 noncomputable def BoolSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.BoolSlice"
 
-noncomputable def Int' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Int'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.Int"
 
 noncomputable def IntSlice [GooseExts] [GoGlobalContext] : GoString :=
@@ -254,7 +254,7 @@ noncomputable def StringSlice [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ByteSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.ByteSlice"
 
-noncomputable def Slice' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Slice'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/attribute.Slice"
 
 noncomputable def Map [GooseExts] [GoGlobalContext] : GoString :=
@@ -595,7 +595,7 @@ noncomputable def Key.String.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Bool returns a [KeyValue] for a bool value.
 
     go: kv.go:32:6 -/
-noncomputable def Bool.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Bool''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
@@ -616,7 +616,7 @@ noncomputable def Bool.impl [GooseExts] [GoGlobalContext] : val :=
     It is provided as a convenience for [Int64].
 
     go: kv.go:49:6 -/
-noncomputable def Int.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Int''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc KeyValue.ty))) (App (Val (GoInstruction (GoZeroVal KeyValue.ty))) (Val #())))
@@ -719,7 +719,7 @@ noncomputable def BoolValue.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$v0" (Val BOOL)
   (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "v"))
   (App (App (Val (GoInstruction (FuncResolve boolToRaw []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"vtype")) (ElementExpression Type'.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"numeric")) (ElementExpression go.uint64 (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"vtype")) (ElementExpression «Type».ty (Var "$v0"))), (KeyedElement (some (KeyField go!"numeric")) (ElementExpression go.uint64 (Var "$v1")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -757,7 +757,7 @@ noncomputable def Int64Value.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$v0" (Val INT64)
   (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "v"))
   (App (App (Val (GoInstruction (FuncResolve int64ToRaw []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"vtype")) (ElementExpression Type'.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"numeric")) (ElementExpression go.uint64 (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"vtype")) (ElementExpression «Type».ty (Var "$v0"))), (KeyedElement (some (KeyField go!"numeric")) (ElementExpression go.uint64 (Var "$v1")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -775,7 +775,7 @@ noncomputable def StringValue.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (Var "v"))
   (Let "$r0" (Let "$v0" (Val STRING)
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
-  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"vtype")) (ElementExpression Type'.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"stringly")) (ElementExpression go.string (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"vtype")) (ElementExpression «Type».ty (Var "$v0"))), (KeyedElement (some (KeyField go!"stringly")) (ElementExpression go.string (Var "$v1")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -940,7 +940,7 @@ noncomputable instance Iterator.zero_val [GooseExts] : ZeroVal Iterator :=
   ⟨Iterator.mk zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Iterator.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"storage" (go.GoType.PointerType Set'.ty)),
+  [(go.field_decl.FieldDecl go!"storage" (go.GoType.PointerType Set''.ty)),
 (go.field_decl.FieldDecl go!"idx" go.int)]
 
 @[irreducible] noncomputable def Iterator.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
@@ -1006,15 +1006,15 @@ attribute [instance] Key.TypeAssumptions.underlying
   Key.TypeAssumptions.ptr_Int64_unfold
   Key.TypeAssumptions.ptr_String_unfold
 
-abbrev Type' [GooseExts] : Type := w64
+abbrev «Type» [GooseExts] : Type := w64
 
-@[reducible] noncomputable def Type'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def «Type».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
 class «Type».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq Type'.ty Type'.underlying
-  method_set : go.MethodSetIs Type'.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Type'.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  underlying : go.UnderlyingDirectedEq «Type».ty «Type».underlying
+  method_set : go.MethodSetIs «Type».ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType «Type».ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] «Type».TypeAssumptions.underlying
   «Type».TypeAssumptions.method_set
@@ -1022,7 +1022,7 @@ attribute [instance] «Type».TypeAssumptions.underlying
 
 structure Value [GooseExts] where
   mk ::
-  vtype' : Type'
+  vtype' : «Type»
   numeric' : w64
   stringly' : GoString
   slice' : GoInterface
@@ -1031,7 +1031,7 @@ noncomputable instance Value.zero_val [GooseExts] : ZeroVal Value :=
   ⟨Value.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Value.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"vtype" Type'.ty),
+  [(go.field_decl.FieldDecl go!"vtype" «Type».ty),
 (go.field_decl.FieldDecl go!"numeric" go.uint64),
 (go.field_decl.FieldDecl go!"stringly" go.string),
 (go.field_decl.FieldDecl go!"slice" go.any)]
@@ -1050,15 +1050,15 @@ class Value.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Value.underlying Value
   underlying : go.UnderlyingDirectedEq Value.ty Value.underlying
   get_vtype : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"vtype") #x (Val #(x.vtype'))
-  set_vtype : ∀ (x : Value) (y : Type'), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"vtype") (PairV #x #y) (Val #(({ x with vtype' := y } : Value)))
+  set_vtype : ∀ (x : Value) (y : «Type»), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"vtype") (PairV #x #y) (Val #(({ x with vtype' := y } : Value)))
   get_numeric : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"numeric") #x (Val #(x.numeric'))
   set_numeric : ∀ (x : Value) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"numeric") (PairV #x #y) (Val #(({ x with numeric' := y } : Value)))
   get_stringly : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"stringly") #x (Val #(x.stringly'))
   set_stringly : ∀ (x : Value) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"stringly") (PairV #x #y) (Val #(({ x with stringly' := y } : Value)))
   get_slice : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"slice") #x (Val #(x.slice'))
   set_slice : ∀ (x : Value) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"slice") (PairV #x #y) (Val #(({ x with slice' := y } : Value)))
-  method_set : go.MethodSetIs Value.ty [(go!"AsBool", (some (go.signature.Signature [] false [go.bool]))), (go!"AsBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"AsByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"AsFloat64", (some (go.signature.Signature [] false [go.float64]))), (go!"AsFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64]))), (go!"AsInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"AsInterface", (some (go.signature.Signature [] false [go.any]))), (go!"AsMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"AsSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"AsString", (some (go.signature.Signature [] false [go.string]))), (go!"AsStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Emit", (some (go.signature.Signature [] false [go.string]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [Type'.ty]))), (go!"go.opentelemetry.io/otel/attribute.asBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"go.opentelemetry.io/otel/attribute.asByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.opentelemetry.io/otel/attribute.asFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"go.opentelemetry.io/otel/attribute.asInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"go.opentelemetry.io/otel/attribute.asMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Value.ty) [(go!"AsBool", (some (go.signature.Signature [] false [go.bool]))), (go!"AsBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"AsByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"AsFloat64", (some (go.signature.Signature [] false [go.float64]))), (go!"AsFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64]))), (go!"AsInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"AsInterface", (some (go.signature.Signature [] false [go.any]))), (go!"AsMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"AsSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"AsString", (some (go.signature.Signature [] false [go.string]))), (go!"AsStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Emit", (some (go.signature.Signature [] false [go.string]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [Type'.ty]))), (go!"go.opentelemetry.io/otel/attribute.asBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"go.opentelemetry.io/otel/attribute.asByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.opentelemetry.io/otel/attribute.asFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"go.opentelemetry.io/otel/attribute.asInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"go.opentelemetry.io/otel/attribute.asMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  method_set : go.MethodSetIs Value.ty [(go!"AsBool", (some (go.signature.Signature [] false [go.bool]))), (go!"AsBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"AsByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"AsFloat64", (some (go.signature.Signature [] false [go.float64]))), (go!"AsFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64]))), (go!"AsInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"AsInterface", (some (go.signature.Signature [] false [go.any]))), (go!"AsMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"AsSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"AsString", (some (go.signature.Signature [] false [go.string]))), (go!"AsStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Emit", (some (go.signature.Signature [] false [go.string]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [«Type».ty]))), (go!"go.opentelemetry.io/otel/attribute.asBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"go.opentelemetry.io/otel/attribute.asByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.opentelemetry.io/otel/attribute.asFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"go.opentelemetry.io/otel/attribute.asInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"go.opentelemetry.io/otel/attribute.asMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Value.ty) [(go!"AsBool", (some (go.signature.Signature [] false [go.bool]))), (go!"AsBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"AsByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"AsFloat64", (some (go.signature.Signature [] false [go.float64]))), (go!"AsFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64]))), (go!"AsInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"AsInterface", (some (go.signature.Signature [] false [go.any]))), (go!"AsMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"AsSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"AsString", (some (go.signature.Signature [] false [go.string]))), (go!"AsStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Emit", (some (go.signature.Signature [] false [go.string]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [«Type».ty]))), (go!"go.opentelemetry.io/otel/attribute.asBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"go.opentelemetry.io/otel/attribute.asByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.opentelemetry.io/otel/attribute.asFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"go.opentelemetry.io/otel/attribute.asInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"go.opentelemetry.io/otel/attribute.asMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] Value.TypeAssumptions.type_repr
   Value.TypeAssumptions.underlying
@@ -1208,46 +1208,46 @@ attribute [instance] MergeIterator.TypeAssumptions.type_repr
   MergeIterator.TypeAssumptions.method_set
   MergeIterator.TypeAssumptions.ptr_method_set
 
-structure Set' [GooseExts] where
+structure Set'' [GooseExts] where
   mk ::
   hash' : w64
   data' : GoInterface
 
-noncomputable instance Set'.zero_val [GooseExts] : ZeroVal Set' :=
-  ⟨Set'.mk zeroValDef zeroValDef⟩
+noncomputable instance Set''.zero_val [GooseExts] : ZeroVal Set'' :=
+  ⟨Set''.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Set.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Set''.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"hash" go.uint64),
 (go.field_decl.FieldDecl go!"data" go.any)]
 
-@[irreducible] noncomputable def Set.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  Set.fieldsUnsealed
+@[irreducible] noncomputable def Set''.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Set''.fieldsUnsealed
 
 noncomputable instance equals_unfold_Set [GooseExts] [GoGlobalContext] :
-    EqualsUnfold Set.fields Set.fieldsUnsealed :=
-  ⟨by unfold Set.fields; rfl⟩
+    EqualsUnfold Set''.fields Set''.fieldsUnsealed :=
+  ⟨by unfold Set''.fields; rfl⟩
 
-@[reducible] noncomputable def Set'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType Set.fields)
+@[reducible] noncomputable def Set''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Set''.fields)
 
-class Set.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Set'.underlying Set'
-  underlying : go.UnderlyingDirectedEq Set'.ty Set'.underlying
-  get_hash : ∀ (x : Set'), go.IsGoStepPureDetTagged under (StructFieldGet Set'.underlying go!"hash") #x (Val #(x.hash'))
-  set_hash : ∀ (x : Set') (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Set'.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : Set')))
-  get_data : ∀ (x : Set'), go.IsGoStepPureDetTagged under (StructFieldGet Set'.underlying go!"data") #x (Val #(x.data'))
-  set_data : ∀ (x : Set') (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Set'.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : Set')))
-  method_set : go.MethodSetIs Set'.ty [(go!"MarshalLog", (some (go.signature.Signature [] false [go.any]))), (go!"go.opentelemetry.io/otel/attribute.reflectValue", (some (go.signature.Signature [] false [(go.GoType.Named go!"reflect.Value" [])])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set'.ty) [(go!"Encoded", (some (go.signature.Signature [Encoder.ty] false [go.string]))), (go!"Equals", (some (go.signature.Signature [(go.GoType.PointerType Set'.ty)] false [go.bool]))), (go!"Equivalent", (some (go.signature.Signature [] false [Distinct.ty]))), (go!"Filter", (some (go.signature.Signature [Filter.ty] false [Set'.ty, (go.GoType.SliceType KeyValue.ty)]))), (go!"Get", (some (go.signature.Signature [go.int] false [KeyValue.ty, go.bool]))), (go!"HasValue", (some (go.signature.Signature [Key.ty] false [go.bool]))), (go!"Iter", (some (go.signature.Signature [] false [Iterator.ty]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalLog", (some (go.signature.Signature [] false [go.any]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"ToSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"Value", (some (go.signature.Signature [Key.ty] false [Value.ty, go.bool]))), (go!"go.opentelemetry.io/otel/attribute.reflectValue", (some (go.signature.Signature [] false [(go.GoType.Named go!"reflect.Value" [])])))]
+class Set''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Set''.underlying Set''
+  underlying : go.UnderlyingDirectedEq Set''.ty Set''.underlying
+  get_hash : ∀ (x : Set''), go.IsGoStepPureDetTagged under (StructFieldGet Set''.underlying go!"hash") #x (Val #(x.hash'))
+  set_hash : ∀ (x : Set'') (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Set''.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : Set'')))
+  get_data : ∀ (x : Set''), go.IsGoStepPureDetTagged under (StructFieldGet Set''.underlying go!"data") #x (Val #(x.data'))
+  set_data : ∀ (x : Set'') (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Set''.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : Set'')))
+  method_set : go.MethodSetIs Set''.ty [(go!"MarshalLog", (some (go.signature.Signature [] false [go.any]))), (go!"go.opentelemetry.io/otel/attribute.reflectValue", (some (go.signature.Signature [] false [(go.GoType.Named go!"reflect.Value" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set''.ty) [(go!"Encoded", (some (go.signature.Signature [Encoder.ty] false [go.string]))), (go!"Equals", (some (go.signature.Signature [(go.GoType.PointerType Set''.ty)] false [go.bool]))), (go!"Equivalent", (some (go.signature.Signature [] false [Distinct.ty]))), (go!"Filter", (some (go.signature.Signature [Filter.ty] false [Set''.ty, (go.GoType.SliceType KeyValue.ty)]))), (go!"Get", (some (go.signature.Signature [go.int] false [KeyValue.ty, go.bool]))), (go!"HasValue", (some (go.signature.Signature [Key.ty] false [go.bool]))), (go!"Iter", (some (go.signature.Signature [] false [Iterator.ty]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalLog", (some (go.signature.Signature [] false [go.any]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"ToSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"Value", (some (go.signature.Signature [Key.ty] false [Value.ty, go.bool]))), (go!"go.opentelemetry.io/otel/attribute.reflectValue", (some (go.signature.Signature [] false [(go.GoType.Named go!"reflect.Value" [])])))]
 
-attribute [instance] Set.TypeAssumptions.type_repr
-  Set.TypeAssumptions.underlying
-  Set.TypeAssumptions.get_hash
-  Set.TypeAssumptions.set_hash
-  Set.TypeAssumptions.get_data
-  Set.TypeAssumptions.set_data
-  Set.TypeAssumptions.method_set
-  Set.TypeAssumptions.ptr_method_set
+attribute [instance] Set''.TypeAssumptions.type_repr
+  Set''.TypeAssumptions.underlying
+  Set''.TypeAssumptions.get_hash
+  Set''.TypeAssumptions.set_hash
+  Set''.TypeAssumptions.get_data
+  Set''.TypeAssumptions.set_data
+  Set''.TypeAssumptions.method_set
+  Set''.TypeAssumptions.ptr_method_set
 
 structure Distinct [GooseExts] where
   mk ::
@@ -1339,14 +1339,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   oneIterator_instance : oneIterator.TypeAssumptions
   Key_instance : Key.TypeAssumptions
   KeyValue_instance : KeyValue.TypeAssumptions
-  Set_instance : Set.TypeAssumptions
+  Set_instance : Set''.TypeAssumptions
   Distinct_instance : Distinct.TypeAssumptions
   Sortable_instance : Sortable.TypeAssumptions
   Type_instance : «Type».TypeAssumptions
   Value_instance : Value.TypeAssumptions
   unknownValueType_instance : unknownValueType.TypeAssumptions
-  Bool_unfold : FuncUnfold Bool' [] Bool.impl
-  Int_unfold : FuncUnfold Int' [] Int.impl
+  Bool_unfold : FuncUnfold Bool'' [] Bool''.impl
+  Int_unfold : FuncUnfold Int'' [] Int''.impl
   Int64_unfold : FuncUnfold Int64 [] Int64.impl
   String_unfold : FuncUnfold String [] String.impl
   boolToRaw_unfold : FuncUnfold boolToRaw [] boolToRaw.impl

@@ -100,7 +100,7 @@ noncomputable def ReadConfState.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"number-of-key"))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0")))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)

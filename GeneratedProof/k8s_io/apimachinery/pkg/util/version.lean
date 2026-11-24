@@ -48,11 +48,11 @@ noncomputable instance Version_access_load_components (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_components (l : Loc) (v : k8s_io.apimachinery.pkg.util.version.Version) (components' : GoSlice) :
+noncomputable instance Version_access_store_components (l : Loc) (v : k8s_io.apimachinery.pkg.util.version.Version) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"components" l) v.components' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"components" l) components' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with components' := components' } : k8s_io.apimachinery.pkg.util.version.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"components" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with components' := y } : k8s_io.apimachinery.pkg.util.version.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,11 +64,11 @@ noncomputable instance Version_access_load_semver (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_semver (l : Loc) (v : k8s_io.apimachinery.pkg.util.version.Version) (semver' : Bool) :
+noncomputable instance Version_access_store_semver (l : Loc) (v : k8s_io.apimachinery.pkg.util.version.Version) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"semver" l) v.semver' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"semver" l) semver' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with semver' := semver' } : k8s_io.apimachinery.pkg.util.version.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"semver" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with semver' := y } : k8s_io.apimachinery.pkg.util.version.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -80,11 +80,11 @@ noncomputable instance Version_access_load_preRelease (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_preRelease (l : Loc) (v : k8s_io.apimachinery.pkg.util.version.Version) (preRelease' : GoString) :
+noncomputable instance Version_access_store_preRelease (l : Loc) (v : k8s_io.apimachinery.pkg.util.version.Version) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"preRelease" l) v.preRelease' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"preRelease" l) preRelease' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with preRelease' := preRelease' } : k8s_io.apimachinery.pkg.util.version.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"preRelease" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with preRelease' := y } : k8s_io.apimachinery.pkg.util.version.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -96,11 +96,11 @@ noncomputable instance Version_access_load_buildMetadata (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Version_access_store_buildMetadata (l : Loc) (v : k8s_io.apimachinery.pkg.util.version.Version) (buildMetadata' : GoString) :
+noncomputable instance Version_access_store_buildMetadata (l : Loc) (v : k8s_io.apimachinery.pkg.util.version.Version) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"buildMetadata" l) v.buildMetadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"buildMetadata" l) buildMetadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buildMetadata' := buildMetadata' } : k8s_io.apimachinery.pkg.util.version.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.version.Version go!"buildMetadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buildMetadata' := y } : k8s_io.apimachinery.pkg.util.version.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

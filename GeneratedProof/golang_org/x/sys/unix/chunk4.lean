@@ -299,11 +299,11 @@ noncomputable instance Flock_t_access_load_Type (l : Loc) (v : golang_org.x.sys.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Type' : w16) :
+noncomputable instance Flock_t_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -315,11 +315,11 @@ noncomputable instance Flock_t_access_load_Whence (l : Loc) (v : golang_org.x.sy
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Whence (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Whence' : w16) :
+noncomputable instance Flock_t_access_store_Whence (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (y : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Whence" l) v.Whence' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Whence" l) Whence' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Whence' := Whence' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Whence" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Whence' := y } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -331,11 +331,11 @@ noncomputable instance Flock_t_access_load_Start (l : Loc) (v : golang_org.x.sys
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Start (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Start' : w64) :
+noncomputable instance Flock_t_access_store_Start (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Start" l) Start' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := Start' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -347,11 +347,11 @@ noncomputable instance Flock_t_access_load_Len (l : Loc) (v : golang_org.x.sys.u
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Len' : w64) :
+noncomputable instance Flock_t_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Len" l) v.Len' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Len" l) Len' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Len' := Len' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Len" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Len' := y } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -363,11 +363,11 @@ noncomputable instance Flock_t_access_load_Pid (l : Loc) (v : golang_org.x.sys.u
  by
   solve_pointsto_access_struct
 
-noncomputable instance Flock_t_access_store_Pid (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Pid' : w32) :
+noncomputable instance Flock_t_access_store_Pid (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Pid" l) v.Pid' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Pid" l) Pid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pid' := Pid' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Pid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pid' := y } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -379,11 +379,11 @@ noncomputable instance «Flock_t_access_load__#5» (l : Loc) (v : golang_org.x.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance «Flock_t_access_store__#5» (l : Loc) (v : golang_org.x.sys.unix.Flock_t) («_#5'» : (GoArray w8 4)) :
+noncomputable instance «Flock_t_access_store__#5» (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (y : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"_#5" l) v.«_#5'» (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"_#5" l) «_#5'» (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#5'» := «_#5'» } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"_#5" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#5'» := y } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -555,7 +555,7 @@ noncomputable def bank.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"ack"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"witness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k"))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -569,7 +569,7 @@ noncomputable def bank.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Var "$a0")))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -621,14 +621,14 @@ noncomputable def bank.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Var "$a0")))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Val #()))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Val #()))
   (Let "$r0" (App (Val (GoInstruction (Convert Result.ty go.any))) (Let "$v0" (Val #true)
   (App (Val (GoInstruction (CompositeLiteral Result.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Failed")) (ElementExpression go.bool (Var "$v0")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1041,7 +1041,7 @@ noncomputable def Boot.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)))) (Var "db"))) (Val #()))))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Val #()))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "r")) (Val #(go!"Ok"))))) (Val #false))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef bank.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bank.ty)))) (Var "k")))) (Val #()))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "r")) (Val #(go!"Ok"))))) (Val #false))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"bbolttest: the transactions are not strictly serializable")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -1632,7 +1632,7 @@ structure bank [GooseExts] where
   mk ::
   db' : Loc
   witness' : Loc
-  failed' : _root_.Perennial.sync.atomic.Bool'
+  failed' : _root_.Perennial.sync.atomic.Bool''
 
 noncomputable instance bank.zero_val [GooseExts] : ZeroVal bank :=
   ⟨bank.mk zeroValDef zeroValDef zeroValDef⟩
@@ -1640,7 +1640,7 @@ noncomputable instance bank.zero_val [GooseExts] : ZeroVal bank :=
 @[reducible] noncomputable def bank.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"db" (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)),
 (go.field_decl.FieldDecl go!"witness" (go.GoType.PointerType witness.ty)),
-(go.field_decl.FieldDecl go!"failed" _root_.Perennial.sync.atomic.Bool'.ty)]
+(go.field_decl.FieldDecl go!"failed" _root_.Perennial.sync.atomic.Bool''.ty)]
 
 @[irreducible] noncomputable def bank.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bank.fieldsUnsealed
@@ -1660,7 +1660,7 @@ class bank.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   get_witness : ∀ (x : bank), go.IsGoStepPureDetTagged under (StructFieldGet bank.underlying go!"witness") #x (Val #(x.witness'))
   set_witness : ∀ (x : bank) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet bank.underlying go!"witness") (PairV #x #y) (Val #(({ x with witness' := y } : bank)))
   get_failed : ∀ (x : bank), go.IsGoStepPureDetTagged under (StructFieldGet bank.underlying go!"failed") #x (Val #(x.failed'))
-  set_failed : ∀ (x : bank) (y : _root_.Perennial.sync.atomic.Bool'), go.IsGoStepPureDetTagged under (StructFieldSet bank.underlying go!"failed") (PairV #x #y) (Val #(({ x with failed' := y } : bank)))
+  set_failed : ∀ (x : bank) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet bank.underlying go!"failed") (PairV #x #y) (Val #(({ x with failed' := y } : bank)))
   method_set : go.MethodSetIs bank.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType bank.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/bbolt/bank.apply", (some (go.signature.Signature [go.any] false [go.any])))]
   ptr_apply_unfold : MethodUnfold (go.GoType.PointerType bank.ty) go!"apply" bank.apply.impl

@@ -47,11 +47,11 @@ noncomputable instance Form_access_load_Value (l : Loc) (v : mime.multipart.Form
  by
   solve_pointsto_access_struct
 
-noncomputable instance Form_access_store_Value (l : Loc) (v : mime.multipart.Form) (Value' : GoMap) :
+noncomputable instance Form_access_store_Value (l : Loc) (v : mime.multipart.Form) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.Form go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.Form go!"Value" l) Value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := Value' } : mime.multipart.Form) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.Form go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : mime.multipart.Form) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -63,11 +63,11 @@ noncomputable instance Form_access_load_File (l : Loc) (v : mime.multipart.Form)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Form_access_store_File (l : Loc) (v : mime.multipart.Form) (File' : GoMap) :
+noncomputable instance Form_access_store_File (l : Loc) (v : mime.multipart.Form) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.Form go!"File" l) v.File' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.Form go!"File" l) File' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := File' } : mime.multipart.Form) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.Form go!"File" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := y } : mime.multipart.Form) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -109,11 +109,11 @@ noncomputable instance FileHeader_access_load_Filename (l : Loc) (v : mime.multi
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileHeader_access_store_Filename (l : Loc) (v : mime.multipart.FileHeader) (Filename' : GoString) :
+noncomputable instance FileHeader_access_store_Filename (l : Loc) (v : mime.multipart.FileHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Filename" l) v.Filename' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Filename" l) Filename' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Filename' := Filename' } : mime.multipart.FileHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Filename" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Filename' := y } : mime.multipart.FileHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -125,11 +125,11 @@ noncomputable instance FileHeader_access_load_Header (l : Loc) (v : mime.multipa
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileHeader_access_store_Header (l : Loc) (v : mime.multipart.FileHeader) (Header' : _root_.Perennial.net.textproto.MIMEHeader) :
+noncomputable instance FileHeader_access_store_Header (l : Loc) (v : mime.multipart.FileHeader) (y : _root_.Perennial.net.textproto.MIMEHeader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Header" l) Header' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := Header' } : mime.multipart.FileHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Header" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : mime.multipart.FileHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -141,11 +141,11 @@ noncomputable instance FileHeader_access_load_Size (l : Loc) (v : mime.multipart
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileHeader_access_store_Size (l : Loc) (v : mime.multipart.FileHeader) (Size' : w64) :
+noncomputable instance FileHeader_access_store_Size (l : Loc) (v : mime.multipart.FileHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Size" l) v.Size' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Size" l) Size' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := Size' } : mime.multipart.FileHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := y } : mime.multipart.FileHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -157,11 +157,11 @@ noncomputable instance FileHeader_access_load_content (l : Loc) (v : mime.multip
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileHeader_access_store_content (l : Loc) (v : mime.multipart.FileHeader) (content' : GoSlice) :
+noncomputable instance FileHeader_access_store_content (l : Loc) (v : mime.multipart.FileHeader) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.FileHeader go!"content" l) v.content' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"content" l) content' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with content' := content' } : mime.multipart.FileHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"content" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with content' := y } : mime.multipart.FileHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -173,11 +173,11 @@ noncomputable instance FileHeader_access_load_tmpfile (l : Loc) (v : mime.multip
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileHeader_access_store_tmpfile (l : Loc) (v : mime.multipart.FileHeader) (tmpfile' : GoString) :
+noncomputable instance FileHeader_access_store_tmpfile (l : Loc) (v : mime.multipart.FileHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.FileHeader go!"tmpfile" l) v.tmpfile' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"tmpfile" l) tmpfile' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tmpfile' := tmpfile' } : mime.multipart.FileHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"tmpfile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tmpfile' := y } : mime.multipart.FileHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -189,11 +189,11 @@ noncomputable instance FileHeader_access_load_tmpoff (l : Loc) (v : mime.multipa
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileHeader_access_store_tmpoff (l : Loc) (v : mime.multipart.FileHeader) (tmpoff' : w64) :
+noncomputable instance FileHeader_access_store_tmpoff (l : Loc) (v : mime.multipart.FileHeader) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.FileHeader go!"tmpoff" l) v.tmpoff' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"tmpoff" l) tmpoff' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tmpoff' := tmpoff' } : mime.multipart.FileHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"tmpoff" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tmpoff' := y } : mime.multipart.FileHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -205,11 +205,11 @@ noncomputable instance FileHeader_access_load_tmpshared (l : Loc) (v : mime.mult
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileHeader_access_store_tmpshared (l : Loc) (v : mime.multipart.FileHeader) (tmpshared' : Bool) :
+noncomputable instance FileHeader_access_store_tmpshared (l : Loc) (v : mime.multipart.FileHeader) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.FileHeader go!"tmpshared" l) v.tmpshared' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"tmpshared" l) tmpshared' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tmpshared' := tmpshared' } : mime.multipart.FileHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.FileHeader go!"tmpshared" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tmpshared' := y } : mime.multipart.FileHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -321,11 +321,11 @@ noncomputable instance partReader_access_load_p (l : Loc) (v : mime.multipart.pa
  by
   solve_pointsto_access_struct
 
-noncomputable instance partReader_access_store_p (l : Loc) (v : mime.multipart.partReader) (p' : Loc) :
+noncomputable instance partReader_access_store_p (l : Loc) (v : mime.multipart.partReader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.partReader go!"p" l) v.p' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.partReader go!"p" l) p' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with p' := p' } : mime.multipart.partReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.partReader go!"p" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with p' := y } : mime.multipart.partReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -401,11 +401,11 @@ noncomputable instance part_access_load_mw (l : Loc) (v : mime.multipart.part) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance part_access_store_mw (l : Loc) (v : mime.multipart.part) (mw' : Loc) :
+noncomputable instance part_access_store_mw (l : Loc) (v : mime.multipart.part) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.part go!"mw" l) v.mw' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.part go!"mw" l) mw' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mw' := mw' } : mime.multipart.part) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.part go!"mw" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mw' := y } : mime.multipart.part) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -417,11 +417,11 @@ noncomputable instance part_access_load_closed (l : Loc) (v : mime.multipart.par
  by
   solve_pointsto_access_struct
 
-noncomputable instance part_access_store_closed (l : Loc) (v : mime.multipart.part) (closed' : Bool) :
+noncomputable instance part_access_store_closed (l : Loc) (v : mime.multipart.part) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.part go!"closed" l) v.closed' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.part go!"closed" l) closed' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closed' := closed' } : mime.multipart.part) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.part go!"closed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closed' := y } : mime.multipart.part) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -433,11 +433,11 @@ noncomputable instance part_access_load_we (l : Loc) (v : mime.multipart.part) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance part_access_store_we (l : Loc) (v : mime.multipart.part) (we' : GoError) :
+noncomputable instance part_access_store_we (l : Loc) (v : mime.multipart.part) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.part go!"we" l) v.we' (DFrac.own 1))
-      (typedPointsto (structFieldRef mime.multipart.part go!"we" l) we' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with we' := we' } : mime.multipart.part) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef mime.multipart.part go!"we" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with we' := y } : mime.multipart.part) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

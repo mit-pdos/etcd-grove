@@ -48,11 +48,11 @@ noncomputable instance digest_access_load_crc (l : Loc) (v : go_etcd_io.etcd.pkg
  by
   solve_pointsto_access_struct
 
-noncomputable instance digest_access_store_crc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (crc' : w32) :
+noncomputable instance digest_access_store_crc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) crc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crc' := crc' } : go_etcd_io.etcd.pkg.v3.crc.digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crc' := y } : go_etcd_io.etcd.pkg.v3.crc.digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,11 +64,11 @@ noncomputable instance digest_access_load_tab (l : Loc) (v : go_etcd_io.etcd.pkg
  by
   solve_pointsto_access_struct
 
-noncomputable instance digest_access_store_tab (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (tab' : Loc) :
+noncomputable instance digest_access_store_tab (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) tab' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tab' := tab' } : go_etcd_io.etcd.pkg.v3.crc.digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tab' := y } : go_etcd_io.etcd.pkg.v3.crc.digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

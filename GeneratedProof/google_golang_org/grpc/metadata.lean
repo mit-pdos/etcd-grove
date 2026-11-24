@@ -93,11 +93,11 @@ noncomputable instance rawMD_access_load_md (l : Loc) (v : google_golang_org.grp
  by
   solve_pointsto_access_struct
 
-noncomputable instance rawMD_access_store_md (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (md' : google_golang_org.grpc.metadata.MD) :
+noncomputable instance rawMD_access_store_md (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (y : google_golang_org.grpc.metadata.MD) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"md" l) v.md' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"md" l) md' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with md' := md' } : google_golang_org.grpc.metadata.rawMD) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"md" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with md' := y } : google_golang_org.grpc.metadata.rawMD) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -109,11 +109,11 @@ noncomputable instance rawMD_access_load_added (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance rawMD_access_store_added (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (added' : GoSlice) :
+noncomputable instance rawMD_access_store_added (l : Loc) (v : google_golang_org.grpc.metadata.rawMD) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"added" l) v.added' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"added" l) added' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with added' := added' } : google_golang_org.grpc.metadata.rawMD) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.metadata.rawMD go!"added" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with added' := y } : google_golang_org.grpc.metadata.rawMD) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

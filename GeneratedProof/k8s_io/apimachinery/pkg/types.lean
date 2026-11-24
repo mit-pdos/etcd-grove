@@ -46,11 +46,11 @@ noncomputable instance NamespacedName_access_load_Namespace (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance NamespacedName_access_store_Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (Namespace' : GoString) :
+noncomputable instance NamespacedName_access_store_Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) Namespace' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := Namespace' } : k8s_io.apimachinery.pkg.types.NamespacedName) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := y } : k8s_io.apimachinery.pkg.types.NamespacedName) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -62,11 +62,11 @@ noncomputable instance NamespacedName_access_load_Name (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance NamespacedName_access_store_Name (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (Name' : GoString) :
+noncomputable instance NamespacedName_access_store_Name (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : k8s_io.apimachinery.pkg.types.NamespacedName) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.apimachinery.pkg.types.NamespacedName) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -50,11 +50,11 @@ noncomputable instance Generator_access_load_prefix (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Generator_access_store_prefix (l : Loc) (v : go_etcd_io.etcd.pkg.v3.idutil.Generator) (prefix' : w64) :
+noncomputable instance Generator_access_store_prefix (l : Loc) (v : go_etcd_io.etcd.pkg.v3.idutil.Generator) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) v.prefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) prefix' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := prefix' } : go_etcd_io.etcd.pkg.v3.idutil.Generator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := y } : go_etcd_io.etcd.pkg.v3.idutil.Generator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -66,11 +66,11 @@ noncomputable instance Generator_access_load_suffix (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Generator_access_store_suffix (l : Loc) (v : go_etcd_io.etcd.pkg.v3.idutil.Generator) (suffix' : w64) :
+noncomputable instance Generator_access_store_suffix (l : Loc) (v : go_etcd_io.etcd.pkg.v3.idutil.Generator) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) v.suffix' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) suffix' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with suffix' := suffix' } : go_etcd_io.etcd.pkg.v3.idutil.Generator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with suffix' := y } : go_etcd_io.etcd.pkg.v3.idutil.Generator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

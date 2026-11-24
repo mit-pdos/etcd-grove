@@ -51,11 +51,11 @@ noncomputable instance digest_access_load_crc (l : Loc) (v : hash.crc32.digest) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance digest_access_store_crc (l : Loc) (v : hash.crc32.digest) (crc' : w32) :
+noncomputable instance digest_access_store_crc (l : Loc) (v : hash.crc32.digest) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef hash.crc32.digest go!"crc" l) v.crc' (DFrac.own 1))
-      (typedPointsto (structFieldRef hash.crc32.digest go!"crc" l) crc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crc' := crc' } : hash.crc32.digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef hash.crc32.digest go!"crc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crc' := y } : hash.crc32.digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -67,11 +67,11 @@ noncomputable instance digest_access_load_tab (l : Loc) (v : hash.crc32.digest) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance digest_access_store_tab (l : Loc) (v : hash.crc32.digest) (tab' : Loc) :
+noncomputable instance digest_access_store_tab (l : Loc) (v : hash.crc32.digest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef hash.crc32.digest go!"tab" l) v.tab' (DFrac.own 1))
-      (typedPointsto (structFieldRef hash.crc32.digest go!"tab" l) tab' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tab' := tab' } : hash.crc32.digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef hash.crc32.digest go!"tab" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tab' := y } : hash.crc32.digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

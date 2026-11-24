@@ -48,11 +48,11 @@ noncomputable instance Stack_access_load_pcs (l : Loc) (v : go_uber_org.zap.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stack_access_store_pcs (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (pcs' : GoSlice) :
+noncomputable instance Stack_access_store_pcs (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) v.pcs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) pcs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pcs' := pcs' } : go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pcs' := y } : go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,11 +64,11 @@ noncomputable instance Stack_access_load_frames (l : Loc) (v : go_uber_org.zap.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stack_access_store_frames (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (frames' : Loc) :
+noncomputable instance Stack_access_store_frames (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) v.frames' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) frames' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with frames' := frames' } : go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with frames' := y } : go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -80,11 +80,11 @@ noncomputable instance Stack_access_load_storage (l : Loc) (v : go_uber_org.zap.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stack_access_store_storage (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (storage' : GoSlice) :
+noncomputable instance Stack_access_store_storage (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) v.storage' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) storage' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := storage' } : go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

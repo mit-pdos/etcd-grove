@@ -54,11 +54,11 @@ noncomputable instance Resolver_access_load_BuildCallback (l : Loc) (v : google_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Resolver_access_store_BuildCallback (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (BuildCallback' : GoFunc) :
+noncomputable instance Resolver_access_store_BuildCallback (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"BuildCallback" l) v.BuildCallback' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"BuildCallback" l) BuildCallback' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BuildCallback' := BuildCallback' } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"BuildCallback" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BuildCallback' := y } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -70,11 +70,11 @@ noncomputable instance Resolver_access_load_UpdateStateCallback (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance Resolver_access_store_UpdateStateCallback (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (UpdateStateCallback' : GoFunc) :
+noncomputable instance Resolver_access_store_UpdateStateCallback (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"UpdateStateCallback" l) v.UpdateStateCallback' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"UpdateStateCallback" l) UpdateStateCallback' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UpdateStateCallback' := UpdateStateCallback' } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"UpdateStateCallback" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UpdateStateCallback' := y } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -86,11 +86,11 @@ noncomputable instance Resolver_access_load_ResolveNowCallback (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance Resolver_access_store_ResolveNowCallback (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (ResolveNowCallback' : GoFunc) :
+noncomputable instance Resolver_access_store_ResolveNowCallback (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"ResolveNowCallback" l) v.ResolveNowCallback' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"ResolveNowCallback" l) ResolveNowCallback' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResolveNowCallback' := ResolveNowCallback' } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"ResolveNowCallback" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResolveNowCallback' := y } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -102,11 +102,11 @@ noncomputable instance Resolver_access_load_CloseCallback (l : Loc) (v : google_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Resolver_access_store_CloseCallback (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (CloseCallback' : GoFunc) :
+noncomputable instance Resolver_access_store_CloseCallback (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"CloseCallback" l) v.CloseCallback' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"CloseCallback" l) CloseCallback' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CloseCallback' := CloseCallback' } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"CloseCallback" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CloseCallback' := y } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -118,11 +118,11 @@ noncomputable instance Resolver_access_load_scheme (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Resolver_access_store_scheme (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (scheme' : GoString) :
+noncomputable instance Resolver_access_store_scheme (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"scheme" l) v.scheme' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"scheme" l) scheme' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scheme' := scheme' } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"scheme" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scheme' := y } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -134,11 +134,11 @@ noncomputable instance Resolver_access_load_mu (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Resolver_access_store_mu (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance Resolver_access_store_mu (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -150,11 +150,11 @@ noncomputable instance Resolver_access_load_cc (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Resolver_access_store_cc (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (cc' : _root_.Perennial.google_golang_org.grpc.resolver.ClientConn) :
+noncomputable instance Resolver_access_store_cc (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (y : _root_.Perennial.google_golang_org.grpc.resolver.ClientConn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"cc" l) v.cc' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"cc" l) cc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := cc' } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"cc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := y } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -166,11 +166,11 @@ noncomputable instance Resolver_access_load_lastSeenState (l : Loc) (v : google_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Resolver_access_store_lastSeenState (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (lastSeenState' : Loc) :
+noncomputable instance Resolver_access_store_lastSeenState (l : Loc) (v : google_golang_org.grpc.resolver.manual.Resolver) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"lastSeenState" l) v.lastSeenState' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"lastSeenState" l) lastSeenState' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastSeenState' := lastSeenState' } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.resolver.manual.Resolver go!"lastSeenState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastSeenState' := y } : google_golang_org.grpc.resolver.manual.Resolver) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

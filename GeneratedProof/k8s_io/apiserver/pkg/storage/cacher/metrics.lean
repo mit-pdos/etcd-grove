@@ -65,11 +65,11 @@ noncomputable instance WatcherMetricsObservers_access_load_stageDurations (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance WatcherMetricsObservers_access_store_stageDurations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (stageDurations' : GoSlice) :
+noncomputable instance WatcherMetricsObservers_access_store_stageDurations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) stageDurations' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stageDurations' := stageDurations' } : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stageDurations' := y } : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

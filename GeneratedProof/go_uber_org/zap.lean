@@ -62,11 +62,11 @@ noncomputable instance SamplingConfig_access_load_Initial (l : Loc) (v : go_uber
  by
   solve_pointsto_access_struct
 
-noncomputable instance SamplingConfig_access_store_Initial (l : Loc) (v : go_uber_org.zap.SamplingConfig) (Initial' : w64) :
+noncomputable instance SamplingConfig_access_store_Initial (l : Loc) (v : go_uber_org.zap.SamplingConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Initial" l) v.Initial' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Initial" l) Initial' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Initial' := Initial' } : go_uber_org.zap.SamplingConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Initial" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Initial' := y } : go_uber_org.zap.SamplingConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -78,11 +78,11 @@ noncomputable instance SamplingConfig_access_load_Thereafter (l : Loc) (v : go_u
  by
   solve_pointsto_access_struct
 
-noncomputable instance SamplingConfig_access_store_Thereafter (l : Loc) (v : go_uber_org.zap.SamplingConfig) (Thereafter' : w64) :
+noncomputable instance SamplingConfig_access_store_Thereafter (l : Loc) (v : go_uber_org.zap.SamplingConfig) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Thereafter" l) v.Thereafter' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Thereafter" l) Thereafter' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Thereafter' := Thereafter' } : go_uber_org.zap.SamplingConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Thereafter" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Thereafter' := y } : go_uber_org.zap.SamplingConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -94,11 +94,11 @@ noncomputable instance SamplingConfig_access_load_Hook (l : Loc) (v : go_uber_or
  by
   solve_pointsto_access_struct
 
-noncomputable instance SamplingConfig_access_store_Hook (l : Loc) (v : go_uber_org.zap.SamplingConfig) (Hook' : GoFunc) :
+noncomputable instance SamplingConfig_access_store_Hook (l : Loc) (v : go_uber_org.zap.SamplingConfig) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Hook" l) v.Hook' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Hook" l) Hook' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hook' := Hook' } : go_uber_org.zap.SamplingConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Hook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Hook' := y } : go_uber_org.zap.SamplingConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -134,11 +134,11 @@ noncomputable instance AtomicLevel_access_load_l (l : Loc) (v : go_uber_org.zap.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AtomicLevel_access_store_l (l : Loc) (v : go_uber_org.zap.AtomicLevel) (l' : Loc) :
+noncomputable instance AtomicLevel_access_store_l (l : Loc) (v : go_uber_org.zap.AtomicLevel) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) v.l' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) l' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with l' := l' } : go_uber_org.zap.AtomicLevel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.AtomicLevel go!"l" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with l' := y } : go_uber_org.zap.AtomicLevel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -183,11 +183,11 @@ noncomputable instance Config_access_load_Level (l : Loc) (v : go_uber_org.zap.C
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Level (l : Loc) (v : go_uber_org.zap.Config) (Level' : go_uber_org.zap.AtomicLevel) :
+noncomputable instance Config_access_store_Level (l : Loc) (v : go_uber_org.zap.Config) (y : go_uber_org.zap.AtomicLevel) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Level" l) v.Level' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Level" l) Level' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Level' := Level' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Level" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Level' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -199,11 +199,11 @@ noncomputable instance Config_access_load_Development (l : Loc) (v : go_uber_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Development (l : Loc) (v : go_uber_org.zap.Config) (Development' : Bool) :
+noncomputable instance Config_access_store_Development (l : Loc) (v : go_uber_org.zap.Config) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Development" l) v.Development' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Development" l) Development' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Development' := Development' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Development" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Development' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -215,11 +215,11 @@ noncomputable instance Config_access_load_DisableCaller (l : Loc) (v : go_uber_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_DisableCaller (l : Loc) (v : go_uber_org.zap.Config) (DisableCaller' : Bool) :
+noncomputable instance Config_access_store_DisableCaller (l : Loc) (v : go_uber_org.zap.Config) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableCaller" l) v.DisableCaller' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableCaller" l) DisableCaller' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableCaller' := DisableCaller' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableCaller" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableCaller' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -231,11 +231,11 @@ noncomputable instance Config_access_load_DisableStacktrace (l : Loc) (v : go_ub
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_DisableStacktrace (l : Loc) (v : go_uber_org.zap.Config) (DisableStacktrace' : Bool) :
+noncomputable instance Config_access_store_DisableStacktrace (l : Loc) (v : go_uber_org.zap.Config) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableStacktrace" l) v.DisableStacktrace' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableStacktrace" l) DisableStacktrace' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableStacktrace' := DisableStacktrace' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableStacktrace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableStacktrace' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -247,11 +247,11 @@ noncomputable instance Config_access_load_Sampling (l : Loc) (v : go_uber_org.za
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Sampling (l : Loc) (v : go_uber_org.zap.Config) (Sampling' : Loc) :
+noncomputable instance Config_access_store_Sampling (l : Loc) (v : go_uber_org.zap.Config) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Sampling" l) v.Sampling' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Sampling" l) Sampling' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sampling' := Sampling' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Sampling" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sampling' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -263,11 +263,11 @@ noncomputable instance Config_access_load_Encoding (l : Loc) (v : go_uber_org.za
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Encoding (l : Loc) (v : go_uber_org.zap.Config) (Encoding' : GoString) :
+noncomputable instance Config_access_store_Encoding (l : Loc) (v : go_uber_org.zap.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Encoding" l) v.Encoding' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Encoding" l) Encoding' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Encoding' := Encoding' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Encoding" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Encoding' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -279,11 +279,11 @@ noncomputable instance Config_access_load_EncoderConfig (l : Loc) (v : go_uber_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_EncoderConfig (l : Loc) (v : go_uber_org.zap.Config) (EncoderConfig' : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) :
+noncomputable instance Config_access_store_EncoderConfig (l : Loc) (v : go_uber_org.zap.Config) (y : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"EncoderConfig" l) v.EncoderConfig' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"EncoderConfig" l) EncoderConfig' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncoderConfig' := EncoderConfig' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"EncoderConfig" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncoderConfig' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -295,11 +295,11 @@ noncomputable instance Config_access_load_OutputPaths (l : Loc) (v : go_uber_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_OutputPaths (l : Loc) (v : go_uber_org.zap.Config) (OutputPaths' : GoSlice) :
+noncomputable instance Config_access_store_OutputPaths (l : Loc) (v : go_uber_org.zap.Config) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"OutputPaths" l) v.OutputPaths' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"OutputPaths" l) OutputPaths' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OutputPaths' := OutputPaths' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"OutputPaths" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OutputPaths' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -311,11 +311,11 @@ noncomputable instance Config_access_load_ErrorOutputPaths (l : Loc) (v : go_ube
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ErrorOutputPaths (l : Loc) (v : go_uber_org.zap.Config) (ErrorOutputPaths' : GoSlice) :
+noncomputable instance Config_access_store_ErrorOutputPaths (l : Loc) (v : go_uber_org.zap.Config) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"ErrorOutputPaths" l) v.ErrorOutputPaths' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"ErrorOutputPaths" l) ErrorOutputPaths' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorOutputPaths' := ErrorOutputPaths' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"ErrorOutputPaths" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorOutputPaths' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -327,11 +327,11 @@ noncomputable instance Config_access_load_InitialFields (l : Loc) (v : go_uber_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_InitialFields (l : Loc) (v : go_uber_org.zap.Config) (InitialFields' : GoMap) :
+noncomputable instance Config_access_store_InitialFields (l : Loc) (v : go_uber_org.zap.Config) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"InitialFields" l) v.InitialFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"InitialFields" l) InitialFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialFields' := InitialFields' } : go_uber_org.zap.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Config go!"InitialFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InitialFields' := y } : go_uber_org.zap.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -367,11 +367,11 @@ noncomputable instance errArrayElem_access_load_error (l : Loc) (v : go_uber_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance errArrayElem_access_store_error (l : Loc) (v : go_uber_org.zap.errArrayElem) (error' : GoError) :
+noncomputable instance errArrayElem_access_store_error (l : Loc) (v : go_uber_org.zap.errArrayElem) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.errArrayElem go!"error" l) v.error' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.errArrayElem go!"error" l) error' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with error' := error' } : go_uber_org.zap.errArrayElem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.errArrayElem go!"error" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with error' := y } : go_uber_org.zap.errArrayElem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -407,11 +407,11 @@ noncomputable instance loggerWriter_access_load_logFunc (l : Loc) (v : go_uber_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggerWriter_access_store_logFunc (l : Loc) (v : go_uber_org.zap.loggerWriter) (logFunc' : GoFunc) :
+noncomputable instance loggerWriter_access_store_logFunc (l : Loc) (v : go_uber_org.zap.loggerWriter) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.loggerWriter go!"logFunc" l) v.logFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.loggerWriter go!"logFunc" l) logFunc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logFunc' := logFunc' } : go_uber_org.zap.loggerWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.loggerWriter go!"logFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logFunc' := y } : go_uber_org.zap.loggerWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -456,11 +456,11 @@ noncomputable instance Logger_access_load_core (l : Loc) (v : go_uber_org.zap.Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_core (l : Loc) (v : go_uber_org.zap.Logger) (core' : _root_.Perennial.go_uber_org.zap.zapcore.Core) :
+noncomputable instance Logger_access_store_core (l : Loc) (v : go_uber_org.zap.Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.Core) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"core" l) v.core' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"core" l) core' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with core' := core' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"core" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with core' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -472,11 +472,11 @@ noncomputable instance Logger_access_load_development (l : Loc) (v : go_uber_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_development (l : Loc) (v : go_uber_org.zap.Logger) (development' : Bool) :
+noncomputable instance Logger_access_store_development (l : Loc) (v : go_uber_org.zap.Logger) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"development" l) v.development' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"development" l) development' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with development' := development' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"development" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with development' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -488,11 +488,11 @@ noncomputable instance Logger_access_load_addCaller (l : Loc) (v : go_uber_org.z
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_addCaller (l : Loc) (v : go_uber_org.zap.Logger) (addCaller' : Bool) :
+noncomputable instance Logger_access_store_addCaller (l : Loc) (v : go_uber_org.zap.Logger) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addCaller" l) v.addCaller' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addCaller" l) addCaller' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addCaller' := addCaller' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addCaller" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addCaller' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -504,11 +504,11 @@ noncomputable instance Logger_access_load_onPanic (l : Loc) (v : go_uber_org.zap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_onPanic (l : Loc) (v : go_uber_org.zap.Logger) (onPanic' : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook) :
+noncomputable instance Logger_access_store_onPanic (l : Loc) (v : go_uber_org.zap.Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onPanic" l) v.onPanic' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onPanic" l) onPanic' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onPanic' := onPanic' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onPanic" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onPanic' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -520,11 +520,11 @@ noncomputable instance Logger_access_load_onFatal (l : Loc) (v : go_uber_org.zap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_onFatal (l : Loc) (v : go_uber_org.zap.Logger) (onFatal' : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook) :
+noncomputable instance Logger_access_store_onFatal (l : Loc) (v : go_uber_org.zap.Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onFatal" l) v.onFatal' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onFatal" l) onFatal' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onFatal' := onFatal' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onFatal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onFatal' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -536,11 +536,11 @@ noncomputable instance Logger_access_load_name (l : Loc) (v : go_uber_org.zap.Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_name (l : Loc) (v : go_uber_org.zap.Logger) (name' : GoString) :
+noncomputable instance Logger_access_store_name (l : Loc) (v : go_uber_org.zap.Logger) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -552,11 +552,11 @@ noncomputable instance Logger_access_load_errorOutput (l : Loc) (v : go_uber_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_errorOutput (l : Loc) (v : go_uber_org.zap.Logger) (errorOutput' : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer) :
+noncomputable instance Logger_access_store_errorOutput (l : Loc) (v : go_uber_org.zap.Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"errorOutput" l) v.errorOutput' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"errorOutput" l) errorOutput' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with errorOutput' := errorOutput' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"errorOutput" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with errorOutput' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -568,11 +568,11 @@ noncomputable instance Logger_access_load_addStack (l : Loc) (v : go_uber_org.za
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_addStack (l : Loc) (v : go_uber_org.zap.Logger) (addStack' : _root_.Perennial.go_uber_org.zap.zapcore.LevelEnabler) :
+noncomputable instance Logger_access_store_addStack (l : Loc) (v : go_uber_org.zap.Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.LevelEnabler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addStack" l) v.addStack' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addStack" l) addStack' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addStack' := addStack' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addStack" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addStack' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -584,11 +584,11 @@ noncomputable instance Logger_access_load_callerSkip (l : Loc) (v : go_uber_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_callerSkip (l : Loc) (v : go_uber_org.zap.Logger) (callerSkip' : w64) :
+noncomputable instance Logger_access_store_callerSkip (l : Loc) (v : go_uber_org.zap.Logger) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"callerSkip" l) v.callerSkip' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"callerSkip" l) callerSkip' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callerSkip' := callerSkip' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"callerSkip" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callerSkip' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -600,11 +600,11 @@ noncomputable instance Logger_access_load_clock (l : Loc) (v : go_uber_org.zap.L
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_clock (l : Loc) (v : go_uber_org.zap.Logger) (clock' : _root_.Perennial.go_uber_org.zap.zapcore.Clock) :
+noncomputable instance Logger_access_store_clock (l : Loc) (v : go_uber_org.zap.Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"clock" l) v.clock' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"clock" l) clock' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := clock' } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"clock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : go_uber_org.zap.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -640,11 +640,11 @@ noncomputable instance errSinkNotFound_access_load_scheme (l : Loc) (v : go_uber
  by
   solve_pointsto_access_struct
 
-noncomputable instance errSinkNotFound_access_store_scheme (l : Loc) (v : go_uber_org.zap.errSinkNotFound) (scheme' : GoString) :
+noncomputable instance errSinkNotFound_access_store_scheme (l : Loc) (v : go_uber_org.zap.errSinkNotFound) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.errSinkNotFound go!"scheme" l) v.scheme' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.errSinkNotFound go!"scheme" l) scheme' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scheme' := scheme' } : go_uber_org.zap.errSinkNotFound) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.errSinkNotFound go!"scheme" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scheme' := y } : go_uber_org.zap.errSinkNotFound) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -680,11 +680,11 @@ noncomputable instance nopCloserSink_access_load_WriteSyncer (l : Loc) (v : go_u
  by
   solve_pointsto_access_struct
 
-noncomputable instance nopCloserSink_access_store_WriteSyncer (l : Loc) (v : go_uber_org.zap.nopCloserSink) (WriteSyncer' : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer) :
+noncomputable instance nopCloserSink_access_store_WriteSyncer (l : Loc) (v : go_uber_org.zap.nopCloserSink) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.nopCloserSink go!"WriteSyncer" l) v.WriteSyncer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.nopCloserSink go!"WriteSyncer" l) WriteSyncer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WriteSyncer' := WriteSyncer' } : go_uber_org.zap.nopCloserSink) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.nopCloserSink go!"WriteSyncer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WriteSyncer' := y } : go_uber_org.zap.nopCloserSink) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -722,11 +722,11 @@ noncomputable instance sinkRegistry_access_load_mu (l : Loc) (v : go_uber_org.za
  by
   solve_pointsto_access_struct
 
-noncomputable instance sinkRegistry_access_store_mu (l : Loc) (v : go_uber_org.zap.sinkRegistry) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance sinkRegistry_access_store_mu (l : Loc) (v : go_uber_org.zap.sinkRegistry) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_uber_org.zap.sinkRegistry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : go_uber_org.zap.sinkRegistry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -738,11 +738,11 @@ noncomputable instance sinkRegistry_access_load_factories (l : Loc) (v : go_uber
  by
   solve_pointsto_access_struct
 
-noncomputable instance sinkRegistry_access_store_factories (l : Loc) (v : go_uber_org.zap.sinkRegistry) (factories' : GoMap) :
+noncomputable instance sinkRegistry_access_store_factories (l : Loc) (v : go_uber_org.zap.sinkRegistry) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"factories" l) v.factories' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"factories" l) factories' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factories' := factories' } : go_uber_org.zap.sinkRegistry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"factories" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factories' := y } : go_uber_org.zap.sinkRegistry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -754,11 +754,11 @@ noncomputable instance sinkRegistry_access_load_openFile (l : Loc) (v : go_uber_
  by
   solve_pointsto_access_struct
 
-noncomputable instance sinkRegistry_access_store_openFile (l : Loc) (v : go_uber_org.zap.sinkRegistry) (openFile' : GoFunc) :
+noncomputable instance sinkRegistry_access_store_openFile (l : Loc) (v : go_uber_org.zap.sinkRegistry) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"openFile" l) v.openFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"openFile" l) openFile' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with openFile' := openFile' } : go_uber_org.zap.sinkRegistry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"openFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with openFile' := y } : go_uber_org.zap.sinkRegistry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -794,11 +794,11 @@ noncomputable instance SugaredLogger_access_load_base (l : Loc) (v : go_uber_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance SugaredLogger_access_store_base (l : Loc) (v : go_uber_org.zap.SugaredLogger) (base' : Loc) :
+noncomputable instance SugaredLogger_access_store_base (l : Loc) (v : go_uber_org.zap.SugaredLogger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.SugaredLogger go!"base" l) v.base' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.SugaredLogger go!"base" l) base' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with base' := base' } : go_uber_org.zap.SugaredLogger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.SugaredLogger go!"base" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with base' := y } : go_uber_org.zap.SugaredLogger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -836,11 +836,11 @@ noncomputable instance invalidPair_access_load_position (l : Loc) (v : go_uber_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance invalidPair_access_store_position (l : Loc) (v : go_uber_org.zap.invalidPair) (position' : w64) :
+noncomputable instance invalidPair_access_store_position (l : Loc) (v : go_uber_org.zap.invalidPair) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"position" l) v.position' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"position" l) position' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with position' := position' } : go_uber_org.zap.invalidPair) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"position" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with position' := y } : go_uber_org.zap.invalidPair) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -852,11 +852,11 @@ noncomputable instance invalidPair_access_load_key (l : Loc) (v : go_uber_org.za
  by
   solve_pointsto_access_struct
 
-noncomputable instance invalidPair_access_store_key (l : Loc) (v : go_uber_org.zap.invalidPair) (key' : GoInterface) :
+noncomputable instance invalidPair_access_store_key (l : Loc) (v : go_uber_org.zap.invalidPair) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"key" l) v.key' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"key" l) key' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : go_uber_org.zap.invalidPair) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : go_uber_org.zap.invalidPair) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -868,11 +868,11 @@ noncomputable instance invalidPair_access_load_value (l : Loc) (v : go_uber_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance invalidPair_access_store_value (l : Loc) (v : go_uber_org.zap.invalidPair) (value' : GoInterface) :
+noncomputable instance invalidPair_access_store_value (l : Loc) (v : go_uber_org.zap.invalidPair) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"value" l) value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := value' } : go_uber_org.zap.invalidPair) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : go_uber_org.zap.invalidPair) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

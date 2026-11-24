@@ -61,11 +61,11 @@ noncomputable instance ConditionalProgressRequester_access_load_clock (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (clock' : k8s_io.apiserver.pkg.storage.cacher.progress.TickerFactory) :
+noncomputable instance ConditionalProgressRequester_access_store_clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : k8s_io.apiserver.pkg.storage.cacher.progress.TickerFactory) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"clock" l) v.clock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"clock" l) clock' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := clock' } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"clock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -77,11 +77,11 @@ noncomputable instance ConditionalProgressRequester_access_load_requestWatchProg
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_requestWatchProgress (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (requestWatchProgress' : k8s_io.apiserver.pkg.storage.cacher.progress.WatchProgressRequester) :
+noncomputable instance ConditionalProgressRequester_access_store_requestWatchProgress (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : k8s_io.apiserver.pkg.storage.cacher.progress.WatchProgressRequester) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"requestWatchProgress" l) v.requestWatchProgress' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"requestWatchProgress" l) requestWatchProgress' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requestWatchProgress' := requestWatchProgress' } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"requestWatchProgress" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requestWatchProgress' := y } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -93,11 +93,11 @@ noncomputable instance ConditionalProgressRequester_access_load_contextMetadata 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (contextMetadata' : _root_.Perennial.google_golang_org.grpc.metadata.MD) :
+noncomputable instance ConditionalProgressRequester_access_store_contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : _root_.Perennial.google_golang_org.grpc.metadata.MD) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"contextMetadata" l) v.contextMetadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"contextMetadata" l) contextMetadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contextMetadata' := contextMetadata' } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"contextMetadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contextMetadata' := y } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -109,11 +109,11 @@ noncomputable instance ConditionalProgressRequester_access_load_mux (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (mux' : _root_.Perennial.sync.Mutex) :
+noncomputable instance ConditionalProgressRequester_access_store_mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"mux" l) v.mux' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"mux" l) mux' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mux' := mux' } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"mux" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mux' := y } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -125,11 +125,11 @@ noncomputable instance ConditionalProgressRequester_access_load_cond (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_cond (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (cond' : Loc) :
+noncomputable instance ConditionalProgressRequester_access_store_cond (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"cond" l) v.cond' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"cond" l) cond' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := cond' } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"cond" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := y } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -141,11 +141,11 @@ noncomputable instance ConditionalProgressRequester_access_load_waiting (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_waiting (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (waiting' : w64) :
+noncomputable instance ConditionalProgressRequester_access_store_waiting (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"waiting" l) v.waiting' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"waiting" l) waiting' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waiting' := waiting' } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"waiting" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waiting' := y } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -157,11 +157,11 @@ noncomputable instance ConditionalProgressRequester_access_load_stopped (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_stopped (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (stopped' : Bool) :
+noncomputable instance ConditionalProgressRequester_access_store_stopped (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"stopped" l) v.stopped' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"stopped" l) stopped' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopped' := stopped' } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"stopped" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopped' := y } : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

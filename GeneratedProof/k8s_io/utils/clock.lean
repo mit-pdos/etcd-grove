@@ -69,11 +69,11 @@ noncomputable instance realTimer_access_load_timer (l : Loc) (v : k8s_io.utils.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance realTimer_access_store_timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (timer' : Loc) :
+noncomputable instance realTimer_access_store_timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) timer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timer' := timer' } : k8s_io.utils.clock.realTimer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timer' := y } : k8s_io.utils.clock.realTimer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -109,11 +109,11 @@ noncomputable instance realTicker_access_load_ticker (l : Loc) (v : k8s_io.utils
  by
   solve_pointsto_access_struct
 
-noncomputable instance realTicker_access_store_ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (ticker' : Loc) :
+noncomputable instance realTicker_access_store_ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) ticker' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ticker' := ticker' } : k8s_io.utils.clock.realTicker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ticker' := y } : k8s_io.utils.clock.realTicker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

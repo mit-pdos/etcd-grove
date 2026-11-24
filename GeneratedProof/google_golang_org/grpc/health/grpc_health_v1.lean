@@ -123,11 +123,11 @@ noncomputable instance healthClient_access_load_cc (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance healthClient_access_store_cc (l : Loc) (v : google_golang_org.grpc.health.grpc_health_v1.healthClient) (cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance healthClient_access_store_cc (l : Loc) (v : google_golang_org.grpc.health.grpc_health_v1.healthClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) cc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := cc' } : google_golang_org.grpc.health.grpc_health_v1.healthClient) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := y } : google_golang_org.grpc.health.grpc_health_v1.healthClient) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

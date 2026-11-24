@@ -36,7 +36,7 @@ noncomputable instance ListOptions_into_val_typed :
 end def_
 end ListOptions
 
-namespace List'
+namespace List''
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -44,16 +44,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».internalversion.Assumptions]
 
-noncomputable instance List'_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».internalversion.List' :=
+noncomputable instance List_typed_pointsto :
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'' :=
   sorry -- axiomatized type
 
-noncomputable instance List'_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».internalversion.List' k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'.underlying :=
+noncomputable instance List_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'' k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.underlying :=
   sorry -- axiomatized type
 
 end def_
-end List'
+end List''
 
 end k8s_io.apimachinery.pkg.apis.«meta».internalversion
 end

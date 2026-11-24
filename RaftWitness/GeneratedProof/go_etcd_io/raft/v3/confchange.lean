@@ -52,11 +52,11 @@ noncomputable instance Changer_access_load_Tracker (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Changer_access_store_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (Tracker' : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker) :
+noncomputable instance Changer_access_store_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (y : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) v.Tracker' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) Tracker' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tracker' := Tracker' } : go_etcd_io.raft.v3.confchange.Changer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tracker' := y } : go_etcd_io.raft.v3.confchange.Changer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -68,11 +68,11 @@ noncomputable instance Changer_access_load_LastIndex (l : Loc) (v : go_etcd_io.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Changer_access_store_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (LastIndex' : w64) :
+noncomputable instance Changer_access_store_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"LastIndex" l) v.LastIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"LastIndex" l) LastIndex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastIndex' := LastIndex' } : go_etcd_io.raft.v3.confchange.Changer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"LastIndex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastIndex' := y } : go_etcd_io.raft.v3.confchange.Changer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

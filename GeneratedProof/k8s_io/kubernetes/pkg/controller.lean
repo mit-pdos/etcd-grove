@@ -88,11 +88,11 @@ noncomputable instance BaseControllerRefManager_access_load_Controller (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance BaseControllerRefManager_access_store_Controller (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (Controller' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object) :
+noncomputable instance BaseControllerRefManager_access_store_Controller (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"Controller" l) v.Controller' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"Controller" l) Controller' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Controller' := Controller' } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"Controller" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Controller' := y } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -104,11 +104,11 @@ noncomputable instance BaseControllerRefManager_access_load_Selector (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance BaseControllerRefManager_access_store_Selector (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (Selector' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
+noncomputable instance BaseControllerRefManager_access_store_Selector (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"Selector" l) v.Selector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"Selector" l) Selector' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Selector' := Selector' } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"Selector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Selector' := y } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -120,11 +120,11 @@ noncomputable instance BaseControllerRefManager_access_load_canAdoptErr (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance BaseControllerRefManager_access_store_canAdoptErr (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (canAdoptErr' : GoError) :
+noncomputable instance BaseControllerRefManager_access_store_canAdoptErr (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"canAdoptErr" l) v.canAdoptErr' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"canAdoptErr" l) canAdoptErr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with canAdoptErr' := canAdoptErr' } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"canAdoptErr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with canAdoptErr' := y } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -136,11 +136,11 @@ noncomputable instance BaseControllerRefManager_access_load_canAdoptOnce (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance BaseControllerRefManager_access_store_canAdoptOnce (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (canAdoptOnce' : _root_.Perennial.sync.Once) :
+noncomputable instance BaseControllerRefManager_access_store_canAdoptOnce (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (y : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"canAdoptOnce" l) v.canAdoptOnce' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"canAdoptOnce" l) canAdoptOnce' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with canAdoptOnce' := canAdoptOnce' } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"canAdoptOnce" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with canAdoptOnce' := y } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -152,11 +152,11 @@ noncomputable instance BaseControllerRefManager_access_load_CanAdoptFunc (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance BaseControllerRefManager_access_store_CanAdoptFunc (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (CanAdoptFunc' : GoFunc) :
+noncomputable instance BaseControllerRefManager_access_store_CanAdoptFunc (l : Loc) (v : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"CanAdoptFunc" l) v.CanAdoptFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"CanAdoptFunc" l) CanAdoptFunc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CanAdoptFunc' := CanAdoptFunc' } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.BaseControllerRefManager go!"CanAdoptFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CanAdoptFunc' := y } : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -195,11 +195,11 @@ noncomputable instance PodControllerRefManager_access_load_BaseControllerRefMana
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodControllerRefManager_access_store_BaseControllerRefManager (l : Loc) (v : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (BaseControllerRefManager' : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) :
+noncomputable instance PodControllerRefManager_access_store_BaseControllerRefManager (l : Loc) (v : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (y : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"BaseControllerRefManager" l) v.BaseControllerRefManager' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"BaseControllerRefManager" l) BaseControllerRefManager' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BaseControllerRefManager' := BaseControllerRefManager' } : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"BaseControllerRefManager" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BaseControllerRefManager' := y } : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -211,11 +211,11 @@ noncomputable instance PodControllerRefManager_access_load_controllerKind (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodControllerRefManager_access_store_controllerKind (l : Loc) (v : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (controllerKind' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
+noncomputable instance PodControllerRefManager_access_store_controllerKind (l : Loc) (v : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"controllerKind" l) v.controllerKind' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"controllerKind" l) controllerKind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with controllerKind' := controllerKind' } : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"controllerKind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with controllerKind' := y } : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -227,11 +227,11 @@ noncomputable instance PodControllerRefManager_access_load_podControl (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodControllerRefManager_access_store_podControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (podControl' : k8s_io.kubernetes.pkg.controller.PodControlInterface) :
+noncomputable instance PodControllerRefManager_access_store_podControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (y : k8s_io.kubernetes.pkg.controller.PodControlInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"podControl" l) v.podControl' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"podControl" l) podControl' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with podControl' := podControl' } : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"podControl" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with podControl' := y } : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -243,11 +243,11 @@ noncomputable instance PodControllerRefManager_access_load_finalizers (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodControllerRefManager_access_store_finalizers (l : Loc) (v : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (finalizers' : GoSlice) :
+noncomputable instance PodControllerRefManager_access_store_finalizers (l : Loc) (v : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"finalizers" l) v.finalizers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"finalizers" l) finalizers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with finalizers' := finalizers' } : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.PodControllerRefManager go!"finalizers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with finalizers' := y } : k8s_io.kubernetes.pkg.controller.PodControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -285,11 +285,11 @@ noncomputable instance ReplicaSetControllerRefManager_access_load_BaseController
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicaSetControllerRefManager_access_store_BaseControllerRefManager (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (BaseControllerRefManager' : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) :
+noncomputable instance ReplicaSetControllerRefManager_access_store_BaseControllerRefManager (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (y : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager go!"BaseControllerRefManager" l) v.BaseControllerRefManager' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager go!"BaseControllerRefManager" l) BaseControllerRefManager' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BaseControllerRefManager' := BaseControllerRefManager' } : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager go!"BaseControllerRefManager" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BaseControllerRefManager' := y } : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -301,11 +301,11 @@ noncomputable instance ReplicaSetControllerRefManager_access_load_controllerKind
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicaSetControllerRefManager_access_store_controllerKind (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (controllerKind' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
+noncomputable instance ReplicaSetControllerRefManager_access_store_controllerKind (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager go!"controllerKind" l) v.controllerKind' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager go!"controllerKind" l) controllerKind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with controllerKind' := controllerKind' } : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager go!"controllerKind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with controllerKind' := y } : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -317,11 +317,11 @@ noncomputable instance ReplicaSetControllerRefManager_access_load_rsControl (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicaSetControllerRefManager_access_store_rsControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (rsControl' : k8s_io.kubernetes.pkg.controller.RSControlInterface) :
+noncomputable instance ReplicaSetControllerRefManager_access_store_rsControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (y : k8s_io.kubernetes.pkg.controller.RSControlInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager go!"rsControl" l) v.rsControl' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager go!"rsControl" l) rsControl' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rsControl' := rsControl' } : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager go!"rsControl" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rsControl' := y } : k8s_io.kubernetes.pkg.controller.ReplicaSetControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -359,11 +359,11 @@ noncomputable instance ControllerRevisionControllerRefManager_access_load_BaseCo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControllerRevisionControllerRefManager_access_store_BaseControllerRefManager (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (BaseControllerRefManager' : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) :
+noncomputable instance ControllerRevisionControllerRefManager_access_store_BaseControllerRefManager (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (y : k8s_io.kubernetes.pkg.controller.BaseControllerRefManager) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager go!"BaseControllerRefManager" l) v.BaseControllerRefManager' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager go!"BaseControllerRefManager" l) BaseControllerRefManager' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BaseControllerRefManager' := BaseControllerRefManager' } : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager go!"BaseControllerRefManager" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BaseControllerRefManager' := y } : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -375,11 +375,11 @@ noncomputable instance ControllerRevisionControllerRefManager_access_load_contro
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControllerRevisionControllerRefManager_access_store_controllerKind (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (controllerKind' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
+noncomputable instance ControllerRevisionControllerRefManager_access_store_controllerKind (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager go!"controllerKind" l) v.controllerKind' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager go!"controllerKind" l) controllerKind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with controllerKind' := controllerKind' } : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager go!"controllerKind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with controllerKind' := y } : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -391,11 +391,11 @@ noncomputable instance ControllerRevisionControllerRefManager_access_load_crCont
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControllerRevisionControllerRefManager_access_store_crControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (crControl' : k8s_io.kubernetes.pkg.controller.ControllerRevisionControlInterface) :
+noncomputable instance ControllerRevisionControllerRefManager_access_store_crControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (y : k8s_io.kubernetes.pkg.controller.ControllerRevisionControlInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager go!"crControl" l) v.crControl' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager go!"crControl" l) crControl' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crControl' := crControl' } : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager go!"crControl" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crControl' := y } : k8s_io.kubernetes.pkg.controller.ControllerRevisionControllerRefManager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -433,11 +433,11 @@ noncomputable instance objectMetaForPatch_access_load_OwnerReferences (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance objectMetaForPatch_access_store_OwnerReferences (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (OwnerReferences' : GoSlice) :
+noncomputable instance objectMetaForPatch_access_store_OwnerReferences (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForPatch go!"OwnerReferences" l) v.OwnerReferences' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForPatch go!"OwnerReferences" l) OwnerReferences' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OwnerReferences' := OwnerReferences' } : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForPatch go!"OwnerReferences" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OwnerReferences' := y } : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -449,11 +449,11 @@ noncomputable instance objectMetaForPatch_access_load_UID (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance objectMetaForPatch_access_store_UID (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (UID' : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
+noncomputable instance objectMetaForPatch_access_store_UID (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForPatch go!"UID" l) v.UID' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForPatch go!"UID" l) UID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UID' := UID' } : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForPatch go!"UID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UID' := y } : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -465,11 +465,11 @@ noncomputable instance objectMetaForPatch_access_load_Finalizers (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance objectMetaForPatch_access_store_Finalizers (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (Finalizers' : GoSlice) :
+noncomputable instance objectMetaForPatch_access_store_Finalizers (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForPatch go!"Finalizers" l) v.Finalizers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForPatch go!"Finalizers" l) Finalizers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Finalizers' := Finalizers' } : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForPatch go!"Finalizers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Finalizers' := y } : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -505,11 +505,11 @@ noncomputable instance objectForAddOwnerRefPatch_access_load_Metadata (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance objectForAddOwnerRefPatch_access_store_Metadata (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectForAddOwnerRefPatch) (Metadata' : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) :
+noncomputable instance objectForAddOwnerRefPatch_access_store_Metadata (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectForAddOwnerRefPatch) (y : k8s_io.kubernetes.pkg.controller.objectMetaForPatch) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectForAddOwnerRefPatch go!"Metadata" l) v.Metadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectForAddOwnerRefPatch go!"Metadata" l) Metadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := Metadata' } : k8s_io.kubernetes.pkg.controller.objectForAddOwnerRefPatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectForAddOwnerRefPatch go!"Metadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := y } : k8s_io.kubernetes.pkg.controller.objectForAddOwnerRefPatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -547,11 +547,11 @@ noncomputable instance objectMetaForMergePatch_access_load_UID (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance objectMetaForMergePatch_access_store_UID (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (UID' : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
+noncomputable instance objectMetaForMergePatch_access_store_UID (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch go!"UID" l) v.UID' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch go!"UID" l) UID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UID' := UID' } : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch go!"UID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UID' := y } : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -563,11 +563,11 @@ noncomputable instance objectMetaForMergePatch_access_load_OwnerReferences (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance objectMetaForMergePatch_access_store_OwnerReferences (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (OwnerReferences' : GoSlice) :
+noncomputable instance objectMetaForMergePatch_access_store_OwnerReferences (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch go!"OwnerReferences" l) v.OwnerReferences' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch go!"OwnerReferences" l) OwnerReferences' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OwnerReferences' := OwnerReferences' } : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch go!"OwnerReferences" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OwnerReferences' := y } : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -579,11 +579,11 @@ noncomputable instance objectMetaForMergePatch_access_load_DeleteFinalizers (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance objectMetaForMergePatch_access_store_DeleteFinalizers (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (DeleteFinalizers' : GoSlice) :
+noncomputable instance objectMetaForMergePatch_access_store_DeleteFinalizers (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch go!"DeleteFinalizers" l) v.DeleteFinalizers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch go!"DeleteFinalizers" l) DeleteFinalizers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeleteFinalizers' := DeleteFinalizers' } : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch go!"DeleteFinalizers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeleteFinalizers' := y } : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -619,11 +619,11 @@ noncomputable instance objectForDeleteOwnerRefStrategicMergePatch_access_load_Me
  by
   solve_pointsto_access_struct
 
-noncomputable instance objectForDeleteOwnerRefStrategicMergePatch_access_store_Metadata (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectForDeleteOwnerRefStrategicMergePatch) (Metadata' : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) :
+noncomputable instance objectForDeleteOwnerRefStrategicMergePatch_access_store_Metadata (l : Loc) (v : k8s_io.kubernetes.pkg.controller.objectForDeleteOwnerRefStrategicMergePatch) (y : k8s_io.kubernetes.pkg.controller.objectMetaForMergePatch) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectForDeleteOwnerRefStrategicMergePatch go!"Metadata" l) v.Metadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectForDeleteOwnerRefStrategicMergePatch go!"Metadata" l) Metadata' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := Metadata' } : k8s_io.kubernetes.pkg.controller.objectForDeleteOwnerRefStrategicMergePatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.objectForDeleteOwnerRefStrategicMergePatch go!"Metadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := y } : k8s_io.kubernetes.pkg.controller.objectForDeleteOwnerRefStrategicMergePatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -659,11 +659,11 @@ noncomputable instance ControllerExpectations_access_load_Store (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControllerExpectations_access_store_Store (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControllerExpectations) (Store' : _root_.Perennial.k8s_io.client_go.tools.cache.Store) :
+noncomputable instance ControllerExpectations_access_store_Store (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControllerExpectations) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Store) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerExpectations go!"Store" l) v.Store' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerExpectations go!"Store" l) Store' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := Store' } : k8s_io.kubernetes.pkg.controller.ControllerExpectations) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControllerExpectations go!"Store" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := y } : k8s_io.kubernetes.pkg.controller.ControllerExpectations) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -702,11 +702,11 @@ noncomputable instance ControlleeExpectations_access_load_add (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControlleeExpectations_access_store_add (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (add' : w64) :
+noncomputable instance ControlleeExpectations_access_store_add (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"add" l) v.add' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"add" l) add' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with add' := add' } : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"add" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with add' := y } : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -718,11 +718,11 @@ noncomputable instance ControlleeExpectations_access_load_del (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControlleeExpectations_access_store_del (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (del' : w64) :
+noncomputable instance ControlleeExpectations_access_store_del (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"del" l) v.del' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"del" l) del' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with del' := del' } : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"del" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with del' := y } : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -734,11 +734,11 @@ noncomputable instance ControlleeExpectations_access_load_key (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControlleeExpectations_access_store_key (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (key' : GoString) :
+noncomputable instance ControlleeExpectations_access_store_key (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"key" l) v.key' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"key" l) key' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -750,11 +750,11 @@ noncomputable instance ControlleeExpectations_access_load_timestamp (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ControlleeExpectations_access_store_timestamp (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (timestamp' : _root_.Perennial.time.Time) :
+noncomputable instance ControlleeExpectations_access_store_timestamp (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"timestamp" l) v.timestamp' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"timestamp" l) timestamp' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timestamp' := timestamp' } : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ControlleeExpectations go!"timestamp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timestamp' := y } : k8s_io.kubernetes.pkg.controller.ControlleeExpectations) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -791,11 +791,11 @@ noncomputable instance UIDSet_access_load_String (l : Loc) (v : k8s_io.kubernete
  by
   solve_pointsto_access_struct
 
-noncomputable instance UIDSet_access_store_String (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDSet) (String' : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String) :
+noncomputable instance UIDSet_access_store_String (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDSet) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDSet go!"String" l) v.String' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDSet go!"String" l) String' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with String' := String' } : k8s_io.kubernetes.pkg.controller.UIDSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDSet go!"String" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with String' := y } : k8s_io.kubernetes.pkg.controller.UIDSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -807,11 +807,11 @@ noncomputable instance UIDSet_access_load_key (l : Loc) (v : k8s_io.kubernetes.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance UIDSet_access_store_key (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDSet) (key' : GoString) :
+noncomputable instance UIDSet_access_store_key (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDSet) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDSet go!"key" l) v.key' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDSet go!"key" l) key' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : k8s_io.kubernetes.pkg.controller.UIDSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDSet go!"key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : k8s_io.kubernetes.pkg.controller.UIDSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -849,11 +849,11 @@ noncomputable instance UIDTrackingControllerExpectations_access_load_ControllerE
  by
   solve_pointsto_access_struct
 
-noncomputable instance UIDTrackingControllerExpectations_access_store_ControllerExpectationsInterface (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (ControllerExpectationsInterface' : k8s_io.kubernetes.pkg.controller.ControllerExpectationsInterface) :
+noncomputable instance UIDTrackingControllerExpectations_access_store_ControllerExpectationsInterface (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (y : k8s_io.kubernetes.pkg.controller.ControllerExpectationsInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations go!"ControllerExpectationsInterface" l) v.ControllerExpectationsInterface' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations go!"ControllerExpectationsInterface" l) ControllerExpectationsInterface' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ControllerExpectationsInterface' := ControllerExpectationsInterface' } : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations go!"ControllerExpectationsInterface" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ControllerExpectationsInterface' := y } : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -865,11 +865,11 @@ noncomputable instance UIDTrackingControllerExpectations_access_load_uidStoreLoc
  by
   solve_pointsto_access_struct
 
-noncomputable instance UIDTrackingControllerExpectations_access_store_uidStoreLock (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (uidStoreLock' : _root_.Perennial.sync.Mutex) :
+noncomputable instance UIDTrackingControllerExpectations_access_store_uidStoreLock (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations go!"uidStoreLock" l) v.uidStoreLock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations go!"uidStoreLock" l) uidStoreLock' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with uidStoreLock' := uidStoreLock' } : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations go!"uidStoreLock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with uidStoreLock' := y } : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -881,11 +881,11 @@ noncomputable instance UIDTrackingControllerExpectations_access_load_uidStore (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance UIDTrackingControllerExpectations_access_store_uidStore (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (uidStore' : _root_.Perennial.k8s_io.client_go.tools.cache.Store) :
+noncomputable instance UIDTrackingControllerExpectations_access_store_uidStore (l : Loc) (v : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Store) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations go!"uidStore" l) v.uidStore' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations go!"uidStore" l) uidStore' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with uidStore' := uidStore' } : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations go!"uidStore" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with uidStore' := y } : k8s_io.kubernetes.pkg.controller.UIDTrackingControllerExpectations) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -922,11 +922,11 @@ noncomputable instance RealRSControl_access_load_KubeClient (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance RealRSControl_access_store_KubeClient (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealRSControl) (KubeClient' : _root_.Perennial.k8s_io.client_go.kubernetes.Interface) :
+noncomputable instance RealRSControl_access_store_KubeClient (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealRSControl) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealRSControl go!"KubeClient" l) v.KubeClient' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealRSControl go!"KubeClient" l) KubeClient' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KubeClient' := KubeClient' } : k8s_io.kubernetes.pkg.controller.RealRSControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealRSControl go!"KubeClient" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KubeClient' := y } : k8s_io.kubernetes.pkg.controller.RealRSControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -938,11 +938,11 @@ noncomputable instance RealRSControl_access_load_Recorder (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RealRSControl_access_store_Recorder (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealRSControl) (Recorder' : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder) :
+noncomputable instance RealRSControl_access_store_Recorder (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealRSControl) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealRSControl go!"Recorder" l) v.Recorder' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealRSControl go!"Recorder" l) Recorder' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Recorder' := Recorder' } : k8s_io.kubernetes.pkg.controller.RealRSControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealRSControl go!"Recorder" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Recorder' := y } : k8s_io.kubernetes.pkg.controller.RealRSControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -978,11 +978,11 @@ noncomputable instance RealControllerRevisionControl_access_load_KubeClient (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance RealControllerRevisionControl_access_store_KubeClient (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealControllerRevisionControl) (KubeClient' : _root_.Perennial.k8s_io.client_go.kubernetes.Interface) :
+noncomputable instance RealControllerRevisionControl_access_store_KubeClient (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealControllerRevisionControl) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealControllerRevisionControl go!"KubeClient" l) v.KubeClient' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealControllerRevisionControl go!"KubeClient" l) KubeClient' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KubeClient' := KubeClient' } : k8s_io.kubernetes.pkg.controller.RealControllerRevisionControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealControllerRevisionControl go!"KubeClient" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KubeClient' := y } : k8s_io.kubernetes.pkg.controller.RealControllerRevisionControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1020,11 +1020,11 @@ noncomputable instance RealPodControl_access_load_KubeClient (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance RealPodControl_access_store_KubeClient (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealPodControl) (KubeClient' : _root_.Perennial.k8s_io.client_go.kubernetes.Interface) :
+noncomputable instance RealPodControl_access_store_KubeClient (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealPodControl) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealPodControl go!"KubeClient" l) v.KubeClient' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealPodControl go!"KubeClient" l) KubeClient' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KubeClient' := KubeClient' } : k8s_io.kubernetes.pkg.controller.RealPodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealPodControl go!"KubeClient" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KubeClient' := y } : k8s_io.kubernetes.pkg.controller.RealPodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1036,11 +1036,11 @@ noncomputable instance RealPodControl_access_load_Recorder (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RealPodControl_access_store_Recorder (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealPodControl) (Recorder' : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder) :
+noncomputable instance RealPodControl_access_store_Recorder (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealPodControl) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealPodControl go!"Recorder" l) v.Recorder' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealPodControl go!"Recorder" l) Recorder' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Recorder' := Recorder' } : k8s_io.kubernetes.pkg.controller.RealPodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealPodControl go!"Recorder" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Recorder' := y } : k8s_io.kubernetes.pkg.controller.RealPodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1052,11 +1052,11 @@ noncomputable instance RealPodControl_access_load_OnWrite (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RealPodControl_access_store_OnWrite (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealPodControl) (OnWrite' : GoFunc) :
+noncomputable instance RealPodControl_access_store_OnWrite (l : Loc) (v : k8s_io.kubernetes.pkg.controller.RealPodControl) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealPodControl go!"OnWrite" l) v.OnWrite' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealPodControl go!"OnWrite" l) OnWrite' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OnWrite' := OnWrite' } : k8s_io.kubernetes.pkg.controller.RealPodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.RealPodControl go!"OnWrite" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OnWrite' := y } : k8s_io.kubernetes.pkg.controller.RealPodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1100,11 +1100,11 @@ noncomputable instance FakePodControl_access_load_Mutex (l : Loc) (v : k8s_io.ku
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakePodControl_access_store_Mutex (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (Mutex' : _root_.Perennial.sync.Mutex) :
+noncomputable instance FakePodControl_access_store_Mutex (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Mutex" l) Mutex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1116,11 +1116,11 @@ noncomputable instance FakePodControl_access_load_Templates (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakePodControl_access_store_Templates (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (Templates' : GoSlice) :
+noncomputable instance FakePodControl_access_store_Templates (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Templates" l) v.Templates' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Templates" l) Templates' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Templates' := Templates' } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Templates" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Templates' := y } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1132,11 +1132,11 @@ noncomputable instance FakePodControl_access_load_ControllerRefs (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakePodControl_access_store_ControllerRefs (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (ControllerRefs' : GoSlice) :
+noncomputable instance FakePodControl_access_store_ControllerRefs (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"ControllerRefs" l) v.ControllerRefs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"ControllerRefs" l) ControllerRefs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ControllerRefs' := ControllerRefs' } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"ControllerRefs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ControllerRefs' := y } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1148,11 +1148,11 @@ noncomputable instance FakePodControl_access_load_DeletePodName (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakePodControl_access_store_DeletePodName (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (DeletePodName' : GoSlice) :
+noncomputable instance FakePodControl_access_store_DeletePodName (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"DeletePodName" l) v.DeletePodName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"DeletePodName" l) DeletePodName' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeletePodName' := DeletePodName' } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"DeletePodName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeletePodName' := y } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1164,11 +1164,11 @@ noncomputable instance FakePodControl_access_load_Patches (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakePodControl_access_store_Patches (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (Patches' : GoSlice) :
+noncomputable instance FakePodControl_access_store_Patches (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Patches" l) v.Patches' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Patches" l) Patches' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Patches' := Patches' } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Patches" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Patches' := y } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1180,11 +1180,11 @@ noncomputable instance FakePodControl_access_load_Err (l : Loc) (v : k8s_io.kube
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakePodControl_access_store_Err (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (Err' : GoError) :
+noncomputable instance FakePodControl_access_store_Err (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Err" l) v.Err' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Err" l) Err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := Err' } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"Err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1196,11 +1196,11 @@ noncomputable instance FakePodControl_access_load_DeleteErr (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakePodControl_access_store_DeleteErr (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (DeleteErr' : GoError) :
+noncomputable instance FakePodControl_access_store_DeleteErr (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"DeleteErr" l) v.DeleteErr' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"DeleteErr" l) DeleteErr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeleteErr' := DeleteErr' } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"DeleteErr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeleteErr' := y } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1212,11 +1212,11 @@ noncomputable instance FakePodControl_access_load_CreateLimit (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakePodControl_access_store_CreateLimit (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (CreateLimit' : w64) :
+noncomputable instance FakePodControl_access_store_CreateLimit (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"CreateLimit" l) v.CreateLimit' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"CreateLimit" l) CreateLimit' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CreateLimit' := CreateLimit' } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"CreateLimit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CreateLimit' := y } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1228,11 +1228,11 @@ noncomputable instance FakePodControl_access_load_CreateCallCount (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance FakePodControl_access_store_CreateCallCount (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (CreateCallCount' : w64) :
+noncomputable instance FakePodControl_access_store_CreateCallCount (l : Loc) (v : k8s_io.kubernetes.pkg.controller.FakePodControl) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"CreateCallCount" l) v.CreateCallCount' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"CreateCallCount" l) CreateCallCount' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CreateCallCount' := CreateCallCount' } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.FakePodControl go!"CreateCallCount" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CreateCallCount' := y } : k8s_io.kubernetes.pkg.controller.FakePodControl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1270,11 +1270,11 @@ noncomputable instance ActivePodsWithRanks_access_load_Pods (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ActivePodsWithRanks_access_store_Pods (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (Pods' : GoSlice) :
+noncomputable instance ActivePodsWithRanks_access_store_Pods (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks go!"Pods" l) v.Pods' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks go!"Pods" l) Pods' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pods' := Pods' } : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks go!"Pods" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pods' := y } : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1286,11 +1286,11 @@ noncomputable instance ActivePodsWithRanks_access_load_Rank (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ActivePodsWithRanks_access_store_Rank (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (Rank' : GoSlice) :
+noncomputable instance ActivePodsWithRanks_access_store_Rank (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks go!"Rank" l) v.Rank' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks go!"Rank" l) Rank' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Rank' := Rank' } : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks go!"Rank" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Rank' := y } : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1302,11 +1302,11 @@ noncomputable instance ActivePodsWithRanks_access_load_Now (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance ActivePodsWithRanks_access_store_Now (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (Now' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance ActivePodsWithRanks_access_store_Now (l : Loc) (v : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks go!"Now" l) v.Now' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks go!"Now" l) Now' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Now' := Now' } : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks go!"Now" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Now' := y } : k8s_io.kubernetes.pkg.controller.ActivePodsWithRanks) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1344,11 +1344,11 @@ noncomputable instance «struct#90a2bc34_access_load_add» (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#90a2bc34_access_store_add» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (add' : w64) :
+noncomputable instance «struct#90a2bc34_access_store_add» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"add" l) v.add' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"add" l) add' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with add' := add' } : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"add" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with add' := y } : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1360,11 +1360,11 @@ noncomputable instance «struct#90a2bc34_access_load_del» (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#90a2bc34_access_store_del» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (del' : w64) :
+noncomputable instance «struct#90a2bc34_access_store_del» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"del" l) v.del' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"del" l) del' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with del' := del' } : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"del" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with del' := y } : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1376,11 +1376,11 @@ noncomputable instance «struct#90a2bc34_access_load_key» (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#90a2bc34_access_store_key» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (key' : GoString) :
+noncomputable instance «struct#90a2bc34_access_store_key» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"key" l) v.key' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"key" l) key' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

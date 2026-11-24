@@ -47,11 +47,11 @@ noncomputable instance KV_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance KV_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (mu' : Loc) :
+noncomputable instance KV_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -63,11 +63,11 @@ noncomputable instance KV_access_load_m (l : Loc) (v : github_com.mit_pdos.etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance KV_access_store_m (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (m' : GoMap) :
+noncomputable instance KV_access_store_m (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) v.m' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) m' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := m' } : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := y } : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

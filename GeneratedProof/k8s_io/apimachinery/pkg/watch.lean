@@ -48,11 +48,11 @@ noncomputable instance filteredWatch_access_load_incoming (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance filteredWatch_access_store_incoming (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (incoming' : k8s_io.apimachinery.pkg.watch.Interface) :
+noncomputable instance filteredWatch_access_store_incoming (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : k8s_io.apimachinery.pkg.watch.Interface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) incoming' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with incoming' := incoming' } : k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with incoming' := y } : k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,11 +64,11 @@ noncomputable instance filteredWatch_access_load_result (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance filteredWatch_access_store_result (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (result' : GoChan) :
+noncomputable instance filteredWatch_access_store_result (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) result' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with result' := result' } : k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with result' := y } : k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -80,11 +80,11 @@ noncomputable instance filteredWatch_access_load_f (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance filteredWatch_access_store_f (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (f' : k8s_io.apimachinery.pkg.watch.FilterFunc) :
+noncomputable instance filteredWatch_access_store_f (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : k8s_io.apimachinery.pkg.watch.FilterFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) f' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := f' } : k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := y } : k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -197,11 +197,11 @@ noncomputable instance Event_access_load_Type (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (Type' : k8s_io.apimachinery.pkg.watch.EventType) :
+noncomputable instance Event_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (y : k8s_io.apimachinery.pkg.watch.EventType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -213,11 +213,11 @@ noncomputable instance Event_access_load_Object (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (Object' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance Event_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) Object' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := Object' } : k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -330,11 +330,11 @@ noncomputable instance MockWatcher_access_load_StopFunc (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance MockWatcher_access_store_StopFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (StopFunc' : GoFunc) :
+noncomputable instance MockWatcher_access_store_StopFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) StopFunc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StopFunc' := StopFunc' } : k8s_io.apimachinery.pkg.watch.MockWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StopFunc' := y } : k8s_io.apimachinery.pkg.watch.MockWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -346,11 +346,11 @@ noncomputable instance MockWatcher_access_load_ResultChanFunc (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance MockWatcher_access_store_ResultChanFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (ResultChanFunc' : GoFunc) :
+noncomputable instance MockWatcher_access_store_ResultChanFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) ResultChanFunc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResultChanFunc' := ResultChanFunc' } : k8s_io.apimachinery.pkg.watch.MockWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResultChanFunc' := y } : k8s_io.apimachinery.pkg.watch.MockWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

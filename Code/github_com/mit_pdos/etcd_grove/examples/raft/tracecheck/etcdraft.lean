@@ -118,10 +118,10 @@ noncomputable def EvalError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] EvalError.ty
 
-noncomputable def Set'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def Set''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.Set" [])
 
-attribute [irreducible] Set'.ty
+attribute [irreducible] Set''.ty
 
 noncomputable def EntryType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.EntryType" [])
@@ -671,14 +671,14 @@ noncomputable def State.LogInv.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -736,14 +736,14 @@ noncomputable def State.MoreThanOneLeaderInv.impl [GooseExts] [GoGlobalContext] 
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -836,7 +836,7 @@ noncomputable def State.ElectionSafetyInv.impl [GooseExts] [GoGlobalContext] : v
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -847,7 +847,7 @@ noncomputable def State.ElectionSafetyInv.impl [GooseExts] [GoGlobalContext] : v
   (Let "vi" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -899,14 +899,14 @@ noncomputable def State.LogMatchingInv.impl [GooseExts] [GoGlobalContext] : val 
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -976,7 +976,7 @@ noncomputable def State.QuorumLogInv.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -985,16 +985,16 @@ noncomputable def State.QuorumLogInv.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
-  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"Committed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
   (Let "committed" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Entry.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "without" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "without" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "without"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "cfg"))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "without"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "cfg"))
   (App (App (App (Val (GoInstruction (FuncResolve IsQuorum []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1004,7 +1004,7 @@ noncomputable def State.QuorumLogInv.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "cfg"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "cfg"))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1023,12 +1023,12 @@ noncomputable def State.QuorumLogInv.impl [GooseExts] [GoGlobalContext] : val :=
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (Var "committed"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
   (App (App (App (Val (GoInstruction (FuncResolve IsPrefix []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "without"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "without"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType ID.ty)))) (LiteralValue [(KeyedElement none (ElementExpression ID.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set'.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set''.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "without") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "without") (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1042,7 +1042,7 @@ noncomputable def State.QuorumLogInv.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType Entry.ty)))) (Pair (Var "committed") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "cfg") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "cfg") (Var "$r0")))))))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
@@ -1066,14 +1066,14 @@ noncomputable def State.MoreUpToDateCorrectInv.impl [GooseExts] [GoGlobalContext
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1134,7 +1134,7 @@ noncomputable def State.LeaderCompletenessInv.impl [GooseExts] [GoGlobalContext]
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (Var "s"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"CurrentLeaders"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Val #()))
-  (Let "leaders" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "leaders" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
@@ -1143,7 +1143,7 @@ noncomputable def State.LeaderCompletenessInv.impl [GooseExts] [GoGlobalContext]
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1163,7 +1163,7 @@ noncomputable def State.LeaderCompletenessInv.impl [GooseExts] [GoGlobalContext]
   (Let "$r0" (App (Val (GoInstruction (GoLoad Entry.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (Val #(W64 1)))))))
   (Let "entry" (App (Val (GoInstruction (GoAlloc Entry.ty))) (App (Val (GoInstruction (GoZeroVal Entry.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "leaders"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "leaders"))
   (Let "l" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1218,7 +1218,7 @@ noncomputable def State.LeaderCompletenessInv.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "leaders") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "leaders") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- CommittedIsDurableInv is `CommittedIsDurableInv`.
@@ -1237,7 +1237,7 @@ noncomputable def State.CommittedIsDurableInv.impl [GooseExts] [GoGlobalContext]
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1314,10 +1314,10 @@ noncomputable def Config.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc Config.ty))) (Var "c"))
   (Let "d" (App (Val (GoInstruction (GoAlloc Config.ty))) (Var "d"))
-  (Let "$r0" (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (Var "d")) (Val #(W64 0)))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (Var "c")) (Val #(W64 0))))) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (Var "d")) (Val #(W64 1)))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (Var "c")) (Val #(W64 1))))) (Var "$a0"))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (Var "d")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (Var "c"))) (Var "$a0"))) (Val #false))
+  (Let "$r0" (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (Var "d")) (Val #(W64 0)))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (Var "c")) (Val #(W64 0))))) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (Var "d")) (Val #(W64 1)))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (Var "c")) (Val #(W64 1))))) (Var "$a0"))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (Var "d")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (Var "c"))) (Var "$a0"))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1474,7 +1474,7 @@ noncomputable def State.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1482,7 +1482,7 @@ noncomputable def State.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"equal"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i")))) (Var "$a0")) (Var "$a1")))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1496,8 +1496,8 @@ noncomputable def State.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value")))))))))))))
-  (If (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))) (Var "$a0")))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef State.ty go!"ReconfigCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef State.ty go!"ReconfigCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t")))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Bag.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Messages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))))
+  (If (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))) (Var "$a0")))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef State.ty go!"ReconfigCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef State.ty go!"ReconfigCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t")))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Bag.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Messages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Bag.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Messages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))) (Var "$a0"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Bag.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"PendingMessages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Bag.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef State.ty go!"PendingMessages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))) (Var "$a0")))))
   (Let "$r0" (Val #false)
@@ -1520,7 +1520,7 @@ noncomputable def Server.equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "v"))
-  (Let "srv" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "srv"))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "srv"))
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "w"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1530,7 +1530,7 @@ noncomputable def Server.equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1552,9 +1552,9 @@ noncomputable def Server.equal.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "j") (Var "$value")))))))))))))
   (If (If (If (If (If (If (If (If (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CurrentTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CurrentTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w")))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotedFor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotedFor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w")))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w")))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CommitIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CommitIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w")))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"PendingConfChangeIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"PendingConfChangeIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w")))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))
-  (App (App (App (Val (GoInstruction (FuncResolve EntriesEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Config.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))
+  (App (App (App (Val (GoInstruction (FuncResolve EntriesEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Config.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Config.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Durable.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Durable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Durable.ty) go!"equal"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Durable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0")))))
   (Let "$r0" (Val #false)
@@ -1591,7 +1591,7 @@ noncomputable def State.String.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$sl2" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef State.ty go!"ReconfigCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1611,12 +1611,12 @@ noncomputable def State.String.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$sl4" (App (Val (GoInstruction (Convert go.int go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Entry.ty)]))) (Val #())) (Var "$a0"))))
   (Let "$sl5" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CommitIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))))
-  (Let "$sl6" (App (Val (GoInstruction (Convert Set'.ty go.any))) (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val #(W64 0))))))
-  (Let "$sl7" (App (Val (GoInstruction (Convert Set'.ty go.any))) (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val #(W64 1))))))
-  (Let "$sl8" (App (Val (GoInstruction (Convert Set'.ty go.any))) (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))))
+  (Let "$sl6" (App (Val (GoInstruction (Convert Set''.ty go.any))) (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val #(W64 0))))))
+  (Let "$sl7" (App (Val (GoInstruction (Convert Set''.ty go.any))) (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val #(W64 1))))))
+  (Let "$sl8" (App (Val (GoInstruction (Convert Set''.ty go.any))) (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))))
   (Let "$sl9" (App (Val (GoInstruction (Convert (go.GoType.MapType ID.ty go.int) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty go.int)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"MatchIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))))
-  (Let "$sl10" (App (Val (GoInstruction (Convert Set'.ty go.any))) (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))))
-  (Let "$sl11" (App (Val (GoInstruction (Convert Set'.ty go.any))) (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))))
+  (Let "$sl10" (App (Val (GoInstruction (Convert Set''.ty go.any))) (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))))
+  (Let "$sl11" (App (Val (GoInstruction (Convert Set''.ty go.any))) (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))))
   (Let "$sl12" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"PendingConfChangeIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))))
   (Let "$sl13" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Durable.ty go!"CurrentTerm"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Durable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))))
   (Let "$sl14" (App (Val (GoInstruction (Convert ID.ty go.any))) (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (StructFieldRef Durable.ty go!"VotedFor"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Durable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))))
@@ -1640,11 +1640,11 @@ noncomputable def Init.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "server"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType State.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "server" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "server"))
-  (Let "initServer" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "initServer"))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc State.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "server"))
+  (Let "server" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "server"))
+  (Let "initServer" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "initServer"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc State.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "server"))
   (Let "$v1" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (LiteralValue []))
-  (App (Val (GoInstruction (CompositeLiteral State.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Server")) (ElementExpression Set'.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"S")) (ElementExpression (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty)) (Var "$v1")))])))))
+  (App (Val (GoInstruction (CompositeLiteral State.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Server")) (ElementExpression Set''.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"S")) (ElementExpression (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty)) (Var "$v1")))])))))
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType State.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1654,7 +1654,7 @@ noncomputable def Init.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "server"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "server"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1664,10 +1664,10 @@ noncomputable def Init.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoAlloc Server.ty))) (Let "$v0" (Val Follower)
   (Let "$v1" (Val Nil)
   (Let "$v2" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType ID.ty go.int)))) (LiteralValue []))
-  (Let "$v3" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "initServer"))
+  (Let "$v3" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "initServer"))
   (Let "$v1" (Val UntypedNil)
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 2 Set'.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Set'.ty (Var "$v0"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v1")))]))))
-  (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Joint")) (ElementExpression (go.GoType.ArrayType 2 Set'.ty) (Var "$v0")))])))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 2 Set''.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Set''.ty (Var "$v0"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Joint")) (ElementExpression (go.GoType.ArrayType 2 Set''.ty) (Var "$v0")))])))
   (App (Val (GoInstruction (CompositeLiteral Server.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"State")) (ElementExpression Role.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"VotedFor")) (ElementExpression ID.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"MatchIndex")) (ElementExpression (go.GoType.MapType ID.ty go.int) (Var "$v2"))), (KeyedElement (some (KeyField go!"Config")) (ElementExpression Config.ty (Var "$v3")))])))))))
   (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1797,17 +1797,17 @@ noncomputable def State.pendingFrom.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def State.GetConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (Var "s"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (Var "i"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0"))))))
 
 /-- IsJointConfig is `IsJointConfig(i) == GetJointConfig(i)[2] # {}`.
 
@@ -1819,8 +1819,8 @@ noncomputable def State.IsJointConfig.impl [GooseExts] [GoGlobalContext] : val :
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (Var "s"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (Var "i"))
-  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))) (Val #(W64 1)))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))) (Val #(W64 1)))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1834,17 +1834,17 @@ noncomputable def State.IsJointConfig.impl [GooseExts] [GoGlobalContext] : val :
 noncomputable def State.GetLearners.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (Var "s"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (Var "i"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0"))))))
 
 /-- applyConfigUpdate is `config' = ApplyConfigUpdate(i, k)`.
 
@@ -1864,11 +1864,11 @@ noncomputable def State.applyConfigUpdate.impl [GooseExts] [GoGlobalContext] : v
   (Let "$r0" (App (Val (GoInstruction (GoLoad Entry.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1)))))))
   (Let "e" (App (Val (GoInstruction (GoAlloc Entry.ty))) (App (Val (GoInstruction (GoZeroVal Entry.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"NewConf"))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Value"))) (Var "e"))))
+  (Let "$r0" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"NewConf"))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Value"))) (Var "e"))))
   (Let "$v1" (Val UntypedNil)
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 2 Set'.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Set'.ty (Var "$v0"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v1")))]))))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Value"))) (Var "e"))))
-  (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Joint")) (ElementExpression (go.GoType.ArrayType 2 Set'.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Learners")) (ElementExpression Set'.ty (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 2 Set''.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Set''.ty (Var "$v0"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v1")))]))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Value"))) (Var "e"))))
+  (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Joint")) (ElementExpression (go.GoType.ArrayType 2 Set''.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Learners")) (ElementExpression Set''.ty (Var "$v1")))]))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Config.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))) (Var "$r0")))))))
   (App (Val doExecute)
@@ -1908,18 +1908,18 @@ noncomputable def State.commitTo.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def State.CurrentLeaders.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (Var "s"))
-  (Let "ls" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "ls" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "ls"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "ls"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -1927,19 +1927,19 @@ noncomputable def State.CurrentLeaders.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))) (Val Leader))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "ls"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "ls"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType ID.ty)))) (LiteralValue [(KeyedElement none (ElementExpression ID.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set'.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set''.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "ls") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "ls") (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))))))
-  (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0"))))))
 
 /-- persistState is `PersistState(i)`.
 
@@ -1981,9 +1981,9 @@ noncomputable def State.Restart.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val Follower)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set''.ty))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set''.ty))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType ID.ty go.int)))) (LiteralValue []))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2030,9 +2030,9 @@ noncomputable def State.Restart.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType ID.ty go.int)))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"MatchIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Role.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2071,9 +2071,9 @@ noncomputable def State.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val Nil)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set''.ty))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set''.ty))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2082,9 +2082,9 @@ noncomputable def State.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2097,7 +2097,7 @@ noncomputable def State.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "w") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "t") (Var "$r0")))))))))
-  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef State.ty go!"PreVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val PreCandidate))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef State.ty go!"PreVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val PreCandidate))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve IsQuorum []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))) (Val #false))
@@ -2110,7 +2110,7 @@ noncomputable def State.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Follower))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Candidate)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val PreCandidate))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType State.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2149,9 +2149,9 @@ noncomputable def State.PreTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val Nil)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set''.ty))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set''.ty))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2160,9 +2160,9 @@ noncomputable def State.PreTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2172,7 +2172,7 @@ noncomputable def State.PreTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "t") (Var "$r0")))))))))
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef State.ty go!"PreVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Follower))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Candidate)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val PreCandidate)))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType State.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2235,10 +2235,10 @@ noncomputable def State.RequestPreVote.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "t") (Var "$r0")))))))))
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef State.ty go!"PreVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val PreCandidate))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Minus"))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Minus"))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))) (Var "$a0")))) (Var "$a0")))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType State.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2301,10 +2301,10 @@ noncomputable def State.RequestVote.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "t") (Var "$r0")))))))))
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Candidate)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Minus"))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Minus"))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))) (Var "$a0")))) (Var "$a0")))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType State.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2418,9 +2418,9 @@ noncomputable def State.AppendEntriesInRangeToPeer.impl [GooseExts] [GoGlobalCon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "prevLogIndex") (Var "$r0")))))))))
   (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i")) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j")))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "b")) (App (Val (GoInstruction (GoLoad go.int))) (Var "e"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Leader))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))) (Var "$a0")))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType State.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2599,7 +2599,7 @@ noncomputable def State.BecomeLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -2627,7 +2627,7 @@ noncomputable def State.BecomeLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "w") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "t") (Var "$r0")))))))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Candidate)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Candidate)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve IsQuorum []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
@@ -2740,21 +2740,21 @@ noncomputable def State.AdvanceCommitIndex.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
-  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "index"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "index" (App (Val (GoInstruction (GoAlloc go.int))) (Var "index"))
-  (Let "a" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "a" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "a"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "a"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "cfg"))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "cfg"))
   (Let "k" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -2762,20 +2762,20 @@ noncomputable def State.AdvanceCommitIndex.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (App (Val (map.lookup1 ID.ty go.int)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty go.int)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"MatchIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "k"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "index")))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "a"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "a"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "k"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType ID.ty)))) (LiteralValue [(KeyedElement none (ElementExpression ID.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set'.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set''.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "a") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "a") (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "k") (Var "$value"))))))))))))))
-  (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0")))))
-  (Let "agree" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int] false [Set'.ty]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.int] false [Set'.ty]))))) (Val #())))
+  (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0")))))
+  (Let "agree" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int] false [Set''.ty]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.int] false [Set''.ty]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (Let "maxAgree" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -2816,8 +2816,8 @@ noncomputable def State.AdvanceCommitIndex.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "index")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Entry.ty)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
   (If (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "index"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int] false [Set'.ty]))))) (Var "agree")) (Var "$a0")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "cfg"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int] false [Set''.ty]))))) (Var "agree")) (Var "$a0")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "cfg"))
   (App (App (App (Val (GoInstruction (FuncResolve IsQuorum []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "index"))
   (App (Val doExecute)
@@ -2832,9 +2832,9 @@ noncomputable def State.AdvanceCommitIndex.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "maxAgree") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [Set'.ty]))))) (Pair (Var "agree") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [Set''.ty]))))) (Pair (Var "agree") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "cfg") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "cfg") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Leader)))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType State.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2861,8 +2861,8 @@ noncomputable def State.reconfigure.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType State.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (Var "s"))
-  (Let "learners" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "learners"))
-  (Let "newconf" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "newconf"))
+  (Let "learners" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "learners"))
+  (Let "newconf" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "newconf"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (Var "i"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"clone"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Val #()))
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType State.ty)))) (Val #())))
@@ -2889,9 +2889,9 @@ noncomputable def State.reconfigure.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (Let "$a1" (Let "$v0" (Val ConfRecord)
-  (Let "$v1" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "newconf"))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "learners"))
-  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression ValueKind.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NewConf")) (ElementExpression Set'.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Learners")) (ElementExpression Set'.ty (Var "$v2")))])))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "newconf"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "learners"))
+  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression ValueKind.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NewConf")) (ElementExpression Set''.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Learners")) (ElementExpression Set''.ty (Var "$v2")))])))))
   (Let "$a2" (Val ConfigEntry)
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"replicate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))
   (App (Val doExecute)
@@ -2919,7 +2919,7 @@ noncomputable def State.AddNewServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Add"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Add"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))
   (Let "$a2" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
@@ -2930,7 +2930,7 @@ noncomputable def State.AddNewServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))) (Val Leader)))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"IsJointConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0"))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType State.ty)))) (Val UntypedNil))
@@ -2958,10 +2958,10 @@ noncomputable def State.AddLearner.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Remove"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Remove"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))
   (Let "$a2" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Add"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Add"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"reconfigure"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2970,7 +2970,7 @@ noncomputable def State.AddLearner.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))) (Val Leader)))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"IsJointConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0"))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType State.ty)))) (Val UntypedNil))
@@ -2998,10 +2998,10 @@ noncomputable def State.DeleteServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Remove"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Remove"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))
   (Let "$a2" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Remove"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Remove"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"reconfigure"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3010,9 +3010,9 @@ noncomputable def State.DeleteServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))) (Val Leader)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetLearners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))
-  (App (App (Val (GoInstruction (MethodResolve Set'.ty go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
+  (App (App (Val (GoInstruction (MethodResolve Set''.ty go!"Union"))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"GetConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0")))) (Var "$a0")))) (Var "$a0"))))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"IsJointConfig"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))) (Var "$a0"))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType State.ty)))) (Val UntypedNil))
@@ -3050,9 +3050,9 @@ noncomputable def State.ApplySimpleConfChange.impl [GooseExts] [GoGlobalContext]
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Value"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1)))))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Union"))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"NewConf"))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Value"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1))))))))) (Var "$a0")))
-  (Let "members" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Value"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1)))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Union"))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"NewConf"))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Value"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1))))))))) (Var "$a0")))
+  (Let "members" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType State.ty) go!"mut"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "t"))) (Var "$a0")))
@@ -3072,7 +3072,7 @@ noncomputable def State.ApplySimpleConfChange.impl [GooseExts] [GoGlobalContext]
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Has"))) (Var "members")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Has"))) (Var "members")) (Var "$a0"))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty go.int)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"MatchIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
@@ -3084,7 +3084,7 @@ noncomputable def State.ApplySimpleConfChange.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "w") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "members") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "members") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val Leader))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"PendingConfChangeIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))) (Val #false)))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef State.ty go!"ReconfigCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s")))) (Val #(W64 1))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3393,17 +3393,17 @@ noncomputable def State.HandleRequestVoteResponse.impl [GooseExts] [GoGlobalCont
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Msg.ty go!"VoteGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Msg.ty)))) (Var "m"))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "w") (Var "$r0")))))))
   (App (Val doExecute)
@@ -3528,17 +3528,17 @@ noncomputable def State.HandlePreVoteResponse.impl [GooseExts] [GoGlobalContext]
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Msg.ty go!"VoteGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Msg.ty)))) (Var "m"))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "j"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesGranted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotesResponded"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "w"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "w") (Var "$r0")))))))
   (App (Val doExecute)
@@ -4659,7 +4659,7 @@ noncomputable def State.NextAsync.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType State.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -4699,7 +4699,7 @@ noncomputable def State.NextAsync.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Msg.ty)))) (Pair (Var "m") (Var "$value")))))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -4715,7 +4715,7 @@ noncomputable def State.NextAsync.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve nonNil []))) (Val #())) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -4758,14 +4758,14 @@ noncomputable def State.NextAsync.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Msg.ty)))) (Pair (Var "m") (Var "$value")))))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -4810,7 +4810,7 @@ noncomputable def State.NextAsync.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value")))))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -4829,14 +4829,14 @@ noncomputable def State.NextAsync.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value")))))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -4893,7 +4893,7 @@ noncomputable def State.NextAsync.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value")))))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -4917,14 +4917,14 @@ noncomputable def State.NextAsync.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value")))))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -4967,7 +4967,7 @@ noncomputable def State.NextCrash.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType State.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -5072,7 +5072,7 @@ noncomputable def State.NextDynamic.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType State.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -5091,14 +5091,14 @@ noncomputable def State.NextDynamic.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value")))))))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -5284,7 +5284,7 @@ noncomputable def traceError.impl [GooseExts] [GoGlobalContext] : val :=
 /-- go: trace.go:109:6 -/
 noncomputable def toSet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ids"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "ids" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "ids"))
@@ -5300,7 +5300,7 @@ noncomputable def toSet.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ids"))
   (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (slice.forRange go.string)) (Var "$range"))
@@ -5326,7 +5326,7 @@ noncomputable def toSet.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType ID.ty)))) (Pair (Var "out") (Var "$r0")))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set''.ty))) (Val UntypedNil))
   (Let "$r1" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5335,7 +5335,7 @@ noncomputable def toSet.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -5346,7 +5346,7 @@ noncomputable def toSet.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$value"))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
+  (Pair (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
 
 /-- Len is Len(TraceLog).
 
@@ -5457,13 +5457,13 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "i"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Set'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Set'.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Set''.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Set''.ty)))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (Var "i"))
-  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Set'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Set'.ty)))) (Val #())))
+  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Set''.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Set''.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set'.ty)))) (Var "out"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set''.ty)))) (Var "out"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5472,7 +5472,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Set'.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Set''.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Let "$r0" (Val #(W64 1))
   (Let "l" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5490,18 +5490,18 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set'.ty)))) (Var "out"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "cfg"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Set'.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Set'.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Set'.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set''.ty)))) (Var "out"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "cfg"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Set''.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Set''.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Set''.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Set'.ty)))) (Pair (Var "out") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Set''.ty)))) (Pair (Var "out") (Var "$r0")))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType Set'.ty)))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType Set''.ty)))) (Val UntypedNil))
   (Let "$r1" (Let "$a0" (Val #(go!"newconf not a list of ids"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "l"))
   (Let "$a2" (Val #(W64 0))
@@ -5513,13 +5513,13 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Set'.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Set''.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "cfg") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "cfg") (Var "$r0"))))))))))))))
   (If (If (If (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.bool)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"bootstrap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "l")) (Val #(W64 1)))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (StructFieldRef line.ty go!"nid"))) (Var "ln"))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "ln"))))) (Val #(go!"ApplyConfChange")))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType EventProps.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventProps.ty)))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Prop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "ln"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType EventProps.ty)))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType EventConfChange.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventConfChange.ty)))) (App (Val (GoInstruction (StructFieldRef EventProps.ty go!"CC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventProps.ty)))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Prop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "ln"))))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType EventConfChange.ty)))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (go.GoType.SliceType go.string))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef EventConfChange.ty go!"NewConf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventConfChange.ty)))) (App (Val (GoInstruction (StructFieldRef EventProps.ty go!"CC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventProps.ty)))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Prop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "ln"))))))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (go.GoType.SliceType go.string))))) (Val UntypedNil)))))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
@@ -5531,11 +5531,11 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "l") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "l")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "l") (Var "$r0")))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set'.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
-  (Let "bootstrapConfs" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Set'.ty), go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Set'.ty), go.error]))))) (Val #())))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set''.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+  (Let "bootstrapConfs" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Set''.ty), go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Set''.ty), go.error]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "i"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (Var "i"))
@@ -5543,7 +5543,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "ln" (App (Val (GoInstruction (GoAlloc line.ty))) (App (Val (GoInstruction (GoZeroVal line.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef line.ty go!"conf"))) (Var "ln")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef line.ty go!"conf"))) (Var "ln")) (Val #(W64 0)))))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5552,7 +5552,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "ln"))))) (Val #(go!"ApplyConfChange")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef EventConfChange.ty go!"NewConf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventConfChange.ty)))) (App (Val (GoInstruction (StructFieldRef EventProps.ty go!"CC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventProps.ty)))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Prop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "ln"))))))))))
@@ -5562,11 +5562,11 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "cfg"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "cfg"))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5575,9 +5575,9 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set''.ty))) (Val UntypedNil))
   (Let "$r1" (Let "$a0" (Val #(go!"newconf not a list of ids"))
   (Let "$a1" (App (App (Val (map.lookup1 ID.ty go.int)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty go.int)))) (Var "last"))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i")))
   (Let "$a2" (Val #(W64 0))
@@ -5589,15 +5589,15 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "cfg") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "cfg") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType EventProps.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventProps.ty)))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Prop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "ln"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType EventProps.ty)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType EventConfChange.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventConfChange.ty)))) (App (Val (GoInstruction (StructFieldRef EventProps.ty go!"CC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventProps.ty)))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Prop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "ln"))))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType EventConfChange.ty)))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType (go.GoType.SliceType go.string))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef EventConfChange.ty go!"NewConf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventConfChange.ty)))) (App (Val (GoInstruction (StructFieldRef EventProps.ty go!"CC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventProps.ty)))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Prop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "ln"))))))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType (go.GoType.SliceType go.string))))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set'.ty))) (Val UntypedNil))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Set''.ty))) (Val UntypedNil))
   (Let "$r1" (Let "$a0" (Val #(go!"a last bootstrap ApplyConfChange without newconf"))
   (Let "$a1" (App (App (Val (map.lookup1 ID.ty go.int)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty go.int)))) (Var "last"))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i")))
   (Let "$a2" (Val #(W64 0))
@@ -5609,24 +5609,24 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore line.ty))) (Pair (Var "ln") (Var "$r0")))))))))
-  (Pair (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
-  (Let "bootstrappedConfig" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set'.ty, go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set'.ty, go.error]))))) (Val #())))
+  (Pair (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+  (Let "bootstrappedConfig" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set''.ty, go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set''.ty, go.error]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc State.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc State.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
   (Let "$v1" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (LiteralValue []))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.bool))) (Var "preVote"))
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.bool))) (Var "checkQuorum"))
-  (App (Val (GoInstruction (CompositeLiteral State.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Server")) (ElementExpression Set'.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"S")) (ElementExpression (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"PreVote")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"CheckQuorum")) (ElementExpression go.bool (Var "$v3")))])))))))
+  (App (Val (GoInstruction (CompositeLiteral State.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Server")) (ElementExpression Set''.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"S")) (ElementExpression (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"PreVote")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"CheckQuorum")) (ElementExpression go.bool (Var "$v3")))])))))))
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType State.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType State.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5644,7 +5644,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Trace.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Trace.ty go!"init"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))) (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -5655,23 +5655,23 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "lb" (App (Val (GoInstruction (GoAlloc line.ty))) (App (Val (GoInstruction (GoZeroVal line.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set'.ty, go.error]))))) (Var "bootstrappedConfig")) (Var "$a0")))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set''.ty, go.error]))))) (Var "bootstrappedConfig")) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Set'.ty), go.error]))))) (Var "bootstrapConfs")) (Var "$a0")))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Set''.ty), go.error]))))) (Var "bootstrapConfs")) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "confs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Set'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Set'.ty)))) (Val #())))
+  (Let "confs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Set''.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Set''.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5685,10 +5685,10 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (Var "log"))
   (Let "$v4" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef EventState.ty go!"Commit"))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (Var "lb"))))))
   (Let "$v5" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType ID.ty go.int)))) (LiteralValue []))
-  (Let "$v6" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "cfg"))
+  (Let "$v6" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "cfg"))
   (Let "$v1" (Val UntypedNil)
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 2 Set'.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Set'.ty (Var "$v0"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v1")))]))))
-  (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Joint")) (ElementExpression (go.GoType.ArrayType 2 Set'.ty) (Var "$v0")))])))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 2 Set''.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Set''.ty (Var "$v0"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Joint")) (ElementExpression (go.GoType.ArrayType 2 Set''.ty) (Var "$v0")))])))
   (App (Val (GoInstruction (CompositeLiteral Server.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"CurrentTerm")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"State")) (ElementExpression Role.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"VotedFor")) (ElementExpression ID.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Log")) (ElementExpression (go.GoType.SliceType Entry.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"CommitIndex")) (ElementExpression go.int (Var "$v4"))), (KeyedElement (some (KeyField go!"MatchIndex")) (ElementExpression (go.GoType.MapType ID.ty go.int) (Var "$v5"))), (KeyedElement (some (KeyField go!"Config")) (ElementExpression Config.ty (Var "$v6")))]))))))))))
   (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5708,28 +5708,28 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "cfg"))
-  (Let "c" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "cfg"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(W64 1))
   (Let "$v1" (Val ConfigEntry)
   (Let "$v2" (Let "$v0" (Val ConfRecord)
-  (Let "$v1" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "c"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "c"))
   (Let "$v2" (Val UntypedNil)
-  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression ValueKind.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NewConf")) (ElementExpression Set'.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Learners")) (ElementExpression go.untypedNil (Var "$v2")))])))))
+  (App (Val (GoInstruction (CompositeLiteral Value.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression ValueKind.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NewConf")) (ElementExpression Set''.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Learners")) (ElementExpression go.untypedNil (Var "$v2")))])))))
   (App (Val (GoInstruction (CompositeLiteral Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Term")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression EntryType.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression Value.ty (Var "$v2")))])))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Entry.ty))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (Var "log")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))) (Var "$r0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set'.ty)))) (Var "confs"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Set'.ty)]))) (Val #())) (Var "$a0"))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Set'.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set'.ty)))) (Var "confs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set''.ty)))) (Var "confs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Set''.ty)]))) (Val #())) (Var "$a0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Set''.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Set''.ty)))) (Var "confs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "c") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "c") (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "c") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "c") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$key")))))))))))))
   (App (Val doExecute)
@@ -5750,7 +5750,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Set'.ty)))) (Pair (Var "confs") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Set''.ty)))) (Pair (Var "confs") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Trace.ty)))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -5767,7 +5767,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "cfg") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "cfg") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore line.ty))) (Pair (Var "lb") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -5776,8 +5776,8 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType State.ty)))) (Pair (Var "s") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Subset"))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"InitSrv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (Var "$a0"))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Subset"))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"InitSrv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (Var "$a0"))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Trace.ty)))) (Val UntypedNil))
   (Let "$r1" (Let "$a0" (Val #(go!"TraceInitServer not a subset of TraceServer"))
   (Let "$a1" (Val #(W64 0))
@@ -5795,7 +5795,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (Let "$l0" (App (Val (GoInstruction (StructFieldRef Trace.ty go!"InitSrv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (StructFieldRef line.ty go!"nid"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType line.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType line.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"lines"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (Val #(W64 0))))))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set'.ty, go.error]))))) (Var "bootstrappedConfig")) (Var "$a0")))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set''.ty, go.error]))))) (Var "bootstrappedConfig")) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -5818,12 +5818,12 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set'.ty, go.error]))))) (Pair (Var "bootstrappedConfig") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [Set''.ty, go.error]))))) (Pair (Var "bootstrappedConfig") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Set'.ty), go.error]))))) (Pair (Var "bootstrapConfs") (Var "$r0")))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Set''.ty), go.error]))))) (Pair (Var "bootstrapConfs") (Var "$r0")))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -5940,7 +5940,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.string] false [go.bool]))))) (Pair (Var "isBootstrapName") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))) (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType line.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"lines"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
   (Let "ln" (App (Val (GoInstruction (GoAlloc line.ty))) (App (Val (GoInstruction (GoZeroVal line.ty))) (Val #())))
   (App (App (Val (slice.forRange line.ty)) (Var "$range"))
@@ -6194,7 +6194,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "h")) (Val #(W64 2)))))) (Lam BAnon
-  (Let "$l0" (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef line.ty go!"conf"))) (Var "ln")) (App (Val (GoInstruction (GoLoad go.int))) (Var "h"))))
+  (Let "$l0" (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef line.ty go!"conf"))) (Var "ln")) (App (Val (GoInstruction (GoLoad go.int))) (Var "h"))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 (go.GoType.SliceType go.string))))) (Pair (App (Val (GoInstruction (StructFieldRef Event.ty go!"Conf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (Var "ev"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "h")))))
   (App (App (Val (GoInstruction (FuncResolve toSet []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -6222,7 +6222,7 @@ noncomputable def NewTraceWith.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "h") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "h")) (Val #(W64 1)))))))))))
@@ -6838,9 +6838,9 @@ noncomputable def line.stateMatches.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (If (If (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CurrentTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef EventState.ty go!"Term"))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln"))))))))) (App (Val (GoInstruction (GoOp GoEquals Role.ty))) (Pair (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad Role.ty))) (App (Val (GoInstruction (StructFieldRef line.ty go!"role"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln")))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"VotedFor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (StructFieldRef line.ty go!"vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln")))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Entry.ty)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln")))))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CommitIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef EventState.ty go!"Commit"))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln"))))))))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef line.ty go!"conf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln"))) (Val #(W64 0)))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val #(W64 0))))) (Var "$a0"))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef line.ty go!"conf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln"))) (Val #(W64 1)))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set'.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val #(W64 1))))) (Var "$a0"))) (Val #false))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Entry.ty)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln")))))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CommitIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef EventState.ty go!"Commit"))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln"))))))))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef line.ty go!"conf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln"))) (Val #(W64 0)))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val #(W64 0))))) (Var "$a0"))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef line.ty go!"conf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln"))) (Val #(W64 1)))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 Set''.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Joint"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "v")))) (Val #(W64 1))))) (Var "$a0"))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -8266,8 +8266,8 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Trace.ty) go!"logline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))) (Var "$a0")))
   (Let "ln" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType line.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType line.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
-  (Let "srv" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"Server"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType State.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType State.ty))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8290,14 +8290,14 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val catchBreak) (Let "$sw" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln"))))))
   (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"SendRequestVoteResponse")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"SendRequestVoteRequest")))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8321,7 +8321,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"BecomeLeader"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8340,7 +8340,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"Replicate"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8360,7 +8360,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"Commit"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8382,14 +8382,14 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$sw" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef EventMsg.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EventMsg.ty)))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Msg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (StructFieldRef line.ty go!"ev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType line.ty)))) (Var "ln"))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"MsgApp"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8446,14 +8446,14 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"MsgHeartbeat"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8477,14 +8477,14 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"MsgSnap"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8525,7 +8525,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"SendAppendEntriesResponse"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8544,7 +8544,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"BecomeCandidate"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8563,7 +8563,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"BecomePreCandidate"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8599,14 +8599,14 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "j" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8635,7 +8635,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "action") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"ApplyConfChange"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8654,7 +8654,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"Ready"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8673,7 +8673,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"InitState"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8692,7 +8692,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value"))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"BecomeFollower"))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "srv"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "srv"))
   (Let "i" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -8713,7 +8713,7 @@ noncomputable def Trace.nonReceive.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "srv") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "srv") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType line.ty)))) (Pair (Var "ln") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType State.ty))))) (Var "$res0"))))))
@@ -9143,17 +9143,17 @@ noncomputable def evalError.impl [GooseExts] [GoGlobalContext] : val :=
     go: types.go:77:6 -/
 noncomputable def NewSet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ids"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "ids" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ID.ty)))) (Var "ids"))
-  (Let "out" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "out" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ID.ty)))) (Var "ids"))
   (Let "id" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
@@ -9166,31 +9166,31 @@ noncomputable def NewSet.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out"))
   (Let "$a1" (Let "$sl0" (Val #(W64 0))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType ID.ty)))) (LiteralValue [(KeyedElement none (ElementExpression ID.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set'.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set''.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore ID.ty))) (Pair (App (Val (GoInstruction (IndexRef Set'.ty))) (Pair (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore ID.ty))) (Pair (App (Val (GoInstruction (IndexRef Set''.ty))) (Pair (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))) (Var "$r0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out"))
-  (App (Val (GoInstruction (Slice Set'.ty))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$s")))))
-  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out"))
-  (App (Val (GoInstruction (Slice Set'.ty))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "k"))) (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$s")))))
-  (App (App (App (Val (GoInstruction (FuncResolve go.copy [Set'.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out"))
+  (App (Val (GoInstruction (Slice Set''.ty))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out"))
+  (App (Val (GoInstruction (Slice Set''.ty))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "k"))) (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$s")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [Set''.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "out") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoOp GoEquals ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef Set'.ty))) (Pair (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id")))) (Val #false)))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "out") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoOp GoEquals ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef Set''.ty))) (Pair (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id")))) (Val #false)))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
   (Val #()))))))
   (App (App (App (Val doFor) (Lam BAnon
-  (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoOp GoLt ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef Set'.ty))) (Pair (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id")))) (Val #false)))) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoOp GoLt ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef Set''.ty))) (Pair (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id")))) (Val #false)))) (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1)))))))))
   (Lam BAnon
@@ -9201,17 +9201,17 @@ noncomputable def NewSet.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "id") (Var "$value"))))))))))))))
-  (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0")))))
 
 /-- Has is `id \in s`.
 
     go: types.go:95:14 -/
-noncomputable def Set.Has.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.Has.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "s"))
   (Let "id" (App (Val (GoInstruction (GoAlloc ID.ty))) (Var "id"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #false)
@@ -9220,7 +9220,7 @@ noncomputable def Set.Has.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "s"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "s"))
   (Let "x" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -9245,65 +9245,65 @@ noncomputable def Set.Has.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Union is `s \union t`.
 
     go: types.go:105:14 -/
-noncomputable def Set.Union.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.Union.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "t"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "s"))
-  (Let "t" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "t"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "s"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "t"))
   (Let "$r0" (Let "$a0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType ID.ty)))) (Val UntypedNil))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "s"))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType ID.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "t"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "t"))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType ID.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val (GoInstruction (FuncResolve NewSet []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0"))))))
 
 /-- Add is `s \union {id}`.
 
     go: types.go:108:14 -/
-noncomputable def Set.Add.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "s"))
   (Let "id" (App (Val (GoInstruction (GoAlloc ID.ty))) (Var "id"))
   (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id"))
-  (App (Val (GoInstruction (CompositeLiteral Set'.ty))) (LiteralValue [(KeyedElement none (ElementExpression ID.ty (Var "$v0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Union"))) (Var "s")) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral Set''.ty))) (LiteralValue [(KeyedElement none (ElementExpression ID.ty (Var "$v0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Union"))) (Var "s")) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0"))))))
 
 /-- Minus is `s \ t`.
 
     go: types.go:111:14 -/
-noncomputable def Set.Minus.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.Minus.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "t"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "s"))
-  (Let "t" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "t"))
-  (Let "out" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "s"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "t"))
+  (Let "out" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "s"))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "s"))
   (Let "id" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -9311,51 +9311,51 @@ noncomputable def Set.Minus.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Has"))) (Var "t")) (Var "$a0"))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "out"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Has"))) (Var "t")) (Var "$a0"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "out"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType ID.ty)))) (LiteralValue [(KeyedElement none (ElementExpression ID.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set'.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [Set''.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "out") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "out") (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "id") (Var "$value")))))))))))))))
-  (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0"))))))
 
 /-- Remove is `s \ {id}`.
 
     go: types.go:122:14 -/
-noncomputable def Set.Remove.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.Remove.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set'.ty))) (App (Val (GoInstruction (GoZeroVal Set'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Set''.ty))) (App (Val (GoInstruction (GoZeroVal Set''.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "s"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "s"))
   (Let "id" (App (Val (GoInstruction (GoAlloc ID.ty))) (Var "id"))
   (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id"))
-  (App (Val (GoInstruction (CompositeLiteral Set'.ty))) (LiteralValue [(KeyedElement none (ElementExpression ID.ty (Var "$v0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Minus"))) (Var "s")) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral Set''.ty))) (LiteralValue [(KeyedElement none (ElementExpression ID.ty (Var "$v0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Minus"))) (Var "s")) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Set'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore Set''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$res0"))))))
 
 /-- Subset is `s \subseteq t`.
 
     go: types.go:125:14 -/
-noncomputable def Set.Subset.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.Subset.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "t"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "s"))
-  (Let "t" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "t"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "s"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "t"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9363,7 +9363,7 @@ noncomputable def Set.Subset.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "s"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "s"))
   (Let "id" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
@@ -9371,7 +9371,7 @@ noncomputable def Set.Subset.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad ID.ty))) (Var "id"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Has"))) (Var "t")) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Has"))) (Var "t")) (Var "$a0"))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -9389,13 +9389,13 @@ noncomputable def Set.Subset.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Equal is `s = t`.
 
     go: types.go:135:14 -/
-noncomputable def Set.Equal.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "t"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "s"))
-  (Let "t" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "t"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "s"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "t"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
@@ -9404,13 +9404,13 @@ noncomputable def Set.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "s"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "s"))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef Set'.ty))) (Pair (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef Set'.ty))) (Pair (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "t")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals ID.ty))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef Set''.ty))) (Pair (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef Set''.ty))) (Pair (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "t")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))))))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -9421,9 +9421,9 @@ noncomputable def Set.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$key")))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "s"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "t"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$a0")))))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -9435,14 +9435,14 @@ noncomputable def Set.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: types.go:147:14 -/
-noncomputable def Set.String.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def Set''.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "s" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "s"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.string)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "s"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$a0"))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.string)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$a0"))))
   (Let "parts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9454,7 +9454,7 @@ noncomputable def Set.String.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "s"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "s"))
   (Let "id" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange ID.ty)) (Var "$range"))
@@ -9484,12 +9484,12 @@ noncomputable def IsQuorum.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "c" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "c"))
-  (Let "q" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "q"))
-  (Let "$r0" (If (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "c"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Subset"))) (Var "q")) (Var "$a0"))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "q"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 2)))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "c"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Set'.ty]))) (Val #())) (Var "$a0"))))) (Val #false))
+  (Let "c" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "c"))
+  (Let "q" (App (Val (GoInstruction (GoAlloc Set''.ty))) (Var "q"))
+  (Let "$r0" (If (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "c"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Subset"))) (Var "q")) (Var "$a0"))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "q"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 2)))) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "c"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Set''.ty]))) (Val #())) (Var "$a0"))))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -9507,9 +9507,9 @@ noncomputable def Value.Equal.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "v" (App (Val (GoInstruction (GoAlloc Value.ty))) (Var "v"))
   (Let "w" (App (Val (GoInstruction (GoAlloc Value.ty))) (Var "w"))
-  (Let "$r0" (If (If (If (App (Val (GoInstruction (GoOp GoEquals ValueKind.ty))) (Pair (App (Val (GoInstruction (GoLoad ValueKind.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Kind"))) (Var "v"))) (App (Val (GoInstruction (GoLoad ValueKind.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Kind"))) (Var "w"))))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Val"))) (Var "v"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Val"))) (Var "w"))))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"NewConf"))) (Var "w")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"NewConf"))) (Var "v"))) (Var "$a0"))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set'.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Learners"))) (Var "w")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set'.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Learners"))) (Var "v"))) (Var "$a0"))) (Val #false))
+  (Let "$r0" (If (If (If (App (Val (GoInstruction (GoOp GoEquals ValueKind.ty))) (Pair (App (Val (GoInstruction (GoLoad ValueKind.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Kind"))) (Var "v"))) (App (Val (GoInstruction (GoLoad ValueKind.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Kind"))) (Var "w"))))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Val"))) (Var "v"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Val"))) (Var "w"))))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"NewConf"))) (Var "w")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"NewConf"))) (Var "v"))) (Var "$a0"))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad Set''.ty))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Learners"))) (Var "w")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Set''.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Value.ty go!"Learners"))) (Var "v"))) (Var "$a0"))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -10663,71 +10663,71 @@ attribute [instance] Invariant.TypeAssumptions.type_repr
   Invariant.TypeAssumptions.method_set
   Invariant.TypeAssumptions.ptr_method_set
 
-abbrev Set' [GooseExts] : Type := GoSlice
+abbrev Set'' [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def Set'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Set''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType ID.ty)
 
-class Set.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq Set'.ty Set'.underlying
-  method_set : go.MethodSetIs Set'.ty [(go!"Add", (some (go.signature.Signature [ID.ty] false [Set'.ty]))), (go!"Equal", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [ID.ty] false [go.bool]))), (go!"Minus", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Remove", (some (go.signature.Signature [ID.ty] false [Set'.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Subset", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Union", (some (go.signature.Signature [Set'.ty] false [Set'.ty])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set'.ty) [(go!"Add", (some (go.signature.Signature [ID.ty] false [Set'.ty]))), (go!"Equal", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [ID.ty] false [go.bool]))), (go!"Minus", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Remove", (some (go.signature.Signature [ID.ty] false [Set'.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Subset", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Union", (some (go.signature.Signature [Set'.ty] false [Set'.ty])))]
-  Add_unfold : MethodUnfold Set'.ty go!"Add" Set.Add.impl
-  Equal_unfold : MethodUnfold Set'.ty go!"Equal" Set.Equal.impl
-  Has_unfold : MethodUnfold Set'.ty go!"Has" Set.Has.impl
-  Minus_unfold : MethodUnfold Set'.ty go!"Minus" Set.Minus.impl
-  Remove_unfold : MethodUnfold Set'.ty go!"Remove" Set.Remove.impl
-  String_unfold : MethodUnfold Set'.ty go!"String" Set.String.impl
-  Subset_unfold : MethodUnfold Set'.ty go!"Subset" Set.Subset.impl
-  Union_unfold : MethodUnfold Set'.ty go!"Union" Set.Union.impl
-  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Add" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"Add"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
-  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Equal" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"Equal"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
-  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Has" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
-  ptr_Minus_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Minus" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"Minus"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
-  ptr_Remove_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Remove" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"Remove"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
-  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"String" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"String"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
-  ptr_Subset_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Subset" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"Subset"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
-  ptr_Union_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Union" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve Set'.ty go!"Union"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
+class Set''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Set''.ty Set''.underlying
+  method_set : go.MethodSetIs Set''.ty [(go!"Add", (some (go.signature.Signature [ID.ty] false [Set''.ty]))), (go!"Equal", (some (go.signature.Signature [Set''.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [ID.ty] false [go.bool]))), (go!"Minus", (some (go.signature.Signature [Set''.ty] false [Set''.ty]))), (go!"Remove", (some (go.signature.Signature [ID.ty] false [Set''.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Subset", (some (go.signature.Signature [Set''.ty] false [go.bool]))), (go!"Union", (some (go.signature.Signature [Set''.ty] false [Set''.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set''.ty) [(go!"Add", (some (go.signature.Signature [ID.ty] false [Set''.ty]))), (go!"Equal", (some (go.signature.Signature [Set''.ty] false [go.bool]))), (go!"Has", (some (go.signature.Signature [ID.ty] false [go.bool]))), (go!"Minus", (some (go.signature.Signature [Set''.ty] false [Set''.ty]))), (go!"Remove", (some (go.signature.Signature [ID.ty] false [Set''.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Subset", (some (go.signature.Signature [Set''.ty] false [go.bool]))), (go!"Union", (some (go.signature.Signature [Set''.ty] false [Set''.ty])))]
+  Add_unfold : MethodUnfold Set''.ty go!"Add" Set''.Add.impl
+  Equal_unfold : MethodUnfold Set''.ty go!"Equal" Set''.Equal.impl
+  Has_unfold : MethodUnfold Set''.ty go!"Has" Set''.Has.impl
+  Minus_unfold : MethodUnfold Set''.ty go!"Minus" Set''.Minus.impl
+  Remove_unfold : MethodUnfold Set''.ty go!"Remove" Set''.Remove.impl
+  String_unfold : MethodUnfold Set''.ty go!"String" Set''.String.impl
+  Subset_unfold : MethodUnfold Set''.ty go!"Subset" Set''.Subset.impl
+  Union_unfold : MethodUnfold Set''.ty go!"Union" Set''.Union.impl
+  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Add" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"Add"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
+  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Equal" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"Equal"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
+  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Has" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"Has"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
+  ptr_Minus_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Minus" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"Minus"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
+  ptr_Remove_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Remove" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"Remove"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"String"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
+  ptr_Subset_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Subset" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"Subset"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
+  ptr_Union_unfold : MethodUnfold (go.GoType.PointerType Set''.ty) go!"Union" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set''.ty go!"Union"))) (App (Val (GoInstruction (GoLoad Set''.ty))) (Var "$r"))))
 
-attribute [instance] Set.TypeAssumptions.underlying
-  Set.TypeAssumptions.method_set
-  Set.TypeAssumptions.ptr_method_set
-  Set.TypeAssumptions.Add_unfold
-  Set.TypeAssumptions.Equal_unfold
-  Set.TypeAssumptions.Has_unfold
-  Set.TypeAssumptions.Minus_unfold
-  Set.TypeAssumptions.Remove_unfold
-  Set.TypeAssumptions.String_unfold
-  Set.TypeAssumptions.Subset_unfold
-  Set.TypeAssumptions.Union_unfold
-  Set.TypeAssumptions.ptr_Add_unfold
-  Set.TypeAssumptions.ptr_Equal_unfold
-  Set.TypeAssumptions.ptr_Has_unfold
-  Set.TypeAssumptions.ptr_Minus_unfold
-  Set.TypeAssumptions.ptr_Remove_unfold
-  Set.TypeAssumptions.ptr_String_unfold
-  Set.TypeAssumptions.ptr_Subset_unfold
-  Set.TypeAssumptions.ptr_Union_unfold
+attribute [instance] Set''.TypeAssumptions.underlying
+  Set''.TypeAssumptions.method_set
+  Set''.TypeAssumptions.ptr_method_set
+  Set''.TypeAssumptions.Add_unfold
+  Set''.TypeAssumptions.Equal_unfold
+  Set''.TypeAssumptions.Has_unfold
+  Set''.TypeAssumptions.Minus_unfold
+  Set''.TypeAssumptions.Remove_unfold
+  Set''.TypeAssumptions.String_unfold
+  Set''.TypeAssumptions.Subset_unfold
+  Set''.TypeAssumptions.Union_unfold
+  Set''.TypeAssumptions.ptr_Add_unfold
+  Set''.TypeAssumptions.ptr_Equal_unfold
+  Set''.TypeAssumptions.ptr_Has_unfold
+  Set''.TypeAssumptions.ptr_Minus_unfold
+  Set''.TypeAssumptions.ptr_Remove_unfold
+  Set''.TypeAssumptions.ptr_String_unfold
+  Set''.TypeAssumptions.ptr_Subset_unfold
+  Set''.TypeAssumptions.ptr_Union_unfold
 
 structure Config [GooseExts] where
   mk ::
-  Joint' : (GoArray Set' 2)
-  Learners' : Set'
+  Joint' : (GoArray Set'' 2)
+  Learners' : Set''
 
 noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
   ⟨Config.mk zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Config.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"Joint" (go.GoType.ArrayType 2 Set'.ty)),
-(go.field_decl.FieldDecl go!"Learners" Set'.ty)]
+  [(go.field_decl.FieldDecl go!"Joint" (go.GoType.ArrayType 2 Set''.ty)),
+(go.field_decl.FieldDecl go!"Learners" Set''.ty)]
 
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
@@ -10743,9 +10743,9 @@ class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
   get_Joint : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Joint") #x (Val #(x.Joint'))
-  set_Joint : ∀ (x : Config) (y : (GoArray Set' 2)), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Joint") (PairV #x #y) (Val #(({ x with Joint' := y } : Config)))
+  set_Joint : ∀ (x : Config) (y : (GoArray Set'' 2)), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Joint") (PairV #x #y) (Val #(({ x with Joint' := y } : Config)))
   get_Learners : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Learners") #x (Val #(x.Learners'))
-  set_Learners : ∀ (x : Config) (y : Set'), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Learners") (PairV #x #y) (Val #(({ x with Learners' := y } : Config)))
+  set_Learners : ∀ (x : Config) (y : Set''), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Learners") (PairV #x #y) (Val #(({ x with Learners' := y } : Config)))
   method_set : go.MethodSetIs Config.ty [(go!"Equal", (some (go.signature.Signature [Config.ty] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"Equal", (some (go.signature.Signature [Config.ty] false [go.bool])))]
   Equal_unfold : MethodUnfold Config.ty go!"Equal" Config.Equal.impl
@@ -10854,8 +10854,8 @@ structure Server [GooseExts] where
   Lead' : w64
   Log' : GoSlice
   CommitIndex' : w64
-  VotesResponded' : Set'
-  VotesGranted' : Set'
+  VotesResponded' : Set''
+  VotesGranted' : Set''
   MatchIndex' : GoMap
   PendingConfChangeIndex' : w64
   Config' : Config
@@ -10871,8 +10871,8 @@ noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
 (go.field_decl.FieldDecl go!"Lead" ID.ty),
 (go.field_decl.FieldDecl go!"Log" (go.GoType.SliceType Entry.ty)),
 (go.field_decl.FieldDecl go!"CommitIndex" go.int),
-(go.field_decl.FieldDecl go!"VotesResponded" Set'.ty),
-(go.field_decl.FieldDecl go!"VotesGranted" Set'.ty),
+(go.field_decl.FieldDecl go!"VotesResponded" Set''.ty),
+(go.field_decl.FieldDecl go!"VotesGranted" Set''.ty),
 (go.field_decl.FieldDecl go!"MatchIndex" (go.GoType.MapType ID.ty go.int)),
 (go.field_decl.FieldDecl go!"PendingConfChangeIndex" go.int),
 (go.field_decl.FieldDecl go!"Config" Config.ty),
@@ -10904,9 +10904,9 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   get_CommitIndex : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"CommitIndex") #x (Val #(x.CommitIndex'))
   set_CommitIndex : ∀ (x : Server) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"CommitIndex") (PairV #x #y) (Val #(({ x with CommitIndex' := y } : Server)))
   get_VotesResponded : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"VotesResponded") #x (Val #(x.VotesResponded'))
-  set_VotesResponded : ∀ (x : Server) (y : Set'), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"VotesResponded") (PairV #x #y) (Val #(({ x with VotesResponded' := y } : Server)))
+  set_VotesResponded : ∀ (x : Server) (y : Set''), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"VotesResponded") (PairV #x #y) (Val #(({ x with VotesResponded' := y } : Server)))
   get_VotesGranted : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"VotesGranted") #x (Val #(x.VotesGranted'))
-  set_VotesGranted : ∀ (x : Server) (y : Set'), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"VotesGranted") (PairV #x #y) (Val #(({ x with VotesGranted' := y } : Server)))
+  set_VotesGranted : ∀ (x : Server) (y : Set''), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"VotesGranted") (PairV #x #y) (Val #(({ x with VotesGranted' := y } : Server)))
   get_MatchIndex : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"MatchIndex") #x (Val #(x.MatchIndex'))
   set_MatchIndex : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"MatchIndex") (PairV #x #y) (Val #(({ x with MatchIndex' := y } : Server)))
   get_PendingConfChangeIndex : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"PendingConfChangeIndex") #x (Val #(x.PendingConfChangeIndex'))
@@ -10916,7 +10916,7 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   get_Durable : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"Durable") #x (Val #(x.Durable'))
   set_Durable : ∀ (x : Server) (y : Durable), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"Durable") (PairV #x #y) (Val #(({ x with Durable' := y } : Server)))
   method_set : go.MethodSetIs Server.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.copy", (some (go.signature.Signature [] false [(go.GoType.PointerType Server.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.equal", (some (go.signature.Signature [(go.GoType.PointerType Server.ty), Set'.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.copy", (some (go.signature.Signature [] false [(go.GoType.PointerType Server.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.equal", (some (go.signature.Signature [(go.GoType.PointerType Server.ty), Set''.ty] false [go.bool])))]
   ptr_copy_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"copy" Server.copy.impl
   ptr_equal_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"equal" Server.equal.impl
 
@@ -11048,7 +11048,7 @@ attribute [instance] Bag.TypeAssumptions.type_repr
 
 structure State [GooseExts] where
   mk ::
-  Server' : Set'
+  Server' : Set''
   S' : GoMap
   Messages' : Bag
   PendingMessages' : Bag
@@ -11060,7 +11060,7 @@ noncomputable instance State.zero_val [GooseExts] : ZeroVal State :=
   ⟨State.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def State.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"Server" Set'.ty),
+  [(go.field_decl.FieldDecl go!"Server" Set''.ty),
 (go.field_decl.FieldDecl go!"S" (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))),
 (go.field_decl.FieldDecl go!"Messages" Bag.ty),
 (go.field_decl.FieldDecl go!"PendingMessages" Bag.ty),
@@ -11082,7 +11082,7 @@ class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying State.underlying State
   underlying : go.UnderlyingDirectedEq State.ty State.underlying
   get_Server : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Server") #x (Val #(x.Server'))
-  set_Server : ∀ (x : State) (y : Set'), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : State)))
+  set_Server : ∀ (x : State) (y : Set''), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : State)))
   get_S : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"S") #x (Val #(x.S'))
   set_S : ∀ (x : State) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : State)))
   get_Messages : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"Messages") #x (Val #(x.Messages'))
@@ -11096,7 +11096,7 @@ class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   get_CheckQuorum : ∀ (x : State), go.IsGoStepPureDetTagged under (StructFieldGet State.underlying go!"CheckQuorum") #x (Val #(x.CheckQuorum'))
   set_CheckQuorum : ∀ (x : State) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet State.underlying go!"CheckQuorum") (PairV #x #y) (Val #(({ x with CheckQuorum' := y } : State)))
   method_set : go.MethodSetIs State.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType State.ty) [(go!"AcceptAppendEntriesRequest", (some (go.signature.Signature [ID.ty, ID.ty, go.bool, (go.GoType.PointerType Msg.ty)] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"AddLearner", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"AddNewServer", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"AdvanceCommitIndex", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"AppendEntries", (some (go.signature.Signature [ID.ty, ID.ty, go.int, go.int] false [(go.GoType.PointerType State.ty)]))), (go!"AppendEntriesAlreadyDone", (some (go.signature.Signature [ID.ty, ID.ty, go.int, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"AppendEntriesInRangeToPeer", (some (go.signature.Signature [go.string, ID.ty, ID.ty, go.int, go.int] false [(go.GoType.PointerType State.ty)]))), (go!"AppendEntriesToSelf", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"ApplySimpleConfChange", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"BecomeLeader", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"ClientRequest", (some (go.signature.Signature [ID.ty, go.int] false [(go.GoType.PointerType State.ty)]))), (go!"Committed", (some (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Entry.ty)]))), (go!"CommittedIsDurableInv", (some (go.signature.Signature [] false [go.bool]))), (go!"ConflictAppendEntriesRequest", (some (go.signature.Signature [ID.ty, go.int, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"CurrentLeaders", (some (go.signature.Signature [] false [Set'.ty]))), (go!"DeleteServer", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"DropMessage", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"DropStaleResponse", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"DuplicateMessage", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"ElectionSafetyInv", (some (go.signature.Signature [] false [go.bool]))), (go!"Equal", (some (go.signature.Signature [(go.GoType.PointerType State.ty)] false [go.bool]))), (go!"GetConfig", (some (go.signature.Signature [ID.ty] false [Set'.ty]))), (go!"GetLearners", (some (go.signature.Signature [ID.ty] false [Set'.ty]))), (go!"HandleAppendEntriesRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"HandleAppendEntriesResponse", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandlePreVoteRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandlePreVoteResponse", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandleRequestVoteRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandleRequestVoteResponse", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandleSnapshotRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HasNoConflict", (some (go.signature.Signature [ID.ty, go.int, (go.GoType.SliceType Entry.ty)] false [go.bool]))), (go!"Heartbeat", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"IgnoreInLease", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"IsJointConfig", (some (go.signature.Signature [ID.ty] false [go.bool]))), (go!"LeaderCompletenessInv", (some (go.signature.Signature [] false [go.bool]))), (go!"LogInv", (some (go.signature.Signature [] false [go.bool]))), (go!"LogMatchingInv", (some (go.signature.Signature [] false [go.bool]))), (go!"MessageTermsLtCurrentTerm", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [go.bool]))), (go!"MoreThanOneLeaderInv", (some (go.signature.Signature [] false [go.bool]))), (go!"MoreUpToDateCorrectInv", (some (go.signature.Signature [] false [go.bool]))), (go!"Next", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NextAsync", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NextCrash", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NextDynamic", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NextUnreliable", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NoConflictAppendEntriesRequest", (some (go.signature.Signature [ID.ty, go.int, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"PreTimeout", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"QuorumLogInv", (some (go.signature.Signature [] false [go.bool]))), (go!"Ready", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"Receive", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"RejectAppendEntriesRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty), go.bool] false [(go.GoType.PointerType State.ty)]))), (go!"RequestPreVote", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"RequestVote", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"Restart", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"ReturnToFollowerState", (some (go.signature.Signature [ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"SendSnapshot", (some (go.signature.Signature [ID.ty, ID.ty, go.int] false [(go.GoType.PointerType State.ty)]))), (go!"StepDownToFollower", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Timeout", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"UpdateTerm", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"Violated", (some (go.signature.Signature [] false [go.string]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.applyConfigUpdate", (some (go.signature.Signature [ID.ty, go.int] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.becomeFollowerOfTerm", (some (go.signature.Signature [ID.ty, go.int] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType State.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.commitTo", (some (go.signature.Signature [ID.ty, go.int] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.discard", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.mut", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType Server.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.pendingFrom", (some (go.signature.Signature [ID.ty] false [Bag.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.persistState", (some (go.signature.Signature [ID.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.reconfigure", (some (go.signature.Signature [ID.ty, Set'.ty, Set'.ty] false [(go.GoType.PointerType State.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.replicate", (some (go.signature.Signature [ID.ty, Value.ty, EntryType.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.reply", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty), (go.GoType.PointerType Msg.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.send", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType State.ty) [(go!"AcceptAppendEntriesRequest", (some (go.signature.Signature [ID.ty, ID.ty, go.bool, (go.GoType.PointerType Msg.ty)] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"AddLearner", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"AddNewServer", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"AdvanceCommitIndex", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"AppendEntries", (some (go.signature.Signature [ID.ty, ID.ty, go.int, go.int] false [(go.GoType.PointerType State.ty)]))), (go!"AppendEntriesAlreadyDone", (some (go.signature.Signature [ID.ty, ID.ty, go.int, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"AppendEntriesInRangeToPeer", (some (go.signature.Signature [go.string, ID.ty, ID.ty, go.int, go.int] false [(go.GoType.PointerType State.ty)]))), (go!"AppendEntriesToSelf", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"ApplySimpleConfChange", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"BecomeLeader", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"ClientRequest", (some (go.signature.Signature [ID.ty, go.int] false [(go.GoType.PointerType State.ty)]))), (go!"Committed", (some (go.signature.Signature [ID.ty] false [(go.GoType.SliceType Entry.ty)]))), (go!"CommittedIsDurableInv", (some (go.signature.Signature [] false [go.bool]))), (go!"ConflictAppendEntriesRequest", (some (go.signature.Signature [ID.ty, go.int, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"CurrentLeaders", (some (go.signature.Signature [] false [Set''.ty]))), (go!"DeleteServer", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"DropMessage", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"DropStaleResponse", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"DuplicateMessage", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"ElectionSafetyInv", (some (go.signature.Signature [] false [go.bool]))), (go!"Equal", (some (go.signature.Signature [(go.GoType.PointerType State.ty)] false [go.bool]))), (go!"GetConfig", (some (go.signature.Signature [ID.ty] false [Set''.ty]))), (go!"GetLearners", (some (go.signature.Signature [ID.ty] false [Set''.ty]))), (go!"HandleAppendEntriesRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"HandleAppendEntriesResponse", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandlePreVoteRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandlePreVoteResponse", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandleRequestVoteRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandleRequestVoteResponse", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HandleSnapshotRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"HasNoConflict", (some (go.signature.Signature [ID.ty, go.int, (go.GoType.SliceType Entry.ty)] false [go.bool]))), (go!"Heartbeat", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"IgnoreInLease", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"IsJointConfig", (some (go.signature.Signature [ID.ty] false [go.bool]))), (go!"LeaderCompletenessInv", (some (go.signature.Signature [] false [go.bool]))), (go!"LogInv", (some (go.signature.Signature [] false [go.bool]))), (go!"LogMatchingInv", (some (go.signature.Signature [] false [go.bool]))), (go!"MessageTermsLtCurrentTerm", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [go.bool]))), (go!"MoreThanOneLeaderInv", (some (go.signature.Signature [] false [go.bool]))), (go!"MoreUpToDateCorrectInv", (some (go.signature.Signature [] false [go.bool]))), (go!"Next", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NextAsync", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NextCrash", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NextDynamic", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NextUnreliable", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"NoConflictAppendEntriesRequest", (some (go.signature.Signature [ID.ty, go.int, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"PreTimeout", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"QuorumLogInv", (some (go.signature.Signature [] false [go.bool]))), (go!"Ready", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"Receive", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [(go.GoType.SliceType (go.GoType.PointerType State.ty))]))), (go!"RejectAppendEntriesRequest", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty), go.bool] false [(go.GoType.PointerType State.ty)]))), (go!"RequestPreVote", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"RequestVote", (some (go.signature.Signature [ID.ty, ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"Restart", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"ReturnToFollowerState", (some (go.signature.Signature [ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"SendSnapshot", (some (go.signature.Signature [ID.ty, ID.ty, go.int] false [(go.GoType.PointerType State.ty)]))), (go!"StepDownToFollower", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Timeout", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType State.ty)]))), (go!"UpdateTerm", (some (go.signature.Signature [ID.ty, ID.ty, (go.GoType.PointerType Msg.ty)] false [(go.GoType.PointerType State.ty)]))), (go!"Violated", (some (go.signature.Signature [] false [go.string]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.applyConfigUpdate", (some (go.signature.Signature [ID.ty, go.int] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.becomeFollowerOfTerm", (some (go.signature.Signature [ID.ty, go.int] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType State.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.commitTo", (some (go.signature.Signature [ID.ty, go.int] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.discard", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.mut", (some (go.signature.Signature [ID.ty] false [(go.GoType.PointerType Server.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.pendingFrom", (some (go.signature.Signature [ID.ty] false [Bag.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.persistState", (some (go.signature.Signature [ID.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.reconfigure", (some (go.signature.Signature [ID.ty, Set''.ty, Set''.ty] false [(go.GoType.PointerType State.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.replicate", (some (go.signature.Signature [ID.ty, Value.ty, EntryType.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.reply", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty), (go.GoType.PointerType Msg.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft.send", (some (go.signature.Signature [(go.GoType.PointerType Msg.ty)] false [])))]
   ptr_AcceptAppendEntriesRequest_unfold : MethodUnfold (go.GoType.PointerType State.ty) go!"AcceptAppendEntriesRequest" State.AcceptAppendEntriesRequest.impl
   ptr_AddLearner_unfold : MethodUnfold (go.GoType.PointerType State.ty) go!"AddLearner" State.AddLearner.impl
   ptr_AddNewServer_unfold : MethodUnfold (go.GoType.PointerType State.ty) go!"AddNewServer" State.AddNewServer.impl
@@ -11654,7 +11654,7 @@ structure line [GooseExts] where
   nid' : w64
   vote' : w64
   role' : Role
-  conf' : (GoArray Set' 2)
+  conf' : (GoArray Set'' 2)
   from' : w64
   to' : w64
 
@@ -11666,7 +11666,7 @@ noncomputable instance line.zero_val [GooseExts] : ZeroVal line :=
 (go.field_decl.FieldDecl go!"nid" ID.ty),
 (go.field_decl.FieldDecl go!"vote" ID.ty),
 (go.field_decl.FieldDecl go!"role" Role.ty),
-(go.field_decl.FieldDecl go!"conf" (go.GoType.ArrayType 2 Set'.ty)),
+(go.field_decl.FieldDecl go!"conf" (go.GoType.ArrayType 2 Set''.ty)),
 (go.field_decl.FieldDecl go!"from" ID.ty),
 (go.field_decl.FieldDecl go!"to" ID.ty)]
 
@@ -11692,7 +11692,7 @@ class line.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   get_role : ∀ (x : line), go.IsGoStepPureDetTagged under (StructFieldGet line.underlying go!"role") #x (Val #(x.role'))
   set_role : ∀ (x : line) (y : Role), go.IsGoStepPureDetTagged under (StructFieldSet line.underlying go!"role") (PairV #x #y) (Val #(({ x with role' := y } : line)))
   get_conf : ∀ (x : line), go.IsGoStepPureDetTagged under (StructFieldGet line.underlying go!"conf") #x (Val #(x.conf'))
-  set_conf : ∀ (x : line) (y : (GoArray Set' 2)), go.IsGoStepPureDetTagged under (StructFieldSet line.underlying go!"conf") (PairV #x #y) (Val #(({ x with conf' := y } : line)))
+  set_conf : ∀ (x : line) (y : (GoArray Set'' 2)), go.IsGoStepPureDetTagged under (StructFieldSet line.underlying go!"conf") (PairV #x #y) (Val #(({ x with conf' := y } : line)))
   get_from : ∀ (x : line), go.IsGoStepPureDetTagged under (StructFieldGet line.underlying go!"from") #x (Val #(x.from'))
   set_from : ∀ (x : line) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet line.underlying go!"from") (PairV #x #y) (Val #(({ x with from' := y } : line)))
   get_to : ∀ (x : line), go.IsGoStepPureDetTagged under (StructFieldGet line.underlying go!"to") #x (Val #(x.to'))
@@ -11736,8 +11736,8 @@ attribute [instance] line.TypeAssumptions.type_repr
 structure Trace [GooseExts] where
   mk ::
   lines' : GoSlice
-  Server' : Set'
-  InitSrv' : Set'
+  Server' : Set''
+  InitSrv' : Set''
   bootstrap' : GoSlice
   init' : Loc
   PreVote' : Bool
@@ -11748,8 +11748,8 @@ noncomputable instance Trace.zero_val [GooseExts] : ZeroVal Trace :=
 
 @[reducible] noncomputable def Trace.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lines" (go.GoType.SliceType line.ty)),
-(go.field_decl.FieldDecl go!"Server" Set'.ty),
-(go.field_decl.FieldDecl go!"InitSrv" Set'.ty),
+(go.field_decl.FieldDecl go!"Server" Set''.ty),
+(go.field_decl.FieldDecl go!"InitSrv" Set''.ty),
 (go.field_decl.FieldDecl go!"bootstrap" (go.GoType.SliceType go.bool)),
 (go.field_decl.FieldDecl go!"init" (go.GoType.PointerType State.ty)),
 (go.field_decl.FieldDecl go!"PreVote" go.bool),
@@ -11771,9 +11771,9 @@ class Trace.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   get_lines : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"lines") #x (Val #(x.lines'))
   set_lines : ∀ (x : Trace) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"lines") (PairV #x #y) (Val #(({ x with lines' := y } : Trace)))
   get_Server : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"Server") #x (Val #(x.Server'))
-  set_Server : ∀ (x : Trace) (y : Set'), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : Trace)))
+  set_Server : ∀ (x : Trace) (y : Set''), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : Trace)))
   get_InitSrv : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"InitSrv") #x (Val #(x.InitSrv'))
-  set_InitSrv : ∀ (x : Trace) (y : Set'), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"InitSrv") (PairV #x #y) (Val #(({ x with InitSrv' := y } : Trace)))
+  set_InitSrv : ∀ (x : Trace) (y : Set''), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"InitSrv") (PairV #x #y) (Val #(({ x with InitSrv' := y } : Trace)))
   get_bootstrap : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"bootstrap") #x (Val #(x.bootstrap'))
   set_bootstrap : ∀ (x : Trace) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"bootstrap") (PairV #x #y) (Val #(({ x with bootstrap' := y } : Trace)))
   get_init : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"init") #x (Val #(x.init'))
@@ -11999,8 +11999,8 @@ structure Value [GooseExts] where
   mk ::
   Kind' : ValueKind
   Val' : w64
-  NewConf' : Set'
-  Learners' : Set'
+  NewConf' : Set''
+  Learners' : Set''
 
 noncomputable instance Value.zero_val [GooseExts] : ZeroVal Value :=
   ⟨Value.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
@@ -12008,8 +12008,8 @@ noncomputable instance Value.zero_val [GooseExts] : ZeroVal Value :=
 @[reducible] noncomputable def Value.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Kind" ValueKind.ty),
 (go.field_decl.FieldDecl go!"Val" go.int),
-(go.field_decl.FieldDecl go!"NewConf" Set'.ty),
-(go.field_decl.FieldDecl go!"Learners" Set'.ty)]
+(go.field_decl.FieldDecl go!"NewConf" Set''.ty),
+(go.field_decl.FieldDecl go!"Learners" Set''.ty)]
 
 @[irreducible] noncomputable def Value.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Value.fieldsUnsealed
@@ -12029,9 +12029,9 @@ class Value.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   get_Val : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"Val") #x (Val #(x.Val'))
   set_Val : ∀ (x : Value) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Value)))
   get_NewConf : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"NewConf") #x (Val #(x.NewConf'))
-  set_NewConf : ∀ (x : Value) (y : Set'), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"NewConf") (PairV #x #y) (Val #(({ x with NewConf' := y } : Value)))
+  set_NewConf : ∀ (x : Value) (y : Set''), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"NewConf") (PairV #x #y) (Val #(({ x with NewConf' := y } : Value)))
   get_Learners : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"Learners") #x (Val #(x.Learners'))
-  set_Learners : ∀ (x : Value) (y : Set'), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"Learners") (PairV #x #y) (Val #(({ x with Learners' := y } : Value)))
+  set_Learners : ∀ (x : Value) (y : Set''), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"Learners") (PairV #x #y) (Val #(({ x with Learners' := y } : Value)))
   method_set : go.MethodSetIs Value.ty [(go!"Equal", (some (go.signature.Signature [Value.ty] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Value.ty) [(go!"Equal", (some (go.signature.Signature [Value.ty] false [go.bool])))]
   Equal_unfold : MethodUnfold Value.ty go!"Equal" Value.Equal.impl
@@ -12302,7 +12302,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   StepInfo_instance : StepInfo.TypeAssumptions
   Role_instance : Role.TypeAssumptions
   EvalError_instance : EvalError.TypeAssumptions
-  Set_instance : Set.TypeAssumptions
+  Set_instance : Set''.TypeAssumptions
   EntryType_instance : EntryType.TypeAssumptions
   ValueKind_instance : ValueKind.TypeAssumptions
   Value_instance : Value.TypeAssumptions

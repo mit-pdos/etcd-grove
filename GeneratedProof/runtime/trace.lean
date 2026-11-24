@@ -68,11 +68,11 @@ noncomputable instance Task_access_load_id (l : Loc) (v : runtime.trace.Task) (d
  by
   solve_pointsto_access_struct
 
-noncomputable instance Task_access_store_id (l : Loc) (v : runtime.trace.Task) (id' : w64) :
+noncomputable instance Task_access_store_id (l : Loc) (v : runtime.trace.Task) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.Task go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.Task go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : runtime.trace.Task) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.Task go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : runtime.trace.Task) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -109,11 +109,11 @@ noncomputable instance Region_access_load_id (l : Loc) (v : runtime.trace.Region
  by
   solve_pointsto_access_struct
 
-noncomputable instance Region_access_store_id (l : Loc) (v : runtime.trace.Region) (id' : w64) :
+noncomputable instance Region_access_store_id (l : Loc) (v : runtime.trace.Region) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.Region go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.Region go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : runtime.trace.Region) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.Region go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : runtime.trace.Region) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -125,11 +125,11 @@ noncomputable instance Region_access_load_regionType (l : Loc) (v : runtime.trac
  by
   solve_pointsto_access_struct
 
-noncomputable instance Region_access_store_regionType (l : Loc) (v : runtime.trace.Region) (regionType' : GoString) :
+noncomputable instance Region_access_store_regionType (l : Loc) (v : runtime.trace.Region) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.Region go!"regionType" l) v.regionType' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.Region go!"regionType" l) regionType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with regionType' := regionType' } : runtime.trace.Region) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.Region go!"regionType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with regionType' := y } : runtime.trace.Region) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -167,11 +167,11 @@ noncomputable instance batch_access_load_time (l : Loc) (v : runtime.trace.batch
  by
   solve_pointsto_access_struct
 
-noncomputable instance batch_access_store_time (l : Loc) (v : runtime.trace.batch) (time' : runtime.trace.timestamp) :
+noncomputable instance batch_access_store_time (l : Loc) (v : runtime.trace.batch) (y : runtime.trace.timestamp) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.batch go!"time" l) v.time' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.batch go!"time" l) time' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with time' := time' } : runtime.trace.batch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.batch go!"time" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with time' := y } : runtime.trace.batch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -183,11 +183,11 @@ noncomputable instance batch_access_load_gen (l : Loc) (v : runtime.trace.batch)
  by
   solve_pointsto_access_struct
 
-noncomputable instance batch_access_store_gen (l : Loc) (v : runtime.trace.batch) (gen' : w64) :
+noncomputable instance batch_access_store_gen (l : Loc) (v : runtime.trace.batch) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.batch go!"gen" l) v.gen' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.batch go!"gen" l) gen' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with gen' := gen' } : runtime.trace.batch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.batch go!"gen" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with gen' := y } : runtime.trace.batch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -199,11 +199,11 @@ noncomputable instance batch_access_load_data (l : Loc) (v : runtime.trace.batch
  by
   solve_pointsto_access_struct
 
-noncomputable instance batch_access_store_data (l : Loc) (v : runtime.trace.batch) (data' : GoSlice) :
+noncomputable instance batch_access_store_data (l : Loc) (v : runtime.trace.batch) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.batch go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.batch go!"data" l) data' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := data' } : runtime.trace.batch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.batch go!"data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : runtime.trace.batch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -278,11 +278,11 @@ noncomputable instance recorder_access_load_r (l : Loc) (v : runtime.trace.recor
  by
   solve_pointsto_access_struct
 
-noncomputable instance recorder_access_store_r (l : Loc) (v : runtime.trace.recorder) (r' : Loc) :
+noncomputable instance recorder_access_store_r (l : Loc) (v : runtime.trace.recorder) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.recorder go!"r" l) v.r' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.recorder go!"r" l) r' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : runtime.trace.recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.recorder go!"r" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : runtime.trace.recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -294,11 +294,11 @@ noncomputable instance recorder_access_load_headerReceived (l : Loc) (v : runtim
  by
   solve_pointsto_access_struct
 
-noncomputable instance recorder_access_store_headerReceived (l : Loc) (v : runtime.trace.recorder) (headerReceived' : Bool) :
+noncomputable instance recorder_access_store_headerReceived (l : Loc) (v : runtime.trace.recorder) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.recorder go!"headerReceived" l) v.headerReceived' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.recorder go!"headerReceived" l) headerReceived' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with headerReceived' := headerReceived' } : runtime.trace.recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.recorder go!"headerReceived" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with headerReceived' := y } : runtime.trace.recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -337,11 +337,11 @@ noncomputable instance rawGeneration_access_load_gen (l : Loc) (v : runtime.trac
  by
   solve_pointsto_access_struct
 
-noncomputable instance rawGeneration_access_store_gen (l : Loc) (v : runtime.trace.rawGeneration) (gen' : w64) :
+noncomputable instance rawGeneration_access_store_gen (l : Loc) (v : runtime.trace.rawGeneration) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"gen" l) v.gen' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"gen" l) gen' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with gen' := gen' } : runtime.trace.rawGeneration) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"gen" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with gen' := y } : runtime.trace.rawGeneration) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -353,11 +353,11 @@ noncomputable instance rawGeneration_access_load_size (l : Loc) (v : runtime.tra
  by
   solve_pointsto_access_struct
 
-noncomputable instance rawGeneration_access_store_size (l : Loc) (v : runtime.trace.rawGeneration) (size' : w64) :
+noncomputable instance rawGeneration_access_store_size (l : Loc) (v : runtime.trace.rawGeneration) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"size" l) v.size' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"size" l) size' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with size' := size' } : runtime.trace.rawGeneration) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with size' := y } : runtime.trace.rawGeneration) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -369,11 +369,11 @@ noncomputable instance rawGeneration_access_load_minTime (l : Loc) (v : runtime.
  by
   solve_pointsto_access_struct
 
-noncomputable instance rawGeneration_access_store_minTime (l : Loc) (v : runtime.trace.rawGeneration) (minTime' : runtime.trace.eventTime) :
+noncomputable instance rawGeneration_access_store_minTime (l : Loc) (v : runtime.trace.rawGeneration) (y : runtime.trace.eventTime) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"minTime" l) v.minTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"minTime" l) minTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minTime' := minTime' } : runtime.trace.rawGeneration) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"minTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minTime' := y } : runtime.trace.rawGeneration) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -385,11 +385,11 @@ noncomputable instance rawGeneration_access_load_batches (l : Loc) (v : runtime.
  by
   solve_pointsto_access_struct
 
-noncomputable instance rawGeneration_access_store_batches (l : Loc) (v : runtime.trace.rawGeneration) (batches' : GoSlice) :
+noncomputable instance rawGeneration_access_store_batches (l : Loc) (v : runtime.trace.rawGeneration) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"batches" l) v.batches' (DFrac.own 1))
-      (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"batches" l) batches' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with batches' := batches' } : runtime.trace.rawGeneration) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef runtime.trace.rawGeneration go!"batches" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with batches' := y } : runtime.trace.rawGeneration) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

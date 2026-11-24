@@ -47,11 +47,11 @@ noncomputable instance InvalidResourceVersion_access_load_rv (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance InvalidResourceVersion_access_store_rv (l : Loc) (v : k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (rv' : GoString) :
+noncomputable instance InvalidResourceVersion_access_store_rv (l : Loc) (v : k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) v.rv' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) rv' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rv' := rv' } : k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rv' := y } : k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

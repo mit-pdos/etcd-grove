@@ -145,11 +145,11 @@ noncomputable instance extraHeader_access_load_contentType (l : Loc) (v : net.ht
  by
   solve_pointsto_access_struct
 
-noncomputable instance extraHeader_access_store_contentType (l : Loc) (v : net.http.extraHeader) (contentType' : GoString) :
+noncomputable instance extraHeader_access_store_contentType (l : Loc) (v : net.http.extraHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.extraHeader go!"contentType" l) v.contentType' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.extraHeader go!"contentType" l) contentType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contentType' := contentType' } : net.http.extraHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.extraHeader go!"contentType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contentType' := y } : net.http.extraHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -161,11 +161,11 @@ noncomputable instance extraHeader_access_load_connection (l : Loc) (v : net.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance extraHeader_access_store_connection (l : Loc) (v : net.http.extraHeader) (connection' : GoString) :
+noncomputable instance extraHeader_access_store_connection (l : Loc) (v : net.http.extraHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.extraHeader go!"connection" l) v.connection' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.extraHeader go!"connection" l) connection' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connection' := connection' } : net.http.extraHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.extraHeader go!"connection" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connection' := y } : net.http.extraHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -177,11 +177,11 @@ noncomputable instance extraHeader_access_load_transferEncoding (l : Loc) (v : n
  by
   solve_pointsto_access_struct
 
-noncomputable instance extraHeader_access_store_transferEncoding (l : Loc) (v : net.http.extraHeader) (transferEncoding' : GoString) :
+noncomputable instance extraHeader_access_store_transferEncoding (l : Loc) (v : net.http.extraHeader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.extraHeader go!"transferEncoding" l) v.transferEncoding' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.extraHeader go!"transferEncoding" l) transferEncoding' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with transferEncoding' := transferEncoding' } : net.http.extraHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.extraHeader go!"transferEncoding" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with transferEncoding' := y } : net.http.extraHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -193,11 +193,11 @@ noncomputable instance extraHeader_access_load_date (l : Loc) (v : net.http.extr
  by
   solve_pointsto_access_struct
 
-noncomputable instance extraHeader_access_store_date (l : Loc) (v : net.http.extraHeader) (date' : GoSlice) :
+noncomputable instance extraHeader_access_store_date (l : Loc) (v : net.http.extraHeader) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.extraHeader go!"date" l) v.date' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.extraHeader go!"date" l) date' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with date' := date' } : net.http.extraHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.extraHeader go!"date" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with date' := y } : net.http.extraHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -209,11 +209,11 @@ noncomputable instance extraHeader_access_load_contentLength (l : Loc) (v : net.
  by
   solve_pointsto_access_struct
 
-noncomputable instance extraHeader_access_store_contentLength (l : Loc) (v : net.http.extraHeader) (contentLength' : GoSlice) :
+noncomputable instance extraHeader_access_store_contentLength (l : Loc) (v : net.http.extraHeader) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.extraHeader go!"contentLength" l) v.contentLength' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.extraHeader go!"contentLength" l) contentLength' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contentLength' := contentLength' } : net.http.extraHeader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.extraHeader go!"contentLength" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contentLength' := y } : net.http.extraHeader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -250,11 +250,11 @@ noncomputable instance statusError_access_load_code (l : Loc) (v : net.http.stat
  by
   solve_pointsto_access_struct
 
-noncomputable instance statusError_access_store_code (l : Loc) (v : net.http.statusError) (code' : w64) :
+noncomputable instance statusError_access_store_code (l : Loc) (v : net.http.statusError) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.statusError go!"code" l) v.code' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.statusError go!"code" l) code' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := code' } : net.http.statusError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.statusError go!"code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := y } : net.http.statusError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -266,11 +266,11 @@ noncomputable instance statusError_access_load_text (l : Loc) (v : net.http.stat
  by
   solve_pointsto_access_struct
 
-noncomputable instance statusError_access_store_text (l : Loc) (v : net.http.statusError) (text' : GoString) :
+noncomputable instance statusError_access_store_text (l : Loc) (v : net.http.statusError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.statusError go!"text" l) v.text' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.statusError go!"text" l) text' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with text' := text' } : net.http.statusError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.statusError go!"text" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with text' := y } : net.http.statusError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -345,11 +345,11 @@ noncomputable instance redirectHandler_access_load_url (l : Loc) (v : net.http.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance redirectHandler_access_store_url (l : Loc) (v : net.http.redirectHandler) (url' : GoString) :
+noncomputable instance redirectHandler_access_store_url (l : Loc) (v : net.http.redirectHandler) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.redirectHandler go!"url" l) v.url' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.redirectHandler go!"url" l) url' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with url' := url' } : net.http.redirectHandler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.redirectHandler go!"url" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with url' := y } : net.http.redirectHandler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -361,11 +361,11 @@ noncomputable instance redirectHandler_access_load_code (l : Loc) (v : net.http.
  by
   solve_pointsto_access_struct
 
-noncomputable instance redirectHandler_access_store_code (l : Loc) (v : net.http.redirectHandler) (code' : w64) :
+noncomputable instance redirectHandler_access_store_code (l : Loc) (v : net.http.redirectHandler) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.redirectHandler go!"code" l) v.code' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.redirectHandler go!"code" l) code' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := code' } : net.http.redirectHandler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.redirectHandler go!"code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := y } : net.http.redirectHandler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -439,11 +439,11 @@ noncomputable instance serverHandler_access_load_srv (l : Loc) (v : net.http.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverHandler_access_store_srv (l : Loc) (v : net.http.serverHandler) (srv' : Loc) :
+noncomputable instance serverHandler_access_store_srv (l : Loc) (v : net.http.serverHandler) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.serverHandler go!"srv" l) v.srv' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.serverHandler go!"srv" l) srv' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with srv' := srv' } : net.http.serverHandler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.serverHandler go!"srv" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with srv' := y } : net.http.serverHandler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -616,11 +616,11 @@ noncomputable instance checkConnErrorWriter_access_load_c (l : Loc) (v : net.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance checkConnErrorWriter_access_store_c (l : Loc) (v : net.http.checkConnErrorWriter) (c' : Loc) :
+noncomputable instance checkConnErrorWriter_access_store_c (l : Loc) (v : net.http.checkConnErrorWriter) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.checkConnErrorWriter go!"c" l) v.c' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.checkConnErrorWriter go!"c" l) c' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : net.http.checkConnErrorWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.checkConnErrorWriter go!"c" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := y } : net.http.checkConnErrorWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -714,11 +714,11 @@ noncomputable instance socksUsernamePassword_access_load_Username (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance socksUsernamePassword_access_store_Username (l : Loc) (v : net.http.socksUsernamePassword) (Username' : GoString) :
+noncomputable instance socksUsernamePassword_access_store_Username (l : Loc) (v : net.http.socksUsernamePassword) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.socksUsernamePassword go!"Username" l) v.Username' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.socksUsernamePassword go!"Username" l) Username' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Username' := Username' } : net.http.socksUsernamePassword) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.socksUsernamePassword go!"Username" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Username' := y } : net.http.socksUsernamePassword) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -730,11 +730,11 @@ noncomputable instance socksUsernamePassword_access_load_Password (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance socksUsernamePassword_access_store_Password (l : Loc) (v : net.http.socksUsernamePassword) (Password' : GoString) :
+noncomputable instance socksUsernamePassword_access_store_Password (l : Loc) (v : net.http.socksUsernamePassword) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.socksUsernamePassword go!"Password" l) v.Password' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.socksUsernamePassword go!"Password" l) Password' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Password' := Password' } : net.http.socksUsernamePassword) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.socksUsernamePassword go!"Password" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Password' := y } : net.http.socksUsernamePassword) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -770,11 +770,11 @@ noncomputable instance errorReader_access_load_err (l : Loc) (v : net.http.error
  by
   solve_pointsto_access_struct
 
-noncomputable instance errorReader_access_store_err (l : Loc) (v : net.http.errorReader) (err' : GoError) :
+noncomputable instance errorReader_access_store_err (l : Loc) (v : net.http.errorReader) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.errorReader go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.errorReader go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : net.http.errorReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.errorReader go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : net.http.errorReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -811,11 +811,11 @@ noncomputable instance byteReader_access_load_b (l : Loc) (v : net.http.byteRead
  by
   solve_pointsto_access_struct
 
-noncomputable instance byteReader_access_store_b (l : Loc) (v : net.http.byteReader) (b' : w8) :
+noncomputable instance byteReader_access_store_b (l : Loc) (v : net.http.byteReader) (y : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.byteReader go!"b" l) v.b' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.byteReader go!"b" l) b' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := b' } : net.http.byteReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.byteReader go!"b" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : net.http.byteReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -827,11 +827,11 @@ noncomputable instance byteReader_access_load_done (l : Loc) (v : net.http.byteR
  by
   solve_pointsto_access_struct
 
-noncomputable instance byteReader_access_store_done (l : Loc) (v : net.http.byteReader) (done' : Bool) :
+noncomputable instance byteReader_access_store_done (l : Loc) (v : net.http.byteReader) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.byteReader go!"done" l) v.done' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.byteReader go!"done" l) done' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := done' } : net.http.byteReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.byteReader go!"done" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := y } : net.http.byteReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -905,11 +905,11 @@ noncomputable instance unsupportedTEError_access_load_err (l : Loc) (v : net.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance unsupportedTEError_access_store_err (l : Loc) (v : net.http.unsupportedTEError) (err' : GoString) :
+noncomputable instance unsupportedTEError_access_store_err (l : Loc) (v : net.http.unsupportedTEError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.unsupportedTEError go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.unsupportedTEError go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : net.http.unsupportedTEError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.unsupportedTEError go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : net.http.unsupportedTEError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -964,11 +964,11 @@ noncomputable instance bodyLocked_access_load_b (l : Loc) (v : net.http.bodyLock
  by
   solve_pointsto_access_struct
 
-noncomputable instance bodyLocked_access_store_b (l : Loc) (v : net.http.bodyLocked) (b' : Loc) :
+noncomputable instance bodyLocked_access_store_b (l : Loc) (v : net.http.bodyLocked) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.bodyLocked go!"b" l) v.b' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.bodyLocked go!"b" l) b' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := b' } : net.http.bodyLocked) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.bodyLocked go!"b" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : net.http.bodyLocked) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1004,11 +1004,11 @@ noncomputable instance finishAsyncByteRead_access_load_tw (l : Loc) (v : net.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance finishAsyncByteRead_access_store_tw (l : Loc) (v : net.http.finishAsyncByteRead) (tw' : Loc) :
+noncomputable instance finishAsyncByteRead_access_store_tw (l : Loc) (v : net.http.finishAsyncByteRead) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.finishAsyncByteRead go!"tw" l) v.tw' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.finishAsyncByteRead go!"tw" l) tw' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tw' := tw' } : net.http.finishAsyncByteRead) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.finishAsyncByteRead go!"tw" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tw' := y } : net.http.finishAsyncByteRead) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1139,11 +1139,11 @@ noncomputable instance transportReadFromServerError_access_load_err (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance transportReadFromServerError_access_store_err (l : Loc) (v : net.http.transportReadFromServerError) (err' : GoError) :
+noncomputable instance transportReadFromServerError_access_store_err (l : Loc) (v : net.http.transportReadFromServerError) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.transportReadFromServerError go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transportReadFromServerError go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : net.http.transportReadFromServerError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.transportReadFromServerError go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : net.http.transportReadFromServerError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1219,11 +1219,11 @@ noncomputable instance wantConnQueue_access_load_head (l : Loc) (v : net.http.wa
  by
   solve_pointsto_access_struct
 
-noncomputable instance wantConnQueue_access_store_head (l : Loc) (v : net.http.wantConnQueue) (head' : GoSlice) :
+noncomputable instance wantConnQueue_access_store_head (l : Loc) (v : net.http.wantConnQueue) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) v.head' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) head' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with head' := head' } : net.http.wantConnQueue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"head" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with head' := y } : net.http.wantConnQueue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1235,11 +1235,11 @@ noncomputable instance wantConnQueue_access_load_headPos (l : Loc) (v : net.http
  by
   solve_pointsto_access_struct
 
-noncomputable instance wantConnQueue_access_store_headPos (l : Loc) (v : net.http.wantConnQueue) (headPos' : w64) :
+noncomputable instance wantConnQueue_access_store_headPos (l : Loc) (v : net.http.wantConnQueue) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) v.headPos' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) headPos' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with headPos' := headPos' } : net.http.wantConnQueue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"headPos" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with headPos' := y } : net.http.wantConnQueue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1251,11 +1251,11 @@ noncomputable instance wantConnQueue_access_load_tail (l : Loc) (v : net.http.wa
  by
   solve_pointsto_access_struct
 
-noncomputable instance wantConnQueue_access_store_tail (l : Loc) (v : net.http.wantConnQueue) (tail' : GoSlice) :
+noncomputable instance wantConnQueue_access_store_tail (l : Loc) (v : net.http.wantConnQueue) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) v.tail' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) tail' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tail' := tail' } : net.http.wantConnQueue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.wantConnQueue go!"tail" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tail' := y } : net.http.wantConnQueue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1291,11 +1291,11 @@ noncomputable instance persistConnWriter_access_load_pc (l : Loc) (v : net.http.
  by
   solve_pointsto_access_struct
 
-noncomputable instance persistConnWriter_access_store_pc (l : Loc) (v : net.http.persistConnWriter) (pc' : Loc) :
+noncomputable instance persistConnWriter_access_store_pc (l : Loc) (v : net.http.persistConnWriter) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.persistConnWriter go!"pc" l) v.pc' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConnWriter go!"pc" l) pc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pc' := pc' } : net.http.persistConnWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.persistConnWriter go!"pc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pc' := y } : net.http.persistConnWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1353,11 +1353,11 @@ noncomputable instance connectMethodKey_access_load_proxy (l : Loc) (v : net.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance connectMethodKey_access_store_proxy (l : Loc) (v : net.http.connectMethodKey) (proxy' : GoString) :
+noncomputable instance connectMethodKey_access_store_proxy (l : Loc) (v : net.http.connectMethodKey) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.connectMethodKey go!"proxy" l) v.proxy' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.connectMethodKey go!"proxy" l) proxy' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxy' := proxy' } : net.http.connectMethodKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.connectMethodKey go!"proxy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxy' := y } : net.http.connectMethodKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1369,11 +1369,11 @@ noncomputable instance connectMethodKey_access_load_scheme (l : Loc) (v : net.ht
  by
   solve_pointsto_access_struct
 
-noncomputable instance connectMethodKey_access_store_scheme (l : Loc) (v : net.http.connectMethodKey) (scheme' : GoString) :
+noncomputable instance connectMethodKey_access_store_scheme (l : Loc) (v : net.http.connectMethodKey) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.connectMethodKey go!"scheme" l) v.scheme' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.connectMethodKey go!"scheme" l) scheme' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scheme' := scheme' } : net.http.connectMethodKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.connectMethodKey go!"scheme" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scheme' := y } : net.http.connectMethodKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1385,11 +1385,11 @@ noncomputable instance connectMethodKey_access_load_addr (l : Loc) (v : net.http
  by
   solve_pointsto_access_struct
 
-noncomputable instance connectMethodKey_access_store_addr (l : Loc) (v : net.http.connectMethodKey) (addr' : GoString) :
+noncomputable instance connectMethodKey_access_store_addr (l : Loc) (v : net.http.connectMethodKey) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.connectMethodKey go!"addr" l) v.addr' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.connectMethodKey go!"addr" l) addr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addr' := addr' } : net.http.connectMethodKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.connectMethodKey go!"addr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addr' := y } : net.http.connectMethodKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1401,11 +1401,11 @@ noncomputable instance connectMethodKey_access_load_onlyH1 (l : Loc) (v : net.ht
  by
   solve_pointsto_access_struct
 
-noncomputable instance connectMethodKey_access_store_onlyH1 (l : Loc) (v : net.http.connectMethodKey) (onlyH1' : Bool) :
+noncomputable instance connectMethodKey_access_store_onlyH1 (l : Loc) (v : net.http.connectMethodKey) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.connectMethodKey go!"onlyH1" l) v.onlyH1' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.connectMethodKey go!"onlyH1" l) onlyH1' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onlyH1' := onlyH1' } : net.http.connectMethodKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef net.http.connectMethodKey go!"onlyH1" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onlyH1' := y } : net.http.connectMethodKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -246,7 +246,7 @@ attribute [irreducible] rateLimitingType.ty
 @[reducible] noncomputable def QueueConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (TypedQueueConfig.ty go.any)
 
-@[reducible] noncomputable def Type'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def «Type».ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (Typed.ty go.any)
 
 @[reducible] noncomputable def RateLimitingQueueConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
@@ -2531,7 +2531,7 @@ noncomputable def queue.Pop.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
     go: queue.go:105:6 -/
 noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Type'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Type'.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType «Type».ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType «Type».ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!""))
   (App (Val (GoInstruction (CompositeLiteral QueueConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0")))])))
@@ -2540,8 +2540,8 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Type'.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Type'.ty)))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType «Type».ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType «Type».ty)))) (Var "$res0")))))
 
 /-- NewTyped constructs a new work queue (see the package comment).
 
@@ -2568,7 +2568,7 @@ noncomputable def NewTyped.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : 
     go: queue.go:122:6 -/
 noncomputable def NewWithConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "config"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Type'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Type'.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType «Type».ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType «Type».ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "config" (App (Val (GoInstruction (GoAlloc QueueConfig.ty))) (Var "config"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad QueueConfig.ty))) (Var "config"))
@@ -2577,8 +2577,8 @@ noncomputable def NewWithConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Type'.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Type'.ty)))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType «Type».ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType «Type».ty)))) (Var "$res0")))))
 
 /-- NewTypedWithConfig constructs a new workqueue with ability to
     customize different properties.
@@ -2606,7 +2606,7 @@ noncomputable def NewTypedWithConfig.impl [GooseExts] [GoGlobalContext] (T : go.
     go: queue.go:135:6 -/
 noncomputable def NewNamed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Type'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Type'.ty)))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType «Type».ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType «Type».ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
@@ -2616,8 +2616,8 @@ noncomputable def NewNamed.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Type'.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Type'.ty)))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType «Type».ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType «Type».ty)))) (Var "$res0")))))
 
 /-- newQueueWithConfig constructs a new named workqueue
     with the ability to customize different properties for testing purposes
@@ -2685,14 +2685,14 @@ noncomputable def newQueue.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : 
   (Let "c" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (Var "c"))
   (Let "$r0" (App (Val (GoInstruction (GoAlloc (Typed.ty T)))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.utils.clock.WithTicker.ty))) (Var "c"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (Var "queue"))
-  (Let "$v2" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)))) (LiteralValue []))
-  (Let "$v3" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)))) (LiteralValue []))
+  (Let "$v2" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (LiteralValue []))
+  (Let "$v3" (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)))) (LiteralValue []))
   (Let "$v4" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.Mutex.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.sync.Mutex.ty))) (LiteralValue []))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.NewCond []))) (Val #())) (Var "$a0")))
   (Let "$v5" (App (Val (GoInstruction (GoLoad (queueMetrics.ty T)))) (Var "metrics"))
   (Let "$v6" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "updatePeriod"))
   (Let "$v7" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral (Typed.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"clock")) (ElementExpression _root_.Perennial.k8s_io.utils.clock.WithTicker.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"queue")) (ElementExpression (Queue.ty T) (Var "$v1"))), (KeyedElement (some (KeyField go!"dirty")) (ElementExpression (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T) (Var "$v2"))), (KeyedElement (some (KeyField go!"processing")) (ElementExpression (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T) (Var "$v3"))), (KeyedElement (some (KeyField go!"cond")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.Cond.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"metrics")) (ElementExpression (queueMetrics.ty T) (Var "$v5"))), (KeyedElement (some (KeyField go!"unfinishedWorkUpdatePeriod")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"stopCh")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v7")))])))))))))))
+  (App (Val (GoInstruction (CompositeLiteral (Typed.ty T)))) (LiteralValue [(KeyedElement (some (KeyField go!"clock")) (ElementExpression _root_.Perennial.k8s_io.utils.clock.WithTicker.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"queue")) (ElementExpression (Queue.ty T) (Var "$v1"))), (KeyedElement (some (KeyField go!"dirty")) (ElementExpression (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T) (Var "$v2"))), (KeyedElement (some (KeyField go!"processing")) (ElementExpression (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T) (Var "$v3"))), (KeyedElement (some (KeyField go!"cond")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.Cond.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"metrics")) (ElementExpression (queueMetrics.ty T) (Var "$v5"))), (KeyedElement (some (KeyField go!"unfinishedWorkUpdatePeriod")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"stopCh")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v7")))])))))))))))
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (Typed.ty T))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType (Typed.ty T))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2750,7 +2750,7 @@ noncomputable def Typed.Add.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (Val (GoInstruction (MethodResolve (Queue.ty T) go!"Push"))) (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"queue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Var "$a0")))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
@@ -2758,17 +2758,17 @@ noncomputable def Typed.Add.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Insert"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Insert"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (Val (GoInstruction (MethodResolve (queueMetrics.ty T) go!"add"))) (App (Val (GoInstruction (GoLoad (queueMetrics.ty T)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"metrics"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Var "$a0")))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0"))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (Val (GoInstruction (MethodResolve (Queue.ty T) go!"Touch"))) (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"queue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Var "$a0"))))
@@ -2858,11 +2858,11 @@ noncomputable def Typed.Get.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Delete"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Delete"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Insert"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Insert"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (Val (GoInstruction (MethodResolve (queueMetrics.ty T) go!"get"))) (App (Val (GoInstruction (GoLoad (queueMetrics.ty T)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"metrics"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Var "$a0")))))))
@@ -2914,14 +2914,14 @@ noncomputable def Typed.Done.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Has"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"dirty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Cond.ty) go!"Signal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Val #())))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (Val (GoInstruction (MethodResolve (Queue.ty T) go!"Push"))) (App (Val (GoInstruction (GoLoad (Queue.ty T)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"queue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Var "$a0")))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Len"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Val #())) (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Len"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Val #())) (Val #(W64 0)))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Cond.ty) go!"Signal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Val #())))
   (App (Val doExecute)
@@ -2929,7 +2929,7 @@ noncomputable def Typed.Done.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType T)))) (LiteralValue [(KeyedElement none (ElementExpression T (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Delete"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Delete"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
   (App (App (Val (GoInstruction (MethodResolve (queueMetrics.ty T) go!"done"))) (App (Val (GoInstruction (GoLoad (queueMetrics.ty T)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"metrics"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Var "$a0")))))))
@@ -3021,7 +3021,7 @@ noncomputable def Typed.ShutDownWithDrain.impl [GooseExts] [GoGlobalContext] (T 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty T)) go!"Len"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Val #())) (Val #(W64 0))))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"drain"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Val #false)))) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty T)) go!"Len"))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"processing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Val #())) (Val #(W64 0))))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"drain"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q")))) (Val #false)))) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Cond.ty) go!"Wait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef (Typed.ty T) go!"cond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (Typed.ty T))))) (Var "q"))))) (Val #())))))
   (Lam BAnon
@@ -4574,8 +4574,8 @@ attribute [instance] TypedQueueConfig.TypeAssumptions.type_repr
 structure Typed [GooseExts] (t : Type) where
   mk ::
   queue' : (Queue t)
-  dirty' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' t)
-  processing' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' t)
+  dirty' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' t)
+  processing' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' t)
   cond' : Loc
   shuttingDown' : Bool
   drain' : Bool
@@ -4591,8 +4591,8 @@ noncomputable instance Typed.zero_val [GooseExts] {t : Type} [ZeroVal t] : ZeroV
 
 @[reducible] noncomputable def Typed.fieldsUnsealed [GooseExts] [GoGlobalContext] (t : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"queue" (Queue.ty t)),
-(go.field_decl.FieldDecl go!"dirty" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty t)),
-(go.field_decl.FieldDecl go!"processing" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'.ty t)),
+(go.field_decl.FieldDecl go!"dirty" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty t)),
+(go.field_decl.FieldDecl go!"processing" (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set''.ty t)),
 (go.field_decl.FieldDecl go!"cond" (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)),
 (go.field_decl.FieldDecl go!"shuttingDown" go.bool),
 (go.field_decl.FieldDecl go!"drain" go.bool),
@@ -4619,9 +4619,9 @@ class Typed.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   get_queue : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')), go.IsGoStepPureDetTagged under (StructFieldGet (Typed.underlying t) go!"queue") #x (Val #(x.queue'))
   set_queue : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')) (y : (Queue t')), go.IsGoStepPureDetTagged under (StructFieldSet (Typed.underlying t) go!"queue") (PairV #x #y) (Val #(({ x with queue' := y } : (Typed t'))))
   get_dirty : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')), go.IsGoStepPureDetTagged under (StructFieldGet (Typed.underlying t) go!"dirty") #x (Val #(x.dirty'))
-  set_dirty : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' t')), go.IsGoStepPureDetTagged under (StructFieldSet (Typed.underlying t) go!"dirty") (PairV #x #y) (Val #(({ x with dirty' := y } : (Typed t'))))
+  set_dirty : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' t')), go.IsGoStepPureDetTagged under (StructFieldSet (Typed.underlying t) go!"dirty") (PairV #x #y) (Val #(({ x with dirty' := y } : (Typed t'))))
   get_processing : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')), go.IsGoStepPureDetTagged under (StructFieldGet (Typed.underlying t) go!"processing") #x (Val #(x.processing'))
-  set_processing : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' t')), go.IsGoStepPureDetTagged under (StructFieldSet (Typed.underlying t) go!"processing") (PairV #x #y) (Val #(({ x with processing' := y } : (Typed t'))))
+  set_processing : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')) (y : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set'' t')), go.IsGoStepPureDetTagged under (StructFieldSet (Typed.underlying t) go!"processing") (PairV #x #y) (Val #(({ x with processing' := y } : (Typed t'))))
   get_cond : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')), go.IsGoStepPureDetTagged under (StructFieldGet (Typed.underlying t) go!"cond") #x (Val #(x.cond'))
   set_cond : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (Typed.underlying t) go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : (Typed t'))))
   get_shuttingDown : ∀ (t : go.GoType) (t' : Type) (x : (Typed t')), go.IsGoStepPureDetTagged under (StructFieldGet (Typed.underlying t) go!"shuttingDown") #x (Val #(x.shuttingDown'))

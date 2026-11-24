@@ -253,7 +253,7 @@ noncomputable def update.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "tab" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Table.ty)))) (Var "tab"))
   (Let "crc" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "crc"))
   (Let "$sw" (Val #true)
-  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (GlobalVarAddr haveCastagnoli))) (Val #()))) (Val #())) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Table.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (Var "tab")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (App (Val (GoInstruction (GlobalVarAddr castagnoliTable))) (Val #()))))) (Val #false))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (GlobalVarAddr haveCastagnoli))) (Val #()))) (Val #())) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Table.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (Var "tab")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (App (Val (GoInstruction (GlobalVarAddr castagnoliTable))) (Val #()))))) (Val #false))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "crc"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
   (App (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.uint32, (go.GoType.SliceType go.byte)] false [go.uint32]))))) (App (Val (GoInstruction (GlobalVarAddr updateCastagnoli))) (Val #()))) (Var "$a0")) (Var "$a1"))))
@@ -632,7 +632,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (GlobalVarAddr haveCastagnoli))) (Val #()))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (GlobalVarAddr haveCastagnoli))) (Val #()))) (Var "$a0"))))))
   (If (App (App (Val (GoInstruction (FuncResolve archAvailableCastagnoli []))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (FuncResolve archUpdateCastagnoli []))) (Val #()))
@@ -723,7 +723,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc updateCastagnoli (go.GoType.FunctionType (go.signature.Signature [go.uint32, (go.GoType.SliceType go.byte)] false [go.uint32])))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc haveCastagnoli _root_.Perennial.sync.atomic.Bool'.ty)) (Val #()))))))
+  (App (Val (go.GlobalAlloc haveCastagnoli _root_.Perennial.sync.atomic.Bool''.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc castagnoliInitOnce (go.GoType.FunctionType (go.signature.Signature [] false [])))) (Val #()))))))
   (App (Val doExecute)

@@ -61,11 +61,11 @@ noncomputable instance envVarFeatureGates_access_load_callSiteName (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_callSiteName (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (callSiteName' : GoString) :
+noncomputable instance envVarFeatureGates_access_store_callSiteName (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"callSiteName" l) v.callSiteName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"callSiteName" l) callSiteName' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callSiteName' := callSiteName' } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"callSiteName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callSiteName' := y } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -77,11 +77,11 @@ noncomputable instance envVarFeatureGates_access_load_readEnvVarsOnce (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_readEnvVarsOnce (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (readEnvVarsOnce' : _root_.Perennial.sync.Once) :
+noncomputable instance envVarFeatureGates_access_store_readEnvVarsOnce (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (y : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVarsOnce" l) v.readEnvVarsOnce' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVarsOnce" l) readEnvVarsOnce' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readEnvVarsOnce' := readEnvVarsOnce' } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVarsOnce" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readEnvVarsOnce' := y } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -93,11 +93,11 @@ noncomputable instance envVarFeatureGates_access_load_known (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_known (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (known' : GoMap) :
+noncomputable instance envVarFeatureGates_access_store_known (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"known" l) v.known' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"known" l) known' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with known' := known' } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"known" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with known' := y } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -109,11 +109,11 @@ noncomputable instance envVarFeatureGates_access_load_enabledViaEnvVar (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_enabledViaEnvVar (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (enabledViaEnvVar' : _root_.Perennial.sync.atomic.Value) :
+noncomputable instance envVarFeatureGates_access_store_enabledViaEnvVar (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (y : _root_.Perennial.sync.atomic.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"enabledViaEnvVar" l) v.enabledViaEnvVar' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"enabledViaEnvVar" l) enabledViaEnvVar' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enabledViaEnvVar' := enabledViaEnvVar' } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"enabledViaEnvVar" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enabledViaEnvVar' := y } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -125,11 +125,11 @@ noncomputable instance envVarFeatureGates_access_load_lockEnabledViaSetMethod (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_lockEnabledViaSetMethod (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (lockEnabledViaSetMethod' : _root_.Perennial.sync.RWMutex) :
+noncomputable instance envVarFeatureGates_access_store_lockEnabledViaSetMethod (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"lockEnabledViaSetMethod" l) v.lockEnabledViaSetMethod' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"lockEnabledViaSetMethod" l) lockEnabledViaSetMethod' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lockEnabledViaSetMethod' := lockEnabledViaSetMethod' } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"lockEnabledViaSetMethod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lockEnabledViaSetMethod' := y } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -141,11 +141,11 @@ noncomputable instance envVarFeatureGates_access_load_enabledViaSetMethod (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_enabledViaSetMethod (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (enabledViaSetMethod' : GoMap) :
+noncomputable instance envVarFeatureGates_access_store_enabledViaSetMethod (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"enabledViaSetMethod" l) v.enabledViaSetMethod' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"enabledViaSetMethod" l) enabledViaSetMethod' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enabledViaSetMethod' := enabledViaSetMethod' } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"enabledViaSetMethod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enabledViaSetMethod' := y } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -157,11 +157,11 @@ noncomputable instance envVarFeatureGates_access_load_readEnvVars (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_readEnvVars (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (readEnvVars' : _root_.Perennial.sync.atomic.Bool') :
+noncomputable instance envVarFeatureGates_access_store_readEnvVars (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (y : _root_.Perennial.sync.atomic.Bool'') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVars" l) v.readEnvVars' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVars" l) readEnvVars' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readEnvVars' := readEnvVars' } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVars" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readEnvVars' := y } : k8s_io.client_go.features.envVarFeatureGates) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -200,11 +200,11 @@ noncomputable instance FeatureSpec_access_load_Default (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_Default (l : Loc) (v : k8s_io.client_go.features.FeatureSpec) (Default' : Bool) :
+noncomputable instance FeatureSpec_access_store_Default (l : Loc) (v : k8s_io.client_go.features.FeatureSpec) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"Default" l) v.Default' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"Default" l) Default' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Default' := Default' } : k8s_io.client_go.features.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"Default" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Default' := y } : k8s_io.client_go.features.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -216,11 +216,11 @@ noncomputable instance FeatureSpec_access_load_LockToDefault (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : k8s_io.client_go.features.FeatureSpec) (LockToDefault' : Bool) :
+noncomputable instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : k8s_io.client_go.features.FeatureSpec) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"LockToDefault" l) v.LockToDefault' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"LockToDefault" l) LockToDefault' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LockToDefault' := LockToDefault' } : k8s_io.client_go.features.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"LockToDefault" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LockToDefault' := y } : k8s_io.client_go.features.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -232,11 +232,11 @@ noncomputable instance FeatureSpec_access_load_PreRelease (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_PreRelease (l : Loc) (v : k8s_io.client_go.features.FeatureSpec) (PreRelease' : k8s_io.client_go.features.prerelease) :
+noncomputable instance FeatureSpec_access_store_PreRelease (l : Loc) (v : k8s_io.client_go.features.FeatureSpec) (y : k8s_io.client_go.features.prerelease) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"PreRelease" l) v.PreRelease' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"PreRelease" l) PreRelease' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreRelease' := PreRelease' } : k8s_io.client_go.features.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"PreRelease" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreRelease' := y } : k8s_io.client_go.features.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -248,11 +248,11 @@ noncomputable instance FeatureSpec_access_load_Version (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance FeatureSpec_access_store_Version (l : Loc) (v : k8s_io.client_go.features.FeatureSpec) (Version' : Loc) :
+noncomputable instance FeatureSpec_access_store_Version (l : Loc) (v : k8s_io.client_go.features.FeatureSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"Version" l) v.Version' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"Version" l) Version' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Version' := Version' } : k8s_io.client_go.features.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.FeatureSpec go!"Version" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Version' := y } : k8s_io.client_go.features.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -288,11 +288,11 @@ noncomputable instance featureGatesWrapper_access_load_Gates (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGatesWrapper_access_store_Gates (l : Loc) (v : k8s_io.client_go.features.featureGatesWrapper) (Gates' : k8s_io.client_go.features.Gates) :
+noncomputable instance featureGatesWrapper_access_store_Gates (l : Loc) (v : k8s_io.client_go.features.featureGatesWrapper) (y : k8s_io.client_go.features.Gates) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.featureGatesWrapper go!"Gates" l) v.Gates' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.features.featureGatesWrapper go!"Gates" l) Gates' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Gates' := Gates' } : k8s_io.client_go.features.featureGatesWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.client_go.features.featureGatesWrapper go!"Gates" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Gates' := y } : k8s_io.client_go.features.featureGatesWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

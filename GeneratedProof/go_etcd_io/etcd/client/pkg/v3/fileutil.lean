@@ -59,11 +59,11 @@ noncomputable instance fileReader_access_load_File (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance fileReader_access_store_File (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (File' : Loc) :
+noncomputable instance fileReader_access_store_File (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) v.File' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) File' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := File' } : go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -101,11 +101,11 @@ noncomputable instance FileBufReader_access_load_Reader (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileBufReader_access_store_Reader (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (Reader' : Loc) :
+noncomputable instance FileBufReader_access_store_Reader (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) Reader' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reader' := Reader' } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reader' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -117,11 +117,11 @@ noncomputable instance FileBufReader_access_load_fi (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileBufReader_access_store_fi (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (fi' : _root_.Perennial.io.fs.FileInfo) :
+noncomputable instance FileBufReader_access_store_fi (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (y : _root_.Perennial.io.fs.FileInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) fi' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fi' := fi' } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fi' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -133,11 +133,11 @@ noncomputable instance FileBufReader_access_load_err (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileBufReader_access_store_err (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (err' : GoError) :
+noncomputable instance FileBufReader_access_store_err (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -173,11 +173,11 @@ noncomputable instance LockedFile_access_load_File (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance LockedFile_access_store_File (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (File' : Loc) :
+noncomputable instance LockedFile_access_store_File (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) v.File' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) File' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := File' } : go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -213,11 +213,11 @@ noncomputable instance ReadDirOp_access_load_ext (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadDirOp_access_store_ext (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (ext' : GoString) :
+noncomputable instance ReadDirOp_access_store_ext (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) v.ext' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) ext' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ext' := ext' } : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ext' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

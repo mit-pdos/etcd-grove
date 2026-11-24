@@ -26,10 +26,10 @@ end pkg_id
 
 namespace go_etcd_io.bbolt.internal.freelist
 
-noncomputable def array'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def array''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/freelist.array" [])
 
-attribute [irreducible] array'.ty
+attribute [irreducible] array''.ty
 
 noncomputable def ReadWriter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/freelist.ReadWriter" [])
@@ -76,28 +76,28 @@ noncomputable def newShared [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/freelist.newShared"
 
 /-- go: array.go:16:17 -/
-noncomputable def array.Init.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def array''.Init.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "ids"
   (Seq (App (Val exceptionDo)
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array'.ty)))) (Var "f"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array''.ty)))) (Var "f"))
   (Let "ids" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "ids"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "ids"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType array'.ty) go!"reindex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))) (Val #())))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType array''.ty) go!"reindex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))) (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))) (Var "$r0")))))))))
   (Val #()))))
 
 /-- go: array.go:21:17 -/
-noncomputable def array.Allocate.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def array''.Allocate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "txid"
   (Lam "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array'.ty)))) (Var "f"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array''.ty)))) (Var "f"))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
   (Let "txid" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty))) (Var "txid"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -110,7 +110,7 @@ noncomputable def array.Allocate.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
   (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Val #())))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val (slice.forRange _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)) (Var "$range"))
@@ -136,14 +136,14 @@ noncomputable def array.Allocate.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty)))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"allocs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "initial"))) (Var "$r0")))))))
+  (App (App (App (Val (map.insert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty)))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"allocs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "initial"))) (Var "$r0")))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLt _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "i")) (App (Val (GoInstruction (Convert go.int _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))))))) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef shared.ty go!"cache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "initial")) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "i"))))
   (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.StructType []))]))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (Lam BAnon
@@ -152,20 +152,20 @@ noncomputable def array.Allocate.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "i") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))
-  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))) (Val #())) (Var "$s")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))) (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))) (Var "$r0")))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))) (Var "$r0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))) (Val #())) (Var "$s")))))
-  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))) (Val #())) (Var "$s")))))
   (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
@@ -189,7 +189,7 @@ noncomputable def array.Allocate.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "id") (Var "$value"))))))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -202,13 +202,13 @@ noncomputable def array.Allocate.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "$res0")))))))
 
 /-- go: array.go:63:17 -/
-noncomputable def array.FreeCount.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def array''.FreeCount.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array'.ty)))) (Var "f"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array''.ty)))) (Var "f"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -218,13 +218,13 @@ noncomputable def array.FreeCount.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: array.go:67:17 -/
-noncomputable def array.freePageIds.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def array''.freePageIds.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array'.ty)))) (Var "f"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array''.ty)))) (Var "f"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -233,18 +233,18 @@ noncomputable def array.freePageIds.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "$res0"))))))
 
 /-- go: array.go:71:17 -/
-noncomputable def array.mergeSpans.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def array''.mergeSpans.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "ids"
   (Seq (App (Val exceptionDo)
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array'.ty)))) (Var "f"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array''.ty)))) (Var "f"))
   (Let "ids" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "ids"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "ids"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty go!"Merge"))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty go!"Merge"))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))) (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (Lam BAnon
   (Seq (App (Val exceptionDo)
@@ -278,7 +278,7 @@ noncomputable def array.mergeSpans.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"detected overlapped free page ID: %d between ids: %v and existing f.ids: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "id")))
   (Let "$sl1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty))) (Var "ids")))
-  (Let "$sl2" (App (Val (GoInstruction (Convert (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f")))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f")))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -306,7 +306,7 @@ noncomputable def array.mergeSpans.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "id") (Var "$value"))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "prev") (Var "$r0")))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f"))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f"))))
   (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Val #())))
   (App (App (Val (slice.forRange _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)) (Var "$range"))
   (Lam "$key"
@@ -329,7 +329,7 @@ noncomputable def array.mergeSpans.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"detected duplicated free page ID: %d in existing f.ids: %v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "id")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "f")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"ids"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "f")))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -357,23 +357,23 @@ noncomputable def NewArrayFreelist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Interface.ty))) (App (Val (GoInstruction (GoZeroVal Interface.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc array'.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve newShared []))) (Val #())) (Val #()))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc array''.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve newShared []))) (Val #())) (Val #()))
   (Let "$v1" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (LiteralValue []))
-  (App (Val (GoInstruction (CompositeLiteral array'.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"shared")) (ElementExpression (go.GoType.PointerType shared.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"ids")) (ElementExpression (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty) (Var "$v1")))])))))
-  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType array'.ty)))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral array''.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"shared")) (ElementExpression (go.GoType.PointerType shared.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"ids")) (ElementExpression (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty) (Var "$v1")))])))))
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType array''.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType array''.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType array'.ty) Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "a")))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType array''.ty) Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "a")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType array'.ty) Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "a")))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType array''.ty) Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "a")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Interface.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Interface.ty))) (Pair (App (Val (GoInstruction (StructFieldRef shared.ty go!"Interface"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array'.ty)))) (Var "a"))))) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore Interface.ty))) (Pair (App (Val (GoInstruction (StructFieldRef shared.ty go!"Interface"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType array''.ty)))) (Var "a"))))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType array'.ty)))) (Pair (Var "a") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType array''.ty)))) (Pair (Var "a") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "$res0")))))
 
 /-- go: hashmap.go:23:19 -/
@@ -2413,164 +2413,164 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.«unsafe».initialize') (Val #()))))))))
 
-structure array' [GooseExts] where
+structure array'' [GooseExts] where
   mk ::
   shared' : Loc
   ids' : GoSlice
 
-noncomputable instance array'.zero_val [GooseExts] : ZeroVal array' :=
-  ⟨array'.mk zeroValDef zeroValDef⟩
+noncomputable instance array''.zero_val [GooseExts] : ZeroVal array'' :=
+  ⟨array''.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def array.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def array''.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"shared" (go.GoType.PointerType shared.ty)),
 (go.field_decl.FieldDecl go!"ids" (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))]
 
-@[irreducible] noncomputable def array.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  array.fieldsUnsealed
+@[irreducible] noncomputable def array''.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  array''.fieldsUnsealed
 
 noncomputable instance equals_unfold_array [GooseExts] [GoGlobalContext] :
-    EqualsUnfold array.fields array.fieldsUnsealed :=
-  ⟨by unfold array.fields; rfl⟩
+    EqualsUnfold array''.fields array''.fieldsUnsealed :=
+  ⟨by unfold array''.fields; rfl⟩
 
-@[reducible] noncomputable def array'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType array.fields)
+@[reducible] noncomputable def array''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType array''.fields)
 
-class array.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying array'.underlying array'
-  underlying : go.UnderlyingDirectedEq array'.ty array'.underlying
-  get_shared : ∀ (x : array'), go.IsGoStepPureDetTagged under (StructFieldGet array'.underlying go!"shared") #x (Val #(x.shared'))
-  set_shared : ∀ (x : array') (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet array'.underlying go!"shared") (PairV #x #y) (Val #(({ x with shared' := y } : array')))
-  get_ids : ∀ (x : array'), go.IsGoStepPureDetTagged under (StructFieldGet array'.underlying go!"ids") #x (Val #(x.ids'))
-  set_ids : ∀ (x : array') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet array'.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : array')))
-  method_set : go.MethodSetIs array'.ty [(go!"AddReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Copyall", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"EstimatedWritePageSize", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"Freed", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [go.bool]))), (go!"NoSyncReload", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"PendingCount", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"ReleasePendingPages", (some (go.signature.Signature [] false []))), (go!"Reload", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"RemoveReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Rollback", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt/internal/freelist.pendingPageIds", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))]))), (go!"go.etcd.io/bbolt/internal/freelist.reindex", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt/internal/freelist.release", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.releaseRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType array'.ty) [(go!"AddReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty]))), (go!"Copyall", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"EstimatedWritePageSize", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"FreeCount", (some (go.signature.Signature [] false [go.int]))), (go!"Freed", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [go.bool]))), (go!"Init", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"NoSyncReload", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"PendingCount", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"ReleasePendingPages", (some (go.signature.Signature [] false []))), (go!"Reload", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"RemoveReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Rollback", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt/internal/freelist.freePageIds", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty]))), (go!"go.etcd.io/bbolt/internal/freelist.mergeSpans", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.pendingPageIds", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))]))), (go!"go.etcd.io/bbolt/internal/freelist.reindex", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt/internal/freelist.release", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.releaseRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false [])))]
-  AddReadonlyTXID_unfold : MethodUnfold array'.ty go!"AddReadonlyTXID" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  Copyall_unfold : MethodUnfold array'.ty go!"Copyall" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Copyall"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  Count_unfold : MethodUnfold array'.ty go!"Count" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Count"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  EstimatedWritePageSize_unfold : MethodUnfold array'.ty go!"EstimatedWritePageSize" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  Free_unfold : MethodUnfold array'.ty go!"Free" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Free"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  Freed_unfold : MethodUnfold array'.ty go!"Freed" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Freed"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  NoSyncReload_unfold : MethodUnfold array'.ty go!"NoSyncReload" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"NoSyncReload"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  PendingCount_unfold : MethodUnfold array'.ty go!"PendingCount" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"PendingCount"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  Read_unfold : MethodUnfold array'.ty go!"Read" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  ReleasePendingPages_unfold : MethodUnfold array'.ty go!"ReleasePendingPages" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"ReleasePendingPages"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  Reload_unfold : MethodUnfold array'.ty go!"Reload" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Reload"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  RemoveReadonlyTXID_unfold : MethodUnfold array'.ty go!"RemoveReadonlyTXID" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  Rollback_unfold : MethodUnfold array'.ty go!"Rollback" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Rollback"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  Write_unfold : MethodUnfold array'.ty go!"Write" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  pendingPageIds_unfold : MethodUnfold array'.ty go!"pendingPageIds" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"pendingPageIds"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  reindex_unfold : MethodUnfold array'.ty go!"reindex" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"reindex"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  release_unfold : MethodUnfold array'.ty go!"release" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"release"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  releaseRange_unfold : MethodUnfold array'.ty go!"releaseRange" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"releaseRange"))) (App (Val (GoInstruction (StructFieldGet array'.ty go!"shared"))) (Var "$r"))))
-  ptr_AddReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"AddReadonlyTXID" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_Allocate_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Allocate" array.Allocate.impl
-  ptr_Copyall_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Copyall" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Copyall"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Count" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_EstimatedWritePageSize_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"EstimatedWritePageSize" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_Free_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Free" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Free"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_FreeCount_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"FreeCount" array.FreeCount.impl
-  ptr_Freed_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Freed" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Freed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_Init_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Init" array.Init.impl
-  ptr_NoSyncReload_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"NoSyncReload" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"NoSyncReload"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_PendingCount_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"PendingCount" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"PendingCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Read" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_ReleasePendingPages_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"ReleasePendingPages" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"ReleasePendingPages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_Reload_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Reload" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Reload"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_RemoveReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"RemoveReadonlyTXID" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_Rollback_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Rollback" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Rollback"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"Write" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_freePageIds_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"freePageIds" array.freePageIds.impl
-  ptr_mergeSpans_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"mergeSpans" array.mergeSpans.impl
-  ptr_pendingPageIds_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"pendingPageIds" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"pendingPageIds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_reindex_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"reindex" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"reindex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_release_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"release" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"release"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
-  ptr_releaseRange_unfold : MethodUnfold (go.GoType.PointerType array'.ty) go!"releaseRange" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"releaseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array'.ty go!"shared"))) (Var "$r")))))
+class array''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying array''.underlying array''
+  underlying : go.UnderlyingDirectedEq array''.ty array''.underlying
+  get_shared : ∀ (x : array''), go.IsGoStepPureDetTagged under (StructFieldGet array''.underlying go!"shared") #x (Val #(x.shared'))
+  set_shared : ∀ (x : array'') (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet array''.underlying go!"shared") (PairV #x #y) (Val #(({ x with shared' := y } : array'')))
+  get_ids : ∀ (x : array''), go.IsGoStepPureDetTagged under (StructFieldGet array''.underlying go!"ids") #x (Val #(x.ids'))
+  set_ids : ∀ (x : array'') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet array''.underlying go!"ids") (PairV #x #y) (Val #(({ x with ids' := y } : array'')))
+  method_set : go.MethodSetIs array''.ty [(go!"AddReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Copyall", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"EstimatedWritePageSize", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"Freed", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [go.bool]))), (go!"NoSyncReload", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"PendingCount", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"ReleasePendingPages", (some (go.signature.Signature [] false []))), (go!"Reload", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"RemoveReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Rollback", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt/internal/freelist.pendingPageIds", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))]))), (go!"go.etcd.io/bbolt/internal/freelist.reindex", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt/internal/freelist.release", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.releaseRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType array''.ty) [(go!"AddReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty]))), (go!"Copyall", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"EstimatedWritePageSize", (some (go.signature.Signature [] false [go.int]))), (go!"Free", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"FreeCount", (some (go.signature.Signature [] false [go.int]))), (go!"Freed", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [go.bool]))), (go!"Init", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"NoSyncReload", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"PendingCount", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"ReleasePendingPages", (some (go.signature.Signature [] false []))), (go!"Reload", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"RemoveReadonlyTXID", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Rollback", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt/internal/freelist.freePageIds", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty]))), (go!"go.etcd.io/bbolt/internal/freelist.mergeSpans", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgids.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.pendingPageIds", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty (go.GoType.PointerType txPending.ty))]))), (go!"go.etcd.io/bbolt/internal/freelist.reindex", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt/internal/freelist.release", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false []))), (go!"go.etcd.io/bbolt/internal/freelist.releaseRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty] false [])))]
+  AddReadonlyTXID_unfold : MethodUnfold array''.ty go!"AddReadonlyTXID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  Copyall_unfold : MethodUnfold array''.ty go!"Copyall" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Copyall"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  Count_unfold : MethodUnfold array''.ty go!"Count" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Count"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  EstimatedWritePageSize_unfold : MethodUnfold array''.ty go!"EstimatedWritePageSize" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  Free_unfold : MethodUnfold array''.ty go!"Free" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Free"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  Freed_unfold : MethodUnfold array''.ty go!"Freed" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Freed"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  NoSyncReload_unfold : MethodUnfold array''.ty go!"NoSyncReload" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"NoSyncReload"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  PendingCount_unfold : MethodUnfold array''.ty go!"PendingCount" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"PendingCount"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  Read_unfold : MethodUnfold array''.ty go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  ReleasePendingPages_unfold : MethodUnfold array''.ty go!"ReleasePendingPages" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"ReleasePendingPages"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  Reload_unfold : MethodUnfold array''.ty go!"Reload" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Reload"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  RemoveReadonlyTXID_unfold : MethodUnfold array''.ty go!"RemoveReadonlyTXID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  Rollback_unfold : MethodUnfold array''.ty go!"Rollback" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Rollback"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  Write_unfold : MethodUnfold array''.ty go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  pendingPageIds_unfold : MethodUnfold array''.ty go!"pendingPageIds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"pendingPageIds"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  reindex_unfold : MethodUnfold array''.ty go!"reindex" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"reindex"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  release_unfold : MethodUnfold array''.ty go!"release" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"release"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  releaseRange_unfold : MethodUnfold array''.ty go!"releaseRange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"releaseRange"))) (App (Val (GoInstruction (StructFieldGet array''.ty go!"shared"))) (Var "$r"))))
+  ptr_AddReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"AddReadonlyTXID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"AddReadonlyTXID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_Allocate_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Allocate" array''.Allocate.impl
+  ptr_Copyall_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Copyall" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Copyall"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_Count_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Count" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_EstimatedWritePageSize_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"EstimatedWritePageSize" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"EstimatedWritePageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_Free_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Free" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Free"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_FreeCount_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"FreeCount" array''.FreeCount.impl
+  ptr_Freed_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Freed" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Freed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_Init_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Init" array''.Init.impl
+  ptr_NoSyncReload_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"NoSyncReload" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"NoSyncReload"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_PendingCount_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"PendingCount" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"PendingCount"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_ReleasePendingPages_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"ReleasePendingPages" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"ReleasePendingPages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_Reload_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Reload" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Reload"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_RemoveReadonlyTXID_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"RemoveReadonlyTXID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"RemoveReadonlyTXID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_Rollback_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Rollback" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Rollback"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_freePageIds_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"freePageIds" array''.freePageIds.impl
+  ptr_mergeSpans_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"mergeSpans" array''.mergeSpans.impl
+  ptr_pendingPageIds_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"pendingPageIds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"pendingPageIds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_reindex_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"reindex" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"reindex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_release_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"release" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"release"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
+  ptr_releaseRange_unfold : MethodUnfold (go.GoType.PointerType array''.ty) go!"releaseRange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType shared.ty) go!"releaseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType shared.ty)))) (App (Val (GoInstruction (StructFieldRef array''.ty go!"shared"))) (Var "$r")))))
 
-attribute [instance] array.TypeAssumptions.type_repr
-  array.TypeAssumptions.underlying
-  array.TypeAssumptions.get_shared
-  array.TypeAssumptions.set_shared
-  array.TypeAssumptions.get_ids
-  array.TypeAssumptions.set_ids
-  array.TypeAssumptions.method_set
-  array.TypeAssumptions.ptr_method_set
-  array.TypeAssumptions.AddReadonlyTXID_unfold
-  array.TypeAssumptions.Copyall_unfold
-  array.TypeAssumptions.Count_unfold
-  array.TypeAssumptions.EstimatedWritePageSize_unfold
-  array.TypeAssumptions.Free_unfold
-  array.TypeAssumptions.Freed_unfold
-  array.TypeAssumptions.NoSyncReload_unfold
-  array.TypeAssumptions.PendingCount_unfold
-  array.TypeAssumptions.Read_unfold
-  array.TypeAssumptions.ReleasePendingPages_unfold
-  array.TypeAssumptions.Reload_unfold
-  array.TypeAssumptions.RemoveReadonlyTXID_unfold
-  array.TypeAssumptions.Rollback_unfold
-  array.TypeAssumptions.Write_unfold
-  array.TypeAssumptions.pendingPageIds_unfold
-  array.TypeAssumptions.reindex_unfold
-  array.TypeAssumptions.release_unfold
-  array.TypeAssumptions.releaseRange_unfold
-  array.TypeAssumptions.ptr_AddReadonlyTXID_unfold
-  array.TypeAssumptions.ptr_Allocate_unfold
-  array.TypeAssumptions.ptr_Copyall_unfold
-  array.TypeAssumptions.ptr_Count_unfold
-  array.TypeAssumptions.ptr_EstimatedWritePageSize_unfold
-  array.TypeAssumptions.ptr_Free_unfold
-  array.TypeAssumptions.ptr_FreeCount_unfold
-  array.TypeAssumptions.ptr_Freed_unfold
-  array.TypeAssumptions.ptr_Init_unfold
-  array.TypeAssumptions.ptr_NoSyncReload_unfold
-  array.TypeAssumptions.ptr_PendingCount_unfold
-  array.TypeAssumptions.ptr_Read_unfold
-  array.TypeAssumptions.ptr_ReleasePendingPages_unfold
-  array.TypeAssumptions.ptr_Reload_unfold
-  array.TypeAssumptions.ptr_RemoveReadonlyTXID_unfold
-  array.TypeAssumptions.ptr_Rollback_unfold
-  array.TypeAssumptions.ptr_Write_unfold
-  array.TypeAssumptions.ptr_freePageIds_unfold
-  array.TypeAssumptions.ptr_mergeSpans_unfold
-  array.TypeAssumptions.ptr_pendingPageIds_unfold
-  array.TypeAssumptions.ptr_reindex_unfold
-  array.TypeAssumptions.ptr_release_unfold
-  array.TypeAssumptions.ptr_releaseRange_unfold
+attribute [instance] array''.TypeAssumptions.type_repr
+  array''.TypeAssumptions.underlying
+  array''.TypeAssumptions.get_shared
+  array''.TypeAssumptions.set_shared
+  array''.TypeAssumptions.get_ids
+  array''.TypeAssumptions.set_ids
+  array''.TypeAssumptions.method_set
+  array''.TypeAssumptions.ptr_method_set
+  array''.TypeAssumptions.AddReadonlyTXID_unfold
+  array''.TypeAssumptions.Copyall_unfold
+  array''.TypeAssumptions.Count_unfold
+  array''.TypeAssumptions.EstimatedWritePageSize_unfold
+  array''.TypeAssumptions.Free_unfold
+  array''.TypeAssumptions.Freed_unfold
+  array''.TypeAssumptions.NoSyncReload_unfold
+  array''.TypeAssumptions.PendingCount_unfold
+  array''.TypeAssumptions.Read_unfold
+  array''.TypeAssumptions.ReleasePendingPages_unfold
+  array''.TypeAssumptions.Reload_unfold
+  array''.TypeAssumptions.RemoveReadonlyTXID_unfold
+  array''.TypeAssumptions.Rollback_unfold
+  array''.TypeAssumptions.Write_unfold
+  array''.TypeAssumptions.pendingPageIds_unfold
+  array''.TypeAssumptions.reindex_unfold
+  array''.TypeAssumptions.release_unfold
+  array''.TypeAssumptions.releaseRange_unfold
+  array''.TypeAssumptions.ptr_AddReadonlyTXID_unfold
+  array''.TypeAssumptions.ptr_Allocate_unfold
+  array''.TypeAssumptions.ptr_Copyall_unfold
+  array''.TypeAssumptions.ptr_Count_unfold
+  array''.TypeAssumptions.ptr_EstimatedWritePageSize_unfold
+  array''.TypeAssumptions.ptr_Free_unfold
+  array''.TypeAssumptions.ptr_FreeCount_unfold
+  array''.TypeAssumptions.ptr_Freed_unfold
+  array''.TypeAssumptions.ptr_Init_unfold
+  array''.TypeAssumptions.ptr_NoSyncReload_unfold
+  array''.TypeAssumptions.ptr_PendingCount_unfold
+  array''.TypeAssumptions.ptr_Read_unfold
+  array''.TypeAssumptions.ptr_ReleasePendingPages_unfold
+  array''.TypeAssumptions.ptr_Reload_unfold
+  array''.TypeAssumptions.ptr_RemoveReadonlyTXID_unfold
+  array''.TypeAssumptions.ptr_Rollback_unfold
+  array''.TypeAssumptions.ptr_Write_unfold
+  array''.TypeAssumptions.ptr_freePageIds_unfold
+  array''.TypeAssumptions.ptr_mergeSpans_unfold
+  array''.TypeAssumptions.ptr_pendingPageIds_unfold
+  array''.TypeAssumptions.ptr_reindex_unfold
+  array''.TypeAssumptions.ptr_release_unfold
+  array''.TypeAssumptions.ptr_releaseRange_unfold
 
 abbrev ReadWriter [GooseExts] : Type := GoInterface
 
@@ -3007,7 +3007,7 @@ attribute [instance] txIDx.TypeAssumptions.underlying
   txIDx.TypeAssumptions.ptr_Swap_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  array_instance : array.TypeAssumptions
+  array_instance : array''.TypeAssumptions
   ReadWriter_instance : ReadWriter.TypeAssumptions
   Interface_instance : Interface.TypeAssumptions
   pidSet_instance : pidSet.TypeAssumptions

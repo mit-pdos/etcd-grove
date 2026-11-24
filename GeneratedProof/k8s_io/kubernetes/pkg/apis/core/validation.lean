@@ -65,11 +65,11 @@ noncomputable instance PersistentVolumeSpecValidationOptions_access_load_EnableV
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeSpecValidationOptions_access_store_EnableVolumeAttributesClass (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions) (EnableVolumeAttributesClass' : Bool) :
+noncomputable instance PersistentVolumeSpecValidationOptions_access_store_EnableVolumeAttributesClass (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions go!"EnableVolumeAttributesClass" l) v.EnableVolumeAttributesClass' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions go!"EnableVolumeAttributesClass" l) EnableVolumeAttributesClass' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableVolumeAttributesClass' := EnableVolumeAttributesClass' } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions go!"EnableVolumeAttributesClass" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableVolumeAttributesClass' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -81,11 +81,11 @@ noncomputable instance PersistentVolumeSpecValidationOptions_access_load_AllowIn
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeSpecValidationOptions_access_store_AllowInvalidLabelValueInRequiredNodeAffinity (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions) (AllowInvalidLabelValueInRequiredNodeAffinity' : Bool) :
+noncomputable instance PersistentVolumeSpecValidationOptions_access_store_AllowInvalidLabelValueInRequiredNodeAffinity (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions go!"AllowInvalidLabelValueInRequiredNodeAffinity" l) v.AllowInvalidLabelValueInRequiredNodeAffinity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions go!"AllowInvalidLabelValueInRequiredNodeAffinity" l) AllowInvalidLabelValueInRequiredNodeAffinity' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidLabelValueInRequiredNodeAffinity' := AllowInvalidLabelValueInRequiredNodeAffinity' } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions go!"AllowInvalidLabelValueInRequiredNodeAffinity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidLabelValueInRequiredNodeAffinity' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeSpecValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -124,11 +124,11 @@ noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_load_En
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_store_EnableRecoverFromExpansionFailure (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (EnableRecoverFromExpansionFailure' : Bool) :
+noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_store_EnableRecoverFromExpansionFailure (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"EnableRecoverFromExpansionFailure" l) v.EnableRecoverFromExpansionFailure' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"EnableRecoverFromExpansionFailure" l) EnableRecoverFromExpansionFailure' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableRecoverFromExpansionFailure' := EnableRecoverFromExpansionFailure' } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"EnableRecoverFromExpansionFailure" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableRecoverFromExpansionFailure' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -140,11 +140,11 @@ noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_load_Al
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_store_AllowInvalidLabelValueInSelector (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (AllowInvalidLabelValueInSelector' : Bool) :
+noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_store_AllowInvalidLabelValueInSelector (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"AllowInvalidLabelValueInSelector" l) v.AllowInvalidLabelValueInSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"AllowInvalidLabelValueInSelector" l) AllowInvalidLabelValueInSelector' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidLabelValueInSelector' := AllowInvalidLabelValueInSelector' } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"AllowInvalidLabelValueInSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidLabelValueInSelector' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -156,11 +156,11 @@ noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_load_Al
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_store_AllowInvalidAPIGroupInDataSourceOrRef (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (AllowInvalidAPIGroupInDataSourceOrRef' : Bool) :
+noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_store_AllowInvalidAPIGroupInDataSourceOrRef (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"AllowInvalidAPIGroupInDataSourceOrRef" l) v.AllowInvalidAPIGroupInDataSourceOrRef' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"AllowInvalidAPIGroupInDataSourceOrRef" l) AllowInvalidAPIGroupInDataSourceOrRef' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidAPIGroupInDataSourceOrRef' := AllowInvalidAPIGroupInDataSourceOrRef' } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"AllowInvalidAPIGroupInDataSourceOrRef" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidAPIGroupInDataSourceOrRef' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -172,11 +172,11 @@ noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_load_En
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_store_EnableVolumeAttributesClass (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (EnableVolumeAttributesClass' : Bool) :
+noncomputable instance PersistentVolumeClaimSpecValidationOptions_access_store_EnableVolumeAttributesClass (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"EnableVolumeAttributesClass" l) v.EnableVolumeAttributesClass' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"EnableVolumeAttributesClass" l) EnableVolumeAttributesClass' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableVolumeAttributesClass' := EnableVolumeAttributesClass' } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions go!"EnableVolumeAttributesClass" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnableVolumeAttributesClass' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PersistentVolumeClaimSpecValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -259,11 +259,11 @@ noncomputable instance PodValidationOptions_access_load_AllowInvalidPodDeletionC
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowInvalidPodDeletionCost (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowInvalidPodDeletionCost' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowInvalidPodDeletionCost (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidPodDeletionCost" l) v.AllowInvalidPodDeletionCost' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidPodDeletionCost" l) AllowInvalidPodDeletionCost' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidPodDeletionCost' := AllowInvalidPodDeletionCost' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidPodDeletionCost" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidPodDeletionCost' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -275,11 +275,11 @@ noncomputable instance PodValidationOptions_access_load_AllowInvalidLabelValueIn
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowInvalidLabelValueInSelector (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowInvalidLabelValueInSelector' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowInvalidLabelValueInSelector (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidLabelValueInSelector" l) v.AllowInvalidLabelValueInSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidLabelValueInSelector" l) AllowInvalidLabelValueInSelector' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidLabelValueInSelector' := AllowInvalidLabelValueInSelector' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidLabelValueInSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidLabelValueInSelector' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -291,11 +291,11 @@ noncomputable instance PodValidationOptions_access_load_AllowIndivisibleHugePage
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowIndivisibleHugePagesValues (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowIndivisibleHugePagesValues' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowIndivisibleHugePagesValues (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowIndivisibleHugePagesValues" l) v.AllowIndivisibleHugePagesValues' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowIndivisibleHugePagesValues" l) AllowIndivisibleHugePagesValues' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowIndivisibleHugePagesValues' := AllowIndivisibleHugePagesValues' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowIndivisibleHugePagesValues" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowIndivisibleHugePagesValues' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -307,11 +307,11 @@ noncomputable instance PodValidationOptions_access_load_AllowInvalidTopologySpre
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowInvalidTopologySpreadConstraintLabelSelector (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowInvalidTopologySpreadConstraintLabelSelector' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowInvalidTopologySpreadConstraintLabelSelector (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidTopologySpreadConstraintLabelSelector" l) v.AllowInvalidTopologySpreadConstraintLabelSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidTopologySpreadConstraintLabelSelector" l) AllowInvalidTopologySpreadConstraintLabelSelector' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidTopologySpreadConstraintLabelSelector' := AllowInvalidTopologySpreadConstraintLabelSelector' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidTopologySpreadConstraintLabelSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidTopologySpreadConstraintLabelSelector' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -323,11 +323,11 @@ noncomputable instance PodValidationOptions_access_load_AllowNonLocalProjectedTo
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowNonLocalProjectedTokenPath (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowNonLocalProjectedTokenPath' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowNonLocalProjectedTokenPath (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowNonLocalProjectedTokenPath" l) v.AllowNonLocalProjectedTokenPath' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowNonLocalProjectedTokenPath" l) AllowNonLocalProjectedTokenPath' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowNonLocalProjectedTokenPath' := AllowNonLocalProjectedTokenPath' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowNonLocalProjectedTokenPath" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowNonLocalProjectedTokenPath' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -339,11 +339,11 @@ noncomputable instance PodValidationOptions_access_load_AllowNamespacedSysctlsFo
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowNamespacedSysctlsForHostNetAndHostIPC (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowNamespacedSysctlsForHostNetAndHostIPC' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowNamespacedSysctlsForHostNetAndHostIPC (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowNamespacedSysctlsForHostNetAndHostIPC" l) v.AllowNamespacedSysctlsForHostNetAndHostIPC' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowNamespacedSysctlsForHostNetAndHostIPC" l) AllowNamespacedSysctlsForHostNetAndHostIPC' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowNamespacedSysctlsForHostNetAndHostIPC' := AllowNamespacedSysctlsForHostNetAndHostIPC' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowNamespacedSysctlsForHostNetAndHostIPC" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowNamespacedSysctlsForHostNetAndHostIPC' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -355,11 +355,11 @@ noncomputable instance PodValidationOptions_access_load_ResourceIsPod (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_ResourceIsPod (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (ResourceIsPod' : Bool) :
+noncomputable instance PodValidationOptions_access_store_ResourceIsPod (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"ResourceIsPod" l) v.ResourceIsPod' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"ResourceIsPod" l) ResourceIsPod' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIsPod' := ResourceIsPod' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"ResourceIsPod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIsPod' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -371,11 +371,11 @@ noncomputable instance PodValidationOptions_access_load_AllowRelaxedEnvironmentV
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowRelaxedEnvironmentVariableValidation (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowRelaxedEnvironmentVariableValidation' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowRelaxedEnvironmentVariableValidation (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowRelaxedEnvironmentVariableValidation" l) v.AllowRelaxedEnvironmentVariableValidation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowRelaxedEnvironmentVariableValidation" l) AllowRelaxedEnvironmentVariableValidation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowRelaxedEnvironmentVariableValidation' := AllowRelaxedEnvironmentVariableValidation' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowRelaxedEnvironmentVariableValidation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowRelaxedEnvironmentVariableValidation' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -387,11 +387,11 @@ noncomputable instance PodValidationOptions_access_load_AllowOnlyRecursiveSELinu
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowOnlyRecursiveSELinuxChangePolicy (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowOnlyRecursiveSELinuxChangePolicy' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowOnlyRecursiveSELinuxChangePolicy (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowOnlyRecursiveSELinuxChangePolicy" l) v.AllowOnlyRecursiveSELinuxChangePolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowOnlyRecursiveSELinuxChangePolicy" l) AllowOnlyRecursiveSELinuxChangePolicy' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowOnlyRecursiveSELinuxChangePolicy' := AllowOnlyRecursiveSELinuxChangePolicy' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowOnlyRecursiveSELinuxChangePolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowOnlyRecursiveSELinuxChangePolicy' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -403,11 +403,11 @@ noncomputable instance PodValidationOptions_access_load_PodLevelResourcesEnabled
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_PodLevelResourcesEnabled (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (PodLevelResourcesEnabled' : Bool) :
+noncomputable instance PodValidationOptions_access_store_PodLevelResourcesEnabled (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"PodLevelResourcesEnabled" l) v.PodLevelResourcesEnabled' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"PodLevelResourcesEnabled" l) PodLevelResourcesEnabled' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PodLevelResourcesEnabled' := PodLevelResourcesEnabled' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"PodLevelResourcesEnabled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PodLevelResourcesEnabled' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -419,11 +419,11 @@ noncomputable instance PodValidationOptions_access_load_InPlacePodLevelResources
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_InPlacePodLevelResourcesVerticalScalingEnabled (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (InPlacePodLevelResourcesVerticalScalingEnabled' : Bool) :
+noncomputable instance PodValidationOptions_access_store_InPlacePodLevelResourcesVerticalScalingEnabled (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"InPlacePodLevelResourcesVerticalScalingEnabled" l) v.InPlacePodLevelResourcesVerticalScalingEnabled' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"InPlacePodLevelResourcesVerticalScalingEnabled" l) InPlacePodLevelResourcesVerticalScalingEnabled' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InPlacePodLevelResourcesVerticalScalingEnabled' := InPlacePodLevelResourcesVerticalScalingEnabled' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"InPlacePodLevelResourcesVerticalScalingEnabled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InPlacePodLevelResourcesVerticalScalingEnabled' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -435,11 +435,11 @@ noncomputable instance PodValidationOptions_access_load_InPlacePodVerticalScalin
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_InPlacePodVerticalScalingMemoryBackedVolumesEnabled (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (InPlacePodVerticalScalingMemoryBackedVolumesEnabled' : Bool) :
+noncomputable instance PodValidationOptions_access_store_InPlacePodVerticalScalingMemoryBackedVolumesEnabled (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"InPlacePodVerticalScalingMemoryBackedVolumesEnabled" l) v.InPlacePodVerticalScalingMemoryBackedVolumesEnabled' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"InPlacePodVerticalScalingMemoryBackedVolumesEnabled" l) InPlacePodVerticalScalingMemoryBackedVolumesEnabled' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InPlacePodVerticalScalingMemoryBackedVolumesEnabled' := InPlacePodVerticalScalingMemoryBackedVolumesEnabled' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"InPlacePodVerticalScalingMemoryBackedVolumesEnabled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InPlacePodVerticalScalingMemoryBackedVolumesEnabled' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -451,11 +451,11 @@ noncomputable instance PodValidationOptions_access_load_AllowSidecarResizePolicy
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowSidecarResizePolicy (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowSidecarResizePolicy' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowSidecarResizePolicy (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowSidecarResizePolicy" l) v.AllowSidecarResizePolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowSidecarResizePolicy" l) AllowSidecarResizePolicy' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowSidecarResizePolicy' := AllowSidecarResizePolicy' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowSidecarResizePolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowSidecarResizePolicy' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -467,11 +467,11 @@ noncomputable instance PodValidationOptions_access_load_AllowInvalidLabelValueIn
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowInvalidLabelValueInRequiredNodeAffinity (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowInvalidLabelValueInRequiredNodeAffinity' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowInvalidLabelValueInRequiredNodeAffinity (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidLabelValueInRequiredNodeAffinity" l) v.AllowInvalidLabelValueInRequiredNodeAffinity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidLabelValueInRequiredNodeAffinity" l) AllowInvalidLabelValueInRequiredNodeAffinity' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidLabelValueInRequiredNodeAffinity' := AllowInvalidLabelValueInRequiredNodeAffinity' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowInvalidLabelValueInRequiredNodeAffinity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowInvalidLabelValueInRequiredNodeAffinity' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -483,11 +483,11 @@ noncomputable instance PodValidationOptions_access_load_AllowMatchLabelKeysInPod
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowMatchLabelKeysInPodTopologySpread (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowMatchLabelKeysInPodTopologySpread' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowMatchLabelKeysInPodTopologySpread (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowMatchLabelKeysInPodTopologySpread" l) v.AllowMatchLabelKeysInPodTopologySpread' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowMatchLabelKeysInPodTopologySpread" l) AllowMatchLabelKeysInPodTopologySpread' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowMatchLabelKeysInPodTopologySpread' := AllowMatchLabelKeysInPodTopologySpread' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowMatchLabelKeysInPodTopologySpread" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowMatchLabelKeysInPodTopologySpread' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -499,11 +499,11 @@ noncomputable instance PodValidationOptions_access_load_AllowMatchLabelKeysInPod
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowMatchLabelKeysInPodTopologySpreadSelectorMerge (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowMatchLabelKeysInPodTopologySpreadSelectorMerge' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowMatchLabelKeysInPodTopologySpreadSelectorMerge (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowMatchLabelKeysInPodTopologySpreadSelectorMerge" l) v.AllowMatchLabelKeysInPodTopologySpreadSelectorMerge' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowMatchLabelKeysInPodTopologySpreadSelectorMerge" l) AllowMatchLabelKeysInPodTopologySpreadSelectorMerge' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowMatchLabelKeysInPodTopologySpreadSelectorMerge' := AllowMatchLabelKeysInPodTopologySpreadSelectorMerge' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowMatchLabelKeysInPodTopologySpreadSelectorMerge" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowMatchLabelKeysInPodTopologySpreadSelectorMerge' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -515,11 +515,11 @@ noncomputable instance PodValidationOptions_access_load_OldPodViolatesMatchLabel
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_OldPodViolatesMatchLabelKeysValidation (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (OldPodViolatesMatchLabelKeysValidation' : Bool) :
+noncomputable instance PodValidationOptions_access_store_OldPodViolatesMatchLabelKeysValidation (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"OldPodViolatesMatchLabelKeysValidation" l) v.OldPodViolatesMatchLabelKeysValidation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"OldPodViolatesMatchLabelKeysValidation" l) OldPodViolatesMatchLabelKeysValidation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OldPodViolatesMatchLabelKeysValidation' := OldPodViolatesMatchLabelKeysValidation' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"OldPodViolatesMatchLabelKeysValidation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OldPodViolatesMatchLabelKeysValidation' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -531,11 +531,11 @@ noncomputable instance PodValidationOptions_access_load_OldPodViolatesLegacyMatc
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_OldPodViolatesLegacyMatchLabelKeysValidation (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (OldPodViolatesLegacyMatchLabelKeysValidation' : Bool) :
+noncomputable instance PodValidationOptions_access_store_OldPodViolatesLegacyMatchLabelKeysValidation (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"OldPodViolatesLegacyMatchLabelKeysValidation" l) v.OldPodViolatesLegacyMatchLabelKeysValidation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"OldPodViolatesLegacyMatchLabelKeysValidation" l) OldPodViolatesLegacyMatchLabelKeysValidation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OldPodViolatesLegacyMatchLabelKeysValidation' := OldPodViolatesLegacyMatchLabelKeysValidation' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"OldPodViolatesLegacyMatchLabelKeysValidation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OldPodViolatesLegacyMatchLabelKeysValidation' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -547,11 +547,11 @@ noncomputable instance PodValidationOptions_access_load_AllowEnvFilesValidation 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowEnvFilesValidation (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowEnvFilesValidation' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowEnvFilesValidation (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowEnvFilesValidation" l) v.AllowEnvFilesValidation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowEnvFilesValidation" l) AllowEnvFilesValidation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowEnvFilesValidation' := AllowEnvFilesValidation' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowEnvFilesValidation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowEnvFilesValidation' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -563,11 +563,11 @@ noncomputable instance PodValidationOptions_access_load_AllowContainerRestartPol
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowContainerRestartPolicyRules (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowContainerRestartPolicyRules' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowContainerRestartPolicyRules (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowContainerRestartPolicyRules" l) v.AllowContainerRestartPolicyRules' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowContainerRestartPolicyRules" l) AllowContainerRestartPolicyRules' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowContainerRestartPolicyRules' := AllowContainerRestartPolicyRules' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowContainerRestartPolicyRules" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowContainerRestartPolicyRules' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -579,11 +579,11 @@ noncomputable instance PodValidationOptions_access_load_AllowExistingRestartCont
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowExistingRestartContainerForNonSidecarInitContainer (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowExistingRestartContainerForNonSidecarInitContainer' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowExistingRestartContainerForNonSidecarInitContainer (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowExistingRestartContainerForNonSidecarInitContainer" l) v.AllowExistingRestartContainerForNonSidecarInitContainer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowExistingRestartContainerForNonSidecarInitContainer" l) AllowExistingRestartContainerForNonSidecarInitContainer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowExistingRestartContainerForNonSidecarInitContainer' := AllowExistingRestartContainerForNonSidecarInitContainer' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowExistingRestartContainerForNonSidecarInitContainer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowExistingRestartContainerForNonSidecarInitContainer' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -595,11 +595,11 @@ noncomputable instance PodValidationOptions_access_load_AllowUserNamespacesWithV
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowUserNamespacesWithVolumeDevices (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowUserNamespacesWithVolumeDevices' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowUserNamespacesWithVolumeDevices (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowUserNamespacesWithVolumeDevices" l) v.AllowUserNamespacesWithVolumeDevices' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowUserNamespacesWithVolumeDevices" l) AllowUserNamespacesWithVolumeDevices' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowUserNamespacesWithVolumeDevices' := AllowUserNamespacesWithVolumeDevices' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowUserNamespacesWithVolumeDevices" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowUserNamespacesWithVolumeDevices' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -611,11 +611,11 @@ noncomputable instance PodValidationOptions_access_load_AllowTaintTolerationComp
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowTaintTolerationComparisonOperators (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowTaintTolerationComparisonOperators' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowTaintTolerationComparisonOperators (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowTaintTolerationComparisonOperators" l) v.AllowTaintTolerationComparisonOperators' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowTaintTolerationComparisonOperators" l) AllowTaintTolerationComparisonOperators' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowTaintTolerationComparisonOperators' := AllowTaintTolerationComparisonOperators' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowTaintTolerationComparisonOperators" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowTaintTolerationComparisonOperators' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -627,11 +627,11 @@ noncomputable instance PodValidationOptions_access_load_AllowUserNamespacesHostN
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowUserNamespacesHostNetworkSupport (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowUserNamespacesHostNetworkSupport' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowUserNamespacesHostNetworkSupport (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowUserNamespacesHostNetworkSupport" l) v.AllowUserNamespacesHostNetworkSupport' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowUserNamespacesHostNetworkSupport" l) AllowUserNamespacesHostNetworkSupport' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowUserNamespacesHostNetworkSupport' := AllowUserNamespacesHostNetworkSupport' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowUserNamespacesHostNetworkSupport" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowUserNamespacesHostNetworkSupport' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -643,11 +643,11 @@ noncomputable instance PodValidationOptions_access_load_AllowRestartAllContainer
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowRestartAllContainers (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowRestartAllContainers' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowRestartAllContainers (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowRestartAllContainers" l) v.AllowRestartAllContainers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowRestartAllContainers" l) AllowRestartAllContainers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowRestartAllContainers' := AllowRestartAllContainers' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowRestartAllContainers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowRestartAllContainers' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -659,11 +659,11 @@ noncomputable instance PodValidationOptions_access_load_AllowImageVolumeWithDige
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowImageVolumeWithDigest (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowImageVolumeWithDigest' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowImageVolumeWithDigest (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowImageVolumeWithDigest" l) v.AllowImageVolumeWithDigest' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowImageVolumeWithDigest" l) AllowImageVolumeWithDigest' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowImageVolumeWithDigest' := AllowImageVolumeWithDigest' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowImageVolumeWithDigest" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowImageVolumeWithDigest' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -675,11 +675,11 @@ noncomputable instance PodValidationOptions_access_load_AllowEmptyImageVolumeRef
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowEmptyImageVolumeReference (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowEmptyImageVolumeReference' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowEmptyImageVolumeReference (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowEmptyImageVolumeReference" l) v.AllowEmptyImageVolumeReference' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowEmptyImageVolumeReference" l) AllowEmptyImageVolumeReference' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowEmptyImageVolumeReference' := AllowEmptyImageVolumeReference' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowEmptyImageVolumeReference" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowEmptyImageVolumeReference' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -691,11 +691,11 @@ noncomputable instance PodValidationOptions_access_load_AllowSysAdminWhenPrivile
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowSysAdminWhenPrivilegeEscalationFalse (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowSysAdminWhenPrivilegeEscalationFalse' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowSysAdminWhenPrivilegeEscalationFalse (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowSysAdminWhenPrivilegeEscalationFalse" l) v.AllowSysAdminWhenPrivilegeEscalationFalse' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowSysAdminWhenPrivilegeEscalationFalse" l) AllowSysAdminWhenPrivilegeEscalationFalse' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowSysAdminWhenPrivilegeEscalationFalse' := AllowSysAdminWhenPrivilegeEscalationFalse' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowSysAdminWhenPrivilegeEscalationFalse" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowSysAdminWhenPrivilegeEscalationFalse' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -707,11 +707,11 @@ noncomputable instance PodValidationOptions_access_load_AllowMLDSAPodCertificate
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodValidationOptions_access_store_AllowMLDSAPodCertificateKeyTypes (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (AllowMLDSAPodCertificateKeyTypes' : Bool) :
+noncomputable instance PodValidationOptions_access_store_AllowMLDSAPodCertificateKeyTypes (l : Loc) (v : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowMLDSAPodCertificateKeyTypes" l) v.AllowMLDSAPodCertificateKeyTypes' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowMLDSAPodCertificateKeyTypes" l) AllowMLDSAPodCertificateKeyTypes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowMLDSAPodCertificateKeyTypes' := AllowMLDSAPodCertificateKeyTypes' } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions go!"AllowMLDSAPodCertificateKeyTypes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowMLDSAPodCertificateKeyTypes' := y } : k8s_io.kubernetes.pkg.apis.core.validation.PodValidationOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

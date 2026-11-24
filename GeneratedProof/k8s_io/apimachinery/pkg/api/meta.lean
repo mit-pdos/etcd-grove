@@ -123,11 +123,11 @@ noncomputable instance FirstHitRESTMapper_access_load_MultiRESTMapper (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance FirstHitRESTMapper_access_store_MultiRESTMapper (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (MultiRESTMapper' : k8s_io.apimachinery.pkg.api.«meta».MultiRESTMapper) :
+noncomputable instance FirstHitRESTMapper_access_store_MultiRESTMapper (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (y : k8s_io.apimachinery.pkg.api.«meta».MultiRESTMapper) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) MultiRESTMapper' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MultiRESTMapper' := MultiRESTMapper' } : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MultiRESTMapper' := y } : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -239,11 +239,11 @@ noncomputable instance restMapperWrapper_access_load_delegate (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance restMapperWrapper_access_store_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (delegate' : k8s_io.apimachinery.pkg.api.«meta».RESTMapper) :
+noncomputable instance restMapperWrapper_access_store_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (y : k8s_io.apimachinery.pkg.api.«meta».RESTMapper) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) delegate' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with delegate' := delegate' } : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with delegate' := y } : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -299,11 +299,11 @@ noncomputable instance resettableRESTMapperWrapper_access_load_RESTMapperWithCon
  by
   solve_pointsto_access_struct
 
-noncomputable instance resettableRESTMapperWrapper_access_store_RESTMapperWithContext (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (RESTMapperWithContext' : k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext) :
+noncomputable instance resettableRESTMapperWrapper_access_store_RESTMapperWithContext (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (y : k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) RESTMapperWithContext' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RESTMapperWithContext' := RESTMapperWithContext' } : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RESTMapperWithContext' := y } : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -315,11 +315,11 @@ noncomputable instance resettableRESTMapperWrapper_access_load_delegate (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance resettableRESTMapperWrapper_access_store_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (delegate' : k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapper) :
+noncomputable instance resettableRESTMapperWrapper_access_store_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (y : k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapper) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) delegate' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with delegate' := delegate' } : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with delegate' := y } : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -473,11 +473,11 @@ noncomputable instance restScope_access_load_name (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance restScope_access_store_name (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restScope) (name' : k8s_io.apimachinery.pkg.api.«meta».RESTScopeName) :
+noncomputable instance restScope_access_store_name (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restScope) (y : k8s_io.apimachinery.pkg.api.«meta».RESTScopeName) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : k8s_io.apimachinery.pkg.api.«meta».restScope) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : k8s_io.apimachinery.pkg.api.«meta».restScope) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

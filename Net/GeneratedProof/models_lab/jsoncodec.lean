@@ -45,11 +45,11 @@ noncomputable instance Error_access_load_Msg (l : Loc) (v : models_lab.jsoncodec
  by
   solve_pointsto_access_struct
 
-noncomputable instance Error_access_store_Msg (l : Loc) (v : models_lab.jsoncodec.Error) (Msg' : GoString) :
+noncomputable instance Error_access_store_Msg (l : Loc) (v : models_lab.jsoncodec.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef models_lab.jsoncodec.Error go!"Msg" l) v.Msg' (DFrac.own 1))
-      (typedPointsto (structFieldRef models_lab.jsoncodec.Error go!"Msg" l) Msg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := Msg' } : models_lab.jsoncodec.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef models_lab.jsoncodec.Error go!"Msg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := y } : models_lab.jsoncodec.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
