@@ -20,7 +20,8 @@ public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Init
 public import RaftNoAx.Proof.github_com.mit_pdos.gokv.trusted_proph.Init
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.Init
-public import RaftNoAx.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
+public import RaftNoAx.Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

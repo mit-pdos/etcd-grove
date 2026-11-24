@@ -38,6 +38,7 @@ public import Perennial.Proof.log
 public import Perennial.Proof.io
 public import Perennial.Proof.errors
 public import Proof.os.PkgInit
+public import Proof.google_golang_org.protobuf.PkgInit
 
 @[expose] public section
 
@@ -61,38 +62,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 -- (`reflect`'s instance: `Proof/reflect/PkgInit.lean`, shared)
 
-/-- protobuf-go's packages, names-only (raft v3.7's `raftpb` is protobuf-go v2: its messages
-hold `protoimpl`'s state, `raft` and `raftpb` call `proto.Clone`/`Marshal`/`Unmarshal`/
-`Size`/`Equal`), as the etcd project's `cache/v3/Base.lean` declares them. -/
-instance protobuf_pragma_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.internal.pragma :=
-  define_is_pkg_init iprop(True)
-instance protobuf_pragma_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.internal.pragma :=
-  build_get_is_pkg_init_wf
-instance protobuf_impl_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.internal.impl :=
-  define_is_pkg_init iprop(True)
-instance protobuf_impl_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.internal.impl :=
-  build_get_is_pkg_init_wf
-instance protoimpl_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.runtime.protoimpl :=
-  define_is_pkg_init iprop(True)
-instance protoimpl_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.runtime.protoimpl :=
-  build_get_is_pkg_init_wf
-instance protoreflect_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
-  define_is_pkg_init iprop(True)
-instance protoreflect_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
-  build_get_is_pkg_init_wf
-instance proto_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
-  define_is_pkg_init iprop(True)
-instance proto_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
-  build_get_is_pkg_init_wf
+-- protobuf-go's packages, names-only (raft v3.7's `raftpb` is protobuf-go v2: its messages
+-- hold `protoimpl`'s state, `raft` and `raftpb` call `proto.Clone`/`Marshal`/`Unmarshal`/
+-- `Size`/`Equal`): their instances are in `Proof/google_golang_org/protobuf/PkgInit.lean` (L1,
+-- 2026-11-24; until then here and in the etcd project's `cache/v3/Base.lean`)
 
 -- `strconv` (imported by `raftpb`'s `confchange.go` in raft v3.7): Perennial's own instance
 -- (`Perennial.Proof.strconv.Base`, since Perennial translates `strconv`, 24bef275e)

@@ -10,7 +10,7 @@ public import Perennial.Proof.encoding.binary.Base
 public import Perennial.Proof.io.Base
 public import Perennial.Proof.reflect.Base
 public import Perennial.Proof.sync.Base
-public import Dsverify.Proof.google_golang_org.protobuf.Base
+public import Proof.google_golang_org.protobuf.PkgInit
 
 @[expose] public section
 

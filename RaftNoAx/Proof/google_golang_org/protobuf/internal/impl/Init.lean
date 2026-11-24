@@ -9,10 +9,10 @@ initializers of its variables (`X.init`, models in `TrustedCode/` that do nothin
 -- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part's.
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.google_golang_org.protobuf.PkgInit
 public import Perennial.Proof.strconv.Link
 public import RaftNoAx.Proof.google_golang_org.protobuf.internal.pragma.Init
-public import RaftNoAx.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -9,7 +9,7 @@ module
 
 public import Dsverify.Proof.raxos.examples.quepaxanet.cmd.server4.Base
 public import Dsverify.Proof.raxos.examples.quepaxanet.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.gopkg_in.yaml_v2.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
 public import Dsverify.Proof.io.ioutil.Init

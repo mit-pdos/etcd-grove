@@ -1,7 +1,9 @@
 /-
-The package fact of `crypto.tls` for the part `Dsverify/`: `True` (the main tree's translation, names only; the main tree declares the same fact in etcd's packages). It has no proof that reads
-its variables; the fact exists so that `net/http`'s and `net/rpc`'s initialization hypotheses
-(`Dsverify/Proof/net/{http,rpc}/Init.lean`) can name every package their initializers reach.
+The package fact of `crypto/tls` (names only: the types `transport.TLSInfo`'s fields and
+`clientv3.Config.TLS` name): `True`. It has no proof that reads its variables. Shared by every tree that
+imports the package (L1, 2026-11-24: until then declared in `cache/v3/Base.lean` and in the server's
+`apply/Base.lean`, and again in `Dsverify/`, for `net/http`'s and `net/rpc`'s initialization
+hypotheses, which name every package their initializers reach).
 -/
 module
 

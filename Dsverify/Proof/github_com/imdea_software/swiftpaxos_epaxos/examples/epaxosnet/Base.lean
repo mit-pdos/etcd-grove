@@ -8,8 +8,8 @@ public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
-public import Net.Proof.github_com.anishathalye.porcupine.Init
+public import Proof.bufio.Init
+public import Proof.github_com.anishathalye.porcupine.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.dlog.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.Init
@@ -17,7 +17,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.master.
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.state.Init
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Dsverify.Proof.net.http.Init
 public import Dsverify.Proof.net.rpc.Init
 

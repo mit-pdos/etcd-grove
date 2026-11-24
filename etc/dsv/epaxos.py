@@ -55,7 +55,7 @@ PROGRAMS = {f'{EPAXOS}.examples.epaxosnet.cmd.{n}':
 # the main tree's packages the part's closure adds to `NET_MAIN` (EPaxos: bufio, encoding/json
 # and net/http's)
 MAIN = ['bufio', 'encoding.json', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
-# of which the part gets a copy of the main tree's `Init.lean` (over the part's `PkgInitExt`):
+# of which the part generates the `Init.lean` (the main tree's, `shared_inits`, L1, 2026-11-24):
 # encoding/json's `wp_initialize'` is proved (J1, mit-pdos/etcd-grove#24), no longer an `InitHyp`
 MAIN_GEN = ['bufio', 'encoding.json']
 # initializers that are hypotheses of the part's proofs (notes/dsv-epaxos.md, "Hypotheses"; the

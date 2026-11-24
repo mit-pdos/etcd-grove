@@ -11,7 +11,7 @@ module
 
 public import Proof.github_com.mit_pdos.gokv.trusted_proph.Base
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
-public import RaftNoAx.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
