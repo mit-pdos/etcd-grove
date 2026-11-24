@@ -13,6 +13,7 @@ Go's `deployment.WellFormed` is to give when it returns `nil`.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.URLBounds
 
 @[expose] public section
 
@@ -192,6 +193,14 @@ client machine's (the orchestrators listen nowhere). -/
 def Deployment.addrs (d : Deployment) : List GoString :=
   d.members.flatMap (fun m => [m.peer, m.client]) ++ d.nodes.flatten
 
+/-- The cluster's size bound (Go's `deployment.MaxMembers`). -/
+def maxMembers : Nat := 64
+
+/-- The length bound, in bytes, of every member name, every address and the token (Go's
+`deployment.MaxLen`): with `maxMembers`, what keeps the strings etcd joins from them (a member's
+peer URLs, the initial cluster's `name=http://peer` list) far below `strings.Join`'s length bound. -/
+def maxLen : Nat := 255
+
 /-- A member name the data directory can carry: nonempty, of ASCII letters, digits and `-` (so
 no `/`, `.` or `..`: one directory per member, `etcdWalAreasInit`'s `memberDataDir`). -/
 def nameOk (n : GoString) : Bool :=
@@ -211,7 +220,9 @@ def nameOk (n : GoString) : Bool :=
 4. the token is nonempty, and the server configuration is in the supported set;
 5. the workloads are compatible (`Compatible`) and within their bounds, and a workload that
    needs the token provider has it; `compact` not under the periodic compactor (review F5); no token
-   provider beside expiring leases (review F10). -/
+   provider beside expiring leases (review F10);
+6. at most `maxMembers` members, and every member name, every address and the token of at most
+   `maxLen` bytes (so that `strings.Join` of a member's URLs, or of all members', stays in bounds). -/
 def Deployment.WellFormed (d : Deployment) : Prop :=
   d.members ≠ [] ∧ (d.members.map Member.name).Nodup ∧ (∀ m ∈ d.members, nameOk m.name = true) ∧
   (∀ a ∈ d.addrs, Net.addrOk a = true) ∧ d.addrs.Nodup ∧
@@ -224,10 +235,14 @@ def Deployment.WellFormed (d : Deployment) : Prop :=
   -- review F5: compactwatch's checks hold under the revision compactor (or none), not the periodic
   (Workload.compact ∈ d.workloads → d.cfg.compactor.isPeriodic = false) ∧
   -- review F10: the revocable lease mode with the token provider needs `leasesNoExpiry`
-  ¬ (d.cfg.auth = true ∧ Workload.leaseExpiry ∈ d.workloads)
+  ¬ (d.cfg.auth = true ∧ Workload.leaseExpiry ∈ d.workloads) ∧
+  -- 6. the sizes: at most `maxMembers` members; names, addresses and the token of at most
+  -- `maxLen` bytes
+  d.members.length ≤ maxMembers ∧ (∀ m ∈ d.members, m.name.length ≤ maxLen) ∧
+  (∀ a ∈ d.addrs, a.length ≤ maxLen) ∧ d.token.length ≤ maxLen
 
 instance (d : Deployment) : Decidable d.WellFormed := by
-  unfold Deployment.WellFormed leaseIdsApart; infer_instance
+  unfold Deployment.WellFormed leaseIdsApart maxMembers maxLen; infer_instance
 
 /-! ## The encoding of a typed deployment as the Go value -/
 
@@ -285,6 +300,33 @@ theorem Deployment.WellFormed.addrs {d : Deployment} (h : d.WellFormed) :
   have e := typed.Deployment.addrs_encodes he
   rw [← e]
   exact ⟨hw.2.2.2.2.1, hw.2.2.2.1⟩
+
+/-- **A well-formed deployment's member URLs are within etcd's URL bounds**: every member's peer
+URL list (`[http://peer]`) and client URL list (`[http://client]`) have at most `etcdURLCountMax`
+URLs, each of at most `etcdURLLenMax` bytes (`maxLen` bytes after `http://`). -/
+theorem Deployment.WellFormed.urlBounds {d : Deployment} (h : d.WellFormed) :
+    ∀ m ∈ d.members,
+      [go!"http://" ++ m.peer].length ≤ etcdURLCountMax ∧
+      [go!"http://" ++ m.client].length ≤ etcdURLCountMax ∧
+      (go!"http://" ++ m.peer).length ≤ etcdURLLenMax ∧
+      (go!"http://" ++ m.client).length ≤ etcdURLLenMax := by
+  obtain ⟨t, he, hw⟩ := h
+  have e := typed.Deployment.addrs_encodes he
+  have hm : t.members = d.members := he.1
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, haddr, -⟩ := hw
+  intro m hmem
+  have hp : m.peer ∈ t.addrs := by
+    rw [typed.Deployment.addrs, hm]
+    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hmem, by simp⟩)
+  have hc : m.client ∈ t.addrs := by
+    rw [typed.Deployment.addrs, hm]
+    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hmem, by simp⟩)
+  have h1 := haddr _ hp
+  have h2 := haddr _ hc
+  simp only [typed.maxLen] at h1 h2
+  simp only [List.length_append, List.length_cons, List.length_nil, etcdURLCountMax,
+    etcdURLLenMax]
+  refine ⟨by omega, by omega, ?_, ?_⟩ <;> (have : (go!"http://").length = 7 := rfl) <;> omega
 
 end etcd_dist
 end EtcdGrove
