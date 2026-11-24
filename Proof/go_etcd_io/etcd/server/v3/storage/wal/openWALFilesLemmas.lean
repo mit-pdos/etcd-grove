@@ -66,13 +66,16 @@ theorem walOpenedRc_file (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInt
     iexact Hl
 
 theorem walOpenedRc_rcFile (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInterfaceOk) (lf : Loc)
-    (rc : GoInterface) :
+    (rc : GoInterface) (hb : os.closeErrMax (child dir b) ≤ wal.closeMsgMax) :
     walOpenedRc (GF := GF) write dir b i fr lf rc ⊢ wal.rcFile rc := by
   unfold walOpenedRc wal.rcFile
   iintro ⟨%f, %fd, %rl, %lo, %lk, Hf, Hfd, Hlks, -, -, -, -, Hw⟩
   ihave Hlks := fdLocksW_locks _ _ $$ Hlks
   iexists f, fd, child dir b, _
   iframe
+  isplitr
+  swap
+  · ipureintro; exact hb
   cases write
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hw with %hw
@@ -157,10 +160,12 @@ theorem rcFiles_take (is : List Ino) :
 
 theorem walOpenedRcs_close (write : Bool) (dir : GoString) (ns : List GoString) (is : List Ino)
     (j : Nat) (frs : List GoInterfaceOk) (lfs : List Loc) (rcs : List GoInterface)
-    (hl : rcs.length = j) (hj : j ≤ is.length) :
+    (hl : rcs.length = j) (hj : j ≤ is.length)
+    (hns : ∀ m, os.closeErrMax (child dir (ns.getD m [])) ≤ wal.closeMsgMax) :
     walOpenedRcs (GF := GF) write dir ns is j frs lfs rcs ⊢ [∗list] rc ∈ rcs, wal.rcFile rc := by
   unfold walOpenedRcs
-  refine (BigSepL.bigSepL_mono (fun {m x} _ => walOpenedRc_rcFile (GF := GF) write dir _ x _ _ _)).trans ?_
+  refine (BigSepL.bigSepL_mono (fun {m x} _ =>
+    walOpenedRc_rcFile (GF := GF) write dir _ x _ _ _ (hns m))).trans ?_
   exact rcFiles_take is j rcs hl hj
 
 /-- What the closer keeps of a file `openWALFiles` opened (persistent): the reader's `*fileReader` over
@@ -218,7 +223,7 @@ theorem walRcLink_rcFile (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : Go
   iunfold walRcLink at Hl
   iunfold wal.walClosable at Hc
   icases Hl with ⟨%f, %rl, %hfr, #Hrl, #Hw⟩
-  icases Hc with ⟨%f', %rl', %fd, %nm, %fl, %hfr', #Hrl', Hf, Hfd, Hlks, -⟩
+  icases Hc with ⟨%f', %rl', %fd, %nm, %fl, %hfr', #Hrl', Hf, Hfd, Hlks, -, %hnm⟩
   have hrl : rl' = rl := by
     have h1 := hfr'.symm.trans hfr
     unfold interface.mkOk at h1
@@ -234,6 +239,9 @@ theorem walRcLink_rcFile (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : Go
   iunfold wal.rcFile
   iexists f', fd, nm, fl
   iframe Hf Hfd Hlks
+  isplitr
+  swap
+  · ipureintro; exact hnm
   cases write
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hw with %hw
