@@ -967,6 +967,8 @@ dispatching `update` (in place of `Update`, which calls it): mvcc's hasher is pr
   before `d`; `Sscanf` names-only). The WAL's `Link.lean` rests on `fmt.SprintfWalName.wp_proof` and
   `fmt.SscanfWalName.wp_proof` through the part's generated copies (`etc/gen-part-copies.py`: the
   same statements, not new axioms).
+  (2026-11-24, `prove-ps2-fmtstage1`) (1) done by real `fmt` stage 1 (perennial#671, `50596346c`):
+  `fmt.SprintfWalName` is a theorem from `fmt.wp_Sprintf_walName`. (2), (3) still open.
 
 ### `errors.Is` with a struct-valued target: `net.ErrClosed` (2026-11-14, branch `net-tcp`)
 
@@ -4482,6 +4484,20 @@ the pending hypotheses are discharged.
   `prom-registry` (#15) lands, on its `reg_steps`.
 - **Status.** Not filed.
 
+## 2026-11-24: real `fmt` stage 1's verified subset leaves verified call sites out (branch `prove-ps2-fmtstage1`, #9)
+
+- **Limitation.** Perennial's spec of the translated `fmt.Sprintf` (`50596346c`) covers literal text, `%%`,
+  `%d %v %x %0Nd %0Nx` of predeclared integers, `%v` of bool/nil, `%s %v %x` of strings and of `Error()`/
+  `String()` values, `[]byte`. Verified call sites outside it: `%p` (etcd `Client.dial`, bbolt `Options.String`),
+  `%t` (bbolt `Options.String`), `%.2X` (otel `propagation`'s init), `%q` (k8s `NewNotFound`, `NewAlreadyExists`,
+  `NewConflict`, `conditionsToAppliedErroredUnevaluated`, `field.ErrorType.String`; net/http
+  `modelReadMIMEHeader`), `%#v` (k8s `field.Error.ErrorBody`), a method-less named string `%v` (k8s
+  `Preconditions.Check`'s `types.UID`).
+- **Also missing.** Bridge lemmas from the trusted model's premise `fmt.argOk` (method-set facts and
+  `stringMethodSpec`) to `fmt.isArg … (.method _)`: written here (`Proof/fmt/SprintfPure.lean`:
+  `fmt.isArg_error`, `fmt.isArg_stringer`, `fmt.PureArgs`, `fmt.wp_Sprintf_pure`); general facts about
+  Perennial's definitions, to be proposed to Perennial.
+- **Status.** Reported on #9.
 ## 2026-11-24: no step rule for `i == nil` on a variable interface (bootstrap #34, `bootstrapSnapshot`)
 
 - **Limitation.** `InterfaceSemantics.go_eq_interface` steps `GoOp GoEquals (go.InterfaceType _)` to a

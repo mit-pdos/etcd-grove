@@ -37,6 +37,7 @@ rdslot, `adjustTicks`'s transport slot: `srvMonitorRes`), and the callers turn t
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.URLBounds
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 
@@ -142,14 +143,17 @@ def srvReadyCh (s : Loc) : IProp GF :=
 /-- **The server's attributes, read-only** (persistent; prove-ps2-srvgoroutines, 2026-11-24): `s.attributes`
 (`membership.Attributes{Name: cfg.Name, ClientURLs: cfg.ClientURLs.StringSlice()}`, set by `NewServer` and
 never written after), its `Name` and its `ClientURLs` slice with the slice's strings: what `publishV3`'s
-request (`ClusterMemberAttrSetRequest`, whose `ClientUrls` shares the slice) and its log lines read. -/
+request (`ClusterMemberAttrSetRequest`, whose `ClientUrls` shares the slice) and its log lines read;
+(fmt stage 1, 2026-11-24) at most `etcdURLCountMax` strings of at most `etcdURLLenMax` bytes each
+(`NewServer`'s `etcdURLsFit` of its client URLs), which keeps `publishV3`'s `strings.Join` of them
+below `Join`'s length bound. -/
 def srvAttrsRO (s : Loc) : IProp GF :=
   iprop(∃ (name : GoString) (sl : GoSlice) (urls : List GoString),
     structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name"
       (structFieldRef EtcdServer go!"attributes" s) ↦□ name ∗
     structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs"
       (structFieldRef EtcdServer go!"attributes" s) ↦□ sl ∗
-    sl ↦*□ urls)
+    sl ↦*□ urls ∗ ⌜urls.length ≤ etcdURLCountMax ∧ ∀ u ∈ urls, u.length ≤ etcdURLLenMax⌝)
 
 instance srvAttrsRO_persistent (s : Loc) : Persistent (srvAttrsRO (GF := GF) s) := by
   unfold srvAttrsRO; infer_instance

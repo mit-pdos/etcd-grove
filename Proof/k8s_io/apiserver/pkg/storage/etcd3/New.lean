@@ -21,6 +21,7 @@ public import Spec.strings.TrimSuffix
 public import Spec.go_etcd_io.etcd.client.v3.Client__Ctx
 public import Spec.reflect.TypeOf
 public import Perennial.Proof.strings.HasPrefix
+public import Perennial.Proof.internal.stringslite.HasPrefix
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
@@ -106,7 +107,7 @@ theorem New.wp_proof
   wp_auto
   ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
   · iPkgInit
-  wp_apply _root_.Perennial.strings.HasPrefix.wp_proof
+  wp_apply (_root_.Perennial.strings.HasPrefix.wp_proof _root_.Perennial.internal.stringslite.HasPrefix.wp_proof)
   rw [decide_eq_true hrp]
   wp_auto
   -- the list error aggregator: the default, or (by the feature gate) the corrupt-object one

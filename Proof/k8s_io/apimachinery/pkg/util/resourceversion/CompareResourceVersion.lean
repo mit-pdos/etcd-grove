@@ -50,13 +50,15 @@ theorem CompareResourceVersion.wp_proof
     · wp_auto
       wp_func_call
       wp_call
-      by_cases hla : a.length < 2 ^ 63
+      by_cases hla : ((a).length : Int) ≤ maxAddr
       · rw [if_pos hla]
+        have hla_lt : (a).length < 2 ^ 63 := by unfold maxAddr at hla; omega
         wp_auto
         wp_func_call
         wp_call
-        by_cases hlb : b.length < 2 ^ 63
+        by_cases hlb : ((b).length : Int) ≤ maxAddr
         · rw [if_pos hlb]
+          have hlb_lt : (b).length < 2 ^ 63 := by unfold maxAddr at hlb; omega
           wp_auto
           have hcmp := lexCmp_eq_cmpNat a b ha hb
           simp only [compareRV, ha, hb, ↓reduceIte]
@@ -64,19 +66,19 @@ theorem CompareResourceVersion.wp_proof
           unfold lexCmp
           wp_if_destruct
           · have h1 : a.length < b.length := by
-              rw [sintZ_len hla, sintZ_len hlb] at Hif; simp at Hif; omega
+              rw [sintZ_len hla_lt, sintZ_len hlb_lt] at Hif; simp at Hif; omega
             simp only [h1, ↓reduceIte]
             iapply HΦ; itrivial
           · have h1 : ¬ a.length < b.length := by
-              rw [sintZ_len hla, sintZ_len hlb] at Hif; simp at Hif; omega
+              rw [sintZ_len hla_lt, sintZ_len hlb_lt] at Hif; simp at Hif; omega
             simp only [h1, ↓reduceIte]
             wp_if_destruct
             · have h2 : a.length > b.length := by
-                rw [sintZ_len hla, sintZ_len hlb] at Hif; simp at Hif; omega
+                rw [sintZ_len hla_lt, sintZ_len hlb_lt] at Hif; simp at Hif; omega
               simp only [h2, ↓reduceIte]
               iapply HΦ; itrivial
             · have h2 : ¬ a.length > b.length := by
-                rw [sintZ_len hla, sintZ_len hlb] at Hif; simp at Hif; omega
+                rw [sintZ_len hla_lt, sintZ_len hlb_lt] at Hif; simp at Hif; omega
               simp only [h2, ↓reduceIte]
               wp_apply wp_Compare
               iapply HΦ; itrivial

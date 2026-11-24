@@ -225,6 +225,11 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2) the member's peer and client URLs within
+  -- etcd's URL bounds (`etcdURLsFit`: at most `etcdURLCountMax` URLs of at most `etcdURLLenMax`
+  -- bytes, each `http://host`), for the `strings.Join`s of their strings (`publishV3`'s log lines,
+  -- the transport's `X-PeerURLs`)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
   -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
   -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of

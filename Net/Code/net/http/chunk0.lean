@@ -8491,7 +8491,7 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName []))) (Val #())) (Var "$a0"))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.textproto.MIMEHeader.ty))) (Var "m"))
   (Let "$r1" (App (Val (GoInstruction (Convert _root_.Perennial.net.textproto.ProtocolError.ty go.error))) (Let "$a0" (Val #(go!"malformed MIME header line: %q"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "kv")))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "kv"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8571,7 +8571,7 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "colon")) (Val #(W64 0)))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.net.textproto.MIMEHeader.ty))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (Convert _root_.Perennial.net.textproto.ProtocolError.ty go.error))) (Let "$a0" (Val #(go!"malformed MIME header: missing colon: %q"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "kv")))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "kv"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8666,7 +8666,7 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- modelChunked stands for a chunked body's reader: not modelled.
 
-    go: textproto_model.go:169:6 -/
+    go: textproto_model.go:171:6 -/
 noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.io.Reader.ty))) (Val #())))
@@ -8685,7 +8685,7 @@ noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
     in encodePath mode changes none of these bytes). On every other URI it is Go's function.
     MODEL: Go's parse calls strings.Cut, ToLower and Index, which Perennial translates as names only.
 
-    go: textproto_model.go:180:6 -/
+    go: textproto_model.go:182:6 -/
 noncomputable def modelParseRequestURI.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rawurl"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Val #())))
@@ -8727,7 +8727,7 @@ noncomputable def modelParseRequestURI.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- modelPathBytes reports whether every byte of s is one modelPathByte accepts.
 
-    go: textproto_model.go:188:6 -/
+    go: textproto_model.go:190:6 -/
 noncomputable def modelPathBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -8767,7 +8767,7 @@ noncomputable def modelPathBytes.impl [GooseExts] [GoGlobalContext] : val :=
     bytes (letters, digits, "-", "_", ".", "~") and the sub-delimiters and separators that
     shouldEscape(c, encodePath) does not escape ("$", "&", "+", ",", "/", ":", ";", "=", "@").
 
-    go: textproto_model.go:200:6 -/
+    go: textproto_model.go:202:6 -/
 noncomputable def modelPathByte.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -8797,7 +8797,7 @@ noncomputable def modelPathByte.impl [GooseExts] [GoGlobalContext] : val :=
     but for strings.IndexByte(v, ','), which Perennial translates as a name only, as modelIndexByte,
     and tokenEqual's loop (modelTokenEqual). MODEL: shouldClose calls it in place of httpguts'.
 
-    go: textproto_model.go:213:6 -/
+    go: textproto_model.go:215:6 -/
 noncomputable def modelHeaderValuesContainsToken.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "values"
   (Lam "token"
@@ -8839,7 +8839,7 @@ noncomputable def modelHeaderValuesContainsToken.impl [GooseExts] [GoGlobalConte
 /-- modelHeaderValueContainsToken is httpguts' headerValueContainsToken (strings.IndexByte as
     modelIndexByte).
 
-    go: textproto_model.go:224:6 -/
+    go: textproto_model.go:226:6 -/
 noncomputable def modelHeaderValueContainsToken.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Lam "token"
@@ -8894,7 +8894,7 @@ noncomputable def modelHeaderValueContainsToken.impl [GooseExts] [GoGlobalContex
 
 /-- modelIndexByte is strings.IndexByte(s, c): the index of the first c in s, or -1.
 
-    go: textproto_model.go:235:6 -/
+    go: textproto_model.go:237:6 -/
 noncomputable def modelIndexByte.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -8933,7 +8933,7 @@ noncomputable def modelIndexByte.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- modelTrimOWS is httpguts' trimOWS: x without the spaces and tabs at its ends.
 
-    go: textproto_model.go:245:6 -/
+    go: textproto_model.go:247:6 -/
 noncomputable def modelTrimOWS.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -8972,7 +8972,7 @@ noncomputable def modelTrimOWS.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- modelLowerASCII is httpguts' lowerASCII.
 
-    go: textproto_model.go:256:6 -/
+    go: textproto_model.go:258:6 -/
 noncomputable def modelLowerASCII.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
@@ -9002,7 +9002,7 @@ noncomputable def modelLowerASCII.impl [GooseExts] [GoGlobalContext] : val :=
     byte, at its byte index. This loop over t1's bytes fails at the first byte not ASCII, which
     starts that rune: the same result.
 
-    go: textproto_model.go:268:6 -/
+    go: textproto_model.go:270:6 -/
 noncomputable def modelTokenEqual.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t1"
   (Lam "t2"

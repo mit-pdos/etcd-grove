@@ -6,6 +6,7 @@
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.PkgInit
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import Proof.os.NsS
 
@@ -29,7 +30,7 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specOk : Prop :=
   ∀ (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp),
-  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
       osCallPerm (GF := GF) (callKey R p) qc }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir)) (Val #p))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗

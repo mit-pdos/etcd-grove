@@ -368,12 +368,12 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         crOut j b h (DFrac.own qTmp) o ∗
         crTr (ok = true) o ∗ ⌜ok = false → ¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)
     have hT : fileutil.OpenTriple
-        iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+        iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
           osNames j (.only [b]) (DFrac.own qTmp) h ∗ walInv (W := W) C Mr R jr r ∗
           walDirKey (W := W) dir j X)
         (child dir b) (wal.walOpenFlag true) (W32 384) A (crIno b h) := by
       unfold fileutil.OpenTriple
-      iintro %Ψ ⟨#Hos, #Hsi, Hp, Hperm, Hn, #Hwi, #Hkey⟩ HΨ
+      iintro %Ψ ⟨#Hosp, #Hos, #Hsi, Hp, Hperm, Hn, #Hwi, #Hkey⟩ HΨ
       icases osNames_quarters j (.only [b]) h $$ Hn with ⟨Hn, Hr⟩
       ihave Hau := walTmp_osAUnc (W := W) (A := Option (Nat × Nat × Ino)) C Mr R jr r dir j X b hbt h
         (crOut j b h) (crHist j b h) (crOut_tmpSplit j b h) (crHist_fo j b h) $$ Hwi [Hr]
@@ -381,7 +381,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
       iapply wp_open dir b (wal.walOpenFlag true) (W32 384) R j dq h (1 : Qp).half
         (1 : Qp).half (1 : Qp).half.half
         (crOut j b h (DFrac.own (1 : Qp).half.half)) hfl hcr htr hb hcur
-        (Qp.half_add_half 1) $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+        (Qp.half_add_half 1) $$ [$Hosp $Hos $Hsi $Hp $Hperm $Hn $Hau]
       inext
       iintro %f %err ⟨Hp, Hperm, %o, Ho1, Ho2, Htr, Hr⟩
       iapply HΨ
@@ -411,7 +411,9 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         rw [this]
         iframe Htr
         ipureintro; exact fun _ => hWo
-    wp_apply wp_create (child dir b) true _ _ A (crIno b h) hT $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hn $Hwi $Hkey]
+    ihave #Hosp : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+    · iPkgInit
+    wp_apply wp_create (child dir b) true _ _ A (crIno b h) hT $$ [$Hosp $Hos $Hpkg $Hsi $Hp $Hperm $Hn $Hwi $Hkey]
       as %lf %err Hpost
     unfold fileutil.lockPostW
     icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩
@@ -479,14 +481,14 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         iprop(osPathS R dir dq j ∗ osNames j (.only [b]) (DFrac.own qTmp) h ∗
           osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i (ok = true) ∗ ⌜ok = false → ¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)
       have hT : fileutil.OpenTriple
-          iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗
+          iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗
             osNames j (.only [b]) (DFrac.own qTmp) h ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i False)
           (child dir b) (wal.walOpenFlag true) (W32 384) A (fun _ i' => i' = i) := by
         unfold fileutil.OpenTriple
-        iintro %Ψ ⟨#Hos, #Hsi, Hp, Hn, Hperm, Htr⟩ HΨ
+        iintro %Ψ ⟨#Hosp, #Hos, #Hsi, Hp, Hn, Hperm, Htr⟩ HΨ
         iapply os.OpenFile.wp_truncS dir b (wal.walOpenFlag true) (W32 384) R j i (.only [b]) dq
           (DFrac.own qTmp) h (1 : Qp).half.half hfl htr hb (by simp [NameSet.Mem]) hcur
-          $$ [$Hos $Hsi $Hp $Hn $Hperm $Htr]
+          $$ [$Hosp $Hos $Hsi $Hp $Hn $Hperm $Htr]
         inext
         iintro %f %err ⟨Hp, Hn, Hperm, Htr, Hr⟩
         iapply HΨ
@@ -513,8 +515,10 @@ theorem wp_createTmp [os.file.FieldAssumptions]
           isplitl [Htr]
           · iapply trFile_mono i _ _ (fun h => by cases h) $$ Htr
           ipureintro; exact fun _ => hWo
+      ihave #Hosp : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+      · iPkgInit
       wp_apply wp_create (child dir b) true _ _ A (fun _ i' => i' = i) hT
-        $$ [$Hos $Hpkg $Hsi $Hp $Hn $Hperm $Hent] as %lf %err Hpost
+        $$ [$Hosp $Hos $Hpkg $Hsi $Hp $Hn $Hperm $Hent] as %lf %err Hpost
       unfold fileutil.lockPostW
       icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i', %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩
       · simp only [A]
@@ -585,19 +589,19 @@ theorem wp_removeTmp (wp_Remove : os.Remove.specFileSnc (GF := GF) (hG := hG))
     (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (r : GoString) (X : List GoString)
     (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
     (qc : Qp) (hb : NameOk b) (hbt : b ∈ walTmps) (hcur : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X ∗
         osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
         osNames j (.only [b]) (DFrac.own qTmp) h ∗ trFile i False }}
       (App (Val (@! os.Remove)) (Val #(child dir b)))
     {{ (err : GoInterface), RET #err; osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ tmpClaim j b }} := by
-  iintro %Φ ⟨#Hos, #Hsi, #Hwi, #Hkey, Hp, Hperm, Hn, Ht⟩ HΦ
+  iintro %Φ ⟨#Hpk, #Hos, #Hsi, #Hwi, #Hkey, Hp, Hperm, Hn, Ht⟩ HΦ
   icases osNames_quarters j (.only [b]) h $$ Hn with ⟨Hn, Hr⟩
   ihave Hau := walTmp_osAUnc (W := W) (A := Option (Nat × Nat)) C Mr R jr r dir j X b hbt h
     (rmFileOut j b i h) (rmHist j b i h) (rmFileOut_tmpSplit j b i h) (rmHist_fo j b i h) $$ Hwi [Hr]
   · iunfold walTmpP; iframe Hr; iexact Hkey
   iapply wp_Remove dir b j i R dq h (1 : Qp).half (1 : Qp).half qc
     (rmFileOut j b i h (DFrac.own (1 : Qp).half.half)) hb hcur (Qp.half_add_half 1)
-    $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+    $$ [$Hpk $Hos $Hsi $Hp $Hperm $Hn $Hau]
   inext
   iintro %err ⟨-, Hp, Hperm, %o, -, Ho1, Ho2⟩
   iapply HΦ

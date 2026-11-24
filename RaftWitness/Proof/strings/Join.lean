@@ -21,12 +21,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- From Perennial's `strings.wp_Join`, proved from its model of `Join`
-(`Perennial/TrustedCode/strings.lean`). -/
-theorem strings.Join.wp_proof : strings.Join.spec (GF := GF) (hG := hG) := by
-  intro elems xs dq sep
+/-- From Perennial's `strings.Join_owned_bounded_of` over the real `Join`'s spec. -/
+theorem strings.Join.wp_proof
+    (wp_Join : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG)) :
+    strings.Join.spec (GF := GF) (hG := hG) := by
+  intro elems xs sep B hB hm
   iintro %Φ ⟨#Hpkg, Hs⟩ HΦ
-  wp_apply _root_.Perennial.strings.wp_Join elems xs dq sep $$ [$Hs] as Hs
+  wp_apply _root_.Perennial.strings.Join_owned_bounded_of wp_Join elems xs sep B hB hm
+    $$ [$Hs] as Hs
   iapply HΦ $$ Hs
 
 

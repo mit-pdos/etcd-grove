@@ -37,15 +37,15 @@ theorem unionAuthzHandler.evaluateConditions.wp_proof
   intro h ctx name d data
   wp_start as ⟨#Hu, #Hd⟩
   iunfold isUnionAuthz at Hu
-  icases Hu with ⟨%nas, %m, #Hch, #Hchs, #Hm, #Hms⟩
+  icases Hu with ⟨%nas, %m, #Hch, #Hchs, #Hm, #Hms, -⟩
   wp_auto
   wp_apply (wp_map_lookup2 go.string Authorizer.ty h.nameToAuthorizer' m name DFrac.discard) $$ [$Hm] as -
   cases hl : m !! name with
   | none =>
     simp only [Option.isSome_none, Option.getD_none]
     wp_auto
-    iunfold isWFDecision at Hd
-    icases Hd with ⟨%md, #Hdm, -⟩
+    iunfold isWFDecisionFit at Hd
+    icases Hd with ⟨%md, #Hdm, -, -⟩
     wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of wp_ConditionsAwareDecision_FailureDecision)
       $$ [$unevaluatedSubDecision] as unevaluatedSubDecision
     · iexact Hdm

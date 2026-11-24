@@ -53,10 +53,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **A nonzero errno's error is `fmtErrorOk`** (§5 item 5). -/
-def errnoErrOk : Prop := ∀ e : w64, e ≠ 0 → ⊢ fmtErrorOk (GF := GF) (errnoErr e)
+def errnoErrOk : Prop := ∀ e : w64, e ≠ 0 → syscall.errnoOk (GF := GF) ⊢ fmtErrorOk (GF := GF) (errnoErr e)
 
-/-- `errnoErrOk` holds (2026-11-04): `syscall.Errno`'s `Error()` is now a trusted model
-(`TrustedCode/syscall.lean`, some string), `errnoErr_fmtErrorOk` (`Proof/syscall/ErrorOk.lean`). -/
+/-- `errnoErrOk` holds (2026-11-04): `errnoErr_fmtErrorOk` (`Proof/syscall/ErrorOk.lean`). Since
+2026-11-24 (fmt stage 1) `syscall.Errno`'s `Error()` is translated and reads `syscall`'s error table,
+so the fact takes `syscall.errnoOk`. -/
 theorem errnoErrOk_holds [syscall.Assumptions] : errnoErrOk (GF := GF) (hG := hG) :=
   fun e he => errnoErr_fmtErrorOk e he
 
