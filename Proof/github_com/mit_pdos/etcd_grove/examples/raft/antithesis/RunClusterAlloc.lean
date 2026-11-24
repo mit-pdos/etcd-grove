@@ -332,6 +332,64 @@ theorem nodeOwn_boot (h_open : raftState_open_rn.law (GF := GF)) (c : Loc) (γ :
   rw [if_neg (fun h => by simp [antView0] at h)]
   ipureintro; rfl
 
+/-- **A node made** (`RunCluster`'s node loop, before the run's names are complete): its read-only
+fields, its storage, what `NewRawNode` gave, its fields as the composite literal leaves them. -/
+def nodeMade (γr : Cluster) (n : Loc) (j : Fin 3) : IProp GF :=
+  iprop(∃ (rn ms si : Loc) (γs : MemStorNames) (sn : StorNames) (x : CrashNames) (g : Nat),
+    n.[H.node, go!"id"] ↦□ AntSim.nodeId j ∗
+    n.[H.node, go!"name"] ↦□ AntSim.nameOf (AntSim.nodeId j) ∗
+    n.[H.node, go!"rn"] ↦□ rn ∗ n.[H.node, go!"storage"] ↦□ ms ∗
+    bootStorRec si ms [W64 1, W64 2, W64 3] ∗ antStorRec si ms γs ∗ memStorLock ms γs ∗
+    memStorMeta ms γs hsZero ∗ ⌜γs.sz = false⌝ ∗
+    rawNode γr.raftNames rn (AntSim.nodeId j)
+      (rawNodeRestarted γr [] (antStorIface si) sn hsZero RaftState.init
+        (Membership.simple AntSim.voters3) 0) pInit [] 0 ∗
+    genView γr.raftNames (AntSim.nodeId j) x 1 g ∗ slotFree γr.raftNames (AntSim.nodeId j) g ∗
+    raftState γr (AntSim.nodeId j) RaftState.init ∗
+    n.[H.node, go!"role"] ↦ go!"follower" ∗ n.[H.node, go!"term"] ↦ W64 0 ∗
+    n.[H.node, go!"vote"] ↦ W64 0 ∗ n.[H.node, go!"commit"] ↦ W64 0 ∗
+    n.[H.node, go!"applied"] ↦ W64 0 ∗ n.[H.node, go!"cause"] ↦ null)
+
+/-- A made node's empty log: certified and committed (raft's facts `antG0`). -/
+theorem nodeMade_facts (h_cmt : rawNode_committed.law (GF := GF) (hG := hG))
+    (h_recs : rawNode_logRecs.law (GF := GF) (hG := hG)) (γr : Cluster) (n : Loc) (j : Fin 3) :
+    ⊢ nodeMade γr n j ={⊤}=∗ nodeMade γr n j ∗ isCommitted γr.raftNames [] ∗
+      logRecs γr.raftNames base0 [] := by
+  iintro Hm
+  iunfold nodeMade at Hm
+  icases Hm with ⟨%rn, %ms, %si, %γs, %sn, %x, %g, #Hid, #Hnm, #Hrn, #Hst, #Hb, #Hrec, #Hl, Hmeta,
+    %Hsz, Hr, Hgv, Hsf, Hrs, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause⟩
+  icases h_recs γr.raftNames rn (AntSim.nodeId j) _ pInit [] 0 $$ Hr with ⟨#Hlr, Hr⟩
+  ihave Hcd := h_cmt γr.raftNames rn (AntSim.nodeId j) _ pInit [] 0 $$ Hr
+  imod (fupd_mask_mono CoPset.subseteq_top) $$ Hcd with ⟨#Hc, Hr⟩
+  imodintro
+  isplitl [Hmeta Hr Hgv Hsf Hrs Hrole Hterm Hvote Hcommit Happ Hcause]
+  · iunfold nodeMade
+    iexists rn, ms, si, γs, sn, x, g
+    iframe Hid Hnm Hrn Hst Hb Hrec Hl Hmeta Hr Hgv Hsf Hrs Hrole Hterm Hvote Hcommit Happ Hcause
+    ipureintro; exact Hsz
+  isplitr
+  · iExactEq Hc; rfl
+  iExactEq Hlr; rfl
+
+/-- **A made node at its boot drain** (`nodeOwn_boot`), with its read-only id and name. -/
+theorem nodeMade_own (h_open : raftState_open_rn.law (GF := GF)) (c : Loc) (γ : AntNames)
+    (j : Fin 3) (n : Loc)
+    (hfacts : γ.raft.raftNames.reTrace = none ∧ γ.raft.raftNames.reCfg = AntSim.voters3 ∧
+      γ.raft.raftNames.maxData = none ∧ γ.raft.raftNames.reBoot = [] ∧
+      (↑(raftN γ.raft.raftNames) : CoPset) ⊆ ⊤ \ ↑antN) :
+    ⊢ nodeMade (GF := GF) γ.raft n j -∗ viewFrag γ j antView0 -∗ nodeLive γ j -∗ sentLb γ [] -∗
+      (n.[H.node, go!"id"] ↦□ AntSim.nodeId j ∗
+        n.[H.node, go!"name"] ↦□ AntSim.nameOf (AntSim.nodeId j)) ∗
+      nodeOwn c γ j n antView0 (.loop [] pInit) := by
+  iintro Hm Hv Hl #Hlb
+  iunfold nodeMade at Hm
+  icases Hm with ⟨%rn, %ms, %si, %γs, %sn, %x, %g, #Hid, #Hnm, #Hrn, #Hst, #Hb, #Hrec, #Hlk, Hmeta,
+    %Hsz, Hr, Hgv, Hsf, Hrs, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause⟩
+  iframe Hid Hnm
+  iapply nodeOwn_boot (GF := GF) h_open c γ j n rn ms si γs sn x g hfacts Hsz $$ Hrn Hst Hb Hrec Hlk Hmeta Hr
+    Hgv Hsf Hrs Hrole Hterm Hvote Hcommit Happ Hcause Hv Hl Hlb
+
 end node
 
 end AntHarness
