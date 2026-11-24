@@ -94,12 +94,6 @@ private theorem rep_cast (P : IProp GF) (a b : Nat) :
   subst h
   iexact H
 
-/-- `bootstrap`'s restart contract is persistent (as `bootstrapContract`). -/
-instance bootstrapRestartContract_persistent [MemStorReg GF] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (U : BootURLs) (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) :
-    Persistent (bootstrapRestartContract (GF := GF) cfg U γ id N dir) := by
-  unfold bootstrapRestartContract; infer_instance
-
 set_option linter.unusedVariables false in
 set_option maxRecDepth 100000 in
 set_option pp.maxSteps 200000 in

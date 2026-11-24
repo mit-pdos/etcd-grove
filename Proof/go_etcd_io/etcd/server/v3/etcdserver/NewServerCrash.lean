@@ -63,6 +63,12 @@ theorem NewServer.wp_proofC (hRAt : NewServer.specRAt (GF := GF) (hG := hG)) :
     ihave #HbootR := bootstrapAtR_of_crash cfg U γ id N dir σ i A D M Hw $$ HbootC
     iapply h' $$ [-HΦ] HΦ
     iframe
+    iframe %Hγn
+    iframe %Haufit
+    iframe %Hbuq
+    iframe %Hdisk
+    iframe %Hmmap
+    iframe #
   · -- WIP (etcd-dist D6 T4): the backend ahead of the WAL's commit; see the file header.
     sorry
 

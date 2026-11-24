@@ -69,6 +69,19 @@ instance bootstrapAtR_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerC
     Persistent (bootstrapAtR (GF := GF) cfg U γ id N dir σ i L D M) := by
   unfold bootstrapAtR; infer_instance
 
+/-- `bootstrap`'s restart contract is persistent (as `bootstrapContract`; moved here from
+`NewServerR.lean`). -/
+instance bootstrapRestartContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (U : BootURLs) (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) :
+    Persistent (bootstrapRestartContract (GF := GF) cfg U γ id N dir) := by
+  unfold bootstrapRestartContract; infer_instance
+
+/-- `bootstrap`'s crash contract is persistent. -/
+instance bootstrapCrashContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (U : BootURLs) (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) :
+    Persistent (bootstrapCrashContract (GF := GF) cfg U γ id N dir) := by
+  unfold bootstrapCrashContract; infer_instance
+
 /-- The graceful contract at an image. -/
 theorem bootstrapAtR_of_restart (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) (σ : StorContents) (i : w64)
@@ -104,6 +117,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **A crash image with the backend at or below the WAL's commit is a graceful one** (and its
 records meet the WAL's read facts): the vacancy armed (`nodeVacant_armD`: the crash token dropped, as
@@ -120,7 +134,7 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
   ihave Hws := wal.stopImage_intro γ.cl S σ i Hw.1 Hw.2.2 hc $$ [Hcert Hl]
   · iframe Hcert Hl
   imodintro
-  isplitr [Hvac HrS Hmv Hws Hreg Hfiles Hsd]
+  isplitl [Hvac HrS Hmv Hws Hreg Hfiles Hsd]
   · iframe Hvac HrS HA Hmv Hconf Hws Hreg Hfiles Hsd
     isplitr
     · ipureintro; exact Hρ
@@ -257,6 +271,12 @@ theorem NewServer.specR_of_RAt (h : NewServer.specRAt (GF := GF) (hG := hG)) :
   ihave #HbootA := bootstrapAtR_of_restart cfg U γ id N dir σ i A D M $$ HbootR
   iapply h' $$ [-HΦ] HΦ
   iframe
+  iframe %Hγn
+  iframe %Haufit
+  iframe %Hbuq
+  iframe %Hdisk
+  iframe %Hmmap
+  iframe #
 
 end spec
 
