@@ -78,7 +78,7 @@ def EtcdBootNC : Prop :=
           [∗list] i ↦ _m ∈ machines d σs σc σn, Ps i
 
 /-- **The machines' boot WPs, for a malformed deployment**: every program checks the deployment first
-(Go's `dist.WellFormed`) and returns, so the start allocates nothing (no address) and each machine's
+(Go's `deployment.WellFormed`) and returns, so the start allocates nothing (no address) and each machine's
 boot WP holds from `True`. Discharged after D2 from the validator's spec (`WellFormed(d) == nil` only if
 `d.WellFormed`). -/
 def EtcdBootNCBad : Prop :=

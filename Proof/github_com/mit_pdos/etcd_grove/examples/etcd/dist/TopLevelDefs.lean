@@ -215,7 +215,7 @@ def Deployment.nodeList (d : Deployment) : List (Workload × Nat × GoString) :=
 /-- PLACEHOLDER (stage D2, open question Q5): **etcd's member id**, as `membership.NewMember`
 computes it: the first 8 bytes, big-endian, of the SHA-1 of the member's sorted peer URLs
 concatenated with the cluster token. Since 2026-11-24 not in any premise: `WellFormed` is checked by
-the programs (Go's `dist.WellFormed`, which computes the ids with `membership.ComputeMemberID` over
+the programs (Go's `deployment.WellFormed`, which computes the ids with `membership.NewMember` over
 Perennial's translated and proved `crypto/sha1`); this becomes that function's Lean model, used only
 inside the proof. -/
 opaque memberId (peerURL : GoString) (token : GoString) : w64
@@ -284,8 +284,8 @@ end boot
 
 /-! ## The programs (PLACEHOLDER: stage D2, the translations)
 
-Every machine's program takes the **whole deployment** as a Go value (`dist.Deployment`) and its
-own index, and first checks the deployment (Go's `dist.WellFormed`, Lean's `Deployment.WellFormed`),
+Every machine's program takes the **whole deployment** as a Go value (`deployment.Deployment`, `examples/etcd/dist/deployment`) and its
+own index, and first checks the deployment (Go's `deployment.WellFormed`, Lean's `Deployment.WellFormed`),
 returning at once if it fails (rule: a premise the program can check is the program's, with a Go test
 that the check passes and the real path runs: `TestWellFormed`, `TestDist`). So `WellFormed` is not a
 premise of the statement: on a malformed deployment every machine stops at its first step. -/
@@ -294,19 +294,19 @@ section programs
 variable [GooseExts] [GoGlobalContext]
 
 /-- PLACEHOLDER (stage D2): **member `i`'s machine's boot program**, `server`'s initialization then
-`server.MainDeployment(d, i)` (`dist.WellFormed(d)`, then `server.Main(d.ServerConfig(i))`), the
+`server.MainDeployment(d, i)` (`deployment.WellFormed(d)`, then `server.Main(server.ConfigOf(d, i))`), the
 deployment as a Go value: the same expression at the first start and after every crash (etcd's
 `NewServer` restarts from the WAL). -/
 opaque serverProg (d : Deployment) (i : Nat) : Expr
 
 /-- PLACEHOLDER (stage D2): **workload `j`'s orchestrator machine's boot program**, `client`'s
-initialization then `client.MainDeployment(d, j)` (`dist.WellFormed(d)`, then `client.MainReady(w,
+initialization then `client.MainDeployment(d, j, ready)` (`deployment.WellFormed(d)`, then `client.MainReady(w,
 eps, nodes, _)` with the members' client addresses `eps` in the members' order and the workload's
 client machines' addresses `nodes`, D8). -/
 opaque clientProg (d : Deployment) (j : Nat) : Expr
 
 /-- PLACEHOLDER (stage D2): **the `n`-th client machine's boot program** (in `nodeList`'s order),
-`client`'s initialization then `client.NodeDeployment(d, n)` (`dist.WellFormed(d)`, then
+`client`'s initialization then `client.NodeDeployment(d, n)` (`deployment.WellFormed(d)`, `d.Node(n)`, then
 `client.NodeMain(w, c, addr, eps)`: client machine `c` of workload `w`, listening at `addr`, D8). -/
 opaque nodeProg (d : Deployment) (n : Nat) : Expr
 

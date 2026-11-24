@@ -22,7 +22,7 @@ keeps fewer than `threads` threads, **no thread of any machine is stuck or has a
 Each client panics if its check fails, so no check fails.
 
 **The deployment is not a premise.** Every machine's program receives the whole deployment and checks
-it first (Go's `dist.WellFormed`, mirrored by Lean's `Deployment.WellFormed`: names, `addrOk` addresses,
+it first (Go's `deployment.WellFormed`, mirrored by Lean's `Deployment.WellFormed`: names, `addrOk` addresses,
 distinct, the members' ids apart in their low bits, the server configuration in its supported set, the
 workloads compatible and within their bounds), returning at once if it fails; `TestWellFormed` and
 `TestDist` show the check passes on random deployments and the real path runs.
