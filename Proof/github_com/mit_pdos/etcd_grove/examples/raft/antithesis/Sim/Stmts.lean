@@ -80,12 +80,13 @@ def NodeView.noteInput (v : NodeView) (inp : Input) : NodeView :=
 view's own state), an input taken between inputs (`v` noted it, `NodeView.noteInput`; a message
 received was sent to it), or `Advance` at the end of a `Ready` whose reports are all made
 (`AdvanceEnd` stepping the `Ready`'s self-addressed messages; the drain's `by` one of the
-harness's). -/
+harness's). A message received has a nonzero term (`RawNode.Step`'s `NetMsgOk`, every type the
+network delivers being stamped), so `RecvEnd`'s local arm is not taken. -/
 inductive Reach (id : w64) (net : List Msg) : NodeView → PState → Prop
   | stay (v : NodeView) : v.Idle → Reach id net v v.ps
   | input (v : NodeView) (inp : Input) (ps₁ : PState) :
       v.Idle → v.byE = inp.byE → v.cause = inp.cause →
-      (∀ m, inp = .recv m → m ∈ net ∧ m.dst = id) →
+      (∀ m, inp = .recv m → m ∈ net ∧ m.dst = id ∧ m.term ≠ W64 0) →
       InputStep id v.ps inp ps₁ → Reach id net v ps₁
   | advance (v : NodeView) (ps₁ : PState) :
       v.pend = [] → v.ce = [] →
