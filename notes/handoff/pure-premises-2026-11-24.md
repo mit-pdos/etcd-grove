@@ -181,6 +181,10 @@ Off `premise-witness/2026-11-24` `b3ead60186` (lean `366ab8486d`), untrusted and
 - Built on the VM: `Robustness.PremiseSat`, `Robustness.FsStart`, `WalAreasInitSat` and all 29
   `*TopLevelWitness` modules, exit 0 (5530 jobs), no `sorry` (`b5.log`); source gates ok
   (premise-witness --check, import-all, tier). No axiom, no statement touched. Next: land queue (untrusted).
+- Merged origin/lean `1e895c05ce` (clean, no generated-file conflicts). lean had added
+  `craq_remote_robust` and `gryff_remote_robust` (dsverify) with no witness: both added to the baseline as
+  `pending` (their library hypothesis bundles `rs`/`H` are data binders that would have to be built or
+  left out; their deployment part is witnessable as counter's). Baseline: 15 lines.
 - Pitfall: `omega` ignores atoms of type `Ino` (an abbrev of `Nat`): state arithmetic lemmas over `Nat`.
 - Pitfall: `Option.noConfusion h` no longer elaborates to `False` here (its type is `_ ≍ _ → …`):
   use `absurd h (by simp)`. `decide` refuses goals with free variables (the intro'd instances inside
