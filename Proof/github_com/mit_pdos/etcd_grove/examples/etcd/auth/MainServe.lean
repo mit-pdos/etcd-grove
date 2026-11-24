@@ -84,15 +84,15 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
+        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd ⊢
-      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis γ ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
+      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
         akKVOn addr s E ρ cid mid ∗ setupAuthServed addr s E ρ ∗
         isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) ∗
-        grpcServerAt addr [il, im, iu] regs γ := by
+        grpcServerAt addr [il, im, iu] regs etcdTys γ := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Hpa, #HBF, #Hil, #Him, #Hiu, Hgs,
     Hlis, #Hb, #Hrp⟩
-  imod (grpc.start' gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf hnd) $$ [Hgs Hlis]
+  imod (grpc.start' gs lis addr [il, im, iu] [ims, is] svcs regs sregs etcdTys etcdTys_reg Hrf hnd) $$ [Hgs Hlis Hleft]
     with ⟨%γ, #Hat', #Hss, Htok⟩
   · iframe
   iunfold srvAuthStoreOn at HBF

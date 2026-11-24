@@ -79,22 +79,47 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode
+open Iris Iris.BI Iris.ProofMode Net
 
-section axioms
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
+/-! ## Pure facts -/
 
-/-- **The reply channel of the accepted unary call `r`**, back to the client whose `Invoke`
-deposited `Φ`, `Ψe` (exclusive; made only by `acceptRun`/`acceptRunConns`; its only use is
-`respond`'s pre; no law). -/
-axiom grpcReplyTo (r : val) (Rep : ProtoMsgT GF) (Φ : Rep.M → IProp GF)
-  (Ψe : GoString → IProp GF) : IProp GF
+section pure
+variable [GooseExts]
 
-end axioms
+theorem grpc_inj_of_nodup_map {α β : Type} (f : α → β) :
+    ∀ (l : List α), (l.map f).Nodup → ∀ x ∈ l, ∀ y ∈ l, f x = f y → x = y
+  | [], _, x, hx, _, _, _ => by simp at hx
+  | a :: l, h, x, hx, y, hy, hxy => by
+    simp only [List.map_cons, List.nodup_cons, List.mem_map, not_exists, not_and] at h
+    rcases List.mem_cons.mp hx with rfl | hx' <;> rcases List.mem_cons.mp hy with rfl | hy'
+    · rfl
+    · exact absurd hxy.symm (h.1 y hy')
+    · exact absurd hxy (h.1 x hx')
+    · exact grpc_inj_of_nodup_map f l h.2 x hx' y hy' hxy
 
+/-- Under the joint `Nodup`, two unary entries of one name are one entry. -/
+theorem grpc_regs_unique (regs sregs : List (GoString × GoFunc × GoInterface)) (name : GoString)
+    (mh mh' : GoFunc) (srv srv' : GoInterface)
+    (Hnd : ((regs ++ sregs).map Prod.fst).Nodup)
+    (H1 : (name, mh, srv) ∈ regs) (H2 : (name, mh', srv') ∈ regs) : mh = mh' ∧ srv = srv' := by
+  have Hnd' : (regs.map Prod.fst).Nodup := by
+    rw [List.map_append] at Hnd; exact (List.nodup_append.mp Hnd).1
+  have := grpc_inj_of_nodup_map Prod.fst regs Hnd' _ H1 _ H2 rfl
+  simp only [Prod.mk.injEq, true_and] at this
+  exact this
+
+/-- Under the joint `Nodup`, two stream entries of one name are one entry. -/
+theorem grpc_sregs_unique (regs sregs : List (GoString × GoFunc × GoInterface)) (name : GoString)
+    (mh mh' : GoFunc) (srv srv' : GoInterface)
+    (Hnd : ((regs ++ sregs).map Prod.fst).Nodup)
+    (H1 : (name, mh, srv) ∈ sregs) (H2 : (name, mh', srv') ∈ sregs) : mh = mh' ∧ srv = srv' := by
+  have Hnd' : (sregs.map Prod.fst).Nodup := by
+    rw [List.map_append] at Hnd; exact (List.nodup_append.mp Hnd).2.1
+  have := grpc_inj_of_nodup_map Prod.fst sregs Hnd' _ H1 _ H2 rfl
+  simp only [Prod.mk.injEq, true_and] at this
+  exact this
+
+end pure
 
 /-! ## The registration and the accepted call -/
 
@@ -133,83 +158,151 @@ instance grpcSrvStreamChainAll_persistent (sics : List GoFunc) (si : GoFunc) :
     Persistent (grpcSrvStreamChainAll (GF := GF) sics si) := by
   unfold grpcSrvStreamChainAll; infer_instance
 
-/-- **An accepted call** `r` of server `γ` with Go's configuration `c` (what `acceptRun` returns
-with `runOk`). Unary: the run value of Go's handler `(name, mh, srv) ∈ c.regs` for the call's path;
-the registration the client deposited (`isGrpcRpcAt γ name Spec`), at the message models whose
-registration the client's `Invoke` required before depositing (`grpcReqModelOf`/`grpcRepModelOf`,
-transferred: "The pair"), and its request precondition
-`▷ Spec md m Φ Ψe` at the metadata `md` the run's context carries (`metadata.ctxInMD ci md`; perheap
-1b, 2026-11-18: until then at `metadata.incomingOf ci`, a pure function of the context); grpc's context, decoder and chain
-(Go facts); the reply channel `grpcReplyTo r Rep Φ Ψe`. Stream: the run value of Go's handler
-`(name, mh, srv) ∈ c.sregs`; the deposited stream registration, at the models whose registration
-`NewStream` required (`streamReqModelOf`/`streamRepModelOf`, transferred); Go's composed stream interceptor;
-the stream's shared persistent `Spec md γs Dn` at the metadata `md` its context carries, and its raw server end with both tokens at `[]`;
-grpc's `info`. -/
-def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
-  iprop((∃ (name : GoString) (mh : GoFunc) (srv : GoInterface) (ci : GoInterfaceOk)
-        (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc) (Req Rep : ProtoMsgT GF)
-        (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF)
-        (Ψe : GoString → IProp GF) (md : GrpcMd),
-      ⌜r = google_golang_org.grpc.model.runUnary mh srv ci dec ui⌝ ∗ ⌜(name, mh, srv) ∈ c.regs⌝ ∗
-      ⌜grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
-      isGrpcRpcAt γ name Spec ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req.toProtoMsg m ∗
-      grpcSrvChainAll c.ics ui ∗
-      metadata.ctxInMD ci md ∗ ▷ Spec md m Φ Ψe ∗
-      grpcReplyTo r Rep Φ Ψe) ∨
-    (∃ (name : GoString) (mh : GoFunc) (srv : GoInterface) (ci : GoInterfaceOk)
-        (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (info : Loc) (si : GoFunc)
-        (Req Rep : StreamMsgT GF) (Up : Nat → Req.M → IProp GF)
-        (Spec : GrpcMd → StreamSpec Rep.toStreamMsg) (γs : StreamNames)
-        (Dn : Nat → Rep.M → IProp GF) (md : GrpcMd),
-      ⌜r = google_golang_org.grpc.model.runStream mh srv st info ci si⌝ ∗
-      ⌜(name, mh, srv) ∈ c.sregs⌝ ∗
-      ⌜streamReqModelOf GF Req.ty = some Req ∧ streamRepModelOf GF Rep.ty = some Rep⌝ ∗
-      isGrpcStreamAt γ name Up Spec ∗
-      grpcSrvStreamChainAll c.sics si ∗
-      metadata.ctxInMD ci md ∗ □ Spec md γs Dn ∗
-      srvRawStreamIs st γs Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd ∗
-      srvRecvTok (Req := Req.toStreamMsg) γs [] ∗ srvSendTok (Rep := Rep.toStreamMsg) γs [] ∗
-      streamAuxTok γs ∗ srvStreamInfoIs info))
+/-- **`gs` serves the table `Svc` with Go's chain `ics`, methods `regs` and streams `sregs`**
+(persistent; phase 7 S2's interface, 2026-11-24): every entry of `Svc` names no stream (C3 of
+`notes/axiom-review/s2-interface.md`: a unary call of a stream's name would run the stream's
+handler), and a unary method `gs` registers under its name has that entry, at its registered message
+models, met by its handler as a run (`grpcRunOkMd`). An entry `gs` does not register gets grpc's
+`Unimplemented` (no handler's description). -/
+def grpcServes (Svc : GrpcSvc GF) (ics : List GoFunc)
+    (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF :=
+  iprop(□ ∀ (name : GoString) (e : GrpcEntry GF), ⌜Svc name = some e⌝ -∗
+    ⌜name ∉ sregs.map Prod.fst⌝ ∗
+    ∀ (mh : GoFunc) (srv : GoInterface), ⌜(name, mh, srv) ∈ regs⌝ -∗
+      ∃ (Req Rep : ProtoMsgT GF) (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg),
+        ⌜grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty = some Rep ∧
+          e = ⟨Req.toProtoMsg.wire, Rep.toProtoMsg.wire, Spec⟩⌝ ∗
+        grpcRunOkMd #mh srv ics Spec)
 
-/-- **The right to serve `gs` on `lis` as server `γ`** (what `gs.Serve(lis)` takes; per-type stage B,
-B1b: a definition, replacing the axiom of the same name): the link, Go's configuration with jointly
-distinct full names, and the replies' size premise under which `grpc.start` made them. Made only by
-`grpc.start'`. -/
-def grpcServeTok (gs : Loc) (lis : GoInterface) (γ : GName) : IProp GF :=
-  iprop(grpcSrvLink gs lis γ ∗ (∃ c : GrpcSrvCfg GF, grpcSrvCfg γ c ∗ ⌜grpcSrvNodup c⌝) ∗
-    ⌜grpcRepliesFit⌝)
+instance grpcServes_persistent (Svc : GrpcSvc GF) (ics : List GoFunc)
+    (regs sregs : List (GoString × GoFunc × GoInterface)) :
+    Persistent (grpcServes Svc ics regs sregs) := by
+  unfold grpcServes; infer_instance
 
-/-- **The start, packaged** (proved from `grpc.start`): the server listening at `addr`, as the facts
-`grpc.serve` and `grpc.serveStream` use (`grpcServerAt`, `grpcStreamServerAt`), and the right to
-serve it (`grpcServeTok`). -/
+/-- **The right to serve `gs` on `lis` at `a`, for the table `Svc`** (what `gs.Serve(lis)` takes;
+phase 7 S2's interface, 2026-11-24: it was `grpcServeTok gs lis γ`, the link and Go's configuration):
+Go's configuration `c`, either started (`grpc.start`: `gs` and `lis` linked to the server `γ`
+listening at `a`; what the stream registrations `isGrpcStreamAt γ` are about) or not (`gs` being
+built, with the node's open listener at `a`: no stream registration names it); full names jointly
+distinct; the replies' size premise; `a` serving `Svc` (`grpcAddrAt`); `gs` serving `Svc`
+(`grpcServes`). -/
+def grpcServeTok (gs : Loc) (lis : GoInterface) (a : GoString) (Svc : GrpcSvc GF) : IProp GF :=
+  iprop(∃ c : GrpcSrvCfg GF,
+    ((∃ γ : GName, grpcSrvLink gs lis γ ∗ grpcAddrIs a γ ∗ grpcSrvCfg γ c) ∨
+     (∃ svcs : List GoString,
+        grpcSrvNew gs c.ics c.sics svcs c.regs c.sregs ∗ netListenerOpen lis a)) ∗
+    ⌜grpcSrvNodup c ∧ grpcRepliesFit⌝ ∗
+    (∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
+      grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) a Svc) ∗
+    grpcServes Svc c.ics c.regs c.sregs)
+
+/-- **Go's configuration's entry for a registered method is met by its handler** (one process): under
+distinct full names, the handler `gs` registers under `name` meets `grpcGoEntry`'s spec, whose
+caller's run contract is the registered handler's (`grpc_regs_unique`). -/
+theorem grpcRunOkMd_goEntry (ics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
+    (name : GoString) (mh : GoFunc) (srv : GoInterface) (Req Rep : ProtoMsgT GF)
+    (hnd : ((regs ++ sregs).map Prod.fst).Nodup) (hin : (name, mh, srv) ∈ regs) :
+    ⊢ grpcRunOkMd (Req := Req.toProtoMsg) (Rep := Rep.toProtoMsg) #mh srv ics
+      (grpcGoEntry ics regs name Req Rep).spec := by
+  unfold grpcRunOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  iunfold grpcSpecAt at HSpec
+  icases HSpec with ⟨%md, Hmd, HS⟩
+  unfold grpcGoEntry
+  icases HS with ⟨%mh', %srv', %S, %hin', #Hrun, HS⟩
+  obtain ⟨rfl, rfl⟩ := grpc_regs_unique regs sregs name mh mh' srv srv' hnd hin hin'
+  iunfold grpcRunOkMd at Hrun
+  iapply Hrun $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch Hmd HS] HΨ
+  iframe
+  unfold grpcSpecAt
+  iexists md
+  iframe
+
+/-- **Go's configuration serves its table** (one process): an entry of `grpcGoSvc` is a registered
+unary method's, so it names no stream (distinct full names), at the models `tys` gives (registered,
+`htys`), met by its handler (`grpcRunOkMd_goEntry`). -/
+theorem grpcServes_go (ics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
+    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF))
+    (htys : ∀ n Req Rep, tys n = some (Req, Rep) →
+      grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty = some Rep)
+    (hnd : ((regs ++ sregs).map Prod.fst).Nodup) :
+    ⊢ grpcServes (grpcGoSvc ics regs tys) ics regs sregs := by
+  unfold grpcServes
+  iintro !> %name %e %he
+  have hm : name ∈ regs.map Prod.fst := by
+    unfold grpcGoSvc at he
+    by_cases h : name ∈ regs.map Prod.fst
+    · exact h
+    · simp [h] at he
+  obtain ⟨⟨Req, Rep⟩, hty, rfl⟩ : ∃ p, tys name = some p ∧ grpcGoEntry ics regs name p.1 p.2 = e := by
+    unfold grpcGoSvc at he
+    simp only [hm, if_true, Option.map_eq_some_iff] at he
+    exact he
+  isplitr
+  · ipureintro
+    intro hs
+    rw [List.map_append] at hnd
+    exact (List.nodup_append.mp hnd).2.2 name hm name hs rfl
+  iintro %mh %srv %hin
+  iexists Req, Rep, (grpcGoEntry ics regs name Req Rep).spec
+  isplitr
+  · ipureintro
+    exact ⟨(htys name Req Rep hty).1, (htys name Req Rep hty).2, rfl⟩
+  iapply grpcRunOkMd_goEntry ics regs sregs name mh srv Req Rep hnd hin
+
+/-- **The start, packaged** (proved from `grpc.start`; since phase 7 S2's interface it also sets the
+address's table): the server listening at `addr`, as the facts `grpc.serve` and `grpc.serveStream` use
+(`grpcServerAt`, at the table `grpcGoSvc ics regs tys`, `grpcStreamServerAt`), and the right to serve
+it (`grpcServeTok`). The table is set from what `Listen` left (`netAddrLeft`), in one ghost step that
+allocates the net library's registry and slot map (`netProto_alloc`, `depSlots_alloc`); `tys` gives
+the program's unary methods their registered message models (`htys`). -/
 theorem grpc.start' (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
     (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface))
+    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF))
+    (htys : ∀ n Req Rep, tys n = some (Req, Rep) →
+      grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty = some Rep)
     (hfit : grpcRepliesFit) (hnd : ((regs ++ sregs).map Prod.fst).Nodup) :
-    grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
-    |={⊤}=> ∃ γ : GName, grpcServerAt addr ics regs γ ∗ grpcStreamServerAt addr sics sregs γ ∗
-      grpcServeTok gs lis γ := by
-  iintro H
-  imod (grpc.start gs lis addr ics sics svcs regs sregs hfit hnd) $$ H with ⟨%γ, #Ha, #Hc, Hl⟩
+    grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ⊢
+    |={⊤}=> ∃ γ : GName, grpcServerAt addr ics regs tys γ ∗ grpcStreamServerAt addr sics sregs γ ∗
+      grpcServeTok gs lis addr (grpcGoSvc ics regs tys) := by
+  iintro ⟨Hn, Hl, Hleft⟩
+  iunfold netAddrLeft at Hleft
+  icases Hleft with ⟨%hX, Hp, #Hv, #Hti⟩
+  imod netProto_alloc (Gg := hG.goose_globalGS) ⊤ with ⟨%π, #Hreg⟩
+  imod depSlots_alloc (Gg := hG.goose_globalGS) ⊤ with ⟨%σ, #Hsl⟩
+  imod addr_set_proto_tok (Gg := hG.goose_globalGS) ⊤ addr (grpcCliPI (grpcGoSvc ics regs tys))
+    (grpcSrvPI (grpcGoSvc ics regs tys)) $$ Hreg Hp Hv Hti with #Hpr
+  ihave #Ha : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr (grpcGoSvc ics regs tys) $$ []
+  · unfold grpcAddrAt; iframe Hpr Hsl
+  imod (grpc.start gs lis addr ics sics svcs regs sregs hfit hnd) $$ [Hn Hl] with ⟨%γ, #Hai, #Hc, Hk⟩
+  · iframe
+  ihave #Hsv := grpcServes_go ics regs sregs tys htys hnd
   imodintro
   iexists γ
   unfold grpcServerAt grpcStreamServerAt grpcServeTok
-  isplitr [Hl]
-  · iframe Ha
-    iexists sics, sregs
-    iexact Hc
-  isplitr [Hl]
-  · iframe Ha
+  isplitr [Hk]
+  · iframe Hai
+    isplitr
+    · iexists sics, sregs
+      iexact Hc
+    iexists hX, π, σ
+    iexact Ha
+  isplitr [Hk]
+  · iframe Hai
     iexists ics, regs
     iexact Hc
-  iframe Hl
+  iexists ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF)
+  isplitl [Hk]
+  · ileft
+    iexists γ
+    iframe Hk Hai Hc
   isplitr
-  · iexists ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF)
-    iframe Hc
-    ipureintro
-    exact hnd
-  ipureintro
-  exact hfit
+  · ipureintro
+    exact ⟨hnd, hfit⟩
+  isplitr
+  · iexists hX, π, σ
+    iexact Ha
+  iexact Hsv
 
 end reg
 
@@ -389,45 +482,6 @@ theorem grpcStreamRunOk_of_pools {Req Rep : StreamMsg GF} (mh : val) (srv : GoIn
 
 end adapt
 
-/-! ## Pure facts -/
-
-section pure
-variable [GooseExts]
-
-theorem grpc_inj_of_nodup_map {α β : Type} (f : α → β) :
-    ∀ (l : List α), (l.map f).Nodup → ∀ x ∈ l, ∀ y ∈ l, f x = f y → x = y
-  | [], _, x, hx, _, _, _ => by simp at hx
-  | a :: l, h, x, hx, y, hy, hxy => by
-    simp only [List.map_cons, List.nodup_cons, List.mem_map, not_exists, not_and] at h
-    rcases List.mem_cons.mp hx with rfl | hx' <;> rcases List.mem_cons.mp hy with rfl | hy'
-    · rfl
-    · exact absurd hxy.symm (h.1 y hy')
-    · exact absurd hxy (h.1 x hx')
-    · exact grpc_inj_of_nodup_map f l h.2 x hx' y hy' hxy
-
-/-- Under the joint `Nodup`, two unary entries of one name are one entry. -/
-theorem grpc_regs_unique (regs sregs : List (GoString × GoFunc × GoInterface)) (name : GoString)
-    (mh mh' : GoFunc) (srv srv' : GoInterface)
-    (Hnd : ((regs ++ sregs).map Prod.fst).Nodup)
-    (H1 : (name, mh, srv) ∈ regs) (H2 : (name, mh', srv') ∈ regs) : mh = mh' ∧ srv = srv' := by
-  have Hnd' : (regs.map Prod.fst).Nodup := by
-    rw [List.map_append] at Hnd; exact (List.nodup_append.mp Hnd).1
-  have := grpc_inj_of_nodup_map Prod.fst regs Hnd' _ H1 _ H2 rfl
-  simp only [Prod.mk.injEq, true_and] at this
-  exact this
-
-/-- Under the joint `Nodup`, two stream entries of one name are one entry. -/
-theorem grpc_sregs_unique (regs sregs : List (GoString × GoFunc × GoInterface)) (name : GoString)
-    (mh mh' : GoFunc) (srv srv' : GoInterface)
-    (Hnd : ((regs ++ sregs).map Prod.fst).Nodup)
-    (H1 : (name, mh, srv) ∈ sregs) (H2 : (name, mh', srv') ∈ sregs) : mh = mh' ∧ srv = srv' := by
-  have Hnd' : (sregs.map Prod.fst).Nodup := by
-    rw [List.map_append] at Hnd; exact (List.nodup_append.mp Hnd).2.1
-  have := grpc_inj_of_nodup_map Prod.fst sregs Hnd' _ H1 _ H2 rfl
-  simp only [Prod.mk.injEq, true_and] at this
-  exact this
-
-end pure
 
 end EtcdGrove
 end Perennial

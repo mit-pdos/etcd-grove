@@ -60,13 +60,14 @@ data frame or a trailer with a handler's description has its slot's answer
 **Not yet** (S2's later steps): the parse of the server's frame sequence (a client's read of
 `settingsBytes` and whole frames gives each frame's `srvFrameOk`; the server's blocks are within
 the limit, or the marker `.oversized`, since F1's fix), the client attempt's proof (`newClientTransportStream`,
-`createHeaderFields`), the codec's laws relating `ProtoWire.enc` to the store (O7), and
-`ProtoMsg.wire` (O3: here a message's wire part has its bytes `enc`, not a tree).
+`createHeaderFields`), and the codec's laws for `protoEncodes` (O7: a message's wire part is its
+tree, `ProtoMsg.wire`, O3, and its bytes are any `protoEncodes` relates to the tree, an opaque
+relation in `Store.lean` with no law yet).
 -/
 module
 
 public import GooseLang.Ext.Net.Slot
-public import Proof.google_golang_org.grpc.InvGrpc
+public import Proof.google_golang_org.grpc.InvGrpcBase
 public import Proof.encoding.base64.Base
 
 @[expose] public section
@@ -459,12 +460,16 @@ section svc
 variable [GooseExts]
 variable {GF : BundledGFunctors}
 
-/-- **A message type's wire part** (no heap): its Go type, its model, and the bytes grpc's codec
-marshals a message of model `m` to (the codec's laws, O7, tie them to the store). -/
+/-- **A message type's wire part** (no heap): its Go type, its model, and its stored form (the
+tree `storeInto ty` writes for a message of model `m`; its bytes are any `protoEncodes ty (tree m)`
+relates it to, O7). -/
 structure ProtoWire where
   ty : go.GoType
   M : Type
-  enc : M → List w8
+  tree : M → VTree
+
+/-- **A message type's wire part** (no heap: its Go type, its model, its stored form). -/
+abbrev ProtoMsg.wire {GF : BundledGFunctors} (T : ProtoMsg GF) : ProtoWire := ⟨T.ty, T.M, T.tree⟩
 
 /-- **A unary method of a service**: its messages' wire parts and its spec (no heap). -/
 structure GrpcEntry (GF : BundledGFunctors) [GooseExts] where
@@ -489,7 +494,7 @@ def grpcDeposit (e : GrpcEntry GF) (fs : List (GoString × GoString)) (m : e.Wq.
 `Φ m'`; or, for a handler's description, its `Ψe`. -/
 def grpcSlotCont (e : GrpcEntry GF) (Φ : e.Wp.M → IProp GF) (Ψe : GoString → IProp GF) :
     GrpcOut → IProp GF
-  | .ok bs => iprop(∃ m', ⌜e.Wp.enc m' = bs⌝ ∗ Φ m')
+  | .ok bs => iprop(∃ m', ⌜protoEncodes e.Wp.ty (e.Wp.tree m') bs⌝ ∗ Φ m')
   | .err d => iprop(⌜d ∈ handlerDescs⌝ -∗ Ψe d)
 
 /-- **What a dialer writes on a connection to an address serving `Svc`, as the S2 interface states
@@ -523,7 +528,7 @@ def grpcAttemptSlot (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoStri
     (bs : List w8) : IProp GF :=
   iprop(∃ (name : GoString) (e : GrpcEntry GF) (γ : SlotNames) (m : e.Wq.M)
       (Φ : e.Wp.M → IProp GF) (Ψe : GoString → IProp GF),
-    ⌜pathOf fs = some name ∧ Svc name = some e ∧ e.Wq.enc m = bs⌝ ∗
+    ⌜pathOf fs = some name ∧ Svc name = some e ∧ protoEncodes e.Wq.ty (e.Wq.tree m) bs⌝ ∗
     depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) ∗
     depSlotInv (Gg := Gg) cn γ (msgReady fs bs) (grpcDeposit e fs m Φ Ψe) (grpcSlotCont e Φ Ψe))
 

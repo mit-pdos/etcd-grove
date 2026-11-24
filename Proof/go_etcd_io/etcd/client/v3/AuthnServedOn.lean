@@ -313,7 +313,7 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn (srvTLSId s) E γr cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn (srvTLSId s) E ρ cid mid) ∗
@@ -499,7 +499,7 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
       v3rpc.leaseServerAt pl s A lcid lmid ∗
       srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗ srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
       srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-      grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+      grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
     |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)) ∗
       isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #HNR, #Hq, #Hat, #Hil, #Him, #Hiu, #Hl, #Hb, #Hrpl⟩
@@ -590,12 +590,16 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
     itrivial
   ihave #Hks := etcd_runOks_of_slot [il, im, iu] s E γr HL (etcdLeaseMethodsOn ql s E ρ) $$ [Hms]
   · iframe #
-  imod (grpc.serve addr [il, im, iu] regs (etcdLeaseMethodsOn ql s E ρ) γ
+  imod (grpc.serve addr [il, im, iu] regs etcdTys (etcdLeaseMethodsOn ql s E ρ) γ
     (by
       intro x hx
       apply hregs
       simp only [etcdLeaseMethodsOn, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl <;> simp [v3rpc.leaseRegs])) $$ [] with Hrpcs
+      rcases hx with rfl | rfl <;> simp [v3rpc.leaseRegs])
+    (by
+      intro x hx
+      simp only [etcdLeaseMethodsOn, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
+      rcases hx with rfl | rfl <;> simp [etcdTys, etcdTyList])) $$ [] with Hrpcs
   · iframe #
   simp only [etcdLeaseMethodsOn, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT,
     pbLeaseRevokeResponseT]

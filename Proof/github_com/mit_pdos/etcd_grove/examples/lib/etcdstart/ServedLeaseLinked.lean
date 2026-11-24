@@ -50,7 +50,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗
         kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis γ ∗ srvGoRes s ∗
+      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗ srvGoRes s ∗
         (∃ (pw : Loc) (ims is : GoFunc) (sregs : List (GoString × GoFunc × GoInterface)),
           ⌜v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E⌝ ∗
           grpcStreamServerAt addr [ims, is] sregs γ ∗ v3rpc.isWatchServer pw R ∗
@@ -295,7 +295,7 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗
         kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ client.etcdLeaseReadAt addr ∗
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ client.etcdLeaseReadAt addr ∗
         etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro H
   imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL) $$ H
@@ -318,7 +318,7 @@ theorem kv_lease_served_go (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗
         kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ srvGoRes s ∗ client.etcdLeaseReadAt addr ∗
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ srvGoRes s ∗ client.etcdLeaseReadAt addr ∗
         etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro H
   imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL) $$ H
@@ -354,7 +354,7 @@ theorem kv_lease_served_watch (s : Loc)
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗
         kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ∗ v3rpc.srvWOk W R.wsl v3rpc.wsN ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ srvGoRes s ∗ client.etcdLeaseReadAt addr ∗
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ srvGoRes s ∗ client.etcdLeaseReadAt addr ∗
         etcdLeaseServedAt m addr s E ρ γr cid mid ∗
         (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
         isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) addr
@@ -397,7 +397,7 @@ theorem kv_lease_served_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E .none ∗
         kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ etcdKVAt addr E ρ γr cid mid ∗
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid ∗
         client.etcdLeaseReadAt addr := by
   have h := kv_lease_served s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ .none
     (KVNames.lm_of_lg_false hlg) HL

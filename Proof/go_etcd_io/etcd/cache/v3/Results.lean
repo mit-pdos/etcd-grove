@@ -269,7 +269,7 @@ theorem etcd_cache_served [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
+        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         v3rpc.isWatchServer pw V.R ∗ v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
         srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
@@ -278,7 +278,7 @@ theorem etcd_cache_served [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
         -- watch condition (R8, 2026-11-08: R7's restatement, `v3rpc.srvOnce`, in place of the
         -- store's `mvcc.watchNoDup`)
         v3rpc.srvOnce V.W ⊢
-      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis γ ∗
+      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗
         client.kvRegs (client.srvsAt [addr] E γr cid mid) ∗ watchAddrFacts V := by
   have := v3rpc.srvWOk_persistent (mvcc.api.mvccApi_persistent_law_holds (GF := GF)) V.W V.R.wsl
     v3rpc.wsN

@@ -44,6 +44,7 @@ only producer, takes; their statements do not show it.
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.PerTypeAuth
+public import Proof.go_etcd_io.etcd.client.v3.GrpcTys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.PerTypeWatch
 public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
@@ -1486,7 +1487,7 @@ theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ :
         v3rpc.authServerIs p s ∗ isServerReqM true s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗
         structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗ bcryptCostOk ast ∗
         srvInterceptorsOk v3rpc.learnerReqOk ics Rs ∗
-        grpcServerAt addr ics regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+        grpcServerAt addr ics regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserAdd" (etcdUserAddSpec (srvTLSId s) E ρ) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserGrantRole" (etcdUserGrantRoleSpec (srvTLSId s) E ρ) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.Auth/RoleAdd" (etcdRoleAddSpec (srvTLSId s) E ρ) ∗
@@ -1540,12 +1541,16 @@ theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ :
   ihave #Hke := srvRunOk_of_pools s E γr (@! etcdserverpb._Auth_AuthEnable_Handler)
     (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p) ics _ HL $$ [Hme']
   · iframe #
-  imod (grpc.serve addr ics regs (etcdAuthMethods p s E ρ) γ
+  imod (grpc.serve addr ics regs etcdTys (etcdAuthMethods p s E ρ) γ
     (by
       intro x hx
       apply hregs
       simp only [etcdAuthMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [v3rpc.authRegs])) $$ [] with Hrpcs
+      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [v3rpc.authRegs])
+    (by
+      intro x hx
+      simp only [etcdAuthMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
+      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [etcdTys, etcdTyList])) $$ [] with Hrpcs
   · iframe Hl
     imodintro
     unfold etcdAuthMethods
