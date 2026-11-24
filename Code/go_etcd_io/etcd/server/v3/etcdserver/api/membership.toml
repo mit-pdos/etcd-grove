@@ -50,7 +50,9 @@ translate = ["!*",
   "jsonSetErr", "jsonDepthErr", "jsonUserErr", "jsonCycleDepth", "jencValue", "jencRaw", "jdecRaw"]
 imports = ["!*", "models.lab/jsoncodec", "errors", "path", "sort", "sync", "go.uber.org/zap", "go.etcd.io/raft/v3/raftpb", "encoding/json", "go.etcd.io/etcd/client/pkg/v3/types", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/server/v3/etcdserver/version",
   # (metric-vecs, 2026-11-19) `ClusterVersionMetrics`' translated initializer
-  "github.com/prometheus/client_golang/prometheus"]
+  "github.com/prometheus/client_golang/prometheus",
+  # (etcd-dist D2, 2026-11-24) `computeMemberID`'s hash
+  "crypto/sha1", "encoding/binary"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
