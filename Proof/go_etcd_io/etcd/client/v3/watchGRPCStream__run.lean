@@ -245,7 +245,7 @@ theorem watchGRPCStream.run.wp_proof
           iframe
           isplitl []; rotate_left
           · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
-          unfold v3rpc.watchUp v3rpc.watchReqOk
+          unfold watchUpW v3rpc.watchReqOk
           isplitr <;> itrivial
         ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
             ⌜L' = S.L ∨ L' = S.L ++ [.progress]⌝ ∗ cliSendTok (Req := v3rpc.pbWatchRequest) γs L')
@@ -528,7 +528,8 @@ theorem watchGRPCStream.run.wp_proof
           iframe
           isplitl []; rotate_left
           · ipureintro; exact wsReqOk_wire Hok _ _ _ _ _
-          unfold v3rpc.watchUp
+          rw [show watchUpW V0 = watchUpW V by rw [← hV]; rfl]
+          unfold watchUpW
           isplitr
           · ipureintro; simp [v3rpc.watchReqOk, createOf]
           dsimp only [createOf]
@@ -765,9 +766,9 @@ theorem watchGRPCStream.run.wp_proof
       ihave #HGn := client.isWGS_atIdx V G callSl (V.idxOf a) hja $$ HG
       ihave HDn : iprop(v3rpc.watchDn γs (V.atIdx (V.idxOf a)).R (V.atIdx (V.idxOf a)).W
           (auth.mdTokenOf md) S.Dm.length m) $$ [HDn]
-      · iexact HDn
+      · rw [WEnv.atIdx_R, WEnv.atIdx_W]; iexact HDn
       ihave #Hamd : iprop(clientAttemptMdI (V.atIdx (V.idxOf a)).conn G.omd md) $$ []
-      · iexact Hamd0
+      · rw [show (V.atIdx (V.idxOf a)).conn = V.conn from rfl]; iexact Hamd0
       ihave Hepst : iprop(client.epochAt (V.atIdx (V.idxOf a)) G γs b (S.Dm ++ [m])) $$ [Hepst]
       · unfold client.epochAt
         iframe Hepst
@@ -1714,7 +1715,8 @@ theorem watchGRPCStream.run.wp_proof
             iframe
             isplitl []; rotate_left
             · iapply wsIs_wire V P2; iexact HP2
-            unfold v3rpc.watchUp
+            rw [show watchUpW V0 = watchUpW V by rw [← hV]; rfl]
+            unfold watchUpW
             isplitr
             · ipureintro; simp [v3rpc.watchReqOk, createOf]
             dsimp only [createOf]
@@ -2275,7 +2277,7 @@ theorem watchGRPCStream.run.wp_proof
             iframe
             isplitl []; rotate_left
             · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
-            unfold v3rpc.watchUp v3rpc.watchReqOk
+            unfold watchUpW v3rpc.watchReqOk
             isplitr <;> itrivial
           ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
               ⌜L' = S.L ∨ L' = S.L ++ [.cancel ρ.id]⌝ ∗ cliSendTok (Req := v3rpc.pbWatchRequest) γs L')
@@ -2537,7 +2539,7 @@ theorem watchGRPCStream.run.wp_proof
               iframe
               isplitl []; rotate_left
               · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
-              unfold v3rpc.watchUp v3rpc.watchReqOk
+              unfold watchUpW v3rpc.watchReqOk
               isplitr <;> itrivial
             ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
                 ⌜L' = S.L ∨ L' = S.L ++ [.cancel ρ.id]⌝ ∗ cliSendTok (Req := v3rpc.pbWatchRequest) γs L')
@@ -2735,7 +2737,10 @@ theorem watchGRPCStream.run.wp_proof
         irevert Hels; rw [hVmi]; iintro Hels
         ihave #Hcws2 : iprop(v3rpc.cliWatchStreamIs wcv' γs' (watchUpW V0) (watchMdW V0 G.omd) Dn' cd2)
           $$ []
-        · irevert Hcws2r; rw [← hV]; iintro #Hcws2r; iexact Hcws2r
+        · irevert Hcws2r
+          rw [← hV, show watchUpW (V0.atIdx mi) = watchUpW V0 from rfl,
+            show watchMdW (V0.atIdx mi) G.omd = watchMdW V0 G.omd from rfl]
+          iintro #Hcws2r; iexact Hcws2r
         ihave #Hcws2' := Hcws2
         iunfold v3rpc.cliWatchStreamIs at Hcws2'
         iunfold cliBidiStreamIs at Hcws2'
@@ -2826,7 +2831,8 @@ theorem watchGRPCStream.run.wp_proof
           iframe
           isplitl []; rotate_left
           · iapply wsIs_wire V P2; iexact HP2
-          unfold v3rpc.watchUp
+          rw [show watchUpW V0 = watchUpW V by rw [← hV]; rfl]
+          unfold watchUpW
           isplitr
           · ipureintro; simp [v3rpc.watchReqOk, createOf]
           dsimp only [createOf]
@@ -3115,7 +3121,7 @@ theorem watchGRPCStream.run.wp_proof
         iframe
         isplitl []; rotate_left
         · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
-        unfold v3rpc.watchUp v3rpc.watchReqOk
+        unfold watchUpW v3rpc.watchReqOk
         isplitr <;> itrivial
       ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
           ⌜L' = S.L ∨ L' = S.L ++ [.cancel ph.id]⌝ ∗ cliSendTok (Req := v3rpc.pbWatchRequest) γs L')
