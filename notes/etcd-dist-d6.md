@@ -322,3 +322,12 @@ caller's (T7: a removed index `j` is below the backend's consistent index, which
 `snapSaved γd j` facts still hold. Size: the law's proof ~300-500 lines over `crashRest_take_runs_keep`
 (bytes), the names' log (entries durable), `osInv_alloc` at `L'`; the trusted change adds ~50 lines and the
 three axioms' docstrings.
+
+**T6 review outcome (2026-11-24): the go-ahead's "axioms' statements unchanged" does not suffice**
+(`notes/axiom-review/snapdir-crash.md`). A crash between `SaveDBFrom`'s `os.Link` and its directory sync leaves a
+linked, whole file whose index the atomic axiom never recorded (its name still claimed free), so the new
+generation cannot re-establish `snapFree` and `snapDir_crash.law` is unprovable. Needed (a further trusted
+step, for the lead/owner): `SaveDBFrom` linearized at the link (the index into `M`/`E` there, bytes durable,
+entry not), its post a persistent `snapDurable γd i`; the body's `E \ M` case `Rm i ∨ ¬ snapDurable`; T2 carries
+"the WAL's snapshot index is `snapDurable`". `snapDir_take` becomes a crash-token update (two callers). No Lean
+change made on this branch yet.
