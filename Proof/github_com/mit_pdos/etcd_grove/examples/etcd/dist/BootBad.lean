@@ -224,6 +224,16 @@ theorem etcdBootNCBad_holds
   · exact clientBootBad (fun hG => Hctx hG) d Hd Hfips j σ
   · exact nodeBootBad (fun hG => Hctx hG) d Hd Hfips n σ
 
+/-- **`etcd_safe_nocrash` from the well-formed deployment's boot WPs alone**: the skeleton
+`etcd_safe_nocrash_of_boot` with its malformed-deployment hypothesis discharged by
+`etcdBootNCBad_holds`. Left: `EtcdBootNC`, and `Hctx` (the `context` package's errors, to be
+discharged by the per-function context axioms). -/
+theorem etcd_safe_nocrash_of_bootWF
+    (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
+      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt hG)
+    (HS : EtcdBootNC) : etcd_robust_nocrash.spec :=
+  etcd_safe_nocrash_of_boot HS (etcdBootNCBad_holds Hctx)
+
 end etcd_dist
 end EtcdGrove
 end Perennial
