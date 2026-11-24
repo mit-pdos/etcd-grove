@@ -11,6 +11,11 @@ hijack, beside `ReadRequestDefs.lean`'s.
   `Protocols`, no `TLSNextProto`, and never shut down (`inShutdown` false, nobody calls `Shutdown`).
 * `reqRest req rv`: the fields of the request `req` other than `Method` and `RemoteAddr` (which
   `reqHead` gives, persistent), at `rv`'s values.
+* `ctxKeys` (persistent): `ServerContextKey` and `LocalAddrContextKey` hold pointers (Go's
+  `&contextKey{"http-server"}`, `&contextKey{"local-addr"}`; their initializers are not translated, so
+  this is a premise, as `httpEnv`, discharged where the package initializer is).
+* `SprintfOut_noVerb`: a format without `%`, and no arguments, prints as itself (`conn.serve`'s
+  `fmt.Fprintf(c.rwc, "HTTP/1.1 400 Bad Request…")`).
 * `srvHandler s cn a P Q path` (persistent): `serverHandler{s}.ServeHTTP(w, req)` on net/rpc's
   `CONNECT path` request (`rrReqVal`, its URL and empty header) read on the acceptor's end of `cn`
   (dialed to `a`), given the right to hijack (`hijackOk`, with evidence `D`) and the thread token,
@@ -21,6 +26,7 @@ module
 
 public import Net.Proof.net.http.ReadRequestDefs
 public import Net.Proof.context.CtxBg
+public import Perennial.Proof.fmt.Base
 
 @[expose] public section
 
@@ -98,6 +104,14 @@ def reqRest (req : Loc) (rv : net.http.Request) : IProp GF :=
     structFieldRef net.http.Request go!"otherValues" req ↦ rv.otherValues')
 
 /-- See the file header. -/
+def ctxKeys : IProp GF :=
+  iprop(∃ sk lk : Loc, globalAddr net.http.ServerContextKey ↦□ sk ∗
+    globalAddr net.http.LocalAddrContextKey ↦□ lk)
+
+instance ctxKeys_persistent : Persistent (ctxKeys (GF := GF)) := by
+  unfold ctxKeys; infer_instance
+
+/-- See the file header. -/
 def srvHandler (s : Loc) (cn : Nat) (a : GoString) (P Q : Proto GF) (path : List w8) : IProp GF :=
   iprop(□ ∀ (rp req : Loc) (rv : net.http.Request) (u m : Loc) (cl : Bool) (nb : net.http.noBody)
       (ctx : GoInterface) (ra : GoString) (D : IProp GF) (Φ : val → IProp GF),
@@ -116,6 +130,14 @@ instance srvHandler_persistent (s : Loc) (cn : Nat) (a : GoString) (P Q : Proto 
   unfold srvHandler; infer_instance
 
 end defs
+
+/-- See the file header. -/
+theorem SprintfOut_noVerb [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] :
+    ∀ {f out : GoString}, (∀ c ∈ f, c ≠ W8 37) → fmt.SprintfOut f [] out → out = f
+  | [], _, _, h => fmt.SprintfOut.done_inv h
+  | c :: f, out, hf, h => by
+    obtain ⟨out', rfl, h'⟩ := fmt.SprintfOut.byte_inv (hf c (List.mem_cons_self ..)) h
+    rw [SprintfOut_noVerb (fun c' hc' => hf c' (List.mem_cons_of_mem _ hc')) h']
 
 end net.http
 end Perennial
