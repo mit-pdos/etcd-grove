@@ -38,7 +38,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
   etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem GooseGlobalGS.gooseInvGS
 
 /-- Every machine of a deployment starts with its files as on disk. -/
-theorem machines_fsInit [GoGlobalContext] {d : Deployment} {σs σc σn : List state} {m : Expr × state}
+theorem machines_fsInit [GoGlobalContext] [GoSemanticsFunctions] {d : Deployment} {σs σc σn : List state} {m : Expr × state}
     (Hσs : ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2) (Hσc : ∀ σ ∈ σc, ClientStart σ)
     (Hσn : ∀ σ ∈ σn, ClientStart σ) (Hl : σs.length = d.members.length)
     (hm : m ∈ machines d σs σc σn) : Fs.FsInit (extLocal Fs.fsExt m.2.world) := by
@@ -51,7 +51,7 @@ theorem machines_fsInit [GoGlobalContext] {d : Deployment} {σs σc σn : List s
   · exact Hσn _ (List.getElem_mem hi)
 
 /-- The statement's premises except the deployment's well-formedness, as one hypothesis's binders. -/
-abbrev BootPremises [GoGlobalContext] [lctx : GoLocalContext] (d : Deployment) (σs σc σn : List state) :
+abbrev BootPremises [GoGlobalContext] [GoSemanticsFunctions] [lctx : GoLocalContext] (d : Deployment) (σs σc σn : List state) :
     Prop :=
   ∃ (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry),
     BootFacts d ps ctxs boot ∧ EtcdEnv d ∧
@@ -69,7 +69,8 @@ def EtcdBootNC : Prop :=
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
-    (_Hp : BootPremises d σs σc σn) (_HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF)),
+    (_Hp : BootPremises d σs σc σn) (_HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF))
+    (_Hfips : crypto.fips140.GodebugFips140Off),
     ∀ [GooseGlobalGS .hasLC etcdDistGF], srvLevelK ≤ receiptBound etcdDistGF →
       receiptBound etcdDistGF ≤ 2 ^ 28 - 1 →
       ⊢ ([∗list] a ∈ d.addrs, Net.addrUnset a) ={⊤}=∗
@@ -87,11 +88,12 @@ def EtcdBootNCBad : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state),
+    (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state)
+    (_Hfips : crypto.fips140.GodebugFips140Off),
     ∀ [GooseGlobalGS .hasLC etcdDistGF], srvLevelK ≤ receiptBound etcdDistGF →
       receiptBound etcdDistGF ≤ 2 ^ 28 - 1 →
       ∀ (i : Nat) (m : Expr × state), (machines d σs σc σn)[i]? = some m →
-        Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2 iprop(True)
+        Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2 (iprop(True) : IProp etcdDistGF)
 
 /-- **`etcd_safe_nocrash` from the machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` (`Net.robust_of_distBootIL`): on a well-formed deployment at its addresses (valid and
@@ -99,7 +101,7 @@ distinct by `WellFormed`), on a malformed one at none; each machine's `FsInit` f
 `ServerStart`/`ClientStart`, the network's start from `Robust`'s own initial states. -/
 theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
     etcd_robust_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv HEnvTok
+  intro _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv HEnvTok Hfips
   have HI := etcdNetExts_initP g (machines d σs σc σn)
     (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
   intro hfresh hg hl
@@ -109,21 +111,19 @@ theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
   by_cases Hd : d.WellFormed
   · exact Net.robust_of_distBootIL (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
       (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) HI
-      (fun hlo hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ HEnvTok hlo hb)
+      (fun hlo hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ HEnvTok Hfips hlo hb)
       ⟨Hd.addrs.1, Hd.addrs.2, Hnet.1, Hnet.2⟩ hfresh hg hl
   · refine Net.robust_of_distBootIL (GF := etcdDistGF) [] (machines d σs σc σn) g
       (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) HI
       (fun hlo hb => ?_) ⟨List.nodup_nil, by simp, Hnet.1, Hnet.2⟩ hfresh hg hl
     iintro -
     imodintro
-    iexists (fun _ => iprop(True))
+    iexists (fun _ => (iprop(True) : IProp etcdDistGF))
     isplitr
-    · ipure_intro
-      exact HB d Hd σs σc σn hlo hb
-    · iapply BigSepL.bigSepL_intro
-      intro _ _ _
-      iintro _
-      iexact BI.true_intro
+    · ipureintro
+      exact HB d Hd σs σc σn Hfips hlo hb
+    · iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp etcdDistGF)) (fun _ _ _ => BI.true_intro))
+      iempintro
 
 end etcd_dist
 end EtcdGrove
