@@ -4580,3 +4580,16 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `fmt.wp_retire` as `fmt.Fprintf.wp_proof` is (no new assumption).
 - **Proposed change.** `writeSpec` (or `Fprintf.spec`) gives the writer `⌜SprintfOut format xs bs⌝`.
 - **Status.** Open.
+
+## `log.Printf.spec` admits no argument with an `Error()`/`String()` (2026-11-24, phase 7 S5 batch 13)
+
+- **Limitation.** Perennial's `log.Printf.spec` takes `fmt.ArgsWf` arguments (Go calls no method of them), while
+  `Server.Serve`'s retry after a temporary `Accept` error logs `"http: Accept error: %v; retrying in %v"` of an
+  `*OpError` and a `time.Duration` (Go calls their `Error()` and `String()`).
+- **Work-around here.** `Net/Proof/net/http/ServeLoopLemmas.lean`'s `wp_logf_argOk`: `log.Printf` on arguments with
+  `fmt.argOk` (Perennial's own condition for its proved `fmt` formatting: a method `fmt.stringMethodSpec` covers),
+  proved from Perennial's model of `log.Printf` (`TrustedCode/log.lean`, which returns), as dsv-gryff's
+  `log.wp_Printf_logArg`; `opError_argOk` (over `wp_OpError_Error`) and `duration_argOk` (over
+  `time.Duration.wp_String`) give the two arguments.
+- **Proposed (general).** `log.Printf.spec` over `fmt.argOk` arguments (or `log.Printf` over the real `fmt.Appendf`),
+  reviewed as a change to the trusted model's claim. **Status.** Not filed.
