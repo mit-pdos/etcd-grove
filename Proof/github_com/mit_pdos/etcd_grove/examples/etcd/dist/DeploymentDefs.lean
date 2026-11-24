@@ -273,16 +273,17 @@ machine's (the orchestrators listen nowhere). -/
 def Deployment.addrs (d : Deployment) : List GoString :=
   d.members.flatMap (fun m => [m.peer, m.client]) ++ d.nodes.flatten
 
-theorem typed.Deployment.addrs_encodes {t : typed.Deployment} {d : Deployment} (h : t.Encodes d) :
-    t.addrs = d.addrs := by
+theorem typed.Deployment.addrs_encodes {t : typed.Deployment} {d : etcd_dist.Deployment}
+    (h : t.Encodes d) : t.addrs = etcd_dist.Deployment.addrs d := by
   obtain ⟨hm, -, -, -, hn⟩ := h
-  simp only [typed.Deployment.addrs, Deployment.addrs, hm, hn]
+  simp only [typed.Deployment.addrs, etcd_dist.Deployment.addrs, hm, hn]
 
 /-- A well-formed deployment's addresses are valid and distinct. -/
 theorem Deployment.WellFormed.addrs {d : Deployment} (h : d.WellFormed) :
     d.addrs.Nodup ∧ ∀ a ∈ d.addrs, Net.addrOk a = true := by
   obtain ⟨t, he, hw⟩ := h
-  rw [← typed.Deployment.addrs_encodes he]
+  have e := typed.Deployment.addrs_encodes he
+  rw [← e]
   exact ⟨hw.2.2.2.2.1, hw.2.2.2.1⟩
 
 end etcd_dist
