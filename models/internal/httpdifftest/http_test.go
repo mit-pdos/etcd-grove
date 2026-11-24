@@ -368,6 +368,13 @@ var responseHeads = []string{
 	"HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof",
 	"HTTP/1.1 204 No Content\r\n\r\n",
 	"HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: close\r\n\r\n",
+	// net/http's server's answer to a request it cannot read (conn.serve), which net/rpc's
+	// DialHTTPPath may read; and Connection values around modelHeaderValuesContainsToken
+	"HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request",
+	"HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\nrest",
+	"HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n",
+	"HTTP/1.0 200 OK\r\nConnection: k\xc3\xa9ep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n",
+	"HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n",
 }
 
 // ReadResponse on response heads and their mutations (the request a CONNECT for the first,
@@ -396,4 +403,55 @@ func TestReadResponse(t *testing.T) {
 		}))
 	}
 	golden(t, "readresponse.golden", out.String())
+}
+
+// requestURIs: request URIs around the model's modelParseRequestURI (textproto_model.go): every
+// byte after "/", inside a path and after "//", net/rpc's path, and seeded random paths over the
+// bytes it computes Go's result for and a few it leaves to Go.
+func requestURIs() []string {
+	out := []string{"/", "//", "///", "/_goRPC_", "/debug/rpc", "/a/b;c=d@e:f,g+h$i&j~k.l-m_n", "*", "",
+		"/a?", "/a?b", "/a%2fb", "/a%zz", "/a#f", "http://h/x", "//h/x", "/:x"}
+	for b := 0; b < 256; b++ {
+		out = append(out, "/"+string([]byte{byte(b)}), "/a"+string([]byte{byte(b)})+"z",
+			"//"+string([]byte{byte(b)}))
+	}
+	r := rand.New(rand.NewSource(2))
+	const safe = "abcXYZ019-_.~$&+,/:;=@"
+	const other = "?%#!*'()[] \t\x7f\xc3\xa9"
+	for i := 0; i < 2000; i++ {
+		n := 1 + r.Intn(12)
+		s := []byte{'/'}
+		for k := 0; k < n; k++ {
+			if r.Intn(10) == 0 {
+				s = append(s, other[r.Intn(len(other))])
+			} else {
+				s = append(s, safe[r.Intn(len(safe))])
+			}
+		}
+		out = append(out, string(s))
+	}
+	return out
+}
+
+// ReadRequest's URL (every field) on CONNECT and GET requests of the URIs above.
+func TestReadRequestURI(t *testing.T) {
+	var out strings.Builder
+	i := 0
+	for _, u := range requestURIs() {
+		for _, h := range []string{"CONNECT " + u + " HTTP/1.0\n\n", "GET " + u + " HTTP/1.1\r\nHost: h\r\n\r\n"} {
+			if i > 0 {
+				out.WriteString("\n=== ")
+			}
+			fmt.Fprintf(&out, "%d %q\n", i, h)
+			i++
+			out.WriteString(try(func() string {
+				req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(h)))
+				if err != nil {
+					return fmt.Sprintf("error %T %v", err, err)
+				}
+				return fmt.Sprintf("%q %#v", req.RequestURI, *req.URL)
+			}))
+		}
+	}
+	golden(t, "readrequesturi.golden", out.String())
 }

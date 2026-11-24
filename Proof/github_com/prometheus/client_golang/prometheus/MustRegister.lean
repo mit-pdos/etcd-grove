@@ -1,42 +1,54 @@
 /-
-Trust boundary: prometheus's `MustRegister` (an axiom; see
-`Spec/github_com/prometheus/client_golang/prometheus/MustRegister.lean`).
+Proof of `Spec/github_com/prometheus/client_golang/prometheus/MustRegister.lean`: client_golang's real
+`MustRegister(cs...)` (route (b), notes/prom-registry.md, "Step 2"), `DefaultRegisterer.MustRegister(cs...)`
+through the `Registerer` interface (prometheus's fact: the default registry), over
+`(*Registry).MustRegister`'s spec. (Until 2026-11-22 the trust-boundary axiom
+`prometheus.MustRegister.wp_proof`, over the right `nameFree n`.)
 -/
 module
 
 public import Spec.github_com.prometheus.client_golang.prometheus.MustRegister
+public import Spec.github_com.prometheus.client_golang.prometheus.Registry__MustRegister
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
+open github_com.prometheus.client_golang.prometheus
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-/-- **Trust boundary** (item 8, the read package's initializer). True of prometheus's Go code
-(client_golang v1.24.1, `registry.go`): `MustRegister(cs...)` is
-`DefaultRegisterer.MustRegister(cs...)` (etcd never reassigns `DefaultRegisterer`, the
-`*Registry` `defaultRegistry`), which panics only if `Registry.Register(c)` returns an error.
-`Register` (under the registry's mutex) fails only if a descriptor `c` describes has an error,
-or its ID is registered, or a registered descriptor has its name with other labels or help, or
-`c`'s collector ID (the XOR of its descriptor IDs) is registered. Here `c` describes one valid
-descriptor named `n` without labels (`collectorName`), so its collector ID is that descriptor's
-ID, and `nameFree n` says no registered descriptor is named `n` or has that ID, and no collector
-has it: `Register` registers `c` and returns `nil`. The slice is only read. (mustreg, 2026-11-20)
-The same holds of a metric vector (`collectorName` of a `*CounterVec`, `*GaugeVec` or
-`*HistogramVec`): its `Describe` (`MetricVec.Describe`, `vec.go:124`, `metricMap.Describe`) sends
-its one descriptor, whose variable labels enter its `dimHash` but not its ID (`desc.go`), and
-`Register` compares the `dimHash` only with a registered descriptor of the same name, which
-`nameFree n` excludes. -/
-axiom prometheus.MustRegister.wp_proof : prometheus.MustRegister.spec (GF := GF) (hG := hG)
+theorem prometheus.MustRegister.wp_proof
+    (wp_MustRegister : prometheus.Registry.MustRegister.spec (GF := GF) (hG := hG)) :
+    prometheus.MustRegister.spec (GF := GF) (hG := hG) := by
+  intro x s dq c n hn
+  wp_start as ⟨Hs, #Hc, Htoks⟩
+  ihave #Hp := promInit_of_isPkgInit $$ Hpkg
+  iunfold promInit at Hp
+  icases Hp with ⟨%r, #Hdr, #HDR, #Hreg⟩
+  ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  icases prometheus.collectorName_desc c n hn $$ Hc with ⟨%p, %d, #Hdesc, #Hps, %Hd⟩
+  obtain ⟨Hok, Hkeys⟩ := Hd
+  wp_auto
+  wp_apply (wp_MustRegister (prometheus.PromRegGS.γ (GF := GF)) r s dq c [p] [d]) $$ [Hs Htoks] as Hs
+  · rw [Hkeys]
+    iframe
+    iframe #
+    ipureintro; exact Hok
+  (try wp_auto)
+  iapply HΦ $$ Hs
 
 end proof
 

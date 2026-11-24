@@ -6,7 +6,10 @@ public import Perennial.Code.math
 public import Perennial.Code.sync.atomic
 public import Perennial.Code.time
 public import Code.github_com.prometheus.client_model.go
+public import Perennial.Code.fmt
+public import Perennial.Code.sync
 public import Perennial.Golang.Defn
+public import TrustedCode.github_com.prometheus.client_golang.prometheus
 
 @[expose] public section
 
@@ -473,27 +476,13 @@ opaque goCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque rmMetricDesc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque batchHistogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque histogramCounts.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque histogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque constHistogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque nativeExemplars.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque SafeMultiError.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque Registry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque summary.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque noObjectivesSummary.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque constSummary.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque metricMap.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque offset64 [GooseExts] [GoGlobalContext] : val
 
@@ -553,9 +542,11 @@ opaque NativeHistogramZeroThresholdZero [GooseExts] [GoGlobalContext] : val
 
 opaque reservedLabelPrefix [GooseExts] [GoGlobalContext] : val
 
-opaque capMetricChan [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def capMetricChan [GooseExts] [GoGlobalContext] : val :=
+  #(1000 : Int)
 
-opaque capDescChan [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def capDescChan [GooseExts] [GoGlobalContext] : val :=
+  #(10 : Int)
 
 opaque quantileLabel [GooseExts] [GoGlobalContext] : val
 
@@ -572,6 +563,15 @@ opaque GaugeValue [GooseExts] [GoGlobalContext] : val
 opaque UntypedValue [GooseExts] [GoGlobalContext] : val
 
 opaque ExemplarMaxRunes [GooseExts] [GoGlobalContext] : val
+
+noncomputable def defaultRegistry [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/prometheus/client_golang/prometheus.defaultRegistry"
+
+noncomputable def DefaultRegisterer [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/prometheus/client_golang/prometheus.DefaultRegisterer"
+
+noncomputable def DefaultGatherer [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/prometheus/client_golang/prometheus.DefaultGatherer"
 
 noncomputable def NewBuildInfoCollector [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_golang/prometheus.NewBuildInfoCollector"
@@ -918,6 +918,47 @@ noncomputable def WrapCollectorWithPrefix [GooseExts] [GoGlobalContext] : GoStri
 noncomputable def wrapDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_golang/prometheus.wrapDesc"
 
+/-- NewInvalidDesc returns an invalid descriptor, i.e. a descriptor with the
+    provided error set. If a collector returning such a descriptor is registered,
+    registration will fail with the provided error. NewInvalidDesc can be used by
+    a Collector to signal inability to describe itself.
+
+    go: desc.go:196:6 -/
+noncomputable def NewInvalidDesc.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Desc.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Desc.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Desc.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (Val (GoInstruction (CompositeLiteral Desc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"err")) (ElementExpression go.error (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Desc.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "$res0")))))
+
+/-- Err returns an error that occurred during construction, if any.
+
+    Calling this method is optional. It can be used to detect construction
+    errors early, before invoking other methods on the Desc. If an error is
+    present, later operations may not behave as expected.
+
+    go: desc.go:207:16 -/
+noncomputable def Desc.Err.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "d"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Desc.ty)))) (Var "d"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "d"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
 /-- go: gauge.go:107:17 -/
 noncomputable def gauge.Set.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
@@ -1068,6 +1109,410 @@ noncomputable def ExponentialBuckets.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.float64)))) (Var "$res0")))))))
 
+/-- NewRegistry creates a new vanilla Registry without any Collectors
+    pre-registered.
+
+    go: registry.go:67:6 -/
+noncomputable def NewRegistry.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Registry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Registry.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Registry.ty))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 Collector.ty)))) (LiteralValue []))
+  (Let "$v1" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (LiteralValue []))
+  (Let "$v2" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.uint64)))) (LiteralValue []))
+  (App (Val (GoInstruction (CompositeLiteral Registry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"collectorsByID")) (ElementExpression (go.GoType.MapType go.uint64 Collector.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"descIDs")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.StructType [])) (Var "$v1"))), (KeyedElement (some (KeyField go!"dimHashesByName")) (ElementExpression (go.GoType.MapType go.string go.uint64) (Var "$v2")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Registry.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "$res0")))))
+
+/-- Register registers the provided Collector with the DefaultRegisterer.
+
+    Register is a shortcut for DefaultRegisterer.Register(c). See there for more
+    details.
+
+    go: registry.go:167:6 -/
+noncomputable def Register.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc Collector.ty))) (Var "c"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Collector.ty))) (Var "c"))
+  (App (App (Val (GoInstruction (MethodResolve Registerer.ty go!"Register"))) (App (Val (GoInstruction (GoLoad Registerer.ty))) (App (Val (GoInstruction (GlobalVarAddr DefaultRegisterer))) (Val #())))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+
+/-- MustRegister registers the provided Collectors with the DefaultRegisterer and
+    panics if any error occurs.
+
+    MustRegister is a shortcut for DefaultRegisterer.MustRegister(cs...). See
+    there for more details.
+
+    go: registry.go:176:6 -/
+noncomputable def MustRegister.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cs"
+  (Seq (App (Val exceptionDo)
+  (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Collector.ty)))) (Var "cs"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Collector.ty)))) (Var "cs"))
+  (App (App (Val (GoInstruction (MethodResolve Registerer.ty go!"MustRegister"))) (App (Val (GoInstruction (GoLoad Registerer.ty))) (App (Val (GoInstruction (GlobalVarAddr DefaultRegisterer))) (Val #())))) (Var "$a0"))))))
+  (Val #())))
+
+/-- go: registry.go:209:35 -/
+noncomputable def AlreadyRegisteredError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "err"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc AlreadyRegisteredError.ty))) (Var "err"))
+  (Let "$r0" (Val #(go!"duplicate metrics collector registration attempted"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- Register implements Registerer.
+
+    go: registry.go:283:20 -/
+noncomputable def Registry.Register.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Registry.ty)))) (Var "r"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc Collector.ty))) (Var "c"))
+  (Let "duplicateDescErr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "collectorID" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.uint64)))) (LiteralValue []))
+  (Let "newDimHashesByName" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.uint64)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (LiteralValue []))
+  (Let "newDescIDs" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty))]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val capDescChan)))
+  (Let "descChan" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty))))) (Var "descChan"))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty))]))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty)) (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty))))) (Var "descChan")))
+  (App (App (Val (GoInstruction (MethodResolve Collector.ty go!"Describe"))) (App (Val (GoInstruction (GoLoad Collector.ty))) (Var "c"))) (Var "$a0"))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Collector.ty))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.uint64)))) (Var "newDimHashesByName"))
+  (Let "dimHash" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (map.forRange go.string go.uint64)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "dimHash"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.uint64)))) (App (Val (GoInstruction (StructFieldRef Registry.ty go!"dimHashesByName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "dimHash") (Var "$value"))))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "newDescIDs"))
+  (Let "hash" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Registry.ty go!"descIDs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "hash"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "hash") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 Collector.ty)))) (App (Val (GoInstruction (StructFieldRef Registry.ty go!"collectorsByID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "collectorID"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "duplicateDescErr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "duplicateDescErr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 Collector.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 Collector.ty)))) (App (Val (GoInstruction (StructFieldRef Registry.ty go!"collectorsByID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "collectorID")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "existing" (App (Val (GoInstruction (GoAlloc Collector.ty))) (App (Val (GoInstruction (GoZeroVal Collector.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists"))
+  (Let "$y" (App (Val (GoInstruction (GoLoad Collector.ty))) (Var "existing"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType wrappingCollector.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType wrappingCollector.ty)))) (Var "$x"))
+  (Let "$r0" (App (Val (GoInstruction (Convert AlreadyRegisteredError.ty go.error))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType wrappingCollector.ty) go!"unwrapRecursively"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType wrappingCollector.ty)))) (Var "e"))) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad Collector.ty))) (Var "c"))
+  (App (Val (GoInstruction (CompositeLiteral AlreadyRegisteredError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ExistingCollector")) (ElementExpression Collector.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NewCollector")) (ElementExpression Collector.ty (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert AlreadyRegisteredError.ty go.error))) (Let "$v0" (App (Val (GoInstruction (GoLoad Collector.ty))) (Var "e"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad Collector.ty))) (Var "c"))
+  (App (Val (GoInstruction (CompositeLiteral AlreadyRegisteredError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ExistingCollector")) (ElementExpression Collector.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NewCollector")) (ElementExpression Collector.ty (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Collector.ty))) (Pair (Var "existing") (Var "$r0")))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "newDescIDs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.uint64 (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Collector.ty)))) (App (Val (GoInstruction (StructFieldRef Registry.ty go!"uncheckedCollectors"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad Collector.ty))) (Var "c"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Collector.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Collector.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Collector.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Collector.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Registry.ty go!"uncheckedCollectors"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty))))) (Var "descChan"))
+  (Let "desc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Desc.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Desc.ty)))) (Val #())))
+  (App (App (Val (chan.forRange (go.GoType.PointerType Desc.ty))) (Var "$range"))
+  (Lam "$key"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"dimHash"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc"))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.uint64)))) (Var "newDimHashesByName"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"fqName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc"))))) (Var "$r0"))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.string go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.uint64)))) (Var "newDimHashesByName"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"fqName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "dimHash" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "dimHash")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"dimHash"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc"))))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"descriptors reported by collector have inconsistent label names or help strings for the same fully-qualified name, offender is %s"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Desc.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "dimHash") (Var "$r0")))))))))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.string go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.uint64)))) (App (Val (GoInstruction (StructFieldRef Registry.ty go!"dimHashesByName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"fqName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "dimHash" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "dimHash")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"dimHash"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc"))))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"a previously registered descriptor with the same fully-qualified name as %s has different label names or a different help string"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Desc.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "dimHash") (Var "$r0")))))))))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "newDescIDs"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists")))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "collectorID") (App (Val (GoInstruction (GoOp GoXor go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "collectorID")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "newDescIDs"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc"))))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Registry.ty go!"descIDs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists"))
+  (Let "$r0" (Let "$a0" (Val #(go!"descriptor %s already exists with the same fully-qualified name and const label values"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Desc.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "duplicateDescErr") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"descriptor %s is invalid: %w"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Desc.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef Desc.ty go!"err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Desc.ty)))) (Var "desc")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Desc.ty)))) (Pair (Var "desc") (Var "$key"))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Registry.ty go!"mtx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r")))) (Val #())))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty))))) (Var "descChan"))
+  (App (App (Val (chan.forRange (go.GoType.PointerType Desc.ty))) (Var "$range"))
+  (Lam "$key"
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #())))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Registry.ty go!"mtx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r")))) (Val #()))))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Val #()))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType Desc.ty))))) (Pair (Var "descChan") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Pair (Var "newDescIDs") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.uint64)))) (Pair (Var "newDimHashesByName") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- MustRegister implements Registerer.
+
+    go: registry.go:416:20 -/
+noncomputable def Registry.MustRegister.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "cs"
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Registry.ty)))) (Var "r"))
+  (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Collector.ty)))) (Var "cs"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Collector.ty)))) (Var "cs"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc Collector.ty))) (App (Val (GoInstruction (GoZeroVal Collector.ty))) (Val #())))
+  (App (App (Val (slice.forRange Collector.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Collector.ty))) (Var "c"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Registry.ty) go!"Register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (Var "r"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Collector.ty))) (Pair (Var "c") (Var "$value")))))))))))))
+  (Val #()))))
+
 /-- The package variables goose does not translate (the `skip` entries of the package's
 goose config): no Lean name, allocation or initialization step, so no translated code names
 them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
@@ -1093,17 +1538,6 @@ beyond its variable.
 constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
 variable.
 - `separatorByteSlice` (`var separatorByteSlice = []byte{model.SeparatorByte} // For convenient use with xxhash.`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
-function values (built, not called) and other package variables' values or addresses, with no call.
-Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
-has no effect beyond its variable.
-- `defaultRegistry` (`var defaultRegistry = NewRegistry()`): Its initializer calls, besides literals of constants and other variables' values: `NewRegistry`
-allocates an empty `*Registry` (maps and a mutex). So it terminates, cannot panic and has no effect
-beyond its variable.
-- `DefaultRegisterer` (`var DefaultRegisterer Registerer = defaultRegistry`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
-function values (built, not called) and other package variables' values or addresses, with no call.
-Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
-has no effect beyond its variable.
-- `DefaultGatherer` (`var DefaultGatherer Gatherer = defaultRegistry`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.
 Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
 has no effect beyond its variable.
@@ -1135,9 +1569,6 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"github.com/prometheus/client_golang/prometheus.errBucketLabelNotAllowed", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var errBucketLabelNotAllowed = fmt.Errorf( \"%q is not allowed as label name in histograms\", bucketLabel, )"⟩,
   ⟨"github.com/prometheus/client_golang/prometheus.errInconsistentCardinality", "Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a\nconstant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var errInconsistentCardinality = errors.New(\"inconsistent label cardinality\")"⟩,
   ⟨"github.com/prometheus/client_golang/prometheus.separatorByteSlice", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var separatorByteSlice = []byte{model.SeparatorByte} // For convenient use with xxhash."⟩,
-  ⟨"github.com/prometheus/client_golang/prometheus.defaultRegistry", "Its initializer calls, besides literals of constants and other variables' values: `NewRegistry`\nallocates an empty `*Registry` (maps and a mutex). So it terminates, cannot panic and has no effect\nbeyond its variable.", "var defaultRegistry = NewRegistry()"⟩,
-  ⟨"github.com/prometheus/client_golang/prometheus.DefaultRegisterer", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultRegisterer Registerer = defaultRegistry"⟩,
-  ⟨"github.com/prometheus/client_golang/prometheus.DefaultGatherer", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultGatherer Gatherer = defaultRegistry"⟩,
   ⟨"github.com/prometheus/client_golang/prometheus._@registry.go:1039", "An interface check: `&MultiTRegistry{}` converted to `TransactionalGatherer`. No call, no panic, no\neffect.", "var _ TransactionalGatherer = &MultiTRegistry{}"⟩,
   ⟨"github.com/prometheus/client_golang/prometheus.errQuantileLabelNotAllowed", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var errQuantileLabelNotAllowed = fmt.Errorf( \"%q is not allowed as label name in summaries\", quantileLabel, )"⟩,
   ⟨"github.com/prometheus/client_golang/prometheus.CounterMetricTypePtr", "`func() *dto.MetricType { d := dto.MetricType_X; return &d }()` (the three `*MetricTypePtr`): each\nallocates a constant and returns its address: no panic, no effect beyond its variable.", "var CounterMetricTypePtr = func() *dto.MetricType { d := dto.MetricType_COUNTER; return &d }()"⟩,
@@ -1147,7 +1578,7 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"github.com/prometheus/client_golang/prometheus.V2", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var V2 = v2{}"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.prometheus.client_golang.prometheus where
-  pkgImportedPkgs := [pkg_id.errors, pkg_id.math, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.prometheus.client_model.go]
+  pkgImportedPkgs := [pkg_id.errors, pkg_id.math, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.prometheus.client_model.go, pkg_id.fmt, pkg_id.sync]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1158,8 +1589,25 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve NewRegistry []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Registry.ty) Registerer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (App (Val (GoInstruction (GlobalVarAddr defaultRegistry))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Registry.ty) Gatherer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Registry.ty)))) (App (Val (GoInstruction (GlobalVarAddr defaultRegistry))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Gatherer.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultGatherer))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Registerer.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultRegisterer))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Registry.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultRegistry))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1169,7 +1617,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.prometheus.client_model.go.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.github_com.prometheus.client_model.go.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultRegistry (go.GoType.PointerType Registry.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc DefaultRegisterer Registerer.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc DefaultGatherer Gatherer.ty)) (Val #()))))))))
 
 abbrev Collector [GooseExts] : Type := GoInterface
 
@@ -1567,6 +2025,7 @@ class Desc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_err : ∀ (x : Desc) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Desc.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : Desc)))
   method_set : go.MethodSetIs Desc.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Desc.ty) [(go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_Err_unfold : MethodUnfold (go.GoType.PointerType Desc.ty) go!"Err" Desc.Err.impl
 
 attribute [instance] Desc.TypeAssumptions.type_repr
   Desc.TypeAssumptions.underlying
@@ -1588,6 +2047,7 @@ attribute [instance] Desc.TypeAssumptions.type_repr
   Desc.TypeAssumptions.set_err
   Desc.TypeAssumptions.method_set
   Desc.TypeAssumptions.ptr_method_set
+  Desc.TypeAssumptions.ptr_Err_unfold
 
 abbrev DescOpt [GooseExts] : Type := GoFunc
 
@@ -1935,22 +2395,74 @@ attribute [instance] rmMetricDesc.TypeAssumptions.type_repr
   rmMetricDesc.TypeAssumptions.method_set
   rmMetricDesc.TypeAssumptions.ptr_method_set
 
-opaque batchHistogram.nonempty_type : NonemptyType.{0}
-def batchHistogram : Type := batchHistogram.nonempty_type.type
-instance batchHistogram.nonempty : Nonempty batchHistogram := batchHistogram.nonempty_type.property
-opaque batchHistogram.zero_val : ZeroVal batchHistogram := ⟨Classical.ofNonempty⟩
-attribute [instance] batchHistogram.zero_val
+structure batchHistogram [GooseExts] where
+  mk ::
+  selfCollector' : selfCollector
+  desc' : Loc
+  hasSum' : Bool
+  mu' : _root_.Perennial.sync.Mutex
+  buckets' : GoSlice
+  counts' : GoSlice
+  sum' : w64
+
+noncomputable instance batchHistogram.zero_val [GooseExts] : ZeroVal batchHistogram :=
+  ⟨batchHistogram.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def batchHistogram.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"selfCollector" selfCollector.ty),
+(go.field_decl.FieldDecl go!"desc" (go.GoType.PointerType Desc.ty)),
+(go.field_decl.FieldDecl go!"hasSum" go.bool),
+(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"buckets" (go.GoType.SliceType go.float64)),
+(go.field_decl.FieldDecl go!"counts" (go.GoType.SliceType go.uint64)),
+(go.field_decl.FieldDecl go!"sum" go.float64)]
+
+@[irreducible] noncomputable def batchHistogram.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  batchHistogram.fieldsUnsealed
+
+noncomputable instance equals_unfold_batchHistogram [GooseExts] [GoGlobalContext] :
+    EqualsUnfold batchHistogram.fields batchHistogram.fieldsUnsealed :=
+  ⟨by unfold batchHistogram.fields; rfl⟩
+
+@[reducible] noncomputable def batchHistogram.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType batchHistogram.fields)
 
 class batchHistogram.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying batchHistogram.underlying batchHistogram
   underlying : go.UnderlyingDirectedEq batchHistogram.ty batchHistogram.underlying
-  isUnderlying : go.IsUnderlying batchHistogram.underlying batchHistogram.underlying
+  get_selfCollector : ∀ (x : batchHistogram), go.IsGoStepPureDetTagged under (StructFieldGet batchHistogram.underlying go!"selfCollector") #x (Val #(x.selfCollector'))
+  set_selfCollector : ∀ (x : batchHistogram) (y : selfCollector), go.IsGoStepPureDetTagged under (StructFieldSet batchHistogram.underlying go!"selfCollector") (PairV #x #y) (Val #(({ x with selfCollector' := y } : batchHistogram)))
+  get_desc : ∀ (x : batchHistogram), go.IsGoStepPureDetTagged under (StructFieldGet batchHistogram.underlying go!"desc") #x (Val #(x.desc'))
+  set_desc : ∀ (x : batchHistogram) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet batchHistogram.underlying go!"desc") (PairV #x #y) (Val #(({ x with desc' := y } : batchHistogram)))
+  get_hasSum : ∀ (x : batchHistogram), go.IsGoStepPureDetTagged under (StructFieldGet batchHistogram.underlying go!"hasSum") #x (Val #(x.hasSum'))
+  set_hasSum : ∀ (x : batchHistogram) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet batchHistogram.underlying go!"hasSum") (PairV #x #y) (Val #(({ x with hasSum' := y } : batchHistogram)))
+  get_mu : ∀ (x : batchHistogram), go.IsGoStepPureDetTagged under (StructFieldGet batchHistogram.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : batchHistogram) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet batchHistogram.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : batchHistogram)))
+  get_buckets : ∀ (x : batchHistogram), go.IsGoStepPureDetTagged under (StructFieldGet batchHistogram.underlying go!"buckets") #x (Val #(x.buckets'))
+  set_buckets : ∀ (x : batchHistogram) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet batchHistogram.underlying go!"buckets") (PairV #x #y) (Val #(({ x with buckets' := y } : batchHistogram)))
+  get_counts : ∀ (x : batchHistogram), go.IsGoStepPureDetTagged under (StructFieldGet batchHistogram.underlying go!"counts") #x (Val #(x.counts'))
+  set_counts : ∀ (x : batchHistogram) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet batchHistogram.underlying go!"counts") (PairV #x #y) (Val #(({ x with counts' := y } : batchHistogram)))
+  get_sum : ∀ (x : batchHistogram), go.IsGoStepPureDetTagged under (StructFieldGet batchHistogram.underlying go!"sum") #x (Val #(x.sum'))
+  set_sum : ∀ (x : batchHistogram) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet batchHistogram.underlying go!"sum") (PairV #x #y) (Val #(({ x with sum' := y } : batchHistogram)))
   method_set : go.MethodSetIs batchHistogram.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType batchHistogram.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_model.go.Metric.ty)] false [go.error]))), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false []))), (go!"github.com/prometheus/client_golang/prometheus.update", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"runtime/metrics.Float64Histogram" [])), go.float64] false [])))]
 
 attribute [instance] batchHistogram.TypeAssumptions.type_repr
   batchHistogram.TypeAssumptions.underlying
-  batchHistogram.TypeAssumptions.isUnderlying
+  batchHistogram.TypeAssumptions.get_selfCollector
+  batchHistogram.TypeAssumptions.set_selfCollector
+  batchHistogram.TypeAssumptions.get_desc
+  batchHistogram.TypeAssumptions.set_desc
+  batchHistogram.TypeAssumptions.get_hasSum
+  batchHistogram.TypeAssumptions.set_hasSum
+  batchHistogram.TypeAssumptions.get_mu
+  batchHistogram.TypeAssumptions.set_mu
+  batchHistogram.TypeAssumptions.get_buckets
+  batchHistogram.TypeAssumptions.set_buckets
+  batchHistogram.TypeAssumptions.get_counts
+  batchHistogram.TypeAssumptions.set_counts
+  batchHistogram.TypeAssumptions.get_sum
+  batchHistogram.TypeAssumptions.set_sum
   batchHistogram.TypeAssumptions.method_set
   batchHistogram.TypeAssumptions.ptr_method_set
 
@@ -2134,41 +2646,270 @@ attribute [instance] HistogramVecOpts.TypeAssumptions.type_repr
   HistogramVecOpts.TypeAssumptions.method_set
   HistogramVecOpts.TypeAssumptions.ptr_method_set
 
-opaque histogramCounts.nonempty_type : NonemptyType.{0}
-def histogramCounts : Type := histogramCounts.nonempty_type.type
-instance histogramCounts.nonempty : Nonempty histogramCounts := histogramCounts.nonempty_type.property
-opaque histogramCounts.zero_val : ZeroVal histogramCounts := ⟨Classical.ofNonempty⟩
-attribute [instance] histogramCounts.zero_val
+structure histogramCounts [GooseExts] where
+  mk ::
+  sumBits' : w64
+  count' : w64
+  nativeHistogramZeroBucket' : w64
+  nativeHistogramZeroThresholdBits' : w64
+  nativeHistogramSchema' : w32
+  nativeHistogramBucketsNumber' : w32
+  buckets' : GoSlice
+  nativeHistogramBucketsPositive' : _root_.Perennial.sync.Map
+  nativeHistogramBucketsNegative' : _root_.Perennial.sync.Map
+
+noncomputable instance histogramCounts.zero_val [GooseExts] : ZeroVal histogramCounts :=
+  ⟨histogramCounts.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def histogramCounts.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"sumBits" go.uint64),
+(go.field_decl.FieldDecl go!"count" go.uint64),
+(go.field_decl.FieldDecl go!"nativeHistogramZeroBucket" go.uint64),
+(go.field_decl.FieldDecl go!"nativeHistogramZeroThresholdBits" go.uint64),
+(go.field_decl.FieldDecl go!"nativeHistogramSchema" go.int32),
+(go.field_decl.FieldDecl go!"nativeHistogramBucketsNumber" go.uint32),
+(go.field_decl.FieldDecl go!"buckets" (go.GoType.SliceType go.uint64)),
+(go.field_decl.FieldDecl go!"nativeHistogramBucketsPositive" _root_.Perennial.sync.Map.ty),
+(go.field_decl.FieldDecl go!"nativeHistogramBucketsNegative" _root_.Perennial.sync.Map.ty)]
+
+@[irreducible] noncomputable def histogramCounts.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  histogramCounts.fieldsUnsealed
+
+noncomputable instance equals_unfold_histogramCounts [GooseExts] [GoGlobalContext] :
+    EqualsUnfold histogramCounts.fields histogramCounts.fieldsUnsealed :=
+  ⟨by unfold histogramCounts.fields; rfl⟩
+
+@[reducible] noncomputable def histogramCounts.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType histogramCounts.fields)
 
 class histogramCounts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying histogramCounts.underlying histogramCounts
   underlying : go.UnderlyingDirectedEq histogramCounts.ty histogramCounts.underlying
-  isUnderlying : go.IsUnderlying histogramCounts.underlying histogramCounts.underlying
+  get_sumBits : ∀ (x : histogramCounts), go.IsGoStepPureDetTagged under (StructFieldGet histogramCounts.underlying go!"sumBits") #x (Val #(x.sumBits'))
+  set_sumBits : ∀ (x : histogramCounts) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet histogramCounts.underlying go!"sumBits") (PairV #x #y) (Val #(({ x with sumBits' := y } : histogramCounts)))
+  get_count : ∀ (x : histogramCounts), go.IsGoStepPureDetTagged under (StructFieldGet histogramCounts.underlying go!"count") #x (Val #(x.count'))
+  set_count : ∀ (x : histogramCounts) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet histogramCounts.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : histogramCounts)))
+  get_nativeHistogramZeroBucket : ∀ (x : histogramCounts), go.IsGoStepPureDetTagged under (StructFieldGet histogramCounts.underlying go!"nativeHistogramZeroBucket") #x (Val #(x.nativeHistogramZeroBucket'))
+  set_nativeHistogramZeroBucket : ∀ (x : histogramCounts) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet histogramCounts.underlying go!"nativeHistogramZeroBucket") (PairV #x #y) (Val #(({ x with nativeHistogramZeroBucket' := y } : histogramCounts)))
+  get_nativeHistogramZeroThresholdBits : ∀ (x : histogramCounts), go.IsGoStepPureDetTagged under (StructFieldGet histogramCounts.underlying go!"nativeHistogramZeroThresholdBits") #x (Val #(x.nativeHistogramZeroThresholdBits'))
+  set_nativeHistogramZeroThresholdBits : ∀ (x : histogramCounts) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet histogramCounts.underlying go!"nativeHistogramZeroThresholdBits") (PairV #x #y) (Val #(({ x with nativeHistogramZeroThresholdBits' := y } : histogramCounts)))
+  get_nativeHistogramSchema : ∀ (x : histogramCounts), go.IsGoStepPureDetTagged under (StructFieldGet histogramCounts.underlying go!"nativeHistogramSchema") #x (Val #(x.nativeHistogramSchema'))
+  set_nativeHistogramSchema : ∀ (x : histogramCounts) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet histogramCounts.underlying go!"nativeHistogramSchema") (PairV #x #y) (Val #(({ x with nativeHistogramSchema' := y } : histogramCounts)))
+  get_nativeHistogramBucketsNumber : ∀ (x : histogramCounts), go.IsGoStepPureDetTagged under (StructFieldGet histogramCounts.underlying go!"nativeHistogramBucketsNumber") #x (Val #(x.nativeHistogramBucketsNumber'))
+  set_nativeHistogramBucketsNumber : ∀ (x : histogramCounts) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet histogramCounts.underlying go!"nativeHistogramBucketsNumber") (PairV #x #y) (Val #(({ x with nativeHistogramBucketsNumber' := y } : histogramCounts)))
+  get_buckets : ∀ (x : histogramCounts), go.IsGoStepPureDetTagged under (StructFieldGet histogramCounts.underlying go!"buckets") #x (Val #(x.buckets'))
+  set_buckets : ∀ (x : histogramCounts) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet histogramCounts.underlying go!"buckets") (PairV #x #y) (Val #(({ x with buckets' := y } : histogramCounts)))
+  get_nativeHistogramBucketsPositive : ∀ (x : histogramCounts), go.IsGoStepPureDetTagged under (StructFieldGet histogramCounts.underlying go!"nativeHistogramBucketsPositive") #x (Val #(x.nativeHistogramBucketsPositive'))
+  set_nativeHistogramBucketsPositive : ∀ (x : histogramCounts) (y : _root_.Perennial.sync.Map), go.IsGoStepPureDetTagged under (StructFieldSet histogramCounts.underlying go!"nativeHistogramBucketsPositive") (PairV #x #y) (Val #(({ x with nativeHistogramBucketsPositive' := y } : histogramCounts)))
+  get_nativeHistogramBucketsNegative : ∀ (x : histogramCounts), go.IsGoStepPureDetTagged under (StructFieldGet histogramCounts.underlying go!"nativeHistogramBucketsNegative") #x (Val #(x.nativeHistogramBucketsNegative'))
+  set_nativeHistogramBucketsNegative : ∀ (x : histogramCounts) (y : _root_.Perennial.sync.Map), go.IsGoStepPureDetTagged under (StructFieldSet histogramCounts.underlying go!"nativeHistogramBucketsNegative") (PairV #x #y) (Val #(({ x with nativeHistogramBucketsNegative' := y } : histogramCounts)))
   method_set : go.MethodSetIs histogramCounts.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType histogramCounts.ty) [(go!"github.com/prometheus/client_golang/prometheus.observe", (some (go.signature.Signature [go.float64, go.int, go.bool] false [])))]
 
 attribute [instance] histogramCounts.TypeAssumptions.type_repr
   histogramCounts.TypeAssumptions.underlying
-  histogramCounts.TypeAssumptions.isUnderlying
+  histogramCounts.TypeAssumptions.get_sumBits
+  histogramCounts.TypeAssumptions.set_sumBits
+  histogramCounts.TypeAssumptions.get_count
+  histogramCounts.TypeAssumptions.set_count
+  histogramCounts.TypeAssumptions.get_nativeHistogramZeroBucket
+  histogramCounts.TypeAssumptions.set_nativeHistogramZeroBucket
+  histogramCounts.TypeAssumptions.get_nativeHistogramZeroThresholdBits
+  histogramCounts.TypeAssumptions.set_nativeHistogramZeroThresholdBits
+  histogramCounts.TypeAssumptions.get_nativeHistogramSchema
+  histogramCounts.TypeAssumptions.set_nativeHistogramSchema
+  histogramCounts.TypeAssumptions.get_nativeHistogramBucketsNumber
+  histogramCounts.TypeAssumptions.set_nativeHistogramBucketsNumber
+  histogramCounts.TypeAssumptions.get_buckets
+  histogramCounts.TypeAssumptions.set_buckets
+  histogramCounts.TypeAssumptions.get_nativeHistogramBucketsPositive
+  histogramCounts.TypeAssumptions.set_nativeHistogramBucketsPositive
+  histogramCounts.TypeAssumptions.get_nativeHistogramBucketsNegative
+  histogramCounts.TypeAssumptions.set_nativeHistogramBucketsNegative
   histogramCounts.TypeAssumptions.method_set
   histogramCounts.TypeAssumptions.ptr_method_set
 
-opaque histogram.nonempty_type : NonemptyType.{0}
-def histogram : Type := histogram.nonempty_type.type
-instance histogram.nonempty : Nonempty histogram := histogram.nonempty_type.property
-opaque histogram.zero_val : ZeroVal histogram := ⟨Classical.ofNonempty⟩
-attribute [instance] histogram.zero_val
+structure nativeExemplars [GooseExts] where
+  mk ::
+  Mutex' : _root_.Perennial.sync.Mutex
+  ttl' : _root_.Perennial.time.Duration
+  exemplars' : GoSlice
+
+noncomputable instance nativeExemplars.zero_val [GooseExts] : ZeroVal nativeExemplars :=
+  ⟨nativeExemplars.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def nativeExemplars.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"Mutex" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"ttl" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"exemplars" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_model.go.Exemplar.ty)))]
+
+@[irreducible] noncomputable def nativeExemplars.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  nativeExemplars.fieldsUnsealed
+
+noncomputable instance equals_unfold_nativeExemplars [GooseExts] [GoGlobalContext] :
+    EqualsUnfold nativeExemplars.fields nativeExemplars.fieldsUnsealed :=
+  ⟨by unfold nativeExemplars.fields; rfl⟩
+
+@[reducible] noncomputable def nativeExemplars.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType nativeExemplars.fields)
+
+class nativeExemplars.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying nativeExemplars.underlying nativeExemplars
+  underlying : go.UnderlyingDirectedEq nativeExemplars.ty nativeExemplars.underlying
+  get_Mutex : ∀ (x : nativeExemplars), go.IsGoStepPureDetTagged under (StructFieldGet nativeExemplars.underlying go!"Mutex") #x (Val #(x.Mutex'))
+  set_Mutex : ∀ (x : nativeExemplars) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet nativeExemplars.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : nativeExemplars)))
+  get_ttl : ∀ (x : nativeExemplars), go.IsGoStepPureDetTagged under (StructFieldGet nativeExemplars.underlying go!"ttl") #x (Val #(x.ttl'))
+  set_ttl : ∀ (x : nativeExemplars) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet nativeExemplars.underlying go!"ttl") (PairV #x #y) (Val #(({ x with ttl' := y } : nativeExemplars)))
+  get_exemplars : ∀ (x : nativeExemplars), go.IsGoStepPureDetTagged under (StructFieldGet nativeExemplars.underlying go!"exemplars") #x (Val #(x.exemplars'))
+  set_exemplars : ∀ (x : nativeExemplars) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet nativeExemplars.underlying go!"exemplars") (PairV #x #y) (Val #(({ x with exemplars' := y } : nativeExemplars)))
+  method_set : go.MethodSetIs nativeExemplars.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nativeExemplars.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.addExemplar", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_model.go.Exemplar.ty)] false []))), (go!"github.com/prometheus/client_golang/prometheus.isEnabled", (some (go.signature.Signature [] false [go.bool])))]
+
+attribute [instance] nativeExemplars.TypeAssumptions.type_repr
+  nativeExemplars.TypeAssumptions.underlying
+  nativeExemplars.TypeAssumptions.get_Mutex
+  nativeExemplars.TypeAssumptions.set_Mutex
+  nativeExemplars.TypeAssumptions.get_ttl
+  nativeExemplars.TypeAssumptions.set_ttl
+  nativeExemplars.TypeAssumptions.get_exemplars
+  nativeExemplars.TypeAssumptions.set_exemplars
+  nativeExemplars.TypeAssumptions.method_set
+  nativeExemplars.TypeAssumptions.ptr_method_set
+
+structure histogram [GooseExts] where
+  mk ::
+  countAndHotIdx' : w64
+  selfCollector' : selfCollector
+  desc' : Loc
+  mtx' : _root_.Perennial.sync.Mutex
+  counts' : (GoArray Loc 2)
+  upperBounds' : GoSlice
+  labelPairs' : GoSlice
+  exemplars' : GoSlice
+  nativeHistogramSchema' : w32
+  nativeHistogramZeroThreshold' : w64
+  nativeHistogramMaxZeroThreshold' : w64
+  nativeHistogramMaxBuckets' : w32
+  nativeHistogramMinResetDuration' : _root_.Perennial.time.Duration
+  lastResetTime' : _root_.Perennial.time.Time
+  resetScheduled' : Bool
+  nativeExemplars' : nativeExemplars
+  now' : GoFunc
+  afterFunc' : GoFunc
+
+noncomputable instance histogram.zero_val [GooseExts] : ZeroVal histogram :=
+  ⟨histogram.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def histogram.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"countAndHotIdx" go.uint64),
+(go.field_decl.EmbeddedField go!"selfCollector" selfCollector.ty),
+(go.field_decl.FieldDecl go!"desc" (go.GoType.PointerType Desc.ty)),
+(go.field_decl.FieldDecl go!"mtx" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"counts" (go.GoType.ArrayType 2 (go.GoType.PointerType histogramCounts.ty))),
+(go.field_decl.FieldDecl go!"upperBounds" (go.GoType.SliceType go.float64)),
+(go.field_decl.FieldDecl go!"labelPairs" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_model.go.LabelPair.ty))),
+(go.field_decl.FieldDecl go!"exemplars" (go.GoType.SliceType _root_.Perennial.sync.atomic.Value.ty)),
+(go.field_decl.FieldDecl go!"nativeHistogramSchema" go.int32),
+(go.field_decl.FieldDecl go!"nativeHistogramZeroThreshold" go.float64),
+(go.field_decl.FieldDecl go!"nativeHistogramMaxZeroThreshold" go.float64),
+(go.field_decl.FieldDecl go!"nativeHistogramMaxBuckets" go.uint32),
+(go.field_decl.FieldDecl go!"nativeHistogramMinResetDuration" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"lastResetTime" _root_.Perennial.time.Time.ty),
+(go.field_decl.FieldDecl go!"resetScheduled" go.bool),
+(go.field_decl.FieldDecl go!"nativeExemplars" nativeExemplars.ty),
+(go.field_decl.FieldDecl go!"now" (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))),
+(go.field_decl.FieldDecl go!"afterFunc" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [(go.GoType.PointerType _root_.Perennial.time.Timer.ty)])))]
+
+@[irreducible] noncomputable def histogram.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  histogram.fieldsUnsealed
+
+noncomputable instance equals_unfold_histogram [GooseExts] [GoGlobalContext] :
+    EqualsUnfold histogram.fields histogram.fieldsUnsealed :=
+  ⟨by unfold histogram.fields; rfl⟩
+
+@[reducible] noncomputable def histogram.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType histogram.fields)
 
 class histogram.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying histogram.underlying histogram
   underlying : go.UnderlyingDirectedEq histogram.ty histogram.underlying
-  isUnderlying : go.IsUnderlying histogram.underlying histogram.underlying
+  get_countAndHotIdx : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"countAndHotIdx") #x (Val #(x.countAndHotIdx'))
+  set_countAndHotIdx : ∀ (x : histogram) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"countAndHotIdx") (PairV #x #y) (Val #(({ x with countAndHotIdx' := y } : histogram)))
+  get_selfCollector : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"selfCollector") #x (Val #(x.selfCollector'))
+  set_selfCollector : ∀ (x : histogram) (y : selfCollector), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"selfCollector") (PairV #x #y) (Val #(({ x with selfCollector' := y } : histogram)))
+  get_desc : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"desc") #x (Val #(x.desc'))
+  set_desc : ∀ (x : histogram) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"desc") (PairV #x #y) (Val #(({ x with desc' := y } : histogram)))
+  get_mtx : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"mtx") #x (Val #(x.mtx'))
+  set_mtx : ∀ (x : histogram) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"mtx") (PairV #x #y) (Val #(({ x with mtx' := y } : histogram)))
+  get_counts : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"counts") #x (Val #(x.counts'))
+  set_counts : ∀ (x : histogram) (y : (GoArray Loc 2)), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"counts") (PairV #x #y) (Val #(({ x with counts' := y } : histogram)))
+  get_upperBounds : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"upperBounds") #x (Val #(x.upperBounds'))
+  set_upperBounds : ∀ (x : histogram) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"upperBounds") (PairV #x #y) (Val #(({ x with upperBounds' := y } : histogram)))
+  get_labelPairs : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"labelPairs") #x (Val #(x.labelPairs'))
+  set_labelPairs : ∀ (x : histogram) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"labelPairs") (PairV #x #y) (Val #(({ x with labelPairs' := y } : histogram)))
+  get_exemplars : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"exemplars") #x (Val #(x.exemplars'))
+  set_exemplars : ∀ (x : histogram) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"exemplars") (PairV #x #y) (Val #(({ x with exemplars' := y } : histogram)))
+  get_nativeHistogramSchema : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"nativeHistogramSchema") #x (Val #(x.nativeHistogramSchema'))
+  set_nativeHistogramSchema : ∀ (x : histogram) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"nativeHistogramSchema") (PairV #x #y) (Val #(({ x with nativeHistogramSchema' := y } : histogram)))
+  get_nativeHistogramZeroThreshold : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"nativeHistogramZeroThreshold") #x (Val #(x.nativeHistogramZeroThreshold'))
+  set_nativeHistogramZeroThreshold : ∀ (x : histogram) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"nativeHistogramZeroThreshold") (PairV #x #y) (Val #(({ x with nativeHistogramZeroThreshold' := y } : histogram)))
+  get_nativeHistogramMaxZeroThreshold : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"nativeHistogramMaxZeroThreshold") #x (Val #(x.nativeHistogramMaxZeroThreshold'))
+  set_nativeHistogramMaxZeroThreshold : ∀ (x : histogram) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"nativeHistogramMaxZeroThreshold") (PairV #x #y) (Val #(({ x with nativeHistogramMaxZeroThreshold' := y } : histogram)))
+  get_nativeHistogramMaxBuckets : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"nativeHistogramMaxBuckets") #x (Val #(x.nativeHistogramMaxBuckets'))
+  set_nativeHistogramMaxBuckets : ∀ (x : histogram) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"nativeHistogramMaxBuckets") (PairV #x #y) (Val #(({ x with nativeHistogramMaxBuckets' := y } : histogram)))
+  get_nativeHistogramMinResetDuration : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"nativeHistogramMinResetDuration") #x (Val #(x.nativeHistogramMinResetDuration'))
+  set_nativeHistogramMinResetDuration : ∀ (x : histogram) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"nativeHistogramMinResetDuration") (PairV #x #y) (Val #(({ x with nativeHistogramMinResetDuration' := y } : histogram)))
+  get_lastResetTime : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"lastResetTime") #x (Val #(x.lastResetTime'))
+  set_lastResetTime : ∀ (x : histogram) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"lastResetTime") (PairV #x #y) (Val #(({ x with lastResetTime' := y } : histogram)))
+  get_resetScheduled : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"resetScheduled") #x (Val #(x.resetScheduled'))
+  set_resetScheduled : ∀ (x : histogram) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"resetScheduled") (PairV #x #y) (Val #(({ x with resetScheduled' := y } : histogram)))
+  get_nativeExemplars : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"nativeExemplars") #x (Val #(x.nativeExemplars'))
+  set_nativeExemplars : ∀ (x : histogram) (y : nativeExemplars), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"nativeExemplars") (PairV #x #y) (Val #(({ x with nativeExemplars' := y } : histogram)))
+  get_now : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"now") #x (Val #(x.now'))
+  set_now : ∀ (x : histogram) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"now") (PairV #x #y) (Val #(({ x with now' := y } : histogram)))
+  get_afterFunc : ∀ (x : histogram), go.IsGoStepPureDetTagged under (StructFieldGet histogram.underlying go!"afterFunc") #x (Val #(x.afterFunc'))
+  set_afterFunc : ∀ (x : histogram) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet histogram.underlying go!"afterFunc") (PairV #x #y) (Val #(({ x with afterFunc' := y } : histogram)))
   method_set : go.MethodSetIs histogram.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType histogram.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"ObserveWithExemplar", (some (go.signature.Signature [go.float64, Labels.ty] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_model.go.Metric.ty)] false [go.error]))), (go!"github.com/prometheus/client_golang/prometheus.doubleBucketWidth", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty), (go.GoType.PointerType histogramCounts.ty)] false []))), (go!"github.com/prometheus/client_golang/prometheus.findBucket", (some (go.signature.Signature [go.float64] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false []))), (go!"github.com/prometheus/client_golang/prometheus.limitBuckets", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty), go.float64, go.int] false []))), (go!"github.com/prometheus/client_golang/prometheus.maybeReset", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty), (go.GoType.PointerType histogramCounts.ty), go.uint64, go.float64, go.int] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.maybeWidenZeroBucket", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty), (go.GoType.PointerType histogramCounts.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.observe", (some (go.signature.Signature [go.float64, go.int] false []))), (go!"github.com/prometheus/client_golang/prometheus.reset", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.resetCounts", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty)] false []))), (go!"github.com/prometheus/client_golang/prometheus.updateExemplar", (some (go.signature.Signature [go.float64, go.int, Labels.ty] false [])))]
 
 attribute [instance] histogram.TypeAssumptions.type_repr
   histogram.TypeAssumptions.underlying
-  histogram.TypeAssumptions.isUnderlying
+  histogram.TypeAssumptions.get_countAndHotIdx
+  histogram.TypeAssumptions.set_countAndHotIdx
+  histogram.TypeAssumptions.get_selfCollector
+  histogram.TypeAssumptions.set_selfCollector
+  histogram.TypeAssumptions.get_desc
+  histogram.TypeAssumptions.set_desc
+  histogram.TypeAssumptions.get_mtx
+  histogram.TypeAssumptions.set_mtx
+  histogram.TypeAssumptions.get_counts
+  histogram.TypeAssumptions.set_counts
+  histogram.TypeAssumptions.get_upperBounds
+  histogram.TypeAssumptions.set_upperBounds
+  histogram.TypeAssumptions.get_labelPairs
+  histogram.TypeAssumptions.set_labelPairs
+  histogram.TypeAssumptions.get_exemplars
+  histogram.TypeAssumptions.set_exemplars
+  histogram.TypeAssumptions.get_nativeHistogramSchema
+  histogram.TypeAssumptions.set_nativeHistogramSchema
+  histogram.TypeAssumptions.get_nativeHistogramZeroThreshold
+  histogram.TypeAssumptions.set_nativeHistogramZeroThreshold
+  histogram.TypeAssumptions.get_nativeHistogramMaxZeroThreshold
+  histogram.TypeAssumptions.set_nativeHistogramMaxZeroThreshold
+  histogram.TypeAssumptions.get_nativeHistogramMaxBuckets
+  histogram.TypeAssumptions.set_nativeHistogramMaxBuckets
+  histogram.TypeAssumptions.get_nativeHistogramMinResetDuration
+  histogram.TypeAssumptions.set_nativeHistogramMinResetDuration
+  histogram.TypeAssumptions.get_lastResetTime
+  histogram.TypeAssumptions.set_lastResetTime
+  histogram.TypeAssumptions.get_resetScheduled
+  histogram.TypeAssumptions.set_resetScheduled
+  histogram.TypeAssumptions.get_nativeExemplars
+  histogram.TypeAssumptions.set_nativeExemplars
+  histogram.TypeAssumptions.get_now
+  histogram.TypeAssumptions.set_now
+  histogram.TypeAssumptions.get_afterFunc
+  histogram.TypeAssumptions.set_afterFunc
   histogram.TypeAssumptions.method_set
   histogram.TypeAssumptions.ptr_method_set
 
@@ -2239,25 +2980,6 @@ class buckSort.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
 attribute [instance] buckSort.TypeAssumptions.underlying
   buckSort.TypeAssumptions.method_set
   buckSort.TypeAssumptions.ptr_method_set
-
-opaque nativeExemplars.nonempty_type : NonemptyType.{0}
-def nativeExemplars : Type := nativeExemplars.nonempty_type.type
-instance nativeExemplars.nonempty : Nonempty nativeExemplars := nativeExemplars.nonempty_type.property
-opaque nativeExemplars.zero_val : ZeroVal nativeExemplars := ⟨Classical.ofNonempty⟩
-attribute [instance] nativeExemplars.zero_val
-
-class nativeExemplars.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying nativeExemplars.underlying nativeExemplars
-  underlying : go.UnderlyingDirectedEq nativeExemplars.ty nativeExemplars.underlying
-  isUnderlying : go.IsUnderlying nativeExemplars.underlying nativeExemplars.underlying
-  method_set : go.MethodSetIs nativeExemplars.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nativeExemplars.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.addExemplar", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_model.go.Exemplar.ty)] false []))), (go!"github.com/prometheus/client_golang/prometheus.isEnabled", (some (go.signature.Signature [] false [go.bool])))]
-
-attribute [instance] nativeExemplars.TypeAssumptions.type_repr
-  nativeExemplars.TypeAssumptions.underlying
-  nativeExemplars.TypeAssumptions.isUnderlying
-  nativeExemplars.TypeAssumptions.method_set
-  nativeExemplars.TypeAssumptions.ptr_method_set
 
 structure constNativeHistogram [GooseExts] where
   mk ::
@@ -2883,6 +3605,9 @@ class AlreadyRegisteredError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   set_NewCollector : ∀ (x : AlreadyRegisteredError) (y : Collector), go.IsGoStepPureDetTagged under (StructFieldSet AlreadyRegisteredError.underlying go!"NewCollector") (PairV #x #y) (Val #(({ x with NewCollector' := y } : AlreadyRegisteredError)))
   method_set : go.MethodSetIs AlreadyRegisteredError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlreadyRegisteredError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  Error_unfold : MethodUnfold AlreadyRegisteredError.ty go!"Error" AlreadyRegisteredError.Error.impl
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType AlreadyRegisteredError.ty) go!"Error" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve AlreadyRegisteredError.ty go!"Error"))) (App (Val (GoInstruction (GoLoad AlreadyRegisteredError.ty))) (Var "$r"))))
 
 attribute [instance] AlreadyRegisteredError.TypeAssumptions.type_repr
   AlreadyRegisteredError.TypeAssumptions.underlying
@@ -2892,6 +3617,8 @@ attribute [instance] AlreadyRegisteredError.TypeAssumptions.type_repr
   AlreadyRegisteredError.TypeAssumptions.set_NewCollector
   AlreadyRegisteredError.TypeAssumptions.method_set
   AlreadyRegisteredError.TypeAssumptions.ptr_method_set
+  AlreadyRegisteredError.TypeAssumptions.Error_unfold
+  AlreadyRegisteredError.TypeAssumptions.ptr_Error_unfold
 
 abbrev MultiError [GooseExts] : Type := GoSlice
 
@@ -2907,43 +3634,115 @@ attribute [instance] MultiError.TypeAssumptions.underlying
   MultiError.TypeAssumptions.method_set
   MultiError.TypeAssumptions.ptr_method_set
 
-opaque SafeMultiError.nonempty_type : NonemptyType.{0}
-def SafeMultiError : Type := SafeMultiError.nonempty_type.type
-instance SafeMultiError.nonempty : Nonempty SafeMultiError := SafeMultiError.nonempty_type.property
-opaque SafeMultiError.zero_val : ZeroVal SafeMultiError := ⟨Classical.ofNonempty⟩
-attribute [instance] SafeMultiError.zero_val
+structure SafeMultiError [GooseExts] where
+  mk ::
+  mu' : _root_.Perennial.sync.Mutex
+  errs' : MultiError
+
+noncomputable instance SafeMultiError.zero_val [GooseExts] : ZeroVal SafeMultiError :=
+  ⟨SafeMultiError.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def SafeMultiError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"errs" MultiError.ty)]
+
+@[irreducible] noncomputable def SafeMultiError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  SafeMultiError.fieldsUnsealed
+
+noncomputable instance equals_unfold_SafeMultiError [GooseExts] [GoGlobalContext] :
+    EqualsUnfold SafeMultiError.fields SafeMultiError.fieldsUnsealed :=
+  ⟨by unfold SafeMultiError.fields; rfl⟩
+
+@[reducible] noncomputable def SafeMultiError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType SafeMultiError.fields)
 
 class SafeMultiError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SafeMultiError.underlying SafeMultiError
   underlying : go.UnderlyingDirectedEq SafeMultiError.ty SafeMultiError.underlying
-  isUnderlying : go.IsUnderlying SafeMultiError.underlying SafeMultiError.underlying
+  get_mu : ∀ (x : SafeMultiError), go.IsGoStepPureDetTagged under (StructFieldGet SafeMultiError.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : SafeMultiError) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet SafeMultiError.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : SafeMultiError)))
+  get_errs : ∀ (x : SafeMultiError), go.IsGoStepPureDetTagged under (StructFieldGet SafeMultiError.underlying go!"errs") #x (Val #(x.errs'))
+  set_errs : ∀ (x : SafeMultiError) (y : MultiError), go.IsGoStepPureDetTagged under (StructFieldSet SafeMultiError.underlying go!"errs") (PairV #x #y) (Val #(({ x with errs' := y } : SafeMultiError)))
   method_set : go.MethodSetIs SafeMultiError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SafeMultiError.ty) [(go!"Append", (some (go.signature.Signature [go.error] false [])))]
 
 attribute [instance] SafeMultiError.TypeAssumptions.type_repr
   SafeMultiError.TypeAssumptions.underlying
-  SafeMultiError.TypeAssumptions.isUnderlying
+  SafeMultiError.TypeAssumptions.get_mu
+  SafeMultiError.TypeAssumptions.set_mu
+  SafeMultiError.TypeAssumptions.get_errs
+  SafeMultiError.TypeAssumptions.set_errs
   SafeMultiError.TypeAssumptions.method_set
   SafeMultiError.TypeAssumptions.ptr_method_set
 
-opaque Registry.nonempty_type : NonemptyType.{0}
-def Registry : Type := Registry.nonempty_type.type
-instance Registry.nonempty : Nonempty Registry := Registry.nonempty_type.property
-opaque Registry.zero_val : ZeroVal Registry := ⟨Classical.ofNonempty⟩
-attribute [instance] Registry.zero_val
+structure Registry [GooseExts] where
+  mk ::
+  mtx' : _root_.Perennial.sync.RWMutex
+  collectorsByID' : GoMap
+  descIDs' : GoMap
+  dimHashesByName' : GoMap
+  uncheckedCollectors' : GoSlice
+  pedanticChecksEnabled' : Bool
+
+noncomputable instance Registry.zero_val [GooseExts] : ZeroVal Registry :=
+  ⟨Registry.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Registry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"mtx" _root_.Perennial.sync.RWMutex.ty),
+(go.field_decl.FieldDecl go!"collectorsByID" (go.GoType.MapType go.uint64 Collector.ty)),
+(go.field_decl.FieldDecl go!"descIDs" (go.GoType.MapType go.uint64 (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"dimHashesByName" (go.GoType.MapType go.string go.uint64)),
+(go.field_decl.FieldDecl go!"uncheckedCollectors" (go.GoType.SliceType Collector.ty)),
+(go.field_decl.FieldDecl go!"pedanticChecksEnabled" go.bool)]
+
+@[irreducible] noncomputable def Registry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Registry.fieldsUnsealed
+
+noncomputable instance equals_unfold_Registry [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Registry.fields Registry.fieldsUnsealed :=
+  ⟨by unfold Registry.fields; rfl⟩
+
+@[reducible] noncomputable def Registry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Registry.fields)
 
 class Registry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Registry.underlying Registry
   underlying : go.UnderlyingDirectedEq Registry.ty Registry.underlying
-  isUnderlying : go.IsUnderlying Registry.underlying Registry.underlying
+  get_mtx : ∀ (x : Registry), go.IsGoStepPureDetTagged under (StructFieldGet Registry.underlying go!"mtx") #x (Val #(x.mtx'))
+  set_mtx : ∀ (x : Registry) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Registry.underlying go!"mtx") (PairV #x #y) (Val #(({ x with mtx' := y } : Registry)))
+  get_collectorsByID : ∀ (x : Registry), go.IsGoStepPureDetTagged under (StructFieldGet Registry.underlying go!"collectorsByID") #x (Val #(x.collectorsByID'))
+  set_collectorsByID : ∀ (x : Registry) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Registry.underlying go!"collectorsByID") (PairV #x #y) (Val #(({ x with collectorsByID' := y } : Registry)))
+  get_descIDs : ∀ (x : Registry), go.IsGoStepPureDetTagged under (StructFieldGet Registry.underlying go!"descIDs") #x (Val #(x.descIDs'))
+  set_descIDs : ∀ (x : Registry) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Registry.underlying go!"descIDs") (PairV #x #y) (Val #(({ x with descIDs' := y } : Registry)))
+  get_dimHashesByName : ∀ (x : Registry), go.IsGoStepPureDetTagged under (StructFieldGet Registry.underlying go!"dimHashesByName") #x (Val #(x.dimHashesByName'))
+  set_dimHashesByName : ∀ (x : Registry) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Registry.underlying go!"dimHashesByName") (PairV #x #y) (Val #(({ x with dimHashesByName' := y } : Registry)))
+  get_uncheckedCollectors : ∀ (x : Registry), go.IsGoStepPureDetTagged under (StructFieldGet Registry.underlying go!"uncheckedCollectors") #x (Val #(x.uncheckedCollectors'))
+  set_uncheckedCollectors : ∀ (x : Registry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Registry.underlying go!"uncheckedCollectors") (PairV #x #y) (Val #(({ x with uncheckedCollectors' := y } : Registry)))
+  get_pedanticChecksEnabled : ∀ (x : Registry), go.IsGoStepPureDetTagged under (StructFieldGet Registry.underlying go!"pedanticChecksEnabled") #x (Val #(x.pedanticChecksEnabled'))
+  set_pedanticChecksEnabled : ∀ (x : Registry) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Registry.underlying go!"pedanticChecksEnabled") (PairV #x #y) (Val #(({ x with pedanticChecksEnabled' := y } : Registry)))
   method_set : go.MethodSetIs Registry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Registry.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Gather", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_model.go.MetricFamily.ty)), go.error]))), (go!"MustGather", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_model.go.MetricFamily.ty))]))), (go!"MustRegister", (some (go.signature.Signature [(go.GoType.SliceType Collector.ty)] true []))), (go!"Register", (some (go.signature.Signature [Collector.ty] false [go.error]))), (go!"Unregister", (some (go.signature.Signature [Collector.ty] false [go.bool])))]
+  ptr_MustRegister_unfold : MethodUnfold (go.GoType.PointerType Registry.ty) go!"MustRegister" Registry.MustRegister.impl
+  ptr_Register_unfold : MethodUnfold (go.GoType.PointerType Registry.ty) go!"Register" Registry.Register.impl
 
 attribute [instance] Registry.TypeAssumptions.type_repr
   Registry.TypeAssumptions.underlying
-  Registry.TypeAssumptions.isUnderlying
+  Registry.TypeAssumptions.get_mtx
+  Registry.TypeAssumptions.set_mtx
+  Registry.TypeAssumptions.get_collectorsByID
+  Registry.TypeAssumptions.set_collectorsByID
+  Registry.TypeAssumptions.get_descIDs
+  Registry.TypeAssumptions.set_descIDs
+  Registry.TypeAssumptions.get_dimHashesByName
+  Registry.TypeAssumptions.set_dimHashesByName
+  Registry.TypeAssumptions.get_uncheckedCollectors
+  Registry.TypeAssumptions.set_uncheckedCollectors
+  Registry.TypeAssumptions.get_pedanticChecksEnabled
+  Registry.TypeAssumptions.set_pedanticChecksEnabled
   Registry.TypeAssumptions.method_set
   Registry.TypeAssumptions.ptr_method_set
+  Registry.TypeAssumptions.ptr_MustRegister_unfold
+  Registry.TypeAssumptions.ptr_Register_unfold
 
 abbrev Gatherers [GooseExts] : Type := GoSlice
 
@@ -3658,22 +4457,56 @@ attribute [instance] curriedLabelValue.TypeAssumptions.type_repr
   curriedLabelValue.TypeAssumptions.method_set
   curriedLabelValue.TypeAssumptions.ptr_method_set
 
-opaque metricMap.nonempty_type : NonemptyType.{0}
-def metricMap : Type := metricMap.nonempty_type.type
-instance metricMap.nonempty : Nonempty metricMap := metricMap.nonempty_type.property
-opaque metricMap.zero_val : ZeroVal metricMap := ⟨Classical.ofNonempty⟩
-attribute [instance] metricMap.zero_val
+structure metricMap [GooseExts] where
+  mk ::
+  mtx' : _root_.Perennial.sync.RWMutex
+  metrics' : GoMap
+  desc' : Loc
+  newMetric' : GoFunc
+
+noncomputable instance metricMap.zero_val [GooseExts] : ZeroVal metricMap :=
+  ⟨metricMap.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def metricMap.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"mtx" _root_.Perennial.sync.RWMutex.ty),
+(go.field_decl.FieldDecl go!"metrics" (go.GoType.MapType go.uint64 (go.GoType.SliceType metricWithLabelValues.ty))),
+(go.field_decl.FieldDecl go!"desc" (go.GoType.PointerType Desc.ty)),
+(go.field_decl.FieldDecl go!"newMetric" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.string)] true [Metric.ty])))]
+
+@[irreducible] noncomputable def metricMap.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  metricMap.fieldsUnsealed
+
+noncomputable instance equals_unfold_metricMap [GooseExts] [GoGlobalContext] :
+    EqualsUnfold metricMap.fields metricMap.fieldsUnsealed :=
+  ⟨by unfold metricMap.fields; rfl⟩
+
+@[reducible] noncomputable def metricMap.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType metricMap.fields)
 
 class metricMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying metricMap.underlying metricMap
   underlying : go.UnderlyingDirectedEq metricMap.ty metricMap.underlying
-  isUnderlying : go.IsUnderlying metricMap.underlying metricMap.underlying
+  get_mtx : ∀ (x : metricMap), go.IsGoStepPureDetTagged under (StructFieldGet metricMap.underlying go!"mtx") #x (Val #(x.mtx'))
+  set_mtx : ∀ (x : metricMap) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet metricMap.underlying go!"mtx") (PairV #x #y) (Val #(({ x with mtx' := y } : metricMap)))
+  get_metrics : ∀ (x : metricMap), go.IsGoStepPureDetTagged under (StructFieldGet metricMap.underlying go!"metrics") #x (Val #(x.metrics'))
+  set_metrics : ∀ (x : metricMap) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet metricMap.underlying go!"metrics") (PairV #x #y) (Val #(({ x with metrics' := y } : metricMap)))
+  get_desc : ∀ (x : metricMap), go.IsGoStepPureDetTagged under (StructFieldGet metricMap.underlying go!"desc") #x (Val #(x.desc'))
+  set_desc : ∀ (x : metricMap) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet metricMap.underlying go!"desc") (PairV #x #y) (Val #(({ x with desc' := y } : metricMap)))
+  get_newMetric : ∀ (x : metricMap), go.IsGoStepPureDetTagged under (StructFieldGet metricMap.underlying go!"newMetric") #x (Val #(x.newMetric'))
+  set_newMetric : ∀ (x : metricMap) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet metricMap.underlying go!"newMetric") (PairV #x #y) (Val #(({ x with newMetric' := y } : metricMap)))
   method_set : go.MethodSetIs metricMap.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType metricMap.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty])))]
 
 attribute [instance] metricMap.TypeAssumptions.type_repr
   metricMap.TypeAssumptions.underlying
-  metricMap.TypeAssumptions.isUnderlying
+  metricMap.TypeAssumptions.get_mtx
+  metricMap.TypeAssumptions.set_mtx
+  metricMap.TypeAssumptions.get_metrics
+  metricMap.TypeAssumptions.set_metrics
+  metricMap.TypeAssumptions.get_desc
+  metricMap.TypeAssumptions.set_desc
+  metricMap.TypeAssumptions.get_newMetric
+  metricMap.TypeAssumptions.set_newMetric
   metricMap.TypeAssumptions.method_set
   metricMap.TypeAssumptions.ptr_method_set
 
@@ -3937,12 +4770,19 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   wrappingRegisterer_instance : wrappingRegisterer.TypeAssumptions
   wrappingCollector_instance : wrappingCollector.TypeAssumptions
   wrappingMetric_instance : wrappingMetric.TypeAssumptions
+  NewInvalidDesc_unfold : FuncUnfold NewInvalidDesc [] NewInvalidDesc.impl
   ExponentialBuckets_unfold : FuncUnfold ExponentialBuckets [] ExponentialBuckets.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  NewRegistry_unfold : FuncUnfold NewRegistry [] NewRegistry.impl
+  Register_unfold : FuncUnfold Register [] Register.impl
+  MustRegister_unfold : FuncUnfold MustRegister [] MustRegister.impl
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_math_Assumption : _root_.Perennial.math.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_io_prometheus_client_Assumption : _root_.Perennial.github_com.prometheus.client_model.go.Assumptions
+  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_sync_Assumption : _root_.Perennial.sync.Assumptions
 
 attribute [instance] Assumptions.Collector_instance
   Assumptions.selfCollector_instance
@@ -4032,12 +4872,19 @@ attribute [instance] Assumptions.Collector_instance
   Assumptions.wrappingRegisterer_instance
   Assumptions.wrappingCollector_instance
   Assumptions.wrappingMetric_instance
+  Assumptions.NewInvalidDesc_unfold
   Assumptions.ExponentialBuckets_unfold
+  Assumptions.«init.0_unfold»
+  Assumptions.NewRegistry_unfold
+  Assumptions.Register_unfold
+  Assumptions.MustRegister_unfold
   Assumptions.import_errors_Assumption
   Assumptions.import_math_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_io_prometheus_client_Assumption
+  Assumptions.import_fmt_Assumption
+  Assumptions.import_sync_Assumption
 
 end github_com.prometheus.client_golang.prometheus
 

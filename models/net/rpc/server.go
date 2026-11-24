@@ -596,7 +596,8 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Println("rpc hijacking " + req.RemoteAddr + ": " + err.Error())
 		return
 	}
-	io.WriteString(conn, "HTTP/1.0 "+connected+"\n\n")
+	// MODEL: io.WriteString(conn, s) as conn.Write([]byte(s)), as in DialHTTPPath.
+	conn.Write([]byte("HTTP/1.0 " + connected + "\n\n"))
 	server.ServeConn(conn)
 }
 

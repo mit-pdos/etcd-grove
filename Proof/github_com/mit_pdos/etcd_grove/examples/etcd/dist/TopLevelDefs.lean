@@ -283,13 +283,6 @@ opaque serverProg (d : Deployment) (m : Member) : Expr
 `client.Main(w, eps)`, the members' client addresses `eps` in the members' order. -/
 opaque clientProg (w : Workload) (eps : List GoString) : Expr
 
-/-- PLACEHOLDER (stage D2, `etc/gen-init.py`): the metric names each program's initialization
-registers (its closure's `initNames`, as `etcdNames`). -/
-opaque serverNames : List GoString
-
-/-- PLACEHOLDER (stage D2): the client program's `initNames`. -/
-opaque clientNames : List GoString
-
 /-- The members' machines, with their start states `σs`, in the members' order. -/
 def servers (d : Deployment) (σs : List state) : List (Expr × state) :=
   (d.members.zip σs).map (fun p => (serverProg d p.1, p.2))
@@ -334,8 +327,8 @@ decidable"): the auth store's records fit bbolt's value bound; every backend und
 every gRPC reply below the transport's maximum; the disk cooperates (bbolt's and the snapshots'
 opens); the peers answer `/leases/internal` as etcd does or not with `200` (true by construction
 here: every peer address is a member's raft handler); no lease expires, when a workload needs it.
-(The programs' prometheus names, `HNs`, are a premise of the statement itself: a fact of each
-program's code.) (`verifyEnvOff` and the proxy variables are gone if the
+(The programs' prometheus names, `HNs`, were a premise until prom-registry, 2026-11-22: each
+proof allocates its registration rights itself.) (`verifyEnvOff` and the proxy variables are gone if the
 server clears them, `clearProxyEnv`: open question Q10.) -/
 structure EtcdEnv (d : Deployment) : Prop where
   authRecords : authRecordsFit
