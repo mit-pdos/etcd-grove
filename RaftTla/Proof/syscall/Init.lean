@@ -13,6 +13,7 @@ module
 
 public import Proof.syscall.PkgInit
 public import Perennial.Proof.errors.Link
+public import Perennial.Proof.internal.gomodel.Link
 public import Perennial.Proof.internal.oserror.Link
 public import Perennial.Proof.internal.strconv.Link
 public import Perennial.Proof.sync.Link
@@ -76,7 +77,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _) envs _ as Henvs
   wp_apply wp_GlobalAlloc (V := _) env _ as Henv
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
-      EtcdGrove.ExternalInit.internal_oserror _root_.Perennial.internal.oserror.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+      EtcdGrove.ExternalInit.internal_oserror _root_.Perennial.internal.oserror.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.gomodel _root_.Perennial.internal.gomodel.initialize'
+      EtcdGrove.ExternalInit.internal_gomodel _root_.Perennial.internal.gomodel.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.strconv _root_.Perennial.internal.strconv.initialize'
       EtcdGrove.ExternalInit.internal_strconv _root_.Perennial.internal.strconv.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
@@ -90,13 +93,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of forceClone3))
   -- translated initializer of fcntl64Syscall))
   -- translated initializer of pageBufPool))
+  -- translated initializer of mapper))
   -- translated initializer of Stdin))
   -- translated initializer of Stdout))
   -- translated initializer of Stderr))
   -- translated initializer of errEAGAIN))
   -- translated initializer of errEINVAL))
   -- translated initializer of errENOENT))
-  -- translated initializer of mapper))
   -- translated initializer of errors))
   -- translated initializer of signals))
   wp_func_call

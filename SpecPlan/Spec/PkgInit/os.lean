@@ -3,7 +3,7 @@ module
 
 public import GeneratedProof.os
 public import SpecPlan.Spec.PkgInit.Base
-public import SpecPlan.Spec.PkgInit.internal.gomodel
+public import Perennial.Proof.internal.gomodel.Base
 public import SpecPlan.Spec.PkgInit.internal.filepathlite
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.io.fs

@@ -27,6 +27,7 @@ public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Code.hash
 public import Perennial.Code.internal.bytealg
 public import Perennial.Code.internal.byteorder
+public import Perennial.Code.internal.gomodel
 public import Perennial.Code.internal.oserror
 public import Perennial.Code.internal.strconv
 public import Perennial.Code.internal.stringslite
@@ -72,6 +73,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | hash : ExternalInit pkg_id.hash _root_.Perennial.hash.initialize'
   | internal_bytealg : ExternalInit pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize'
   | internal_byteorder : ExternalInit pkg_id.internal.byteorder _root_.Perennial.internal.byteorder.initialize'
+  | internal_gomodel : ExternalInit pkg_id.internal.gomodel _root_.Perennial.internal.gomodel.initialize'
   | internal_oserror : ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
   | internal_strconv : ExternalInit pkg_id.internal.strconv _root_.Perennial.internal.strconv.initialize'
   | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
