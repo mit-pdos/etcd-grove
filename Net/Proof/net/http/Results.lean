@@ -30,7 +30,9 @@ The request (2026-11-23): `readRequestLimit` on net/rpc's `CONNECT` request, and
 `conn.hijacked`, and the read limit's `connReader.setReadLimit`/`setInfiniteReadLimit`/`hitReadLimit`;
 and `conn.readRequest` itself (`section server`), over them, Perennial's `time.Now` and
 `context.WithCancel`, the net extension's `Conn.SetReadDeadline`, bufio's `Writer.Reset` and
-`NewWriterSize`.
+`NewWriterSize`. The accept loop (2026-11-24, phase 7 S5): `Server.Serve` (over `conn.serve`, the
+net extension's `Listener.Accept`/`Close`, `OpError.Temporary`) and `http.Serve` with a handler's
+contract (`Serve.specHandler`), both over the two interim context hypotheses.
 
 net/url's escaping (2026-11-24, phase 7 S5; what the ServeMux runs on a request's path): `shouldEscape`,
 `ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`, `escape`,
@@ -128,6 +130,11 @@ public import Proof.bufio.NewReaderFresh
 public import Proof.bufio.Reader__Reset
 public import Net.Proof.net.http.Request__ProtoAtLeast
 public import Net.Proof.net.http.http1ServerSupportsRequest
+public import Net.Proof.net.http.Server__Serve
+public import Net.Proof.net.http.ServeHandler
+public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.Listener__Close
+public import Net.Proof.net.OpError__Temporary
 
 @[expose] public section
 
@@ -288,6 +295,22 @@ theorem conn.serve.wp
     (EtcdGrove.bufio.NewReader.wp_proofFresh EtcdGrove.bufio.NewReaderSize.wp_proofFresh)
     EtcdGrove.bufio.Writer.Reset.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep
 
+/-- `Server.Serve`'s accept loop, over `conn.serve` (and so the two interim context hypotheses),
+the net extension's `Listener.Accept`/`Close` and `OpError.Temporary`. -/
+theorem Server.Serve.wp [log.Assumptions]
+    (h_WithValue : context.WithValue.specPtr (GF := GF) (hG := hG))
+    (h_WithCancelBg : context.WithCancel.specValBg (GF := GF) (hG := hG)) :
+    Server.Serve.spec (GF := GF) (hG := hG) :=
+  Server.Serve.wp_proof net.Listener.Accept.wp_proof net.Listener.Close.wp_proof
+    net.OpError.Temporary.wp_proof h_WithValue (conn.serve.wp h_WithValue h_WithCancelBg)
+
+/-- `http.Serve(l, h)` with the handler's contract, over `Server.Serve`. -/
+theorem Serve.wpHandler [log.Assumptions]
+    (h_WithValue : context.WithValue.specPtr (GF := GF) (hG := hG))
+    (h_WithCancelBg : context.WithCancel.specValBg (GF := GF) (hG := hG)) :
+    Serve.specHandler (GF := GF) (hG := hG) :=
+  Serve.wp_proofHandler (Server.Serve.wp h_WithValue h_WithCancelBg)
+
 end server
 
 end net.http
@@ -388,3 +411,5 @@ end Perennial
 #print axioms Perennial.net.url.unescape.wp
 #print axioms Perennial.net.url.PathUnescape.wp
 #print axioms Perennial.net.url.URL.EscapedPath.wp
+#print axioms Perennial.net.http.Server.Serve.wp
+#print axioms Perennial.net.http.Serve.wpHandler

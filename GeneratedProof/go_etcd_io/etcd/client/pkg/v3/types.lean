@@ -2,8 +2,11 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.net.url
+public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 

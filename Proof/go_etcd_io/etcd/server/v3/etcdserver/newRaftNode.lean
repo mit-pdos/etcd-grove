@@ -66,12 +66,13 @@ theorem newRaftNode.wp_proof
   · iPkgInit
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
+  ihave #Hsrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+  · iPkgInit
   (try wp_auto)
   -- `cfg.lg != nil`: `lg = NewRaftLoggerZap(cfg.lg)` (the `else` branch is dead)
   rw [show (decide (cv.lg' = null) = false) from decide_eq_false Hlg]
   (try wp_auto)
-  wp_apply (wp_NewRaftLoggerZap cv.lg') as %l -
-  · ipureintro; exact Hlg
+  wp_apply (wp_NewRaftLoggerZap cv.lg') $$ Hsrv Hlgz as %l -
   (try wp_auto)
   -- `raft.SetLogger(lg)`
   wp_apply wp_SetLogger l $$ Hraft

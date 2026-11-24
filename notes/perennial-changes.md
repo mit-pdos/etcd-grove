@@ -17,6 +17,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sync.Mutex` has no spec for an owned (unshared) mutex (2026-11-25, claim #34 stage 2)
+
+- **Limitation.** Perennial's `sync.Mutex.Lock`/`Unlock` specs take `isMutex m R`, a lock invariant allocated
+  for good (`init_Mutex`, an `inv`), so a mutex that a constructor locks before it shares the object cannot be
+  given its real lock invariant afterwards.
+- **Who needs it.** `membership.NewClusterFromURLsMap`'s `genID` (`MemberIDs`) and `bootstrapNewClusterNoWAL`'s
+  `MemberByName` lock the new cluster's mutex before `Finalize` makes `isRaftCluster` of it.
+- **Workaround.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/membership/OwnedMutex.lean`: `lock.lock`/
+  `lock.unlock` of an owned lock (the first compare-and-swap with the whole points-to), and from them
+  `internal.sync.Mutex.wp_{Lock,Unlock}_owned`, `sync.Mutex.wp_{Lock,Unlock}_owned` (zero value to
+  `sync.lockedMutex` and back) and `RaftCluster`'s promoted pair. Derived from the trusted code, no trust.
+- **Proposed change.** The same lemmas in Perennial's `Golang/Theory/Lock.lean` and `Proof/sync/`.
+- **Status.** Not proposed yet.
+
 ### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
 ### `runtime.callers` may fill its buffer every time: `zap.Stack` cannot be proved (2026-11-23, zap-z2, claim #40)
 
@@ -4580,3 +4594,16 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `fmt.wp_retire` as `fmt.Fprintf.wp_proof` is (no new assumption).
 - **Proposed change.** `writeSpec` (or `Fprintf.spec`) gives the writer `⌜SprintfOut format xs bs⌝`.
 - **Status.** Open.
+
+## `log.Printf.spec` admits no argument with an `Error()`/`String()` (2026-11-24, phase 7 S5 batch 13)
+
+- **Limitation.** Perennial's `log.Printf.spec` takes `fmt.ArgsWf` arguments (Go calls no method of them), while
+  `Server.Serve`'s retry after a temporary `Accept` error logs `"http: Accept error: %v; retrying in %v"` of an
+  `*OpError` and a `time.Duration` (Go calls their `Error()` and `String()`).
+- **Work-around here.** `Net/Proof/net/http/ServeLoopLemmas.lean`'s `wp_logf_argOk`: `log.Printf` on arguments with
+  `fmt.argOk` (Perennial's own condition for its proved `fmt` formatting: a method `fmt.stringMethodSpec` covers),
+  proved from Perennial's model of `log.Printf` (`TrustedCode/log.lean`, which returns), as dsv-gryff's
+  `log.wp_Printf_logArg`; `opError_argOk` (over `wp_OpError_Error`) and `duration_argOk` (over
+  `time.Duration.wp_String`) give the two arguments.
+- **Proposed (general).** `log.Printf.spec` over `fmt.argOk` arguments (or `log.Printf` over the real `fmt.Appendf`),
+  reviewed as a change to the trusted model's claim. **Status.** Not filed.
