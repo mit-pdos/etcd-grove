@@ -71,22 +71,22 @@ theorem watchClient.Watch.wp_proof
   have hNS := wp_NewStream conn addrs ics clientRes go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequestT
     v3rpc.pbWatchResponseT v3rpc.pbWatchRequestT_reg v3rpc.pbWatchResponseT_reg Up Spec ctx cd om
   simp only [v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT] at hNS
-  iapply (hNS _ copts ([sm] ++ vs) iprop(True))
+  iapply (hNS _ copts ([sm] ++ vs) (levelTok 0)) $$ [Hlt]
   · isplitr
     · iframe #
     isplitr
     · iframe #
     isplitr
-    · ipureintro; trivial
-    isplitr
-    · itrivial
+    · ipureintro; rfl
+    isplitl [Hlt]
+    · iexact Hlt
     iframe #
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]
     iframe Hd0
     ipureintro; exact hcs
   inext
-  iintro %cs %err ⟨-, Hres⟩
+  iintro %cs %err ⟨Hlt, Hres⟩
   wp_auto
   icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', %md, %Ha, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
@@ -103,6 +103,7 @@ theorem watchClient.Watch.wp_proof
       iexact Hl
     imodintro
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -120,6 +121,7 @@ theorem watchClient.Watch.wp_proof
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       iframe #
       ipureintro; rfl

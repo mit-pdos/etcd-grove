@@ -90,22 +90,22 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     pbLeaseKeepAliveRequestT pbLeaseKeepAliveResponseT pbLeaseKeepAliveRequestT_reg
     pbLeaseKeepAliveResponseT_reg (fun _ => Up) (fun _ _ => Spec) ctx cd om
   simp only [pbLeaseKeepAliveRequestT, pbLeaseKeepAliveResponseT] at hNS
-  iapply (hNS _ copts ([sm] ++ vs) iprop(True))
+  iapply (hNS _ copts ([sm] ++ vs) (levelTok 0)) $$ [Hlt]
   · isplitr
     · iframe #
     isplitr
     · iframe #
     isplitr
-    · ipureintro; trivial
-    isplitr
-    · itrivial
+    · ipureintro; rfl
+    isplitl [Hlt]
+    · iexact Hlt
     iframe #
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]
     iframe Hd0
     ipureintro; exact hcs
   inext
-  iintro %cs %err ⟨-, Hres⟩
+  iintro %cs %err ⟨Hlt, Hres⟩
   wp_auto
   icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', %md, -, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
@@ -122,6 +122,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
       iexact Hl
     imodintro
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -137,6 +138,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       iframe #
       ipureintro; rfl
