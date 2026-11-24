@@ -4448,3 +4448,20 @@ the pending hypotheses are discharged.
   plus `GaugeVec.With`/`Set` for the two version gauges (`version.Version` from api/version's fact). After
   `prom-registry` (#15) lands, on its `reg_steps`.
 - **Status.** Not filed.
+
+## 2026-11-24: no step rule for `i == nil` on a variable interface (bootstrap #34, `bootstrapSnapshot`)
+
+- **Limitation.** `InterfaceSemantics.go_eq_interface` steps `GoOp GoEquals (go.InterfaceType _)` to a
+  `match i1, i2 with ...`, which does not reduce when `i1` is a variable, so `wp_auto` cannot evaluate
+  `err != nil` on an error a spec returns as any `GoInterface` (`wp_if_destruct`: "no `decide` or
+  Boolean variable"). `CoreComparisonSemantics` has the analogue for functions
+  (`go_op_go_equals_func_nil_l/r`: `f == nil` steps to `#(decide (f = func.nil))`).
+- **Needed by.** `bootstrapSnapshot.wp_proof` (`RemoveMatchFile`'s `err`, three times); any proof that
+  branches on an unconstrained error without casing on it first.
+- **Workaround here.** A theorem-instance `go_eq_interface_nil_r` in
+  `Proof/go_etcd_io/etcd/server/v3/etcdserver/bootstrapSnapshot.lean`, derived from `go_eq_interface` by
+  cases on `i` (no new assumption).
+- **Proposed change.** Derived instances (not semantics fields) in Perennial's `Golang/Defn/Interface.lean`
+  or its proof lemmas: `⟦GoOp GoEquals (go.InterfaceType elems), (#i, #interface.nil)⟧ ⤳[under]
+  #(decide (i = interface.nil))` and its mirror.
+- **Status.** Open.

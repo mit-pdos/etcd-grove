@@ -1697,6 +1697,29 @@ noncomputable def UnsafeCreateMetaBucket.impl [GooseExts] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))) (Var "$a0"))))))
   (Val #())))
 
+/-- CreateMetaBucket creates the `meta` bucket (if it does not exist yet).
+
+    go: cindex.go:30:6 -/
+noncomputable def CreateMetaBucket.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "tx"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Meta))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"LockOutsideApply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Val #())))))))
+  (Val #())))
+
 /-- UnsafeReadConsistentIndex loads consistent index & term from given transaction.
     returns 0,0 if the data are not found.
     Term is persisted since v3.5.
@@ -3082,6 +3105,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   BackendMemberKey_unfold : FuncUnfold BackendMemberKey [] BackendMemberKey.impl
   addNewField_unfold : FuncUnfold addNewField [] addNewField.impl
   UnsafeCreateMetaBucket_unfold : FuncUnfold UnsafeCreateMetaBucket [] UnsafeCreateMetaBucket.impl
+  CreateMetaBucket_unfold : FuncUnfold CreateMetaBucket [] CreateMetaBucket.impl
   UnsafeReadConsistentIndex_unfold : FuncUnfold UnsafeReadConsistentIndex [] UnsafeReadConsistentIndex.impl
   ReadConsistentIndex_unfold : FuncUnfold ReadConsistentIndex [] ReadConsistentIndex.impl
   UnsafeUpdateConsistentIndexForce_unfold : FuncUnfold UnsafeUpdateConsistentIndexForce [] UnsafeUpdateConsistentIndexForce.impl
@@ -3133,6 +3157,7 @@ attribute [instance] Assumptions.action_instance
   Assumptions.BackendMemberKey_unfold
   Assumptions.addNewField_unfold
   Assumptions.UnsafeCreateMetaBucket_unfold
+  Assumptions.CreateMetaBucket_unfold
   Assumptions.UnsafeReadConsistentIndex_unfold
   Assumptions.ReadConsistentIndex_unfold
   Assumptions.UnsafeUpdateConsistentIndexForce_unfold

@@ -26,7 +26,7 @@ The request (2026-11-23): `readRequestLimit` on net/rpc's `CONNECT` request, and
 `Server.maxHeaderValueCount`.
 
 net/url's escaping (2026-11-24, phase 7 S5; what the ServeMux runs on a request's path): `shouldEscape`,
-`ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`.
+`ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`, `escape` (for the result's length within `int`: `3 * len(s) < 2^63`).
 
 The chunked writer (2026-11-24, phase 7 S5): `net/http/internal`'s `NewChunkedWriter`,
 `chunkedWriter.Write` (over Perennial's `fmt.Fprintf`) and `chunkedWriter.Close`; both methods call
@@ -94,6 +94,7 @@ public import Proof.net.url.shouldEscape
 public import Proof.net.url.ishex
 public import Proof.net.url.unhex
 public import Proof.net.url.validEncoded
+public import Proof.net.url.escape
 public import Net.Proof.net.http.internal.chunkedWriter__Write
 public import Net.Proof.net.http.internal.chunkedWriter__Close
 public import Net.Proof.net.http.isToken
@@ -267,6 +268,7 @@ theorem ishex.wp : ishex.spec (GF := GF) (hG := hG) := ishex.wp_proof
 theorem unhex.wp : unhex.spec (GF := GF) (hG := hG) := unhex.wp_proof
 theorem validEncoded.wp : validEncoded.spec (GF := GF) (hG := hG) :=
   validEncoded.wp_proof shouldEscape.wp
+theorem escape.wp : escape.spec (GF := GF) (hG := hG) := escape.wp_proof shouldEscape.wp
 
 end url
 
