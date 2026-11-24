@@ -672,3 +672,9 @@ The remaining baseline and the two generated admissions have not been discharged
 |---|---|---|
 | `bridge.New.wp_proof` (D26) | **false before 2026-11-24**, with `grpc.ClientConn.Invoke.wp_proof` alone (the proved `client_Get_own`, `examples/axiomcx/bridgeinvoke/`) and with etcd-dist's interim `Client_Get_dist`; **fixed**: its precondition also consumes `netAddrLeft a` | A program listened at `a`, set `a`'s grpc table from `net.Listen`'s `netAddrLeft a` (`addr_set_proto_tok`) and bridged `a` to a server meeting none of the table's specs (`TestMainPanics`). With the fix the bridging program has spent what sets `a`'s protocols. |
 
+### `http.register` and `netAddrLeft` (2026-11-24; review `notes/axiom-review/http-register-addrleft.md`; Go: `examples/axiomcx/httpaddrleft/`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `http.register` (D38c; with `reserve`, `Serve_ok`) | **false before 2026-11-24**, with the net laws alone; **fixed**: its precondition also consumes `netAddrLeft a` | A program listened at `a`, set `a`'s net protocols to trivial ones from `net.Listen`'s `netAddrLeft a` (`addr_set_proto_tok`), wrote a raw request to `a`, and `Serve_ok` promised the handler a request of `a`'s http protocol (`TestMainPanics`). In the single-process `etcd-all`, `k8s-all`, `leaseexpiryN` bases (not `putget_safe`'s). |
+

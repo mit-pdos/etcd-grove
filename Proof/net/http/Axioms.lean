@@ -49,9 +49,16 @@ axiom reserve (a : GoString) (P : Proto GF) (hP : P.srvOk) :
 
 /-- **Registration** (D38c, D39a): the address's listener, with the right to serve it with the
 address's reserved protocol, serves it with that protocol (the model: the listener bound once,
-`net.Listen` consuming `netAddrFree a`; the protocol the ghost map's entry for `a`). -/
+`net.Listen` consuming `netAddrFree a`; the protocol the ghost map's entry for `a`).
+
+(2026-11-24) It also consumes `netAddrLeft a`, what sets `a`'s net protocols (`net.Listen`'s, beside the
+listener): an address served by net/http speaks HTTP, so no program may both register `a` and give `a` net
+protocols of its own. Without it a program listened at `a`, set `a`'s protocols from `netAddrLeft` to trivial
+ones (`addr_set_proto_tok`), wrote raw bytes to `a` (`dial_au`, `writeP`), and `Serve_ok` promised the
+handler `(H.proto a).req R` of a request the protocol excludes (Go panics: `examples/axiomcx/httpaddrleft/`,
+`notes/axiom-review/http-register-addrleft.md`). As `bridge.New`'s fix (`notes/decisions.md`). -/
 axiom register (l : GoInterface) (a : GoString) (P : Proto GF) :
-  ⊢ netListenerAt (GF := GF) l a -∗ httpProtoOwn a P ==∗ httpListenerAt l a P
+  ⊢ netListenerAt (GF := GF) l a -∗ netAddrLeft (GF := GF) a -∗ httpProtoOwn a P ==∗ httpListenerAt l a P
 
 /-- (rafthttp stage 6d, 2026-10-24: the examples' members serving their raft handler) `http.Serve`
 of a registered listener with a handler of its address's protocol (`Serve_spec`): it serves each

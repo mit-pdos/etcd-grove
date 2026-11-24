@@ -42348,3 +42348,16 @@ bridges `a` keeps nothing to set them with. Trust-shrinking (a stronger precondi
 `client_Get_own` (over `grpc.ClientConn.Invoke`) promises a value the real store lacks (`examples/axiomcx/bridgeinvoke/`);
 with the fix it found no route (`notes/axiom-review/bridge-addrleft.md`).
 
+## `http.register` consumes what sets the address's net protocols (2026-11-24 · the coordinator, trust-shrinking · branch `http-register-addrleft/2026-11-24`)
+
+**Problem.** `http.register` (D38c) took only the listener `netListenerAt l a` (and the reserved protocol). Since phase 7
+S2's interface `net.Listen` also returns `netAddrLeft a`, from which a program gives `a` net protocols of its own and writes
+raw bytes to it; `Serve_ok` still promised each handler a request of `a`'s http protocol. Go: a raw `GET` reaches a handler
+promised only `POST`s and its check panics (`notes/axiom-review/http-register-addrleft.md`, `examples/axiomcx/httpaddrleft/`).
+The same class as `bridge.New` before its fix (above).
+
+**Choice.** `register` also consumes `netAddrLeft a`: an address served by net/http speaks HTTP, so the program that
+registers it keeps nothing to set its net protocols with. Trust-shrinking (a stronger premise of an axiom); its five
+callers pass `net.Listen`'s, their specs unchanged. Alternative: `reserve` consuming it (the reservation happens before
+the listener exists, from the start's `httpProtoFree`; `register` is where the listener and `netAddrLeft` meet).
+
