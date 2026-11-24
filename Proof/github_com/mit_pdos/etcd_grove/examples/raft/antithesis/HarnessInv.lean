@@ -230,7 +230,9 @@ def raftFactsOwn (γ : RaftNames) (G : AntSim.RaftFacts) : IProp GF :=
 
 /-- **The run's invariant, open**: the stream (the invariant's half of `rec`), the views (their
 invariant halves), the sent list (its authority), the run's pure facts, and raft's facts behind
-`GlobalOk`. -/
+`GlobalOk`, which also certify each view's log (`entOf` forgets an entry's index, so `GlobalOk`'s
+`S.log[n] = logOf l` does not name the view's log; a `Ready`'s first-conflict fact compares the
+view's log with the node's by log matching). -/
 def antOpen (γ : AntNames) : IProp GF :=
   iprop(∃ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin 3 → AntSim.NodeView)
       (net : List Msg) (G : AntSim.RaftFacts),
@@ -238,7 +240,8 @@ def antOpen (γ : AntNames) : IProp GF :=
     ghostVar (γ.view 0) (1 : Qp).half (V 0) ∗ ghostVar (γ.view 1) (1 : Qp).half (V 1) ∗
     ghostVar (γ.view 2) (1 : Qp).half (V 2) ∗
     monoListAuthOwn γ.sent 1 net ∗
-    ⌜AntRun evs S V net ∧ AntSim.RaftLaws G ∧ AntSim.GlobalOk S net G⌝ ∗
+    ⌜AntRun evs S V net ∧ AntSim.RaftLaws G ∧ AntSim.GlobalOk S net G ∧
+      ∀ j : Fin 3, (V j).ps.log ∈ G.logs⌝ ∗
     raftFactsOwn γ.raft.raftNames G)
 
 /-- **The run's invariant** (`antN`; `notes/antithesis-s4-design.md` §3): open, or over (the three
@@ -352,11 +355,11 @@ def causeOwn (γ : AntNames) (j : Fin 3) (v : AntSim.NodeView) (cl : Loc) : IPro
 /-- **The `RawNode`'s record against the view** (pure): the client record's last reported hard
 state, role and durable log are the view's (its last `ready` report's, C1), what it handed out is
 the view's delivered and unreported committed entries, nothing queued or unpersisted, not
-following a snapshot, the term the view's. -/
+following a snapshot. (The term is the node's, `rawNode_wf`: at a loop head it is the input's.) -/
 def RsView (rs : RNState) (v : AntSim.NodeView) : Prop :=
   rs.phs = HardStateM.mk v.ps.term v.ps.vote v.ps.commit ∧ rs.role = roleGo v.ps.role ∧
   rs.dur.ents = v.ps.log ∧ rs.delivered = v.delivered ++ v.ce ∧ rs.steps = [] ∧
-  rs.unpersisted = [] ∧ rs.flw = false ∧ rs.term = v.ps.term
+  rs.unpersisted = [] ∧ rs.flw = false
 
 /-- **Node `j`'s goroutine's state** at `n`, its view `v`, the phase `ph` (see the file header): the
 `RawNode` at `rs ps qs ip` and its raft ghost state; its `MemoryStorage` (`ms`, in the
