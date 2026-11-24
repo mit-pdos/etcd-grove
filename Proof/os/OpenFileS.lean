@@ -11,6 +11,8 @@ module
 public import Proof.os.ErrorOk
 public import Spec.os.OpenFileS
 public import GooseLang.Ext.Fs.NoErrSpecsOpenFile
+public import Proof.os.IgnoringEINTR
+public import Proof.os.ForLoeb
 
 @[expose] public section
 

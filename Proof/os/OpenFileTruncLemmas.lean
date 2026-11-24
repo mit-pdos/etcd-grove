@@ -9,6 +9,8 @@ module
 public import Proof.os.ErrorOk
 public import Proof.syscall.ErrorOk
 public import Spec.os.OpenFileTruncS
+public import Proof.os.IgnoringEINTR
+public import Proof.os.ForLoeb
 
 @[expose] public section
 

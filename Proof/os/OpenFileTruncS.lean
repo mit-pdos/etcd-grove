@@ -11,6 +11,9 @@ module
 public import Proof.os.OpenFileTruncLemmas
 public import Spec.os.OpenFileS
 public import Spec.os.OpenFileTruncS
+public import Proof.os.ErrorOk
+public import Proof.os.IgnoringEINTR
+public import Proof.os.ForLoeb
 
 @[expose] public section
 
