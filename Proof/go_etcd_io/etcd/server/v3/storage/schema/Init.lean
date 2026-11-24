@@ -8,8 +8,8 @@ Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `Aut
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
 (`auth.go`; the auth plan's S1, 2026-10-23), the lessor's `Lease` bucket (leases T3,
-2026-10-25) and the membership's `Members`, `MembersRemoved` and `Cluster` buckets (prove-ps2-members,
-2026-11-22). Its initializer allocates and sets those translated variables (with the buckets'
+2026-10-25), the membership's `Members`, `MembersRemoved` and `Cluster` buckets (prove-ps2-members,
+2026-11-22) and the alarm store's `Alarm` bucket (prove-ps2-v3alarm, 2026-11-24). Its initializer allocates and sets those translated variables (with the buckets'
 names), initializes its imports and runs its other variables' initializers, all translated
 (prove-initleft, 2026-11-21: `schemaChanges`, a map literal keyed by `version`'s versions, and the
 interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its `init` function

@@ -150,7 +150,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩
   try wp_auto
-  wp_apply wp_string_to_bytes go!"alarm" as %_ ⟨-, -⟩
+  wp_apply wp_string_to_bytes go!"alarm" as %salarm ⟨Hsalarm, -⟩
   try wp_auto
   wp_apply wp_string_to_bytes go!"cluster" as %scluster ⟨Hscluster, -⟩
   try wp_auto
@@ -318,6 +318,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist Hsmrem
   ipersist HMembersRemoved
   ipersist HCluster
+  ipersist Hsalarm
+  ipersist HAlarm
   iframe Hown
   imodintro
   isplitr

@@ -97,6 +97,7 @@ concurrentReadTx__UnsafeRange: @
 readTx__RLock: @
 readTx__RUnlock: @
 readTx__UnsafeRange: @
+readTx__UnsafeForEach: @
 batchTxBuffered__LockInsideApply: @
 batchTxBuffered__LockOutsideApply: @
 batchTxBuffered__UnsafeSeqPut: @
@@ -214,9 +215,14 @@ EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
-# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8): `restore` is
-# the trust boundary (names-only).
-AlarmStore__restore:
+# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8); (prove-ps2-v3alarm,
+# 2026-11-24) `restore` with its body (the trust boundary until then), over schema's alarm backend, with
+# its bodies, over the backend's specs (the read through `readTx`: the idle-read law, backend/IdleRead.lean)
+schema_alarmBackend__CreateAlarmBucket: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+schema_alarmBackend__unsafeGetAllAlarms: readTx__UnsafeForEach schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+schema_alarmBackend__GetAllAlarms: backend__ReadTx readTx__RLock readTx__RUnlock schema_alarmBackend__unsafeGetAllAlarms
+schema_alarmBackend__ForceCommit: backend__ForceCommit
+AlarmStore__restore: schema_alarmBackend__CreateAlarmBucket schema_alarmBackend__GetAllAlarms schema_alarmBackend__ForceCommit
 AlarmStore__Recover: AlarmStore__restore
 # (the trust boundary, continued)
 RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
