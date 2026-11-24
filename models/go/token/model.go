@@ -9,12 +9,8 @@ import (
 	"unicode/utf8"
 )
 
-// MODEL: IsExported is, in Go,
-//
-//	ch, _ := utf8.DecodeRuneInString(name)
-//	return unicode.IsUpper(ch)
-//
-// The model gives Go's result wherever the name's first byte is ASCII, and any result otherwise:
+// MODEL: IsExported is, in Go, `ch, _ := utf8.DecodeRuneInString(name); return
+// unicode.IsUpper(ch)`. The model gives Go's result wherever the name's first byte is ASCII, and any result otherwise:
 //   - The empty name: DecodeRuneInString returns RuneError (U+FFFD), which is not upper case, so
 //     Go returns false, as the model does.
 //   - A first byte c < utf8.RuneSelf (0x80): DecodeRuneInString returns rune(c) (its fast path),

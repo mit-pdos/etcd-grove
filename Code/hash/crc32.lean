@@ -5,8 +5,8 @@ public import Code.hash
 public import Code.internal.byteorder
 public import Perennial.Code.sync
 public import Perennial.Code.sync.atomic
+public import Perennial.Code.internal.gomodel
 public import Perennial.Golang.Defn
-public import TrustedCode.hash.crc32
 
 @[expose] public section
 
@@ -359,6 +359,70 @@ noncomputable def digest.Sum32.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint32))) (Var "$res0"))))))
 
+/-- MODEL: archAvailableCastagnoli is `return cpu.X86.HasSSE42` in Go, a property of the CPU that
+    the runtime's cpuid assembly (internal/cpu's doinit, run by the runtime, not by package
+    initialization) sets: no translated code determines it. The model answers gomodel.Choose(), any
+    boolean at each call, so it covers every CPU (with or without SSE4.2, and the other
+    architectures' crc32_otherarch.go, whose answer is false). Only castagnoliInitOnce calls it, once
+    per process, so a per-call choice adds no behaviour Go lacks beyond a different CPU's.
+
+    go: model.go:19:6 -/
+noncomputable def archAvailableCastagnoli.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.gomodel.Choose []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- MODEL: archInitCastagnoli is a no-op. Go's panics unless cpu.X86.HasSSE42, which the package's
+    own code rules out (it calls this only after archAvailableCastagnoli() returned true), and
+    otherwise fills castagnoliSSE42TableK1/K2 by calls of the SSE4.2 assembly castagnoliSSE42 on a
+    zeroed stack buffer; only Go's archUpdateCastagnoli reads those two package variables. The
+    model's archUpdateCastagnoli reads neither, so leaving them nil changes no result, and Go's
+    version returns (it has no other effect and no failure).
+
+    go: model.go:29:6 -/
+noncomputable def archInitCastagnoli.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #())))
+
+/-- MODEL: archUpdateCastagnoli returns the CRC-32C of crc and p as Go's portable code computes it
+    (simpleUpdate over simpleMakeTable(Castagnoli), crc32_generic.go). Go's computes it with SSE4.2
+    CRC32 instructions in three streams combined through the K1/K2 tables (crc32_amd64.s); it panics
+    unless cpu.X86.HasSSE42, which the package's code rules out (updateCastagnoli is set to it only
+    after archAvailableCastagnoli() returned true). Both read p and write nothing the caller sees
+    (the model's table is a fresh allocation). The trusted claim is that the assembly computes this
+    function: Go's own TestArchCastagnoli (crc32_test.go) compares archUpdateCastagnoli with
+    simpleUpdate over simpleMakeTable(Castagnoli) on every length up to and beyond its cutoffs.
+
+    go: model.go:39:6 -/
+noncomputable def archUpdateCastagnoli.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "crc"
+  (Lam "p"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint32))) (App (Val (GoInstruction (GoZeroVal go.uint32))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "p"))
+  (Let "crc" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "crc"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "crc"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.uint32))) (Val Castagnoli))
+  (App (App (Val (GoInstruction (FuncResolve simpleMakeTable []))) (Val #())) (Var "$a0")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve simpleUpdate []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.uint32))) (Var "$res0"))))))
+
 /-- simpleMakeTable allocates and constructs a Table for the specified
     polynomial. The table is suitable for use with the simple algorithm
     (simpleUpdate).
@@ -600,7 +664,7 @@ noncomputable def slicingUpdate.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.uint32))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.hash.crc32 where
-  pkgImportedPkgs := [pkg_id.hash, pkg_id.internal.byteorder, pkg_id.sync, pkg_id.sync.atomic]
+  pkgImportedPkgs := [pkg_id.hash, pkg_id.internal.byteorder, pkg_id.sync, pkg_id.sync.atomic, pkg_id.internal.gomodel]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -621,8 +685,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.uint32))) (Val IEEE))
-  (App (App (Val (GoInstruction (FuncResolve simpleMakeTable []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Lam BAnon
   (Seq (App (Val exceptionDo)
@@ -668,6 +730,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.OnceFunc []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.uint32))) (Val IEEE))
+  (App (App (Val (GoInstruction (FuncResolve simpleMakeTable []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Lam BAnon
   (Seq (App (Val exceptionDo)
   (If (App (App (Val (GoInstruction (FuncResolve archAvailableIEEE []))) (Val #())) (Val #()))
@@ -705,9 +770,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr ieeeInitOnce))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr castagnoliInitOnce))) (Val #())) (Var "$r0"))))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Table.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr IEEETable))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr castagnoliInitOnce))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.hash.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -716,6 +781,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.atomic.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.internal.gomodel.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc castagnoliTable (go.GoType.PointerType Table.ty))) (Val #()))))))
   (App (Val doExecute)
@@ -843,6 +910,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_byteorder_Assumption : _root_.Perennial.internal.byteorder.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
+  import_gomodel_Assumption : _root_.Perennial.internal.gomodel.Assumptions
 
 attribute [instance] Assumptions.Table_instance
   Assumptions.digest_instance
@@ -864,6 +932,7 @@ attribute [instance] Assumptions.Table_instance
   Assumptions.import_byteorder_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_atomic_Assumption
+  Assumptions.import_gomodel_Assumption
 
 end hash.crc32
 

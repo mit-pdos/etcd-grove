@@ -853,8 +853,10 @@ PROJECTS = [
         # `FileMode` and `PathError`, the errors the models return)
         # (`internal/poll` and `internal/syscall/unix`, 2026-11-07: what `os`'s translated
         # initializer reads; Perennial's import its own `syscall`)
+        # (`internal/filepathlite=`, 2026-11-24, Go-model overlays S5: os's Go `MkdirAll` and its
+        # models' `filepathlite.Base`, over this repository's translation, Code/internal/filepathlite)
         lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
-                    "io/fs=", "internal/poll=", "internal/syscall="],
+                    "io/fs=", "internal/poll=", "internal/syscall=", "internal/filepathlite="],
         packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
                   "internal/syscall/unix"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "bboltfs"),

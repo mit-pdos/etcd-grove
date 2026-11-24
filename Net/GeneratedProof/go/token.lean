@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Net.ManualProof.go.token
+public import Perennial.GeneratedProof.internal.gomodel
 public import Perennial.Golang.Theory
 public import Net.Code.go.token
 

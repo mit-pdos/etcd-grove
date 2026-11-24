@@ -24,6 +24,11 @@ Lean imports. So the Go and the Lean of internal/gomodel are Perennial's, of one
         exit 1 unless every internal/gomodel.toml of this repository says what the pin's
         Perennial/Code/internal/gomodel.toml says (`translate`, `trusted`, `replaces`), with
         GOMODEL_DIR as its dir (in etc/gates.sh).
+    etc/gomodels.py test [--perennial DIR] [NAME...]
+        the Go tests of the packages with a Go model (TESTS, below), each run against the package
+        with its models spliced in (`goose model-overlay`, the goose of DIR or of the pin): the real
+        package's own tests where they apply, and the models' differential tests (etc/model-tests.sh
+        runs it; the tests left out are named in TESTS with the reason).
 """
 
 import argparse
@@ -91,6 +96,74 @@ def materialize(candidates=()):
     return out
 
 
+# The Go tests of the packages with a Go model: (name, config dir, where the Go module is ("models":
+# models/; "project:NAME": etc/goose.py's checkout of the project, in its workspace with models.lab),
+# the packages whose models the overlay splices in, the `go test` arguments, why tests are left out).
+# Every test runs with the translation's build tags (goose, netgo), unless its arguments give -tags.
+TESTS = [
+    ("crc32", "Code", "models", ["hash/crc32"], ["hash/crc32"],
+     "none left out (TestArchCastagnoli compares archUpdateCastagnoli, the model's portable CRC-32C, "
+     "with simpleUpdate: trivially equal under the model)"),
+    ("token", os.path.join("Net", "Code"), "models", ["go/token"], ["go/token"],
+     "none left out (go/token's own tests do not call IsExported)"),
+    # (without the tag goose: rpcdifftest's codec files of that tag need the net/rpc model)
+    ("token-diff", os.path.join("Net", "Code"), "models", ["go/token"],
+     ["-tags", "netgo", "-run", "^TestIsExportedASCII$", "./internal/rpcdifftest"],
+     "IsExported's model against Go's results on every ASCII first byte (non-ASCII is the model's "
+     "choice point, gomodel.Choose, whose Go body returns false)"),
+]
+TAGS = "goose,netgo"
+
+
+def _goose_bin(candidates, tmp):
+    sys.path.insert(0, os.path.join(ROOT, "etc"))
+    import importlib
+    goose = importlib.import_module("goose")
+    perennial = next((d for d in candidates if d), None) or goose.pinned_perennial()[0]
+    subprocess.run(["go", "build", "-o", tmp + os.sep, "./goose/cmd/goose"], cwd=perennial,
+                   env=goose.host_env(), check=True)
+    return os.path.join(tmp, "goose"), goose
+
+
+def test(candidates=(), names=()):
+    import tempfile
+    materialize(candidates)
+    tmp = tempfile.mkdtemp(prefix="gomodels-")
+    try:
+        gbin, goose = _goose_bin(candidates, tmp)
+        base = dict(os.environ, GOTOOLCHAIN=goose.GO_TOOLCHAIN, GOOS="linux", GOARCH="amd64",
+                    CGO_ENABLED="1")
+        ok = True
+        for name, cfg, where, pkgs, args, why in TESTS:
+            if names and name not in names:
+                continue
+            env, cwd = dict(base), os.path.join(ROOT, "models")
+            if where.startswith("project:"):
+                (proj,) = [p for p in goose.PROJECTS if p.name == where[len("project:"):]]
+                cwd, _ = goose.source(proj, None, False)
+                d = os.path.join(tmp, name + "-env")
+                os.makedirs(d)
+                env = goose.module_models_env(proj, cwd, env, d)
+            ov = os.path.join(tmp, name)
+            print(f"gomodels: {name}: {why}", file=sys.stderr)
+            r = subprocess.run([gbin, "model-overlay", "-configdir", os.path.join(ROOT, cfg),
+                                "-model-root", ROOT, "-dir", cwd, "-tags", "netgo", "-o", ov] + pkgs,
+                               cwd=cwd, env=env)
+            if r.returncode == 0:
+                # go vet does not find the overlay-added internal/gomodel (Perennial's
+                # etc/model-tests.sh)
+                r = subprocess.run(["go", "test", "-vet=off", "-count=1", "-timeout", "600s",
+                                    "-overlay", os.path.join(ov, "overlay.json")]
+                                   + ([] if "-tags" in args else ["-tags", TAGS]) + args,
+                                   cwd=cwd, env=env)
+            if r.returncode != 0:
+                print(f"gomodels: {name}: FAILED", file=sys.stderr)
+                ok = False
+        return ok
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 # the config directories with an internal/gomodel.toml
 CONFIG_DIRS = ["Code", os.path.join("Net", "Code")]
 
@@ -143,12 +216,20 @@ def main():
     m.add_argument("--perennial", default=os.environ.get("PERENNIAL_DIR"))
     c = sub.add_parser("check")
     c.add_argument("--perennial", default=os.environ.get("PERENNIAL_DIR"))
+    t = sub.add_parser("test")
+    t.add_argument("--perennial", default=os.environ.get("PERENNIAL_DIR"))
+    t.add_argument("names", nargs="*", choices=[x[0] for x in TESTS] + [[]], default=[])
     args = ap.parse_args()
     cands = [args.perennial] if args.perennial else []
     if args.cmd == "materialize":
         print(materialize(cands))
-    elif not check(cands):
+    elif args.cmd == "check":
+        if not check(cands):
+            sys.exit(1)
+    elif not test(cands, args.names):
         sys.exit(1)
+    else:
+        print("gomodels: tests ok")
 
 
 if __name__ == "__main__":

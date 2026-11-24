@@ -107,11 +107,27 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   runtime_envs_unfold : FuncUnfold runtime_envs [] runtime_envs.impl
   FcntlFlock_unfold : FuncUnfold FcntlFlock [] FcntlFlock.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  Mkdir_unfold : FuncUnfold Mkdir [] Mkdir.impl
+  Rmdir_unfold : FuncUnfold Rmdir [] Rmdir.impl
+  Unlink_unfold : FuncUnfold Unlink [] Unlink.impl
+  errnoErr_unfold : FuncUnfold errnoErr [] errnoErr.impl
   Fallocate_unfold : FuncUnfold Fallocate [] Fallocate.impl
   Fdatasync_unfold : FuncUnfold Fdatasync [] Fdatasync.impl
   Flock_unfold : FuncUnfold Flock [] Flock.impl
+  modelString_unfold : FuncUnfold modelString [] modelString.impl
+  modelGcErrno_unfold : FuncUnfold modelGcErrno [] modelGcErrno.impl
+  fsFsync_unfold : FuncUnfold fsFsync [] fsFsync.impl
+  fsFlock_unfold : FuncUnfold fsFlock [] fsFlock.impl
+  fsFalloc_unfold : FuncUnfold fsFalloc [] fsFalloc.impl
+  fsFallocKeep_unfold : FuncUnfold fsFallocKeep [] fsFallocKeep.impl
+  fsOfdLock_unfold : FuncUnfold fsOfdLock [] fsOfdLock.impl
+  fsMkdir_unfold : FuncUnfold fsMkdir [] fsMkdir.impl
+  fsUnlink_unfold : FuncUnfold fsUnlink [] fsUnlink.impl
+  fsRmdir_unfold : FuncUnfold fsRmdir [] fsRmdir.impl
+  fsPathKind_unfold : FuncUnfold fsPathKind [] fsPathKind.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_gomodel_Assumption : _root_.Perennial.internal.gomodel.Assumptions
   import_oserror_Assumption : _root_.Perennial.internal.oserror.Assumptions
 
 attribute [instance] Assumptions.SysProcIDMap_instance
@@ -201,11 +217,27 @@ attribute [instance] Assumptions.SysProcIDMap_instance
   Assumptions.runtime_envs_unfold
   Assumptions.FcntlFlock_unfold
   Assumptions.«init.0_unfold»
+  Assumptions.Mkdir_unfold
+  Assumptions.Rmdir_unfold
+  Assumptions.Unlink_unfold
+  Assumptions.errnoErr_unfold
   Assumptions.Fallocate_unfold
   Assumptions.Fdatasync_unfold
   Assumptions.Flock_unfold
+  Assumptions.modelString_unfold
+  Assumptions.modelGcErrno_unfold
+  Assumptions.fsFsync_unfold
+  Assumptions.fsFlock_unfold
+  Assumptions.fsFalloc_unfold
+  Assumptions.fsFallocKeep_unfold
+  Assumptions.fsOfdLock_unfold
+  Assumptions.fsMkdir_unfold
+  Assumptions.fsUnlink_unfold
+  Assumptions.fsRmdir_unfold
+  Assumptions.fsPathKind_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_errors_Assumption
+  Assumptions.import_gomodel_Assumption
   Assumptions.import_oserror_Assumption
 
 end syscall

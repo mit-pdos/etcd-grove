@@ -36,6 +36,62 @@ noncomputable def Write [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def tryWrite [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/durable.tryWrite"
 
+noncomputable def durableRead [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/durable.durableRead"
+
+noncomputable def durableWrite [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/durable.durableWrite"
+
+/-- MODEL: Read (durable.go): the durable-state extension's Read, one atomic step that cannot fail:
+    the entire contents of the file and true, or "" and false if there is none. What is trusted is that
+    Go's body (mu held; tryRead retried until it is done: os.Open, Stat, ReadAt, a missing file
+    fs.ErrNotExist) composes the operating system's file API into that operation; the model departs
+    from Go only by being less defined where Go keeps retrying forever (a persistent I/O error), as a
+    safety model need only cover the executions in which Go's returns. GooseLang/Ext/Durable/Impl.lean
+    lists the other divergences from a real filesystem.
+
+    go: model.go:17:6 -/
+noncomputable def Read.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (App (Val (GoInstruction (FuncResolve durableRead []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
+
+/-- MODEL: Write (durable.go): the durable-state extension's Write, one atomic step that cannot fail,
+    after which the file holds data durably. Go's body (mu held; tryWrite retried until it succeeds: a
+    temporary file written, synced, renamed over the file and the directory synced) provides it with
+    the operating system's file API; the temporary files a Write interrupted by a crash leaves behind
+    are not in the model.
+
+    go: model.go:26:6 -/
+noncomputable def Write.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Lam "data"
+  (Seq (App (Val exceptionDo)
+  (Let "data" (App (Val (GoInstruction (GoAlloc go.string))) (Var "data"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "data"))
+  (App (App (App (Val (GoInstruction (FuncResolve durableWrite []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Val #()))))
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.durable where
   pkgImportedPkgs := []
 
@@ -51,9 +107,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Read_unfold : FuncUnfold Read [] Read.impl
   Write_unfold : FuncUnfold Write [] Write.impl
+  durableRead_unfold : FuncUnfold durableRead [] durableRead.impl
+  durableWrite_unfold : FuncUnfold durableWrite [] durableWrite.impl
 
 attribute [instance] Assumptions.Read_unfold
   Assumptions.Write_unfold
+  Assumptions.durableRead_unfold
+  Assumptions.durableWrite_unfold
 
 end github_com.mit_pdos.etcd_grove.examples.lib.durable
 
