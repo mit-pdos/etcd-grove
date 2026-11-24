@@ -766,7 +766,7 @@ local address and the network; an error is `&OpError{Op: "listen", Net: network,
 Addr: laddr, Err: e}` with a nil `*UDPConn`, `e` the system call's error (an `*os.SyscallError`, the
 failing call's name arbitrary: `"socket"`, `"setsockopt"`, `"bind"`), or a bare nonzero
 `syscall.Errno`: `listenDatagram` returns `fd.init()`'s error unwrapped (`sock_posix.go`), the
-`ENOMEM`/`ENOSPC` of registering the socket with epoll (the review's finding 3). A `nil` `laddr` (Go: a wildcard address with a
+`ENOMEM`/`ENOSPC` of registering the socket with epoll. A `nil` `laddr` (Go: a wildcard address with a
 port the kernel picks) and any network but `"udp4"`: a panic of the model (not modeled, U12). -/
 noncomputable def ListenUDP.impl : val :=
   λ: "network" "laddr",
@@ -814,8 +814,7 @@ noncomputable def UDPConn.WriteToUDP.impl : val :=
 waiting for a datagram: the extension's `"Recv"` of `len(b)`, the bytes copied into `b`. `(n,
 addr, nil)` with `addr` a new `*UDPAddr` (the sender's in Go; arbitrary here, U10); or `(0, nil,
 &OpError{Op: "read", Net, Source: laddr, Addr: nil, Err})`, the `*UDPAddr` nil (Go's `readFrom`
-sets `addr = nil` on an error, `udpsock_posix.go`; reachable, e.g. a socket aborted by `ss -K`: the
-review's finding 1), `Err` the kind's (`"recvfrom"` for a system call's). A zero `UDPConn`:
+sets `addr = nil` on an error, `udpsock_posix.go`), `Err` the kind's (`"recvfrom"` for a system call's). A zero `UDPConn`:
 `0`, `nil`, `syscall.EINVAL`. -/
 noncomputable def UDPConn.ReadFromUDP.impl : val :=
   λ: "c" "b",
