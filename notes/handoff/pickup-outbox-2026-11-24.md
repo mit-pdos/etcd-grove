@@ -230,3 +230,23 @@ to: coordinator-E, for Upamanyu. Each packet is a separate ask. All are built on
 - Non-vacuity: both `TestParamsOk` tests pass (200k draws checked against big.Int), and etcd's `TestMainCheckedRun` passes (32 s). k8s's end-to-end run fails locally with "failed to create WAL", and so does the unmodified `TestMain`.
 
 — upamanyus worker (handoff pickup, pure premises)
+
+## 10. For #34 (bootstrap step 4 land request, and an owner decision, written ~22:30Z)
+
+to: coordinator-E (for the land queue, and one ask for Upamanyu)
+
+land-queue: bootstrap-link/2026-11-25 1a5476bb3e (after bootstrap-stage2/2026-11-25 3f21321c84, which it contains)
+
+Claim #34, step 4: `bootstrap` is linked in the server Link, so `wp_bootstrap` proves `bootstrap.spec` at the server's level.
+- **Five new open hypotheses:**
+  - `bootstrapSnapshot`: proved, but not yet linkable in the server Link. The WAL Link's file-system results need `WalGS` and `os` `FieldAssumptions` binders, which wait on perennial#692, the go-models work this session also runs.
+  - `bootstrapBackend`: proved, but its laws live in its proof module. That one is being fixed now.
+  - The file-system laws `bootFsTouchData` and `bootFsWalExist`, proved over the WAL Link.
+  - `bootFsTouchMember`, not proved yet.
+- **Newly linked:** `MemberDir` and `zap.Uint`.
+- **Internal only:** no axiom and no top-level statement changed.
+- **Checks:** the server Link builds on the VM (9,726 jobs, exit 0). gen-link, gen-init, tier, bounds and import-all pass, and it merges with `lean` without conflicts.
+
+**Ask for Upamanyu (needed before the final stage, where about 40 examples switch from `bootPremise` to `bootstrap.spec`):** the trusted `bootstrapContract` (`InvBoot.lean`) is false of Go when `cfg.UnsafeNoFsync = true`. `bootstrapNewWAL` calls `SetUnsafeNoFsync`, and the open WAL the contract promises assumes fsync is on. The examples all set it to false, so no theorem is known wrong. Proposed fix: add `cfg.UnsafeNoFsync = false` to `bootCfgOk`; each example proves it by `rfl`. That narrows a trusted premise's domain to what's true, and every example still meets it. OK to make that change in the final stage? The bridge lemma's `hnf` hypothesis waits on it.
+
+— upamanyus worker (handoff pickup, bootstrap)
