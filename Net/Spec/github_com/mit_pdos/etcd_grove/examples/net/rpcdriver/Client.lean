@@ -32,14 +32,16 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- See the file header. -/
 abbrev Client.spec : Prop :=
   ∀ (γid reg : GName),
-  {{ drvFacts ∗ net.rpc.codecSet drvCodec ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ net.rpc.cliEnv ∗
+  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ threadTok ∗ isPkgInit (PROP := IProp GF) pkg_id.strings ∗
+      isPkgInit (PROP := IProp GF) pkg_id.sync ∗
+      drvFacts ∗ net.rpc.codecSet drvCodec ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ net.rpc.cliEnv ∗
       net.http.httpEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
       net.rpc.rpcAddr (Gg := hG.goose_globalGS) (drvWorld γid reg) tcpAddr ∗
       net.rpc.rpcAddrP (Gg := hG.goose_globalGS) (drvWorld γid reg) httpAddr
         (net.rpc.connectReq net.rpc.defaultRPCPath) net.rpc.connectAns ∗
       ghostMapAuth (K := w64) (V := Unit) γid 1 ∅ }}
     (App (Val (@! Client)) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 end github_com.mit_pdos.etcd_grove.examples.net.rpcdriver

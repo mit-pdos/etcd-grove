@@ -56,6 +56,11 @@ package its initializer reaches (its `PkgInfo` imports, which are the packages w
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.rpc :=
   build_get_is_pkg_init_wf
 
+/-- The package's fact, from its `isPkgInit`. -/
+theorem rpcInit_access :
+    isPkgInit (PROP := IProp GF) pkg_id.net.rpc ⊢ rpcInit (GF := GF) := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.net.rpc
+
 end def_
 
 end net.rpc

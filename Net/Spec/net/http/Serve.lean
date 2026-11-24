@@ -6,7 +6,9 @@ its error; it never panics. What it needs: the listener `l` at `la` (`isListener
 (`rpcLisP W la (connectReq path) connectAns`); the mux routing the literal path `path` to an rpc
 handler at every address `l` takes (`muxRpc dmux W A path`, `A a` the addresses `l` accepts,
 `MuxDefs.lean`; from `HandleHTTP`); net/http's server variables (`httpSrvEnv`); and the machine's
-thread bound (`threadBound GF ≤ 2 ^ 31`, net/rpc's server's wait group, which the handler runs).
+thread bound (`threadBound GF ≤ 2 ^ 31`, net/rpc's server's wait group, which the handler runs) and the
+calling goroutine's thread token, given back when it returns (`go http.Serve(...)`'s goroutine ends
+with it).
 The shared rpc-over-HTTP design (L2) and its amendment 4 (agreed with phase 7's S5): S5's one
 `Serve.spec`, over both an HTTP address and an rpc address, will imply it. Lean-first.
 -/
@@ -41,9 +43,10 @@ abbrev Serve.spec_rpc : Prop :=
       net.rpc.rpcLisP (Gg := hG.goose_globalGS) W la (net.rpc.connectReq path) net.rpc.connectAns ∗
       muxRpc (GF := GF) dmux W (fun a => addrOk a = true ∧ lisAccepts la a) path ∗
       net.isListener (GF := GF) lis l ∗ netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
-      lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l la }}
+      lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
+      threadTok }}
     (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #(interface.nil : GoInterface)))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err; threadTok }}
 
 end spec
 end net.http
