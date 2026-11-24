@@ -144,3 +144,14 @@ place the approval discharges).
   `⌜bs = Mr.encState h⌝ -∗ canonical`; at the end `bsSt` is the last state record's data, which
   the decoding lemmas equate to `Mr.encState`; a `CloneStLaw` carries `walStMarsh` through `Clone`.
   Both laws discharged in `RaftModel/` from `proto.MarshalPbNonNil.law` (and the unmarshal model).
+
+**Second finding: `encodeState(w.state)` needs `w.state ≠ nil`, which the handle forgets.** `Save`
+checks `w.state == nil` at its top, but the loop over the entries closes the handle, whose `w.state`
+slot is existential: when the entries are done and `Save` loads `w.state` again, nothing says it is
+not nil (and `encodeState(nil)` would marshal to a nil slice, a record without `Data`). `Create` leaves
+`w.state` nil, so the slot cannot just say non-nil. Planned: the slot becomes `walStIn P Mr sp h.st ∗
+⌜sp ≠ null ∨ ∀ o ∈ h.H, o is a snapshot⌝` (one hypothesis, a def `walStH P Mr sp h`); only the proofs
+that change `h.H` re-prove it (`walHandleIn_append`: a `Save` needs `sp ≠ null`, which `Save` has from
+its nil check; `SaveSnapshot` keeps the disjunct; `Create`: only snapshots; `ReadAll`: `CloneStLaw`
+gives a non-nil clone). In progress in `WAL__Save.lean` (the `w.state == nil` join now carries
+`walStIn` and `sp' ≠ null`; the `len(ents) > 0` branch not yet written).

@@ -105,7 +105,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_empty : WalPbIn.IsEmptyLaw (GF := GF) (hG := hG) P)
     (wp_mustSync : WalPbIn.MustSyncLaw (GF := GF) (hG := hG) P)
-    (hzero : WalPbIn.ZeroLaw (GF := GF) (hG := hG) P)
+    (hzero : WalPbIn.ZeroLaw (GF := GF) (hG := hG) P) (hzst : WalPbIn.ZeroStLaw (GF := GF) (hG := hG) P Mr)
     (wp_size : WalPbIn.SizeLaw (GF := GF) (hG := hG) P Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (Sio := Sio) (W := W) P Mr := by
   intro R jr r w dir γ q hp hs sl esL es sized Q hcov
@@ -216,9 +216,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   have hfit : saveBatchBytes Mr es ≤ maxSaveBatch := by
     have h1 := Hn.2
     rwa [hje0, List.take_length] at h1
-  have hk : walCov Sio → saveRoom Mr hs es ≤ walFreshRoom := fun _ => by
+  have hk : walCov Sio → saveRoom Mr (saveHS (walLastHS (h.H.map WalOpG.toM)) hs es) es ≤ walFreshRoom :=
+      fun _ => by
     have h1 := hfit
-    have h2 := hS hs
+    have h2 := hS (saveHS (walLastHS (h.H.map WalOpG.toM)) hs es)
     unfold saveRoom walFreshRoom maxBytes
     unfold saveBatchBytes maxSaveBatch at h1
     omega
@@ -270,11 +271,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     · have := (List.getElem?_eq_some_iff.1 h1).1; simp at this; omega
   have hs0 := SaveSt.init Mr h hs es
   have hroom1 : walCov Sio →
-      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS).o0 +
-      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS).out.length +
-      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS).pend.length +
+      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (wop h.H (WalOpG.save hs es).toRaw)).length } : WalHS).o0 +
+      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (wop h.H (WalOpG.save hs es).toRaw)).length } : WalHS).out.length +
+      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (wop h.H (WalOpG.save hs es).toRaw)).length } : WalHS).pend.length +
       walFreshRoom ≤ maxBytes := hroom
-  generalize ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS) = h1 at hs0 hroom1 ⊢
+  generalize ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (wop h.H (WalOpG.save hs es).toRaw)).length } : WalHS) = h1 at hs0 hroom1 ⊢
   (try wp_auto)
   -- the shortcut's test
   wp_apply (wp_empty hp hs) $$ [] as %b %hb
@@ -296,7 +297,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   rotate_left
   · -- the shortcut: nothing written, the committed handle quiescent
     obtain ⟨hse, rfl⟩ := hc.1 rfl
-    have hf := SaveSt.finEmpty hs0 hD hse
+    have hf := SaveSt.finEmpty hs0 hD ⟨rfl, hse⟩
     rw [← hs0.pc]
     ihave ⟨Hhdl, Hpost⟩ := save_post (Sio := Sio) P Mr w dir γ hs [] Q h h1 hf.done
       (by rw [hf.md]; exact hmd) hroom1 $$ Hh Hr Hlb HQ []
@@ -318,7 +319,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     isplitr
     · ipureintro; rfl
     iframe Hw Hpost
-  have hne : ¬ (hsEmptyP hs ∧ es = []) := fun h => by simpa using hc.2 h
+  have hne : ¬ (es = [] ∧ hsEmptyP hs) := fun h => by simpa using hc.2 ⟨h.2, h.1⟩
   wp_auto
   -- `st == nil`: a fresh zero state
   wp_join iprop(∃ hp' : Loc, st_ptr ↦ hp' ∗ P.hsIn hp' hs ∗ ⌜hp' ≠ null⌝)
@@ -340,25 +341,33 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   -- `w.state == nil`: a fresh zero state
   icases walHandleIn_state P Mr w dir h1 TailMetaW $$ Hh with ⟨%sp, Hsp, #Hst, Hback⟩
   wp_join iprop(w_ptr ↦ w ∗ ∃ sp' : Loc,
-      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp' ∗ P.hsIn sp' h1.st)
-    at (if: _ then _ else _) with [Hsp w] as ⟨w, %sp', Hsp, #Hst'⟩
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp' ∗ walStIn P Mr sp' h1.st ∗
+      ⌜sp' ≠ null⌝)
+    at (if: _ then _ else _) with [Hsp w] as ⟨w, %sp', Hsp, #Hst', %hsp'n⟩
   · iapply wp_fupd
     (try wp_auto)
     wp_if_destruct
-    · ihave %hz0 := hzero.1 _ $$ Hst
+    · ihave #Hst0 : P.hsIn null h1.st $$ []
+      · iunfold walStIn at Hst; icases Hst with ⟨#H1, -⟩; iexact H1
+      ihave %hz0 := hzero.1 _ $$ Hst0
       icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨Hr0, %hn⟩
-      imod hzero.2 _ ⊤ $$ Hr0 with #Hz
+      imod hzst _ ⊤ $$ Hr0 with ⟨#Hz, #Hzm⟩
       imodintro
       isplitr
       · ipureintro; trivial
-      iframe w; iexists «$r0_ptr»; rw [hz0]; iframe Hsp Hz
+      iframe w; iexists «$r0_ptr»; rw [hz0]; iframe Hsp
+      isplitl
+      · iunfold walStIn; iframe Hz; iintro %_; iexact Hzm
+      · ipureintro; exact hn
     · imodintro
       isplitr
       · ipureintro; trivial
-      iframe w; iexists sp; iframe Hsp Hst
+      iframe w; iexists sp; iframe Hsp Hst; ipureintro; exact Hif
+  ihave #Hst'h : P.hsIn sp' h1.st $$ []
+  · iunfold walStIn at Hst'; icases Hst' with ⟨#H1, -⟩; iexact H1
   -- `MustSync`
   wp_apply (wp_mustSync hp' sp' hs h1.st sl.len) $$ [] as %ms %hms
-  · iframe Hhs' Hst'
+  · iframe Hhs' Hst'h
   ihave Hh := Hback $$ Hsp Hst'
   rename_i _ i_ptr_1
   have hst1 : h1.st = walLastHS (h.H.map WalOpG.toM) := hs0.st.trans hD.2
@@ -369,7 +378,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       "%Hs" ∷ ⌜SaveSt Mr h hs es (sint.nat j) hc⌝ ∗
       "%Hroom" ∷ ⌜walCov Sio → hc.o0 + hc.out.length + hc.pend.length +
         (((es.drop (sint.nat j)).map (fun e => (Mr.encEntry e).length + 64)).sum +
-          ((Mr.encState hs).length + 64)) ≤ maxBytes⌝ ∗
+          ((Mr.encState (saveHS (walLastHS (h.H.map WalOpG.toM)) hs es)).length + 64)) ≤ maxBytes⌝ ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ es.length⌝ : IProp GF)
     $$ [-HΦ Hr HQ Hheld «$res0» w defer ents st mustSync]
   · iexists W64 0, _, h1

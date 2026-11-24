@@ -41,7 +41,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.specNoErr (P : WalP
       (fun x => (x.typ, x.data)) = some (stateType, Mr.encState hs) →
   (h.rest = 1 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi)) →
   h.o0 + h.out.length + h.pend.length + ((Mr.encState hs).length + 64) ≤ maxBytes →
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h TailMetaW ∗ P.hsIn hp hs ∗ ⌜hp ≠ null⌝ }}
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h TailMetaW ∗ walStIn P Mr hp hs ∗ ⌜hp ≠ null⌝ }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"encodeState")) (Val #hp))
   {{ (err : GoInterface), RET #err;
       ⌜err = GoInterface.nil⌝ ∗ ∃ (out' pend' : List w8) (sz' : Nat),

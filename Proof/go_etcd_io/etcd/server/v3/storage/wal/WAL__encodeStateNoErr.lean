@@ -34,8 +34,7 @@ variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.wp_proofNoErr (P : WalPbIn GF)
     (Mr : WalMarshal)
-    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTailNoErr (Sio := Sio) (W := W) Mr)
-    (wp_marshal : WalPbIn.MarshalHsLaw P Mr) :
+    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTailNoErr (Sio := Sio) (W := W) Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.specNoErr (Sio := Sio) (W := W) P Mr := by
   intro hS0 R jr r w dir h hp hs hrest hx hidx1 hroom
   wp_start as ⟨#Harea, Hh, #Hhs, %Hhp⟩
@@ -47,8 +46,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.wp_proofNoErr (P :
     He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
   obtain ⟨hsplit, hfd, hoff, hsz, hidx, hidx2⟩ := Hpure
   try wp_auto
-  wp_apply (wp_marshal hp hs hne -- BLOCKED (P6 hard stop, notes/wal-p6-handoff.md): `hs` may be empty here; needs `MarshalPb.spec` to give a non-nil empty slice) $$ [] as %d ⟨Hd, %Hdn⟩
-  · iexact Hhs
+  ihave #HstIn := Hhs
+  iunfold walStIn at Hhs
+  icases Hhs with ⟨#Hhs, #Hm⟩
+  ihave #Hm := Hm $$ %Hhp
+  iunfold walStMarsh at Hm
+  wp_bind (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage)) _)
+  iapply Hm
+  · iPkgInit
+  iintro %d Hd %Hdn
   imod ownSlice_persist $$ Hd with #Hd
   unfold go_etcd_io.etcd.server.v3.storage.wal.StateType
   try wp_auto
@@ -102,7 +108,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.wp_proofNoErr (P :
     iexists lg, df, hp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
     rw [hcrc']
     simp only
-    iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hhs Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
+    iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds HstIn Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
       Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
     isplitl [Hsp]
     · iexact Hsp

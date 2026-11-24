@@ -32,7 +32,7 @@ variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.wp_proofNoErr (P : WalPbIn GF)
     (Mr : WalMarshal)
     (wp_encodeState : go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.specNoErr (Sio := Sio) (W := W) P Mr)
-    (wp_empty : WalPbIn.IsEmptyLaw (GF := GF) (hG := hG) P) :
+    (wp_empty : WalPbIn.IsEmptyLaw (GF := GF) (hG := hG) P) (wp_marshal : WalPbIn.MarshalHsLaw P Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specNoErr (Sio := Sio) (W := W) P Mr := by
   intro hS0 R jr r w dir h hp hs hpre hroom
   wp_start as ⟨#Harea, Hh, #Hhs, %Hhp⟩
@@ -52,9 +52,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.wp_proofNoErr (P : W
     exact hb.1 rfl
   have hne : ¬ hsEmptyP hs := fun h => Bool.false_ne_true (hb.2 h)
   obtain ⟨hrest, hx, hidx1⟩ := hpre hne
+  ihave #HstIn : walStIn P Mr hp hs $$ []
+  · unfold walStIn
+    isplitr
+    · iexact Hhs
+    iintro %_
+    unfold walStMarsh
+    iintro !> %Φ' #Hpk HΦ'
+    wp_apply (wp_marshal hp hs hne) $$ [] as %d ⟨Hd, %Hdn⟩
+    · iframe Hhs Hpk
+    iapply HΦ' $$ Hd %Hdn
   try wp_auto
   wp_apply (wp_encodeState hS0 R jr r w dir h hp hs hrest hx hidx1 hroom) $$ [Hh] as %err ⟨%he, Hr⟩
-  · iframe Harea Hh Hhs
+  · iframe Harea Hh HstIn
     ipureintro; exact Hhp
   try wp_auto
   iapply HΦ
