@@ -381,6 +381,8 @@ end env
 
 /-! ## The ghost state the statements' Iris premise is stated at -/
 
+attribute [local instance] etcdNetExts
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std in
 /-- **The functors** the statements' Iris premise (`HEnvTok`) is stated at: `putgetGF`'s layout (the
 universal camera `AllG` at slot 0, invariants, later credits, GooseLang's heap, prophecies and package
@@ -400,7 +402,7 @@ def etcdDistGF : BundledGFunctors := fun i =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std in
 /-- The universal camera at slot 0. -/
-def etcdDistGF_allG : AllG etcdDistGF := ⟨⟨0, rfl⟩⟩
+@[instance_reducible] def etcdDistGF_allG : AllG etcdDistGF := ⟨⟨0, rfl⟩⟩
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std in
 /-- The ghost state of GooseLang over `etcdNetExts` (each extension's at the universal camera). -/
