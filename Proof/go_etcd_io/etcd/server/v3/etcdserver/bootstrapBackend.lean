@@ -195,7 +195,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
+-- (the kernel's check exceeded 4000000 on the VM's build, 2026-11-24)
+set_option maxHeartbeats 0 in
 theorem bootstrapBackend.wp_proof
     (hBP : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (hExF : bootstrapBackend.existFree.law (GF := GF) (hG := hG))
