@@ -6152,3 +6152,43 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   (`etcd_dist.addrOk_length_le`: a valid address has at most 21 bytes). Case (b) (`etcd_safe`) is
   coordinator-E's `Deployment.WellFormed.urlBounds`. No top-level statement changes.
 - **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`).
+## 2026-11-24: k8s conditional authorization's joins: `Dec.size`, `decNames`, `Dec.foldFits` (prove-ps2-fmtstage1, #9)
+
+- **Spec.** `authorizer.collectReasonsAndErrors.spec` (premise `pre.length + m.depth < 2^63` replaced by the prefix's
+  names at most `N` bytes, `decNames N d m`, and `(pre.length + m.depth) * (N + 2) < strings.joinMax`; post: at most
+  `m.size` reasons, each at most `(pre.length + m.depth) * (N + 2) + maxAddr + 4` bytes);
+  `ConditionsAwareDecisionUnion.ToDecision.spec` (new premise `Dec.foldFits N (.union ks)`; post
+  `isWFDecisionBnd (depthL ks + 1) (sizeL ks + 1) N`, stronger than the `isWFDecisionLe` it replaces);
+  `ConditionsAwareDecisionUnion.Add.spec` (new premises `decNames N d m`, `name.length ≤ N`); `ownBuilder p ks N`
+  (the children's names at most `N` bytes); `PartiallyEvaluateConditionsAwareDecision.spec` (new premises
+  `decNames N d m`, `Dec.foldFits N m`; post `isWFDecisionBnd m.depth m.size N`); the authorizer contract `caaOk`
+  (post `isWFDecisionBnd authzDepthMax authzSizeMax authzNameMax`, was `isWFDecisionLe (2^63 - 2)`) and `ecOk`
+  (premise `isWFDecisionFit authzNameMax d`, was `isWFDecision d`: more for an authorizer to rely on);
+  `union.isUnionAuthz`/`union.New.spec` (the chain at most `authzChainMax` long, its names at most `authzNameMax`
+  bytes); `union.unionAuthzHandler.ConditionsAwareAuthorize.spec` (post `isWFDecisionBnd (authzDepthMax + 1)
+  (authzChainMax * authzSizeMax + 1) authzNameMax`, stronger), `.EvaluateConditions.spec` (new premises
+  `Dec.foldFits authzNameMax m`, `decNames authzNameMax d m`), `.evaluateConditions.spec` (premise
+  `isWFDecisionFit`). The authz example: `arbName` (post: at most `authzNameMax` bytes), `arbDecision` (premise
+  `depth ≤ authzDepthMax`, `4 ^ depth ≤ authzSizeMax`, was `depth < 2^63`; post `isWFDecisionBnd depth (4 ^ depth)
+  authzNameMax`), `arbAuthorizer.ConditionsAwareAuthorize` (the same premise; post `caaOk`'s),
+  `arbAuthorizer.EvaluateConditions` and `twoPhase` (premises as `ecOk`'s and the union's post).
+- **Defect.** `collectReasonsAndErrors` joins the path of names (`strings.Join(prefix, ": ")`), `ToDecision` the
+  collected reasons (`", "`) and the union authorizer's `EvaluateConditions` its children's reasons (`"\n"`) with
+  the real `strings.Join`, whose spec (Perennial `8e9f1ee59`) needs the output below `2^61` bytes. Nothing bounded
+  the names (any string an authorizer or a caller of `Add` gives) or the number of strings (a decision tree of any
+  size); `ToDecision`'s reasons compound (an unconditional decision's reason is itself a join).
+- **Evidence.** Go at the pinned fork (`upamanyus/kubernetes` `goose-lean-fmt1`, base `878cfa6c4c`):
+  `authorizer/conditionsunion.go` (`ToDecision`, `collectReasonsAndErrors`), `union/union.go`
+  (`EvaluateConditions`); #9 decision 7126397740 (3): a size measure on `Dec`, outputs bounded by size × (depth + 1),
+  discharged by computation in the authz example. Each reason is read by `len` before it is joined
+  (`len(reason) != 0`), so it is at most `maxAddr` bytes (Perennial `310c8d956`, `wp_string_len_maxAddr`): no
+  bound on reasons is needed, so `%q`-formatted reasons (condition IDs, unbounded in Perennial's `%q` model) need
+  none either.
+- **Proposed change.** Separate from `isDecision` (its 48 users untouched): `Dec.size` (nodes), the persistent
+  `decNames N d m` (every union child's name in the tree at most `N` bytes), `Dec.foldBound S D N = S * ((D + 1) *
+  (N + 2) + maxAddr + 6)` and `Dec.foldFits N m := foldBound m.size m.depth N < joinMax`; named constants
+  `authzNameMax = 64`, `authzDepthMax = 16`, `authzSizeMax = 512`, `authzChainMax = 16` (checked by `simp`:
+  `authz_foldBound_lt`). The example discharges them from its literals: names at most 14 bytes, depth 2, at most 3
+  children per union (`4 ^ 2 ≤ 512`), a chain of 3. Real webhook authorizers are in no statement. No top-level
+  statement changes (`Main.spec`, `TopLevelRobustness`).
+- **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`).
