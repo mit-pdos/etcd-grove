@@ -344,7 +344,8 @@ theorem ready_prop (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
     lconf := fun T' h => by
       rcases has_with_cases h with rfl | h
       · exact hlc
-      · exact hb.ledConfOk T' h }
+      · exact hb.ledConfOk T' h
+    tlSort := hb.tlSorted }
 
 end prop
 

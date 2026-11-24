@@ -326,7 +326,8 @@ theorem ready_cmt (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : L
       exact absurd (lead_unique hs1 hgo1 hl hkl (by rw [hkt, hpt]; exact lp1)) hkn
     tlSelf := fun _ => ⟨fun _ => by rw [← htl, tlOld_with, if_pos rfl]; exact Int.le_refl _, by
       rw [← htl, tlOld_with, if_pos rfl]; exact Int.le_refl _⟩
-    lconf := fun T' h => hb.ledConfOk T' h }
+    lconf := fun T' h => hb.ledConfOk T' h
+    tlSort := by rw [← htl]; exact with_sorted _ _ hb.tlSorted }
 
 end cmt
 

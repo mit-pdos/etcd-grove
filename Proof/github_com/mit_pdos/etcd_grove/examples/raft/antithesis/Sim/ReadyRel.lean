@@ -319,6 +319,8 @@ structure ReadyOk (S : State) (V : Fin 3 → NodeView) (net : List Msg) (G : Raf
   tlSelf : ro[n.val]! = leader → (termAt L1 c = t1 → c ≤ tlOld tl t1) ∧ tlOld tl t1 ≤ c
   -- C3's leader configurations
   lconf : ∀ T, ll.has T = true → r.ledConf.get T = .ok cfg3.initConf
+  -- C3's `termLen` sorted
+  tlSort : tl.Pairwise (fun a b => a.1 < b.1)
 
 
 /-! ## The new state, piece by piece -/
@@ -445,8 +447,9 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
   have hge := rr_ct_ge hs hok
   have hllm := rr_ll hok
   obtain ⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩, hb, -, -⟩ := hs
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18⟩ := hb
-  refine ⟨hok.hviol, hb2, ?_, hok.tlLen, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18,
+    hb19⟩ := hb
+  refine ⟨hok.hviol, hb2, ?_, hok.tlLen, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hok.tlSort⟩
   · -- undo
     intro k q hq
     change (S.undo.set n.val (some p))[k.val]! = some q at hq

@@ -103,7 +103,8 @@ theorem antSim_init : antSim_init.stmt := by
     · refine ⟨fun T hT => by change 0 < tlOld [] T at hT; simp [tlOld] at hT, fun n hn => ?_⟩
       have hr : initS.role[n.val]! = follower := rep3_get _ n
       rw [hr] at hn; exact absurd hn (by decide)
-    · intro T hT; change TermFn.has ([] : TermFn (List Entry)) T = true at hT; cases hT
+    · refine ⟨fun T hT => ?_, List.Pairwise.nil⟩
+      change TermFn.has ([] : TermFn (List Entry)) T = true at hT; cases hT
   · unfold NetOk HbCommitOk NetShape LeadCommitMsgOk
     refine ⟨?_, ?_, ?_, ?_⟩ <;> intro m hm <;> cases hm
   · intro n

@@ -532,10 +532,11 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
     (ho : S.oldVotes = .ok o) : AntSim (gcRes S g o) V net ∧ GlobalOk (gcRes S g o) net G := by
   obtain ⟨hsh, hb, hn, hno⟩ := hs
   have hc : S.cfg = cfg3 := hsh.1
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18⟩ := hb
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18,
+    hb19⟩ := hb
   refine ⟨⟨hsh, ?_, ?_, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_, ?_⟩
+    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_, ?_, hb19⟩
     · intro n l hl
       exact hb7 n l (gcRes_get_ok hl)
     · intro n a ha

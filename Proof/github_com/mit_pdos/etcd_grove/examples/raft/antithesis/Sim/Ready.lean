@@ -312,7 +312,8 @@ theorem readyOk_plain {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G :
     tlMono := fun _ => Int.le_refl _
     tlNew := fun _ h => absurd h (Int.lt_irrefl _)
     tlSelf := fun h => absurd ((roleOf_leader_iff _).mp ((get!_set_self _ hn3).symm.trans h)) hnl
-    lconf := hbL }
+    lconf := hbL
+    tlSort := hb.tlSorted }
 
 /-! ## Facts of the kinds -/
 
@@ -437,6 +438,44 @@ theorem rd_with_dom (f : TermFn Int) (t v : Int) (hv : tlOld f t ≤ v) :
         rw [hold] at hv
         obtain ⟨q', hq', h1, h2⟩ := ih hv q hq
         exact ⟨q', List.mem_cons_of_mem _ hq', h1, h2⟩
+
+/-- `TermFn.with` keeps a function sorted by term (C3's `TlSorted`). -/
+theorem with_sorted {α : Type} {f : TermFn α} (t : Int) (v : α) (h : f.Pairwise (fun a b => a.1 < b.1)) :
+    (f.with t v).Pairwise (fun a b => a.1 < b.1) := by
+  induction f with
+  | nil => exact List.pairwise_singleton _ _
+  | cons p ps ih =>
+    rw [List.pairwise_cons] at h
+    unfold TermFn.with
+    split
+    · rename_i hle
+      split
+      · rename_i he
+        refine List.pairwise_cons.mpr ⟨fun q hq => ?_, h.2⟩
+        have := h.1 q hq; omega
+      · rename_i he
+        refine List.pairwise_cons.mpr ⟨fun q hq => ?_, List.pairwise_cons.mpr h⟩
+        rcases List.mem_cons.mp hq with rfl | hq
+        · omega
+        · have := h.1 q hq; omega
+    · rename_i hlt
+      refine List.pairwise_cons.mpr ⟨fun q hq => ?_, ih h.2⟩
+      rcases rd_with_mem hq with hq | rfl
+      · exact h.1 q hq
+      · show p.1 < t; omega
+
+/-- In a sorted `termLen`, a term's entry is what `tlOld` finds. -/
+theorem tlOld_mem {tl : TermFn Int} (hs : tl.Pairwise (fun a b => a.1 < b.1)) {q : Int × Int}
+    (hq : q ∈ tl) : tlOld tl q.1 = q.2 := by
+  induction tl with
+  | nil => cases hq
+  | cons p ps ih =>
+    rw [List.pairwise_cons] at hs
+    rw [tlOld_cons]
+    rcases List.mem_cons.mp hq with rfl | hq'
+    · rw [if_pos rfl]
+    · have := hs.1 q hq'
+      rw [if_neg (by omega)]; exact ih hs.2 hq'
 
 theorem tlOld_cases (tl : TermFn Int) (t : Int) :
     tlOld tl t = 0 ∨ ∃ q ∈ tl, q.1 = t ∧ q.2 = tlOld tl t := by
@@ -580,7 +619,8 @@ theorem readyOk_fol {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : R
     (htlN : ∀ T, tlOld S.termLen T < tlOld tl T → T = uint.Z ps₁.term ∧
       (∃ l ∈ S.leaders, l.term = uint.Z ps₁.term) ∧
       ∀ k : Fin 3, k ≠ n → S.role[k.val]! = leader → S.currentTerm[k.val]! = uint.Z ps₁.term →
-        tlOld tl (uint.Z ps₁.term) ≤ S.commitIndex[k.val]!) :
+        tlOld tl (uint.Z ps₁.term) ≤ S.commitIndex[k.val]!)
+    (htlS : tl.Pairwise (fun a b => a.1 < b.1)) :
     ReadyOk S V net G n ((V n).afterReady ps₁ rd) (uint.Z ps₁.term) none L1
       (uint.Z ps₁.commit) (S.role.set n.val (roleOf ps₁.role)) cf M S.votes
       S.leaders S.ledLog p ch tl S.viol (memNL S n.val (roleOf ps₁.role)) := by
@@ -652,7 +692,8 @@ theorem readyOk_fol {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : R
     tlMono := htlM
     tlNew := htlN
     tlSelf := fun h => absurd ((roleOf_leader_iff _).mp ((get!_set_self _ hn3).symm.trans h)) hnl
-    lconf := hbL }
+    lconf := hbL
+    tlSort := htlS }
 
 theorem nat_commit_le {G : RaftFacts} {id : w64} {ps : PState} (hrf : ReadyFacts G id ps) :
     uint.Z ps.commit ≤ ps.log.length := by
@@ -1011,7 +1052,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
     rw [hpr]
     obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := commit_fields (n := n) (T := ps₁.term) hb hgo1 hcL hcG hrf.2.1
       hrf.2.2.2.1 hold
-    have hok := readyOk_fol (M := S1.msgs) (cf := S1.confirmed[n.val]!) (rd := rd) hs1 hrf hr hro hpr hft hpt
+    have hok := readyOk_fol (htlS := (with_sorted _ _ hs1.2.1.tlSorted)) (M := S1.msgs) (cf := S1.confirmed[n.val]!) (rd := rd) hs1 hrf hr hro hpr hft hpt
       rfl (Int.le_of_lt hlt) (fun f hf => hf) (fun f hf hn => absurd hf hn) hpm f1 f2 f3 f4 f5 f6 f7
       (.inl rfl) (fun l hl => by rw [← hlogn]; exact hb.2.2.2.2.2.2.1 n l hl) hlh hso
       (fol_tl hs1 hgo1 hl hm.2.2.1 (.inr hty) hm.2.2.2.1 hle hpt (by rw [hpc]; exact Int.le_refl _)).1
@@ -1089,7 +1130,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
           rw [logOf_length] at hk
           have he : m.entries[k]? = some m.entries[k] := List.getElem?_eq_getElem hk
           exact hf_of_match hlogv hpay he (hall k _ he)⟩
-      have hok := readyOk_fol (rd := rd) (L1 := logOf ps₁.log)
+      have hok := readyOk_fol (htlS := (with_sorted _ _ hs1.2.1.tlSorted)) (rd := rd) (L1 := logOf ps₁.log)
         (cf := Confirmed.mk (uint.Z ps₁.term) (fConfIdx S1 n.val false (uint.Z ps₁.term)
           (uint.Z m.index + m.entries.length)))
         (M := lset.add S1.msgs (ackFact (nameOf (nodeId n)) (nameOf m.src) (uint.Z ps₁.term)
@@ -1368,7 +1409,7 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
       · exact h.2.1)
     obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := commit_fields (n := n) (T := ps₁.term) hb hgo1 hcL hcG
       hrf.2.1 hrf.2.2.2.1 hlt
-    have hok := readyOk_fol (rd := rd) (L1 := logOf ps₁.log)
+    have hok := readyOk_fol (htlS := (with_sorted _ _ hs1.2.1.tlSorted)) (rd := rd) (L1 := logOf ps₁.log)
       (cf := Confirmed.mk (uint.Z ps₁.term) (uint.Z m.index + m.entries.length))
       (M := lset.add S1.msgs (ackFact (nameOf (nodeId n)) (nameOf m.src) (uint.Z ps₁.term)
         (uint.Z m.index + m.entries.length)))
@@ -1385,7 +1426,7 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
       (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok
   · rw [if_neg hlt, if_neg (fun h => hlt h.1), if_neg hlt] at hod
     have hceq : uint.Z ps₁.commit = S1.commitIndex[n.val]! := by omega
-    have hok := readyOk_fol (rd := rd) (L1 := logOf ps₁.log)
+    have hok := readyOk_fol (htlS := hs1.2.1.tlSorted) (rd := rd) (L1 := logOf ps₁.log)
       (cf := Confirmed.mk (uint.Z ps₁.term) (uint.Z m.index + m.entries.length))
       (M := S1.msgs) (ch := S1.chain) (tl := S1.termLen)
       hs1 hrf hr hro hpr hft hpt rfl (by rw [← d4]; exact hold0)
