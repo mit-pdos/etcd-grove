@@ -46,8 +46,6 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-set_option maxRecDepth 8192 in
-set_option maxHeartbeats 1000000 in
 /-- The members' registrations, the one at `i`. -/
 theorem regs_lookup (svs : List (EtcdGrove.client.SrvAt GF)) (ws : List (Loc × v3rpc.WSrv GF))
     (i : Nat) (sv : EtcdGrove.client.SrvAt GF) (w : Loc × v3rpc.WSrv GF)
@@ -55,7 +53,8 @@ theorem regs_lookup (svs : List (EtcdGrove.client.SrvAt GF)) (ws : List (Loc × 
     ([∗list] sv; w ∈ svs; ws, etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗
       isServerRead w.1 sv.E sv.γr) ⊢
       etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗ isServerRead w.1 sv.E sv.γr :=
-  BigSepL2.bigSepL2_lookup (Φ := fun _ sv w => iprop(etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗
+  BigSepL2.bigSepL2_lookup (Φ := fun (_ : Nat) (sv : EtcdGrove.client.SrvAt GF)
+      (w : Loc × v3rpc.WSrv GF) => iprop(etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗
       isServerRead w.1 sv.E sv.γr)) h1 h2
 
 /-- **A member's watch facts** (`cluster3.memberWatch`, at the read names `γrc`): from its
