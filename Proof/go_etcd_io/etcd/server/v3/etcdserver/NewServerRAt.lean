@@ -120,17 +120,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **A crash image with the backend at or below the WAL's commit is a graceful one** (and its
-records meet the WAL's read facts): the vacancy armed (`nodeVacant_armD`: the crash token dropped, as
-the graceful restart's boot does), the WAL's slot `wal.stopImage` from `wal.crashImage` and
+records meet the WAL's read facts): the vacancy armed (`nodeVacant_arm`: its crash token returned, for `specC`'s post), the WAL's slot `wal.stopImage` from `wal.crashImage` and
 `i ≤ σ.commit`; the rest is the same. -/
 theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
     (σ : StorContents) (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership)
     (M : GMap Loc MemStorNamesRec) (E : CoPset) (hc : uint.nat i ≤ σ.commit) :
     srvCrashImageAt (GF := GF) γ ρ id dd S σ i A D m M ⊢
-      |={E}=> srvDiskImageAt γ ρ id dd S σ i A D m M ∗ ⌜walReadFacts σ⌝ := by
+      |={E}=> srvDiskImageAt γ ρ id dd S σ i A D m M ∗ ⌜walReadFacts σ⌝ ∗
+        (∃ x, nodeCrashTok γ.cl id x) := by
   unfold srvCrashImageAt srvDiskImageAt wal.crashImage
   iintro ⟨Hvac, HrS, %Hρ, #HA, %Himp, Hmv, %Hbl, #Hconf, %Hcs, ⟨%Hw, #Hcert, Hl⟩, Hreg, Hfiles, Hsd⟩
-  imod nodeVacant_armD γ.cl id E $$ Hvac with Hvac
+  imod nodeVacant_arm γ.cl id E $$ Hvac with ⟨%x, Hvac, Hct⟩
   ihave Hws := wal.stopImage_intro γ.cl S σ i Hw.1 Hw.2.2 hc $$ [Hcert Hl]
   · iframe Hcert Hl
   imodintro
@@ -143,7 +143,10 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
     isplitr
     · ipureintro; exact Hbl
     ipureintro; exact Hcs
-  ipureintro; exact Hw.2.1
+  isplitr
+  · ipureintro; exact Hw.2.1
+  iexists x
+  iexact Hct
 
 end image
 
