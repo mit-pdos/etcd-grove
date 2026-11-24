@@ -34,6 +34,7 @@ public import RaftTla.Proof.go_etcd_io.raft.v3.NodeApiVocab
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvNodeChan
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvApi
 import all RaftTla.Proof.go_etcd_io.raft.v3.InvNode
+import all RaftTla.Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
 
@@ -58,6 +59,35 @@ of), for a `RawNode` client. -/
 
 /-- The cluster's nodes' mode (static, or dynamic). -/
 @[no_expose] def Cluster.rnMode (γ : Cluster) : RNMode := ApiImpl.Cluster.mode γ inferInstance
+
+/-- (#33 S4, 2026-11-24) **`cluster_alloc_nb` with the names' facts**, for a `RawNode` client that
+starts its nodes itself (the antithesis harness's `RunCluster`): a new cluster of the voters `vs`
+without a bootstrap log, no duplicate proposals, no snapshot directories and no data bound; its raft
+names' configuration the voters, no bootstrap log, raft's namespace `N.@"raft"`, untraced, no data
+bound. -/
+theorem cluster_alloc_names (N : Namespace) (vs : List w64) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
+    ⊢ |={E}=> ∃ γ : Cluster,
+      ⌜γ.dup = false ∧ γ.bootLen = 0 ∧ γ.maxData = none ∧ ¬ clusterNoSnap γ ∧
+        Cluster.trace γ = none⌝ ∗
+      ⌜γ.raftNames.reCfg = GMap.listToSet vs ∧ γ.raftNames.reBoot = [] ∧
+        γ.raftNames.reNs = N.@"raft" ∧ γ.raftNames.reTrace = none ∧ γ.raftNames.maxData = none⌝ ∗
+      ownCommittedOps (GF := GF) γ [] ∗ isCluster γ N ∗
+      confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗
+      [∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id := by
+  intro Hrb Hne Hnd Hnz Hlen
+  unfold ownCommittedOps isCluster confAt Cluster.dup Cluster.bootLen Cluster.trace Cluster.maxData
+    raftState nodeVacant clusterNoSnap Cluster.raftNames
+  imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs false (fun _ => none) E none
+      (fun _ h => by cases h) Hrb Hne Hnd Hnz Hlen
+    with ⟨%γ, %Hd, Hops, -, #Hcl, -, #Hca, -, -, Hfs⟩
+  imodintro
+  iexists γ
+  iframe Hops Hcl Hca Hfs
+  obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, h9⟩ := Hd
+  isplitr
+  · ipureintro; exact ⟨h1, h3, h5, by rw [h6]; decide, h4⟩
+  ipureintro; exact ⟨h7, h8, h9, h4, h5⟩
 
 /-- **A started `RawNode`'s record** (`NewRawNode.restartSpec`'s post): the committed log `l`
 handed out (the stored log up to the applied index it starts at), nothing to persist or to step,
