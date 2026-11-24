@@ -352,3 +352,11 @@ weakened to "above `appliedi`, or at or below the backend's index" (both cases n
 `replaySeed_*` over `min(|A₀|, σ.last)`, `NodeStartSpecR`/`rnBootPre` without `|A₀| ≤ σ.commit`,
 `rnStopImage` without `a0 ≤ σ.commit` (and `wal.stopImage` without `i ≤ σ.commit`), then
 `specRAt` over the crash image and `wp_proofC`'s `sorry` gone.
+
+**Build after the pin bump (VM, 2026-11-24):** every server module up to `SnapApplyWalk` builds; the
+only break is `SnapApplyWalk.lean:308` (`applySnapshot_walk`), at the guard's new code after
+`<-toApply.notifyc`: it must read `s.consistIndex.ConsistentIndex()` (as `applyEntryNormal`'s
+`tail_skip` does, `wp_ci_get hC γ ci b st Hp`, with the apply state's `Pci`/`Hci`/`Hinv`/`Hst`/`Hbe`)
+and refute `k ≤ ciEff γ st.k` from a strict `hle`. So `applySnapshot_walk` and `wp_proof_snapM` take
+`consistentIndex.ConsistentIndex.spec` (Link: `consistentIndex__ConsistentIndex` in
+`EtcdServer__applySnapshot`'s line) and `specSnapM`'s `hle` becomes `<` (its callers' `ci ≤ g < k`).
