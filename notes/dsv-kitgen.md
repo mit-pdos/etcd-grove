@@ -210,12 +210,11 @@ version, same checks): a planted `KitProof.lean` fails (1) and (4); a `sorry` ad
 
 ## Findings
 
-- **paxos's statement closure carries the kit's proof design.** `TopLevelDefs` imports `Kit.lean`
-  (for `clientAddrs`) and the paxos package's `Deploy`, so the exported allow-list has `Kit`
-  (the kit functions' specs), `Inv`, `Agents`, `Net`, `Wire` (the protocol's invariants and ghost
-  vocabulary): defs only, nothing proved, but a challenge built from them gives the agent the
-  landed proof's invariants. A cleaner challenge needs `TopLevelDefs` to import only the addresses
-  (a statement-file change, not made: retrofits change no statement text).
+- **paxos's statement closure carried the kit's proof design** (`Kit`, `Inv`, `Agents`, `Net`, `Wire`
+  through `TopLevelDefs`'s imports of `Kit.lean` and `Deploy.lean`, for the two address lists).
+  Resolved by the generated `Addrs.lean` ("The challenge's split"); no statement text changed.
+  rabia, quepaxa, epaxos, swiftpaxos have no `challenge_allow` yet: exporting them stops with that
+  message until each gets its list (and, likely, the same address move).
 - **epaxos's codec cannot be regenerated as its module stands**: `rpcgen.py --check` on
   `examples/dsverify/epaxos/examples/epaxosnet/rpc.toml` fails (`module models.lab provides package
   models.lab/rpcdesc and is replaced but not required`): its `go.mod` lacks the `models.lab`
@@ -242,8 +241,15 @@ version, same checks): a planted `KitProof.lean` fails (1) and (4); a `sorry` ad
   `head`, the closing theorem as `tail`, the `haveI` lines derived from the premises), `Mains`:
   **byte-identical but the header line** (16 files; `rabia_remote_robust.spec`'s text unchanged).
   `--audit rabia`: 99 + 53 lines and the ten classes (234 lines in all).
-- Export: paxos exported (314 Lean modules, 42 of the kit's own on the allow-list, 0 dropped), leak
-  check ok, statement closure 112 modules, sorry-free but Goose's 174 axiomatized-type instances.
+- Export (the interface and the split): paxos exported with and without the skill from one commit:
+  37 kit modules (the allow-list), 235 of other kits', 2543 tracked files left out (29 of them
+  because they import a left-out module), 2 generated files omitted (`Mains`, the proof); 23,753 Lean
+  modules; leak check ok (the statement's closure 101 modules, sorry-free but Goose's 174
+  axiomatized-type instances); the arms differ only in `.claude/skills/dsverify/` and CHALLENGE.txt's
+  `skill:` line, CLAUDE.md byte-identical; `--skill-from origin/dsv-skill` gives that revision's
+  tree. Negative test: a planted `Kit.lean` fails the leak check. In the export: `kitgen --check
+  --no-codecs paxos`, `tier-check --check` (227 known violations), `gen-init --check` (273 files) and
+  `goose --check --project dsv-paxos` pass.
 
 ### Migration, next
 
