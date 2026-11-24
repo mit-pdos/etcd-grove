@@ -25,7 +25,7 @@ the one-process start hands out beside `addrUnset`.) Defined here: no axiom.
 module
 
 public import GooseLang.Ext.Net.Proto
-public import Spec.go_etcd_io.raft.v3.Api
+public import Proof.go_etcd_io.raft.v3.InvNode
 public import Proof.os.EnvIs
 
 @[expose] public section
@@ -51,7 +51,7 @@ member-side axioms writes or learns anything of such a connection. **Indexed by 
 address's member `id`** (the 2026-11-24 review of `NewServer_dist`: unindexed, a second ghost cluster with the same
 configuration could use the same addresses, and a duplicate member panics raft, `tocommit out of range`): an address is
 set once (`addrUnset` is spent), so only one cluster's members, and only the member `id`, are at it. -/
-opaque httpPeerSvc {GF : BundledGFunctors} (cl : go_etcd_io.raft.v3.Cluster) (id : w64) :
+opaque httpPeerSvc {GF : BundledGFunctors} (cl : EtcdGrove.Cluster) (id : w64) :
     Proto GF × Proto GF := (fun _ _ => iprop(True), fun _ _ => iprop(True))
 
 section addr
@@ -62,16 +62,16 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The peer address `a` is member `id`'s of the cluster `cl` and serves etcd's peer API** (persistent, no heap):
 `a`'s protocols are `httpPeerSvc cl id`'s. -/
-def httpAddrAt (cl : go_etcd_io.raft.v3.Cluster) (id : w64) (a : GoString) : IProp GF :=
+def httpAddrAt (cl : EtcdGrove.Cluster) (id : w64) (a : GoString) : IProp GF :=
   addrProto (Gg := Gg) a (httpPeerSvc (GF := GF) cl id).1 (httpPeerSvc (GF := GF) cl id).2
 
-instance httpAddrAt_persistent (cl : go_etcd_io.raft.v3.Cluster) (id : w64) (a : GoString) :
+instance httpAddrAt_persistent (cl : EtcdGrove.Cluster) (id : w64) (a : GoString) :
     Persistent (httpAddrAt (Gg := Gg) cl id a) := by
   unfold httpAddrAt; infer_instance
 
 /-- **The start law**: the deployment's start sets an unset address (`addrUnset a`, spent) to serve etcd's peer
 API (`addr_set_proto`). -/
-theorem http_addr_set (E : CoPset) (cl : go_etcd_io.raft.v3.Cluster) (id : w64) (a : GoString) :
+theorem http_addr_set (E : CoPset) (cl : EtcdGrove.Cluster) (id : w64) (a : GoString) :
     ⊢ regCtx (Gg := Gg) -∗ addrUnset (Gg := Gg) a ={E}=∗ httpAddrAt (Gg := Gg) cl id a := by
   iintro #Hreg Hu
   unfold httpAddrAt

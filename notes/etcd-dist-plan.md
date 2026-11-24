@@ -1456,7 +1456,7 @@ and **`s5Holds : S5Holds GF`** (the D9 skeleton's and `putgetk`'s named hypothes
 **Axioms** (each in its own Spec/Proof pair under `.../etcd/dist/`, docstring: what, why true, what retires it):
 - `NewServer_dist.wp_proof : NewServer.specG_dist on cmp` (I-3): `NewServer.specG` verbatim but for the network:
   no `γn` binder (the post's `∃ γn` with `γn.N = srvNet γ ∧ γn.dir = dir`, as `putgetk`'s `StartMember_dist`),
-  `netHttpOk γn id` replaced by `httpAddrAt a` of every other peer's directory address, and `noProxyEnv` added.
+  `netHttpOk γn id` replaced by `httpAddrAt γ.cl pid a` of every other peer's directory address, and `noProxyEnv` added.
 - `NewPeerHandler_dist.wp_proof` and `PeerServe_dist.wp_proof` (I-4): `etcdhttp.NewPeerHandler(lg, s)` on a
   started member returns `peerHandlerOf h s`; `http.Serve(pl, h)` at `pa` (`httpAddrAt pa`, `netListenerOpen pl
   pa`, `srvNetMember`, `isServerReqM`, the `httpProcSlots` of `srvServeRes`) is safe, post `True`. Two axioms because
@@ -1512,3 +1512,35 @@ flight with its owner): not duplicated here. What was checked (step 1, O1/O2):
   pure function of the members' ids) are checked.
 
 Since no table content was added, A3's re-review (step 6) has nothing new to review.
+
+### 16.3 The axiom reviews (2026-11-24; fresh agents with the `axiom` skill, given the code, not the reasoning)
+
+- **`os.Getenv.wp_proofEnv`: sound**, docstrings corrected (the setters' evidence is that none has a spec and the
+  Go closure of the programs has no non-test caller, not "the programs are verified"; `golang.org/x/sys/unix`'s
+  setters; cgo's `setenv` does not reach Go's copy; per process *run*: `HeapGS` `⟨G, L⟩` with `L` bound per boot).
+  Evidence `/tmp/envaxiom/` (not kept in the repository). Shared caveat of every names-only contract: the axioms
+  quantify over every `go.Semantics`, whose `functions "os.Getenv"` could be any `GoFunc` (as `notes/audit.md`'s
+  `dialWithBalancer` row).
+- **`NewServer_dist`: unsound as first stated; fixed.** `httpPeerSvc` named no cluster, so a second ghost cluster
+  (`srvClusterBoot_alloc` is a theorem) with the same configuration (same ids) could run a duplicate of member 1 at the
+  same peer addresses; Go: the duplicate's raft panics (`tocommit(58) is out of range [lastIndex(3)]`, 5/6 runs, with
+  bootstrap's `GET /members` refused by a fault). Fix applied: `httpPeerSvc cl id` (an address set once, for one
+  cluster and one member), `Hpeers` at `γ.cl pid`, the docstring's "allocated once by the start" argument replaced.
+  **Not re-reviewed yet.**
+- **`NewPeerHandler_dist`: sound.**
+- **`PeerServe_dist`: unsound in combination with two existing axioms; recorded, not fixed here.**
+  (1) The single-process start (`goose_adequacy_start`) hands out both the net extension's `addrUnset pa` and the
+  HTTP registry's `httpProtoFree pa`: a one-process program sets `pa` with `http_addr_set`, serves the peer handler
+  there with this axiom, reserves `pa` in the registry with a `True` request protocol (`http.reserve`) and sends a
+  forged heartbeat through `rafthttp.NewRoundTripper`'s round tripper; Go: the member's raft panics
+  (`tocommit(1000000) is out of range`). Fix (a trusted change on `lean`, for the owner): `http.reserve` also consumes
+  `addrUnset a` (the `http.register`/`netAddrLeft` hole of `notes/putget-dist-plan.md` §12, review 5, is the same
+  family). (2) The names-only `leasehttp.RenewHTTP` axiom posts to any URL: requests to `pa`'s `/leases/internal`
+  (a recovered nil dereference), `/members/promote/<id>` (a rejected promote's conf-change entry reaches the log:
+  outside `srvRule`/`ccLogOk`, no Go panic found), `/leases`. Fix: restrict `RenewHTTP` to a member's lease URL. Applied
+  here: `pa` tied to the member's directory entry and its cluster (`httpAddrAt γ.cl id pa`, `γn.N = srvNet γ`);
+  docstrings no longer claim that nothing but the axioms writes at `pa`. Evidence `/tmp/peerforge/` (not kept).
+- `etcdSvc` (A1) and A3: no new table content, so no re-review.
+
+None of these axioms is in a top-level result's cone yet (no proof of `server.MainLogger` exists): they are not in
+`etc/tcb-baseline.txt`; they join it, and `notes/audit.md`, with the first proof that uses them.
