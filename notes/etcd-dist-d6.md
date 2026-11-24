@@ -414,3 +414,32 @@ written yet). Each item is more than its line in the plan says:
 **Size.** Item 1 is a new proof of about the batch tail's size plus a change to `raftNode.start` (its
 snapshot hand-off); item 4 reaches the node bridge's view proofs. This is several sessions of work,
 not one: the plan's "smaller" was against the regressing-ghost alternative (several thousand lines).
+
+**2026-11-24, step 1 (`rnApSnap`'s replay terms): blocked on a raft law.** What the snapshot payload
+must carry is `rnReplayJob γ terms rt k`: for a `MsgSnap` this node sent at the payload's term `rt`,
+with `k < |a0|`, the payload's `terms` cover `|a0|` with `a0`'s last term. At a snapshot `Ready`
+`raftNode.start` resets `terms` to `nil.appendEntries(rd.Entries)` (`raft.go:232-236`). Until now it got
+the fact from `rnReplayState.empty` (`|a0| ≤ k`, i.e. `rnRestartOk_winAbove`), which a kept snapshot
+(`k < |a0|`) breaks. The tool for the other case exists, `ReplayJob.lean`'s `rnReplayJob_of_history`
+(the runs describe the durable state `S`'s entries above `k`, which after the reset they do: `S` is the
+snapshot at `k` and `rd.Entries`), but its premise is raft's leader completeness through the node API:
+`sentMsg … sm` (a `MsgSnap` at term `rt`, from this node) `⊢ ⌜DurAgrees S (a0.map toLE)⌝`, for `S` the
+node's durable state at the `Ready` whose `HardState` term is `rt`, `a0` committed. No API law says
+this: the raft proof has leader completeness at the protocol level (`TraceSimFacts.allFacts_leaderCompleteness`,
+`TracedRaftStepRecvUT.leaderComplete_of`), and the API only `snapshotLeader` (`sentMsg_localSnapshotLeader`,
+`snapshotLeader_terms_ne`). It is true of Go: a leader at `rt` holds every committed entry, and its log
+at a `Ready` of term `rt` is its log at its election (a candidate's log does not change during its
+term; a node elected in a later `Ready` of the same term was a candidate at this one). Without it the
+fact is false of a follower: after a power loss its log can hold, at an index the backend applied, an
+entry that a later leader overwrote (the overwrite applied before its WAL `Save`, `raft.go:240` before
+`:264`).
+
+The same law is what step 3 needs: after a crash the initial replay terms come from the WAL's entries
+up to `σ.last`, which may hold such a stale entry at an index `≤ |a0|`, so `replaySeed_facts`'s
+"`terms` give `a0`'s last term" is false without the same-term-leader premise.
+
+**Next:** a raft API law, proved in the raft proof, roughly
+`raftState γ id S ∗ isCommittedLogLb γ l ∗ snapshotLeader γ id S.hs.term ⊢ ⌜DurAgrees S l⌝` (or
+in the form `rnReplayJob_of_history` takes, over the `Ready` whose hard-state term the leader's), with
+its interface regenerated (`etc/api/raft.txt`). Then steps 1 and 3 discharge `rnReplayJob` by
+`rnReplayJob_of_history`. Needs a decision: who proves it (raft-proof work), and its exact form.
