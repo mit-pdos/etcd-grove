@@ -18,6 +18,7 @@ public import Net.Spec.net.rpc.Client__Call
 public import Net.Spec.net.rpc.Client__Go
 public import Net.Proof.net.rpc.ClientGhost
 public import Perennial.Proof.sync.WaitGroupTokJoin
+public import Perennial.Proof.sync.Results
 public import Perennial.Proof.sync.Link
 
 @[expose] public section
@@ -102,7 +103,10 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
   ihave #Hf' := Hf
   iunfold drvFacts at Hf'
   icases Hf' with ⟨-, %fr, #Hrg, #Hrf⟩
-  wp_auto
+  try wp_auto
+  -- the variables the workers read (captured by their closure, never written after): shared
+  ipersist ids
+  ipersist c
   irename wg => Hwg0
   icases typedPointsto_not_null_dup _ _ _ $$ Hwg0 with ⟨Hwg0, %Hwgnn⟩
   imod sync.init_WaitGroup (wkN.@"wg") wg_ptr $$ Hwg0 with ⟨%γwg, #Hiswg, Hctr0, Hwait⟩
@@ -110,10 +114,12 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
   imod sync.tokJoin.init wkN iprop(False) wg_ptr γwg ⊤ Hb $$ [$Hiswg $Hctr0 $Hwait $Hlaw] with Hadd
   wp_apply wp_below (W64 4) as %w0 %Hw0
   have hw0 : uint.Z w0 < 4 := Hw0.2 (by decide)
-  wp_auto
+  try wp_auto
   have hN : uint.nat (W64 1 + w0) ≤ 4 := by word
-  rw [show 32 = 8 * uint.nat (W64 1 + w0) + (32 - 8 * uint.nat (W64 1 + w0)) by omega]
-  icases Hcred with ⟨Hcred, -⟩
+  ihave Hcred : ownToks γb (8 * uint.nat (W64 1 + w0) + (32 - 8 * uint.nat (W64 1 + w0))) $$ [Hcred]
+  · rw [show 8 * uint.nat (W64 1 + w0) + (32 - 8 * uint.nat (W64 1 + w0)) = 32 by omega]
+    iexact Hcred
+  icases ownToks_add_1 _ _ γb $$ Hcred with ⟨Hcred, -⟩
   ihave IH : iprop(∃ (w : w64) (n : Nat) (Pw : IProp GF), "w" ∷ w_ptr ↦ w ∗
       "Hadd" ∷ sync.tokJoin.ownAdder wkN iprop(False) wg_ptr n Pw ∗ "Htok" ∷ threadTok ∗
       "Hcred" ∷ ownToks γb (8 * (uint.nat (W64 1 + w0) - uint.nat w)) ∗
@@ -130,21 +136,23 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
     rw [show 8 * (uint.nat (W64 1 + w0) - uint.nat w) =
       8 * (uint.nat (W64 1 + w0) - uint.nat (w + W64 1)) + 8 by
         rw [show uint.nat (w + W64 1) = uint.nat w + 1 by word]; omega]
-    icases Hcred with ⟨Hcred, H8⟩
-    wp_auto
+    icases ownToks_add_1 _ _ γb $$ Hcred with ⟨Hcred, H8⟩
+    try wp_auto
     wp_apply (sync.tokJoin.WaitGroup.wp_Add iprop(True) wkN iprop(False) wg_ptr n Pw)
       $$ [$Hsync $Hadd $Htok] as ⟨Hadd, Hdone⟩
     wp_bind (Fork _)
     iapply wp_fork_tok_self $$ [Hdone H8]
     · inext
-      wp_auto
+      try wp_auto
       wp_apply wp_with_defer as %defer Hdefer
-      wp_auto
+      try wp_auto
       wp_apply wp_below (W64 9) as %k0 %Hk0
       have hk0 : uint.Z k0 < 9 := Hk0.2 (by decide)
-      wp_auto
-      rw [show 8 = uint.nat k0 + (8 - uint.nat k0) by word]
-      icases H8 with ⟨H8, -⟩
+      try wp_auto
+      ihave H8 : ownToks γb (uint.nat k0 + (8 - uint.nat k0)) $$ [H8]
+      · rw [show uint.nat k0 + (8 - uint.nat k0) = 8 by word]
+        iexact H8
+      icases ownToks_add_1 _ _ γb $$ H8 with ⟨H8, -⟩
       ihave JH : iprop(∃ (i : w64), "i" ∷ i_ptr ↦ i ∗
           "H8" ∷ ownToks γb (uint.nat k0 - uint.nat i) ∗
           "%Hi" ∷ ⌜uint.nat i ≤ uint.nat k0⌝) $$ [i H8]
@@ -158,10 +166,11 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
       · have hi : uint.nat i < uint.nat k0 := by word
         rw [show uint.nat k0 - uint.nat i = (uint.nat k0 - uint.nat (i + W64 1)) + 1 by
           rw [show uint.nat (i + W64 1) = uint.nat i + 1 by word]; omega]
-        icases H8 with ⟨H8, H1⟩
+        icases ownToks_add_1 _ _ γb $$ H8 with ⟨H8, H1⟩
+        try wp_auto
         wp_apply wp_randomArgs γid γb ids $$ [$Hf $Hctr $H1]
           as %pa ⟨%id, %dsl, %data, %fail, Ha, Hd, %Hlen, %Hfail, Hidt⟩
-        wp_auto
+        try wp_auto
         irename «$r0» => Hr
         generalize «$r0_ptr» = pr at *
         ihave Henc := echo_enc L γid pa id dsl data fail Hlen Hfail $$ [$Ha $Hd $Hidt]
@@ -179,8 +188,8 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
             · ipureintro; exact ⟨rfl, hSS, by simp [ptrIface, interface.mkOk]⟩
             isplitr
             · ipureintro; decide
-            unfold echoD; iexact Hr
-          wp_auto
+            unfold echoD; rw [show service.Reply.mk (W64 0) slice.nil (W64 0) = zero_val service.Reply from rfl]; iexact Hr
+          try wp_auto
           wp_apply wp_check pa pr id dsl data fail err $$ [Hres]
           · iframe Hf Hstr
             iapply echo_outcome
@@ -193,7 +202,7 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
           iapply wp_wand $$ (Hrf $$ %go!"concurrent-calls")
           iintro %v %Hv
           subst Hv
-          wp_auto
+          try wp_auto
           wp_for_post
           iframe
           iexists i + W64 1
@@ -235,7 +244,7 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
             isplitr
             · ipureintro; decide
             isplitl [Hr]
-            · unfold echoD; iexact Hr
+            · unfold echoD; rw [show service.Reply.mk (W64 0) slice.nil (W64 0) = zero_val service.Reply from rfl]; iexact Hr
             iunfold net.rpc.callDone
             iframe Hfut Hful
             iintro %pc' %o' %err' Hf' Ht' He' Hp'
@@ -244,7 +253,7 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
           ihave #Hcf' := Hcf
           iunfold net.rpc.callFields at Hcf'
           icases Hcf' with ⟨-, -, -, #Hdn⟩
-          wp_auto
+          try wp_auto
           rw [List.nil_append]
           wp_apply (lc := 1) (wp_future_await (V := Loc) γf ch [K]) $$ [$Hfut $Haw]
             as %v %P %pre %post ⟨%Hsplit, HK, -⟩
@@ -258,11 +267,11 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
           iunfold net.rpc.ticket at Hov
           ihave %Hoo := ghostMapElem_agree () γt _ _ o o' $$ Ho Hov
           subst Hoo
-          wp_auto
+          try wp_auto
           ihave Hout : (|={⊤}=> callOutcome (GF := GF) pa pr id dsl data fail err) $$ [Hpost Hsr Hlc1]
           · iunfold net.rpc.callPost at Hpost
             iunfold net.rpc.sendRes at Hsr
-            iapply fupd_mono echo_outcome
+            iapply fupd_mono (echo_outcome pa pr id dsl data fail err)
             icases Hpost with (⟨%Hnil, #Hsent, HT⟩ | ⟨%msg, ⟨%Hmsg, %Herrm⟩, #Hsent, HP, HD1⟩ |
               ⟨⟨%Hne, %Hns⟩, #Hea, -⟩)
             · icases Hsr with (HR | ⟨-, Hun⟩)
@@ -285,37 +294,37 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
           iapply fupd_wp
           imod Hout
           imodintro
+          try wp_auto
           wp_apply wp_check pa pr id dsl data fail err $$ [Hout]
           · iframe Hf Hstr Hout
           wp_bind (App (Val #fr) (Val _))
           iapply wp_wand $$ (Hrf $$ %go!"concurrent-calls")
           iintro %v' %Hv'
           subst Hv'
-          wp_auto
+          try wp_auto
           wp_for_post
           iframe
           iexists i + W64 1
           iframe
           ipureintro; word
       · -- the calls done: the deferred `Done` gives the slot's token back
-        wp_auto
+        try wp_auto
         wp_apply (sync.tokJoin.WaitGroup.wp_Done wkN iprop(False) wg_ptr iprop(True))
           $$ [$Hsync $Hdone] as Htok
-        wp_auto
+        try wp_auto
         iframe Htok
-        ipureintro; exact isPanic_intoVal _
     · inext
       iintro Htok
-      wp_auto
+      try wp_auto
       wp_for_post
       iframe
       iexists w + W64 1, n + 1, iprop(Pw ∗ True)
       iframe
       ipureintro; word
-  · wp_auto
+  · try wp_auto
     wp_apply (sync.tokJoin.WaitGroup.wp_Wait wkN iprop(False) wg_ptr n Pw) $$ [$Hsync $Hadd]
       as ⟨-, -⟩
-    wp_auto
+    try wp_auto
     iapply HΦ
     iexact Htok
 

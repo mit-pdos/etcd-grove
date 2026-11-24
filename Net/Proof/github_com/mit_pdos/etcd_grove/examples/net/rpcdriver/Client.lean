@@ -78,7 +78,7 @@ theorem Client.wp_proof
   -- drop the credits beyond `33` per dial
   rw [show ctrBudget = 33 * uint.nat (W64 1 + n0) + (ctrBudget - 33 * uint.nat (W64 1 + n0))
     by unfold ctrBudget; omega]
-  icases Hcred with ⟨Hcred, -⟩
+  icases ownToks_add_1 _ _ γb $$ Hcred with ⟨Hcred, -⟩
   ihave IH : iprop(∃ k : w64, "k" ∷ k_ptr ↦ k ∗
       "Hcred" ∷ ownToks γb (33 * (uint.nat (W64 1 + n0) - uint.nat k)) ∗
       "Htok" ∷ threadTok ∗ "%Hk" ∷ ⌜uint.nat k ≤ uint.nat (W64 1 + n0)⌝) $$ [k Hcred Htok]
@@ -93,7 +93,8 @@ theorem Client.wp_proof
     rw [show 33 * (uint.nat (W64 1 + n0) - uint.nat k) =
       33 * (uint.nat (W64 1 + n0) - uint.nat (k + W64 1)) + 32 + 1 by
         rw [show uint.nat (k + W64 1) = uint.nat k + 1 by word]; omega]
-    icases Hcred with ⟨⟨Hcred, Hc32⟩, Hc1⟩
+    icases ownToks_add_1 _ _ γb $$ Hcred with ⟨Hcred, Hc1⟩
+    icases ownToks_add_1 _ _ γb $$ Hcred with ⟨Hcred, Hc32⟩
     wp_apply wp_dial (drvWorld γid reg) $$ [$Hcli $Hhttp $Hcon $Htcp $Hha] as %cl %err Hd
     · ipureintro; exact Hrb
     icases Hd with (⟨%He, %a, %Ha, #Hcl⟩ | %He)

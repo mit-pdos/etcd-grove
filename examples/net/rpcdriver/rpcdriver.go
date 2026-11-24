@@ -185,8 +185,8 @@ func callOn(c *rpc.Client, ids *counter) {
 				if below(2) == 0 {
 					err = c.Call("Svc.Echo", a, r)
 				} else {
-					call := c.Go("Svc.Echo", a, r, make(chan *rpc.Call, 1))
-					<-call.Done
+					// the *Call the done channel delivers is Go's (net/rpc's own usage)
+					call := <-c.Go("Svc.Echo", a, r, make(chan *rpc.Call, 1)).Done
 					err = call.Error
 				}
 				check(a, r, err)
