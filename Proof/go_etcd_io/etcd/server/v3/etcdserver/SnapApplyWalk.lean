@@ -407,7 +407,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   let s' : ApplyState := ⟨W64 0, sv.Metadata'.Index', sv.Metadata'.Index', false⟩
   wp_apply (wp_ci_swap hSB γ ci (stLoaded γ st) s' π' jf γcf b _ rfl rfl
       ⟨by simp [s', ciEff, π', π0], by simp [s', ciEff, π', π0]⟩
-      (by rw [stLoaded_ciEff]; simpa [π', π0] using hle.le))
+      (by rw [stLoaded_ciEff]; simpa [π', π0] using Int.le_of_lt hle))
     $$ [Hst Hown Hmt0b Hwr0 Htcf] as ⟨Hst, #Hreg', Hfs, Hown⟩
   · iframe #; iframe Hst Hown Hmt0b Hwr0 Htcf
   -- the new backend's payment rights, back from the futures: its write-back tokens, its open
