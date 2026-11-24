@@ -383,3 +383,13 @@ The disjunct in `batchLockInv` is cheap, but it helps only once 2 exists, so it 
   added in the final stage, when the member id goes through the translated `crypto/sha1.Sum`.
 - Proved on `crypto-sha1-proofs`: `crypto.sha1.wp_Sum` returns `bootGo.sha1`'s FIPS 180-4 text.
   `bootGo.sha1` is to be identified with Perennial's `crypto.sha1.sha1` after the pin bump.
+
+### 7.9 `strings.Join`'s bound, decided 2026-11-24 (stage lead, claim #34; ledger 2026-11-25 "computeMemberID, URLsMap.String")
+- Perennial's real `strings.Join` (pin `d9c8c1d97`) needs the joined string shorter than `2^61` bytes. Decision:
+  internal-spec premises only. `computeMemberID`/`NewMember` take the URLs' strings `< 2^61` bytes in all,
+  `NewClusterFromURLsMap` per entry; `URLsMap.String` (and `VerifyBootstrap`, which passes them on) take plain
+  URLs (exact strings) and `types.urlsMapStrLen m urls < 2^61`. `bootGo.initMapOk` gains one decidable conjunct
+  (`Σ_k Σ_u (|k| + |urlStr u| + 2) < 2^61`) that gives both, settled per example by evaluation in the final
+  stage. Why one total sum: it bounds both joins directly; a per-URL `< 2^56` bound would also need a URL count
+  far below `initMapOk`'s `2^62`. Rejected: `URLsMap.String` as a pending hypothesis; a bound-free `Join`
+  (false of Go). No top-level statement, `bootPremise` or axiom changes.

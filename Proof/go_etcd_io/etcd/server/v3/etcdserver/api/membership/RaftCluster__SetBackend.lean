@@ -45,6 +45,22 @@ theorem membership.RaftCluster.SetBackend.wp_proof
   iframe Hfld Hbe Hlgf
   ipureintro; exact Hlg
 
+theorem membership.RaftCluster.SetBackend.wp_proofFresh
+    (hMC : schema.membershipBackend.MustCreateBackendBuckets.specFresh (GF := GF) (hG := hG)) :
+    membership.RaftCluster.SetBackend.specFresh (GF := GF) (hG := hG) := by
+  intro c oldv mbl lg d W Pk qo S r hS hm hmr hc
+  wp_start as ⟨Hfld, %Hlg, #Hbe, #Hlgf, #HB, Ho, Hwb, Hrb⟩
+  wp_auto
+  wp_apply (hMC mbl d W Pk qo S r hS hm hmr hc) $$ [$Hpkg2 $Hbe $HB $Ho $Hwb $Hrb]
+    as ⟨Ho, Hrb⟩
+  (try wp_auto)
+  iapply HΦ
+  iframe Ho Hrb
+  iunfold clusterBeOn
+  iexists mbl, lg
+  iframe Hfld Hbe Hlgf
+  ipureintro; exact Hlg
+
 end proof
 
 end EtcdGrove

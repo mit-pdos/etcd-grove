@@ -28,6 +28,8 @@ mvcc's.
 -/
 module
 
+-- (claim #34 stage 2) `config` imports `fmt` (`VerifyBootstrap`)
+public import Perennial.Proof.fmt.Base
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.encoding.json

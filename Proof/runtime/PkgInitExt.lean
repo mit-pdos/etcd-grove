@@ -28,6 +28,7 @@ public import Perennial.Code.bytes
 public import Perennial.Code.cmp
 public import Perennial.Code.context
 public import Perennial.Code.crypto.rand
+public import Perennial.Code.crypto.sha1
 public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
@@ -82,6 +83,8 @@ theorem ExternalInit.context [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.context _root_.Perennial.context.initialize' := ⟨⟩
 theorem ExternalInit.crypto_rand [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.crypto.rand _root_.Perennial.crypto.rand.initialize' := ⟨⟩
+theorem ExternalInit.crypto_sha1 [GooseExts] [GoGlobalContext] :
+    ExternalInit pkg_id.crypto.sha1 _root_.Perennial.crypto.sha1.initialize' := ⟨⟩
 theorem ExternalInit.encoding_binary [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize' := ⟨⟩
 theorem ExternalInit.errors [GooseExts] [GoGlobalContext] :

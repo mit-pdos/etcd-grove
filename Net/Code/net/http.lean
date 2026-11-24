@@ -173,6 +173,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   readRequestLimit_unfold : FuncUnfold readRequestLimit [] readRequestLimit.impl
   ReadResponse_unfold : FuncUnfold ReadResponse [] ReadResponse.impl
   fixPragmaCacheControl_unfold : FuncUnfold fixPragmaCacheControl [] fixPragmaCacheControl.impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
   bufioWriterPool_unfold : FuncUnfold bufioWriterPool [] bufioWriterPool.impl
   newBufioReader_unfold : FuncUnfold newBufioReader [] newBufioReader.impl
   putBufioReader_unfold : FuncUnfold putBufioReader [] putBufioReader.impl
@@ -378,6 +379,7 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.readRequestLimit_unfold
   Assumptions.ReadResponse_unfold
   Assumptions.fixPragmaCacheControl_unfold
+  Assumptions.«init.1_unfold»
   Assumptions.bufioWriterPool_unfold
   Assumptions.newBufioReader_unfold
   Assumptions.putBufioReader_unfold
