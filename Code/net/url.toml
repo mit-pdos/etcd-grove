@@ -1,7 +1,13 @@
 # Types and names only (unit N4, 2026-10-17: `url.URL`, the element type of `types.URLs`, a field
 # type of the server's configuration).
-translate = ["!*"]
-imports = ["!*"]
+# With their bodies (phase 7 S5, 2026-11-24): what the net/http model's `ServeMux` runs on a request's
+# path (`findHandler`'s `EscapedPath`, the routing tree's `PathUnescape`): `URL.EscapedPath`,
+# `validEncoded`, `escape`, `unescape`, `PathUnescape`, `shouldEscape`, `ishex`, `unhex` and the
+# character-class table `table` they read (an array literal of constants, translated: `urlTable`, a
+# premise until net/url's initialization is proved).
+translate = ["!*", "table", "upperhex", "encode*", "hexChar", "ishex", "unhex", "shouldEscape",
+             "unescape", "PathUnescape", "escape", "URL.EscapedPath", "validEncoded"]
+imports = ["!*", "strings"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -11,14 +17,6 @@ translate_types = true
 # their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
 # translated code, so no verified code reads them; each reason says why not running the
 # initializer is unobservable.
-[[skip]]
-names = ["table"]
-reason = """
-Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
-function values (built, not called) and other package variables' values or addresses, with no call.
-Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
-has no effect beyond its variable."""
-
 [[skip]]
 names = ["urlstrictcolons", "urlmaxqueryparams"]
 reason = """

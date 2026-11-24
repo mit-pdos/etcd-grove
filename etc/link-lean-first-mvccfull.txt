@@ -86,7 +86,7 @@ lease_lessor__isPrimary:
 # zap's Debug (over the trust boundary's `Logger.check` and `CheckedEntry.Write`), Int64, Duration,
 # and `time.Duration.Seconds`, as the server's `Link.lean` links them
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Int64:
 zap_Duration:
@@ -171,3 +171,6 @@ stream__recvOne: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_h
 stream__watch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds runner__genKey runner__genEnd choose pick context_TODO check
 walkKeys: 
 watcher__matches: inRange
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

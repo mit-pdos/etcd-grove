@@ -70,6 +70,8 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
   e_math_bits : G pkg_id.math.bits = isPkgInit (PROP := IProp GF) pkg_id.math.bits
   e_internal_strconv : G pkg_id.internal.strconv = isPkgInit (PROP := IProp GF) pkg_id.internal.strconv
+  e_internal_gomodel : G pkg_id.internal.gomodel = isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel
+  e_internal_bytealg : G pkg_id.internal.bytealg = isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg
   e_internal_stringslite : G pkg_id.internal.stringslite = isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite
   e_unicode_utf8 : G pkg_id.unicode.utf8 = isPkgInit (PROP := IProp GF) pkg_id.unicode.utf8
   e_strconv : G pkg_id.strconv = isPkgInit (PROP := IProp GF) pkg_id.strconv
@@ -89,18 +91,18 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_internal_oserror : G pkg_id.internal.oserror = isPkgInit (PROP := IProp GF) pkg_id.internal.oserror
   e_syscall : G pkg_id.syscall = isPkgInit (PROP := IProp GF) pkg_id.syscall
   e_io_fs : G pkg_id.io.fs = isPkgInit (PROP := IProp GF) pkg_id.io.fs
+  e_internal_testlog : G pkg_id.internal.testlog = isPkgInit (PROP := IProp GF) pkg_id.internal.testlog
   e_internal_syscall_unix : G pkg_id.internal.syscall.unix = isPkgInit (PROP := IProp GF) pkg_id.internal.syscall.unix
   e_internal_poll : G pkg_id.internal.poll = isPkgInit (PROP := IProp GF) pkg_id.internal.poll
   e_os : G pkg_id.os = isPkgInit (PROP := IProp GF) pkg_id.os
   e_net : G pkg_id.net = isPkgInit (PROP := IProp GF) pkg_id.net
   e_crypto_tls : G pkg_id.crypto.tls = isPkgInit (PROP := IProp GF) pkg_id.crypto.tls
   e_net_http_internal_ascii : G pkg_id.net.http.internal.ascii = isPkgInit (PROP := IProp GF) pkg_id.net.http.internal.ascii
+  e_strings : G pkg_id.strings = isPkgInit (PROP := IProp GF) pkg_id.strings
   e_net_url : G pkg_id.net.url = isPkgInit (PROP := IProp GF) pkg_id.net.url
   e_cmp : G pkg_id.cmp = isPkgInit (PROP := IProp GF) pkg_id.cmp
   e_iter : G pkg_id.iter = isPkgInit (PROP := IProp GF) pkg_id.iter
   e_slices : G pkg_id.slices = isPkgInit (PROP := IProp GF) pkg_id.slices
-  e_internal_bytealg : G pkg_id.internal.bytealg = isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg
-  e_strings : G pkg_id.strings = isPkgInit (PROP := IProp GF) pkg_id.strings
   e_vendor_golang_org_x_net_http_httpguts : G pkg_id.vendor.golang_org.x.net.http.httpguts = isPkgInit (PROP := IProp GF) pkg_id.vendor.golang_org.x.net.http.httpguts
   e_net_textproto : G pkg_id.net.textproto = isPkgInit (PROP := IProp GF) pkg_id.net.textproto
   e_mime_multipart : G pkg_id.mime.multipart = isPkgInit (PROP := IProp GF) pkg_id.mime.multipart
@@ -162,9 +164,17 @@ theorem wf_internal_strconv {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.strconv G :=
   And.intro h.e_internal_strconv ⟨wf_math_bits h, True.intro⟩
 
+theorem wf_internal_gomodel {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.gomodel G :=
+  And.intro h.e_internal_gomodel True.intro
+
+theorem wf_internal_bytealg {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.bytealg G :=
+  And.intro h.e_internal_bytealg ⟨wf_internal_gomodel h, True.intro⟩
+
 theorem wf_internal_stringslite {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.stringslite G :=
-  And.intro h.e_internal_stringslite True.intro
+  And.intro h.e_internal_stringslite ⟨wf_internal_bytealg h, True.intro⟩
 
 theorem wf_unicode_utf8 {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.unicode.utf8 G :=
@@ -238,6 +248,10 @@ theorem wf_io_fs {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.io.fs G :=
   And.intro h.e_io_fs ⟨wf_time h, wf_internal_oserror h, wf_errors h, wf_io h, True.intro⟩
 
+theorem wf_internal_testlog {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.testlog G :=
+  And.intro h.e_internal_testlog ⟨wf_sync h, True.intro⟩
+
 theorem wf_internal_syscall_unix {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.syscall.unix G :=
   And.intro h.e_internal_syscall_unix ⟨wf_syscall h, True.intro⟩
@@ -248,7 +262,7 @@ theorem wf_internal_poll {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_os {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.os G :=
-  And.intro h.e_os ⟨wf_io h, wf_io_fs h, wf_sync h, wf_syscall h, wf_internal_poll h, wf_errors h, True.intro⟩
+  And.intro h.e_os ⟨wf_io h, wf_io_fs h, wf_sync h, wf_syscall h, wf_internal_testlog h, wf_internal_poll h, wf_errors h, True.intro⟩
 
 theorem wf_net {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net G :=
@@ -262,9 +276,13 @@ theorem wf_net_http_internal_ascii {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.http.internal.ascii G :=
   And.intro h.e_net_http_internal_ascii True.intro
 
+theorem wf_strings {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.strings G :=
+  And.intro h.e_strings ⟨wf_internal_gomodel h, wf_internal_bytealg h, wf_unicode_utf8 h, wf_internal_stringslite h, wf_io h, wf_sync h, True.intro⟩
+
 theorem wf_net_url {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.url G :=
-  And.intro h.e_net_url True.intro
+  And.intro h.e_net_url ⟨wf_strings h, True.intro⟩
 
 theorem wf_cmp {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.cmp G :=
@@ -277,14 +295,6 @@ theorem wf_iter {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_slices {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.slices G :=
   And.intro h.e_slices ⟨wf_cmp h, wf_iter h, wf_math_bits h, True.intro⟩
-
-theorem wf_internal_bytealg {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.bytealg G :=
-  And.intro h.e_internal_bytealg True.intro
-
-theorem wf_strings {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.strings G :=
-  And.intro h.e_strings ⟨wf_internal_bytealg h, wf_unicode_utf8 h, wf_internal_stringslite h, wf_io h, wf_sync h, True.intro⟩
 
 theorem wf_vendor_golang_org_x_net_http_httpguts {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts G :=
@@ -482,10 +492,20 @@ theorem wfO_internal_strconv {G : GoString → IProp GF} (h : KitG G) (S : List 
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.strconv ∉ ownedPkgs) (hS _ hm))).trans
     h.e_internal_strconv) ⟨wfO_math_bits h S hS, True.intro⟩
 
+theorem wfO_internal_gomodel {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.gomodel (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.gomodel ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_gomodel) True.intro
+
+theorem wfO_internal_bytealg {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.bytealg (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.bytealg ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_bytealg) ⟨wfO_internal_gomodel h S hS, True.intro⟩
+
 theorem wfO_internal_stringslite {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.stringslite (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.stringslite ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_stringslite) True.intro
+    h.e_internal_stringslite) ⟨wfO_internal_bytealg h S hS, True.intro⟩
 
 theorem wfO_unicode_utf8 {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.unicode.utf8 (gOff S G) :=
@@ -577,6 +597,11 @@ theorem wfO_io_fs {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.io.fs ∉ ownedPkgs) (hS _ hm))).trans
     h.e_io_fs) ⟨wfO_time h S hS, wfO_internal_oserror h S hS, wfO_errors h S hS, wfO_io h S hS, True.intro⟩
 
+theorem wfO_internal_testlog {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.testlog (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.testlog ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_testlog) ⟨wfO_sync h S hS, True.intro⟩
+
 theorem wfO_internal_syscall_unix {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.syscall.unix (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.syscall.unix ∉ ownedPkgs) (hS _ hm))).trans
@@ -590,7 +615,7 @@ theorem wfO_internal_poll {G : GoString → IProp GF} (h : KitG G) (S : List GoS
 theorem wfO_os {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.os (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.os ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_os) ⟨wfO_io h S hS, wfO_io_fs h S hS, wfO_sync h S hS, wfO_syscall h S hS, wfO_internal_poll h S hS, wfO_errors h S hS, True.intro⟩
+    h.e_os) ⟨wfO_io h S hS, wfO_io_fs h S hS, wfO_sync h S hS, wfO_syscall h S hS, wfO_internal_testlog h S hS, wfO_internal_poll h S hS, wfO_errors h S hS, True.intro⟩
 
 theorem wfO_net {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.net (gOff S G) :=
@@ -607,10 +632,15 @@ theorem wfO_net_http_internal_ascii {G : GoString → IProp GF} (h : KitG G) (S 
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.net.http.internal.ascii ∉ ownedPkgs) (hS _ hm))).trans
     h.e_net_http_internal_ascii) True.intro
 
+theorem wfO_strings {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.strings (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.strings ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_strings) ⟨wfO_internal_gomodel h S hS, wfO_internal_bytealg h S hS, wfO_unicode_utf8 h S hS, wfO_internal_stringslite h S hS, wfO_io h S hS, wfO_sync h S hS, True.intro⟩
+
 theorem wfO_net_url {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.net.url (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.net.url ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_net_url) True.intro
+    h.e_net_url) ⟨wfO_strings h S hS, True.intro⟩
 
 theorem wfO_cmp {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.cmp (gOff S G) :=
@@ -626,16 +656,6 @@ theorem wfO_slices {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.slices (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.slices ∉ ownedPkgs) (hS _ hm))).trans
     h.e_slices) ⟨wfO_cmp h S hS, wfO_iter h S hS, wfO_math_bits h S hS, True.intro⟩
-
-theorem wfO_internal_bytealg {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.bytealg (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.bytealg ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_bytealg) True.intro
-
-theorem wfO_strings {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.strings (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.strings ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_strings) ⟨wfO_internal_bytealg h S hS, wfO_unicode_utf8 h S hS, wfO_internal_stringslite h S hS, wfO_io h S hS, wfO_sync h S hS, True.intro⟩
 
 theorem wfO_vendor_golang_org_x_net_http_httpguts {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts (gOff S G) :=

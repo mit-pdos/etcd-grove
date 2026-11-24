@@ -385,15 +385,20 @@ PROJECTS = [
         # three log lines format the member's attributes field by field,
         # `fmt.Sprintf("{Name:%s ClientURLs:[%s]}", Name, strings.Join(ClientURLs, " "))`, the same bytes
         # as `fmt.Sprintf("%+v", s.attributes)`, which reaches fmt's reflection-based `printValue`.
-        # Then (real fmt stage 1, 2026-11-24, mit-pdos/etcd-grove#9) 0a5fe8d9 (branch
-        # `goose-lean-fmt1b`, the commits of `goose-lean-fmt1` rebased onto bc2b5f4d0): `Election.Campaign`, `Mutex.tryAcquire` and
+        # Then (sortslice, 2026-11-24, mit-pdos/etcd-grove#18, approved by Upamanyu via
+        # coordinator-E) 6b942d23f (branch `goose-lean-slicessort-on-fmtattrs`, on bc2b5f4d0; first
+        # a336e97f9 on edc800c6f, branch `goose-lean-slicessort`): mvcc's `hashStorage.Store` sorts with
+        # `slices.SortFunc(s.hashes, cmp.Compare on Revision)` instead of `sort.Slice` (whose reflection
+        # Perennial does not model), an upstream-ready change.
+        # Then (real fmt stage 1, 2026-11-24, mit-pdos/etcd-grove#9) 3d8797e8 (branch
+        # `goose-lean-fmt1c`, the commits of `goose-lean-fmt1` rebased onto 6b942d23f): `Election.Campaign`, `Mutex.tryAcquire` and
         # `store.restore` convert a method-less named lease ID to `int64` before `fmt.Sprintf`
         # formats it (`%x`, `%016x`): byte-identical output, through `fmtInteger` (Perennial's verified
-        # subset) instead of `printValue`. Then 5e311a563 (same branch): `Client.dial` numbers its
+        # subset) instead of `printValue`. Then df6af0c36 (same branch): `Client.dial` numbers its
         # dial targets with a package counter (`clientTargetSeq`, an `atomic.Uint64`) in place of
         # `%p` of the client, which real `fmt` does not cover (the decision on #9,
         # issuecomment-7122889900: fork rewrites, no `%p` axiom).
-        rev="5e311a563c075dfc78adca68e4e2d30d8784be38",
+        rev="df6af0c36a6bf5394765d3740aaf26ca27eb8ca9",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
@@ -580,6 +585,9 @@ PROJECTS = [
             # and the `buffer.NewPool` they call
             "go.uber.org/zap/internal/stacktrace", "go.uber.org/zap/internal/bufferpool",
             "go.uber.org/zap/buffer",
+            # (zap-z2, 2026-11-23) what `zapcore.CheckedEntry.Write` and its terminal hooks call: zap's
+            # `internal/exit` (`With`, over `os.Exit`) with its body, `multierr` names only (no core)
+            "go.uber.org/zap/internal/exit", "go.uber.org/multierr",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
