@@ -22,6 +22,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_uber_org.zap.internal.color.Init
 public import Proof.go_uber_org.zap.internal.pool.Init
+public import Proof.fmt.SprintfPure
 public import Perennial.Proof.errors.NewVar
 
 @[expose] public section

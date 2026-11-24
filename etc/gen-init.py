@@ -1507,7 +1507,8 @@ versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, prove
              'Perennial.Proof.bytes.Link',
              'Proof.github_com.Masterminds.semver.v3.NewVersion',
              'Proof.github_com.Masterminds.semver.v3.Version__Major',
-             'Proof.github_com.Masterminds.semver.v3.Version__Minor'],
+             'Proof.github_com.Masterminds.semver.v3.Version__Minor',
+             'Proof.fmt.SprintfPure'],
     # (prove-ps2-initfuncs, 2026-11-22) `init()` (`version.go`): `APIVersion` from `NewVersion(Version)`
     after={'init.«0»': [
         'wp_apply EtcdGrove.semver.NewVersion.wp_proof as %pv %err Hr',
@@ -1525,10 +1526,9 @@ versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, prove
         '    try (isplitr; (ipureintro; rfl))',
         '    iintro %sla ⟨Hargs, -⟩',
         '    try wp_auto',
-        '    wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _',
-        '      (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)',
-        '        (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)',
-        '          _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hargs] as %str -',
+        '    wp_apply (EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%d.%d"',
+        '      [.dir none _root_.Perennial.fmt.verb_d, .lit go!".", .dir none _root_.Perennial.fmt.verb_d] _ _ _ _ (by fmt_encode) (by fmt_fits)',
+        '      (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil))) $$ [$Hargs] as %str -',
         '    try wp_auto',
         '    isplitr',
         '    · ipureintro; rfl',
@@ -3807,9 +3807,9 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
         '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HL as HL',
         '    | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HU as HU',
         '    | (wp_apply (wp_slice_literal (l := [_, _])); isplitr; (· ipureintro; rfl); iintro %sl ⟨Ssl, -⟩; '
-        'try wp_auto; wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ '
-        '(_root_.Perennial.fmt.IntArgValue.uint8 _) (_root_.Perennial.fmt.ArgsWf.cons_string _ _ '
-        '_root_.Perennial.fmt.ArgsWf.nil)) $$ [$Ssl] as %r -)',
+        'try wp_auto; wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"\\x1b[%dm%s\\x1b[0m" '
+        '[.lit go!"\\x1b[", .dir none _root_.Perennial.fmt.verb_d, .lit go!"m", .dir none _root_.Perennial.fmt.verb_s, .lit go!"\\x1b[0m"] '
+        '_ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.uint8 _) (.str _ _ _ .nil)) $$ [$Ssl] as %r -)',
         '    | wp_method_call',
         '    | wp_auto',
         '    | wp_call))',
@@ -3817,7 +3817,7 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
         'iintro - -',
         'wp_auto',
         ]},
-    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+    imports=['Proof.go_uber_org.zap.internal.pool.New', 'Proof.fmt.SprintfPure'],
     heavy=True,
 ), ['errUnmarshalNilLevel'])
 # (zap-z1, 2026-11-23) zap's internal buffer pool: `zap.Logger.check` reads `Get`
@@ -3830,7 +3830,7 @@ translated initializers (zap-z1, 2026-11-23: zap's `Logger.check` reads `Get`): 
                       'rw [recv_eq_func_mk BAnon BAnon]',
                       'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pbuf -',
                       'try wp_auto']},
-    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+    imports=['Proof.go_uber_org.zap.internal.pool.New', 'Proof.fmt.SprintfPure'],
 )
 # (prove-initleft, 2026-11-21) zapcore's fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop` loads it)
 SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`).")
@@ -3932,7 +3932,7 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         '  iframe',
         '',
         'end zapinit'],
-    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+    imports=['Proof.go_uber_org.zap.internal.pool.New', 'Proof.fmt.SprintfPure'],
 ), ['errNoEncoderNameSpecified'])
 # (prove-zap3, 2026-11-21) zap's last package variable, `_sinkRegistry` (`newSinkRegistry`: the file sink registered,
 # `normalizeScheme("file")` over `strings.ToLower`'s spec); `opaqueInitsOk` is gone
