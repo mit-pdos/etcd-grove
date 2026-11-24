@@ -6,6 +6,7 @@
 # dial that fails), or one the deployment never takes (with why). A new exit needs an entry with a reason
 # checked against the code; an entry nothing hits fails (stale).
 # <file>\t<function>\t<line text, whitespace collapsed>\t<reason>
+examples/dsverify/craq/node/node.go	log.Fatalf	log.Fatalf("Failed to backfill latest versions.\n Error: %#v", err)	go-craq's Node.Start exits when backfillLatest fails, i.e. when the store's AllCommitted returns an error (a store failure, not a check); the deployment's store is store/kv's KV, whose AllCommitted always returns nil (kv.go:196), so it is never taken
 examples/dsverify/epaxos/dlog/dlog.go	(*log.Logger).Fatal	l.logger.Fatal(v...)	the body of dlog.Logger.Fatal (exits only for a nil or verbose logger); its calls are listed with their own entries
 examples/dsverify/epaxos/dlog/dlog.go	log.Fatal	log.Fatal("Can't open log file:", logPath)	dlog.New on a log file that does not open (an environment failure, no check); the deployment opens none: its loggers are &dlog.Logger{} and client.NewClientLog's dlog.New gets the path ""
 examples/dsverify/epaxos/dlog/dlog.go	log.Fatal	log.Fatal(v...)	the body of dlog.Logger.Fatal (exits only for a nil or verbose logger); its calls are listed with their own entries
