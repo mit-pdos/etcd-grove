@@ -99,14 +99,14 @@ theorem membership.computeMemberID.wp_proofOne
   · iframe
     ipureintro
     simpa [List.intercalate] using hlen
-  wp_apply wp_string_to_bytes ([].intercalate ss') as %b1 ⟨Hb1, Hb1cap⟩
+  wp_apply wp_string_to_bytes ([].intercalate [go!"http://" ++ u.Host']) as %b1 ⟨Hb1, Hb1cap⟩
   wp_apply wp_string_to_bytes token as %b2 ⟨Hb2, -⟩
   wp_apply (wp_slice_append b1 _ b2 _ (DFrac.own 1)) $$ [Hb1 Hb1cap Hb2] as %b3 ⟨Hb3, -, -⟩
   · iframe
   wp_auto
   wp_apply (hSum b3 (DFrac.own 1) _ hfips) $$ [Hb3] as Hb3
   · iframe
-  generalize hH : crypto.sha1.sha1 ([].intercalate ss' ++ token) = H
+  generalize hH : crypto.sha1.sha1 ([].intercalate [go!"http://" ++ u.Host'] ++ token) = H
   ihave %Hn := array_len _ _ _ _ $$ hash
   ihave Hs := slice_array (GF := GF) hash_ptr _ (array.mk 20 H) (by simp only; omega) $$ hash
   ihave ⟨-, Hs8, -⟩ := (ownSlice_slice (V := w8) (W64 0) (W64 8) _ (DFrac.own 1) H

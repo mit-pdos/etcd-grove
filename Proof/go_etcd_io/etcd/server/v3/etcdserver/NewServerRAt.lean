@@ -230,7 +230,6 @@ abbrev NewServer.specRAt : Prop :=
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Hns" ∷ rnNewStorageOk ∗
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
