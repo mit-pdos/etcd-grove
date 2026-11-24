@@ -715,6 +715,33 @@ statement's preparation (etcd lead). **The cheap wins first:** `phase7-inits` (�
 `Server.Serve.impl` (in it), `mvccfull-noaddr` (−3 from mvccfull), `grpclog.SetLoggerV2` and
 `status.Status.Code` (K only), `grpc.StatsHandler` under `h ≠ nil` (in `phase7-s2a`).
 
+### What "done" means, and two items no stage retired (2026-11-24)
+
+gRPC is done when it contributes no axiom, no `sorry` and no premise to any top-level robustness
+theorem, and no trusted opaque definition either; what stays trusted is the `models/grpc` Go model
+and the net extension's semantics. The collection `etc/tcb-collections/grpc.txt` (branch
+`grpc-tcb-collection`: 142 axioms, no `sorry`, each mapped to the stage above that retires it) is
+the measure; landings shrink its baseline until it is empty. Two items had no stage:
+
+- **`DialWithBalancerBody`** (an instance premise of the single-process etcd, k8s and leaseexpiryN
+  theorems, putget and etcd_robust): the hypothesis class that replaced the inconsistent
+  `Client.dialWithBalancer.unfold`/`.builderType` axioms (notes/audit.md, B1), because client/v3's
+  `Client.dialWithBalancer` is translated names-only. Stage **G-dial** (dsverify-net): translate it
+  with its body; where goose refuses it, fix the translator gap in Perennial's goose as a general
+  change (Perennial's own workflow), not a local stand-in; then prove it over the dial-side specs
+  (`InvDial.lean`) and delete the class. After `phase7-switch` (it touches the dial options'
+  vocabulary); about 1 session if goose takes it, 2-3 with a translator change.
+- **Trusted opaque definitions** are not axioms, so the collection's axiom count does not see them:
+  `grpcCliPI`/`grpcSrvPI`, `protoEncodes`, `credsYieldRaw`, the 17 opaques of
+  `Proof/net/http/Boundary.lean`, `grpcRepliesFit`. Stage **T-opaques** (dsverify-net, tooling,
+  untrusted): `etc/tcb-report.py` reports, for a collection, the `opaque` constants its roots'
+  statements and axioms reach (an `opaque` line per constant in the baseline, checked as the axioms
+  are), so that they too must drop to zero. The opaques retire with their stages (W5 the protocols,
+  W3 the codec, S5 net/http's).
+- **`grpcRepliesFit`** stays a premise of the theorems that have it until W3/W5 (it is false of
+  etcd under one workload: `issues/etcd-txn-keysonly-reply-alloc-panic.md`); no new statement takes
+  it: the library drivers (`notes/library-drivers.md`) send only messages the program bounds in Go.
+
 ## 5. What each top-level theorem still rests on
 
 (2026-11-24) `etc/tcb-collections/grpc.txt` makes the family's part mechanical: its roots are every etcd
