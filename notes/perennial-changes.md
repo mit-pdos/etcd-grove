@@ -84,6 +84,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `net/url`'s `parse` with its bodies.
 - **Status.** Not proposed yet.
 
+### A field's address is not known to be non-nil: not a limitation (2026-11-24, S5 batch 15; withdrawn)
+
+- **What was thought.** net/http's `mapping.find` begins `if h == nil { return v, false }` with
+  `h = &n.children` (`routingNode.findChild`), and `structFieldRef` is abstract, so the nil branch
+  seemed possible in the model. mit-pdos/perennial#703 proposed `structFieldRef_not_null` as a trusted law.
+- **Why not needed.** Every typed points-to carries `l ≠ null` (`typedPointsto_not_null`,
+  `PostLifting.lean`). `mapRep` owned only `h`'s nested fields (`structFieldRef mapping "s" h`), which
+  loses the fact at `h`; it now owns the whole `h ↦{dq} mapping` (`MuxMapping.lean`), and the tree's
+  owner has that points-to as the `children` field of `n ↦ node`. `wp_mapping_find` has no premise.
+  #703 withdrawn (approved, then not needed: comment 7146518547).
+
 ### `sync.NewCond.spec` does not say its result is not `nil`; `context.WithValue` names-only (2026-11-23, models-rpc-http)
 
 - **Limitation.** (1) `NewCond.spec`'s post is `isCond c m`, without `⌜c ≠ null⌝` (the struct field
