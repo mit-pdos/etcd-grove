@@ -23,7 +23,8 @@ show `stuck` is never reached).
 * the server (`ServerDefs.lean`): the server codec's `ReadRequestHeader`, `ReadRequestBody`,
   `WriteResponse` (`respWire`, an error response's body not encoded) and `Close` (the `closed`
   flag), `newServerCodec`; `NewServer`, the free lists, `register` (the codec's `Receiver`, `rcvOk`)
-  with `Register`, `RegisterName`, and `go/token.IsExported` on an ASCII upper-case first byte.
+  with `Register`, `RegisterName`, the package-level `Register` and `RegisterName` (on
+  `DefaultServer`, `defaultServer`), and `go/token.IsExported` on an ASCII upper-case first byte.
 
 * the request loop (`ServerGhost.lean`: a request read is a client's, taken once; an answer
   recorded at its response's write): `sendResponse`, `service.call`, `readRequestHeader`,
@@ -89,6 +90,8 @@ public import Net.Proof.net.rpc.Server__freeResponse
 public import Net.Proof.net.rpc.Server__register
 public import Net.Proof.net.rpc.Server__Register
 public import Net.Proof.net.rpc.Server__RegisterName
+public import Net.Proof.net.rpc.Register
+public import Net.Proof.net.rpc.RegisterName
 public import Net.Proof.go.token.IsExported
 public import Net.Proof.net.rpc.Server__sendResponse
 public import Net.Proof.net.rpc.service__call
@@ -251,6 +254,12 @@ theorem Server.Register.wp [errors.Assumptions] [go.token.Assumptions] :
 theorem Server.RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
     Server.RegisterName.spec (GF := GF) (hG := hG) := Server.RegisterName.wp_proof Server.register.wp
 
+theorem Register.wp [errors.Assumptions] [go.token.Assumptions] :
+    Register.spec (GF := GF) (hG := hG) := Register.wp_proof Server.Register.wp
+
+theorem RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
+    RegisterName.spec (GF := GF) (hG := hG) := RegisterName.wp_proof Server.RegisterName.wp
+
 theorem Server.sendResponse.wp : Server.sendResponse.spec (GF := GF) (hG := hG) :=
   Server.sendResponse.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Server.getResponse.wp
     Server.freeResponse.wp serverCodec.WriteResponse.wp
@@ -368,6 +377,8 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.register.wp
 #print axioms Perennial.net.rpc.Server.Register.wp
 #print axioms Perennial.net.rpc.Server.RegisterName.wp
+#print axioms Perennial.net.rpc.Register.wp
+#print axioms Perennial.net.rpc.RegisterName.wp
 #print axioms Perennial.net.rpc.Server.sendResponse.wp
 #print axioms Perennial.net.rpc.service.call.wp
 #print axioms Perennial.net.rpc.Server.readRequestHeader.wp
