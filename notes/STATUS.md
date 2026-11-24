@@ -45,10 +45,8 @@ record is `notes/decisions.md`; the Rocq development's notes are on branch `main
   MemstorageApi, NodeInstalls, ReadCtxLaws); its TCB collection's root is its raft `Link`.
 - **KvNet** (P2): its 138 former copies of kvdurablenoax and kvreconf are its own files; copy-part's
   `RENAME_KVNET`/`TEXT_FIXES_KVNET`/`KVNET_REUSED` gone.
-- **`BagSend` moved**: `bag_nb_send_au` (a bag channel's non-blocking send) is now
-  `Proof/go_etcd_io/etcd/server/v3/lease/BagSend.lean` (was `examples/raft/kvreconf/BagSend.lean`),
-  for its users lessor's `revokeExpiredLeases` and kvnet's `Replica.request`. **It goes once the
-  Perennial branch adding the lemma to the bag idiom is pinned**: then both import Perennial's.
+- **`BagSend`**: gone (lean's `bagsend-perennial`): the lessor's `revokeExpiredLeases` and kvnet's
+  `Replica.request` use Perennial's `bag_nb_send_au` (bca1cd2e5, in the pin).
 
 ## `bootstrap`'s stage 4: the WAL's and the raft record's callees (claim #34, 2026-11-25, branch `bootstrap-stage4/2026-11-25`)
 

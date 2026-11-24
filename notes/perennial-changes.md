@@ -20,8 +20,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 ### `bag_nb_send_au(_now)`: a bag channel's non-blocking send (2026-11-24, branch `raft-retire/2026-11-24`)
 
 - **Status.** bag_nb_send_au(_now): Perennial branch chan-bag-nb-send (3b51f8790), replaces kvreconf's
-  BagSend (moved next to the lessor until the pin bump: `Proof/go_etcd_io/etcd/server/v3/lease/BagSend.lean`)
-  and kvnet's queue_nb_send_au.
+  BagSend and kvnet's queue_nb_send_au. **Done**: pinned (bca1cd2e5); the local copies deleted
+  (`bagsend-perennial/2026-11-24`, landed).
 ### `sync.Mutex` has no spec for an owned (unshared) mutex (2026-11-25, claim #34 stage 2)
 
 - **Limitation.** Perennial's `sync.Mutex.Lock`/`Unlock` specs take `isMutex m R`, a lock invariant allocated
@@ -3125,6 +3125,9 @@ sends on a capacity-1 bag channel without waiting; the lemma `bag_nb_send_au : �
 P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
 (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
+**Done** (Perennial bca1cd2e5: `bag_nb_send_au` and `bag_nb_send_au_now`, the latter with `Φ` now and
+no credit). 2026-11-24 (branch `bagsend-perennial/2026-11-24`): the local `BagSend.lean` and kvnet's
+`queue_nb_send_au` (= `bag_nb_send_au_now`) deleted, their users on Perennial's.
 
 
 ## A bag channel's non-blocking receive (2026-10-31, S1)
