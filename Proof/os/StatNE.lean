@@ -10,6 +10,8 @@ module
 public import Proof.os.IgnoringEINTR
 public import Proof.internal.gomodel.LocalChoose
 public import Proof.os.StatS
+public import Proof.os.ForLoeb
+public import Proof.os.ModelMode
 public import Proof.os.RemoveAllNE
 public import GooseLang.Ext.Fs.FstatAny
 
@@ -42,8 +44,6 @@ theorem os.model.wp_stat_dirSW (op p : GoString) (R : Roots) (J : Ino) (dq : DFr
          ⌜err ≠ interface.nil ∧ ¬ FsNoErrAt p⌝) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
   imod osLogLb_0 with #Hlb
-  try unfold os.model.stat
-  unfold os.model.arbitraryMode
   icases osPathS_pathIn_keep R p dq J $$ Hp with ⟨%hpin, Hp⟩
   try wp_auto
   wp_stub os.fsPathKind.impl
@@ -53,7 +53,9 @@ theorem os.model.wp_stat_dirSW (op p : GoString) (R : Roots) (J : Ino) (dq : DFr
   try wp_auto
   try rw [decide_eq_false hk2]
   try wp_auto
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp HΦ
+  wp_for_step
   try wp_auto
   wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
@@ -68,7 +70,9 @@ theorem os.model.wp_stat_dirSW (op p : GoString) (R : Roots) (J : Ino) (dq : DFr
     rw [decide_eq_true he4]
     try wp_auto
     try rw [os.fileStat_ty_eq]
-    iapply IH $$ Hperm Hp HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp HΦ [$] [$] [$] [$]
   rw [decide_eq_false he4]
   try wp_auto
   by_cases he0 : e = W64 0
@@ -84,19 +88,20 @@ theorem os.model.wp_stat_dirSW (op p : GoString) (R : Roots) (J : Ino) (dq : DFr
     try wp_auto
     wp_stub os.fsDirClose.impl
     wp_apply wp_osDirCloseS fd J .idle CoPset.subseteq_top $$ Hos Hfd as %e2
-    iStructNamed fs
+    iStructNamed «$r0»
     try wp_auto
     wp_apply filepathlite.Base.wp_lex as %nm _
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
+    wp_apply os.wp_modelMode as %x
     ipersist name
     ipersist size
     ipersist mode
     imodintro
+    wp_for_post
     iapply HΦ
     iframe
     ileft
-    iexists fs_ptr, _
+    iexists «$r0_ptr», _
     unfold os.ownFileStat
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
@@ -112,6 +117,9 @@ theorem os.model.wp_stat_dirSW (op p : GoString) (R : Roots) (J : Ino) (dq : DFr
     wp_apply os.wp_modelErrno
     try wp_auto
     wp_apply os.wp_modelPathError
+    iintro %pe
+    try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     iright
@@ -135,8 +143,6 @@ theorem os.model.wp_stat_fileAnySW (op d b : GoString) (R : Roots) (j i : Ino) (
          ⌜err ≠ interface.nil ∧ ¬ FsNoErrAt (child d b)⌝) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
-  try unfold os.model.stat
-  unfold os.model.arbitraryMode
   icases osPathS_pathIn_keep R d dq j $$ Hp with ⟨%hpin, Hp⟩
   try wp_auto
   wp_stub os.fsPathKind.impl
@@ -146,7 +152,9 @@ theorem os.model.wp_stat_fileAnySW (op d b : GoString) (R : Roots) (j i : Ino) (
   try wp_auto
   try rw [decide_eq_false hk2]
   try wp_auto
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   try wp_auto
   wp_open_stub
@@ -163,7 +171,9 @@ theorem os.model.wp_stat_fileAnySW (op d b : GoString) (R : Roots) (j i : Ino) (
     rw [decide_eq_true he4]
     try wp_auto
     try rw [os.fileStat_ty_eq]
-    iapply IH $$ Hperm Hp Hn HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$] [$]
   rw [decide_eq_false he4]
   try wp_auto
   by_cases he0 : e = W64 0
@@ -185,7 +195,9 @@ theorem os.model.wp_stat_fileAnySW (op d b : GoString) (R : Roots) (j i : Ino) (
     · rw [decide_eq_true hz4]
       try wp_auto
       try rw [os.fileStat_ty_eq]
-      iapply IH $$ Hperm Hp Hn HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$] [$]
     rw [decide_eq_false hz4]
     try wp_auto
     by_cases hz0 : ez = W64 0
@@ -193,19 +205,20 @@ theorem os.model.wp_stat_fileAnySW (op d b : GoString) (R : Roots) (j i : Ino) (
       try rw [decide_eq_true rfl]
       iapply wp_fupd
       try wp_auto
-      iStructNamed fs
+      iStructNamed «$r0»
       try wp_auto
       wp_apply filepathlite.Base.wp_lex as %nm _
       try wp_auto
-      wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
+      wp_apply os.wp_modelMode as %x
       ipersist name
       ipersist size
       ipersist mode
       imodintro
+      wp_for_post
       iapply HΦ
       iframe
       ileft
-      iexists fs_ptr, _
+      iexists «$r0_ptr», _
       unfold os.ownFileStat
       isplitr
       · ipureintro; exact ⟨rfl, rfl⟩
@@ -220,6 +233,9 @@ theorem os.model.wp_stat_fileAnySW (op d b : GoString) (R : Roots) (j i : Ino) (
       wp_apply os.wp_modelErrno
       try wp_auto
       wp_apply os.wp_modelPathError
+      iintro %pe
+      try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
       iright
@@ -231,6 +247,9 @@ theorem os.model.wp_stat_fileAnySW (op d b : GoString) (R : Roots) (j i : Ino) (
     wp_apply os.wp_modelErrno
     try wp_auto
     wp_apply os.wp_modelPathError
+    iintro %pe
+    try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     iright
@@ -252,8 +271,11 @@ theorem os.Stat.wp_dirSW (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc :
             os.ownFileStat fs sz) ∨
          ⌜err ≠ interface.nil ∧ ¬ FsNoErrAt p⌝) }} := by
   wp_start as Hpre
-  wp_apply os.model.wp_stat_dirSW $$ Hpre
-  iexact HΦ
+  try wp_auto
+  wp_apply os.model.wp_stat_dirSW $$ Hpre as %fi %err Hpost
+  try wp_auto
+  iapply HΦ
+  iexact Hpost
 
 /-- `os.Stat(d/b)` of the regular file `i` (no `OsMeta`), an error only when the file system can fail
 on `d/b`. -/
@@ -269,8 +291,11 @@ theorem os.Stat.wp_fileAnySW (d b : GoString) (R : Roots) (j i : Ino) (N : NameS
             os.ownFileStat fs sz) ∨
          ⌜err ≠ interface.nil ∧ ¬ FsNoErrAt (child d b)⌝) }} := by
   wp_start as Hpre
-  wp_apply os.model.wp_stat_fileAnySW _ d b R j i N dq dqn h qc hb hN hi $$ Hpre
-  iexact HΦ
+  try wp_auto
+  wp_apply os.model.wp_stat_fileAnySW _ d b R j i N dq dqn h qc hb hN hi $$ Hpre as %fi %err Hpost
+  try wp_auto
+  iapply HΦ
+  iexact Hpost
 
 end proof
 

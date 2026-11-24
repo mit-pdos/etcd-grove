@@ -1,7 +1,7 @@
 /-
-**`poll.CopyFileRange`'s loop in `io.CopyFiles.spec`'s copy** (`model.pollCopyFileRange`,
-`TrustedCode/os.lean`): rounds of `copy_file_range` (`os.wp_cfrRound`) from the source's offset `o + j`
-to the destination's `j`, `EINTR` retried, each judged by `handleCopyFileRangeErr` (translated). Every
+**`poll.CopyFileRange`'s loop in `io.CopyFiles.spec`'s copy** (`os.modelPollCopyFileRange`, the Go
+model): rounds of `copy_file_range` (`os.wp_cfrRound`) from the source's offset `o + j`
+to the destination's `j`, `EINTR` retried, each judged by `modelHandleCopyFileRangeErr` (poll's, copied). Every
 round keeps the copy's state `io.cpG` (the destination the source's bytes `[o, o + j)`, both offsets at
 their ends), so the loop ends in it, at some `j'`; handled with no error only at the source's end.
 Lean-first.
@@ -9,6 +9,8 @@ Lean-first.
 module
 
 public import Proof.io.CopyRound
+public import Proof.os.ForLoeb
+public import Proof.os.ErrorOk
 
 @[expose] public section
 
@@ -42,24 +44,96 @@ def io.cpG (ind ins : Loc) (i : Ino) (o : Nat) (bs : List ByteG) (j : Nat) : IPr
     structFieldRef os.file go!"off" ins ↦ W64 (o + j) ∗
     io.copyDst i (· = ((bs.map Prod.fst).drop o).take j))
 
-/-- Names the two arguments of a call `f a b` (to generalize them before a Löb induction). -/
-theorem os.wp_genArgs2 (f : val) (a b : w64) (Φ : val → IProp GF) :
-    (∀ a' : w64, ∀ b' : w64, ⌜a' = a⌝ -∗ ⌜b' = b⌝ -∗ WP (App (App (Val f) (Val #a')) (Val #b')) {{ Φ }}) ⊢
-      WP (App (App (Val f) (Val #a)) (Val #b)) {{ Φ }} := by
-  iintro H
-  iapply H <;> ipureintro <;> rfl
-
--- The `k = 0` exit of `os.wp_pollCFR` with an unhandled result `(false, nil)`.
-local macro "cfr_unhandled" hΦ:pmTerm : tactic => `(tactic| (
-  try wp_auto
-  rw [show (go!"os.wrapSyscallError" : GoString) = _root_.Perennial.os.wrapSyscallError from rfl]
-  wp_func_call
-  wp_call
-  try wp_auto
-  iapply $hΦ
-  iframe
-  ipureintro
-  exact ⟨fun h => (by cases h), Or.inl rfl⟩))
+/-- `modelHandleCopyFileRangeErr(modelErrno(e), copied, written)` (poll's `handleCopyFileRangeErr`):
+`err` is `nil` or the errno's error; handled with no error only when `e = 0`, and so when `e = 0` and
+something was copied. -/
+theorem os.wp_modelHandleCFRErr (e copied written : w64) :
+    {{ (True : IProp GF) }}
+      (App (App (App (Val (@! os.modelHandleCopyFileRangeErr)) (Val #(errnoErr e))) (Val #copied))
+        (Val #written))
+    {{ (h : Bool) (err : GoInterface), RET (PairV #h #err);
+        ⌜(err = interface.nil ∨ err = errnoErr e) ∧ (h = true → err = interface.nil → e = W64 0) ∧
+          (e = W64 0 → copied ≠ W64 0 → h = true ∧ err = interface.nil)⌝ }} := by
+  wp_start as -
+  by_cases he0 : e = W64 0
+  · subst he0
+    rw [show errnoErr (W64 0) = interface.nil by unfold errnoErr; exact if_pos rfl]
+    try wp_auto
+    by_cases hc : copied = W64 0
+    · rw [decide_eq_true hc]
+      try wp_auto
+      by_cases hw : written = W64 0
+      · rw [decide_eq_true hw]
+        try wp_auto
+        iapply HΦ
+        ipureintro
+        exact ⟨Or.inl rfl, (fun h => by cases h), fun _ h => absurd hc h⟩
+      · rw [decide_eq_false hw]
+        try wp_auto
+        iapply HΦ
+        ipureintro
+        exact ⟨Or.inl rfl, fun _ _ => rfl, fun _ h => absurd hc h⟩
+    · rw [decide_eq_false hc]
+      try wp_auto
+      iapply HΦ
+      ipureintro
+      exact ⟨Or.inl rfl, fun _ _ => rfl, fun _ _ => ⟨rfl, rfl⟩⟩
+  · have hE : errnoErr e = interface.mkOk syscall.Errno.ty #e := by unfold errnoErr; exact if_neg he0
+    rw [hE]
+    try rw [errno_ty_eq]
+    try wp_auto
+    try rw [errno_ty_eq]
+    by_cases hX38 : e = W64 38
+    · subst hX38
+      try wp_auto
+      iapply HΦ
+      ipureintro
+      exact ⟨Or.inl rfl, (fun h => by cases h), fun h => absurd h he0⟩
+    rw [decide_eq_false hX38]
+    try wp_auto
+    by_cases hX1 : e = W64 1
+    · subst hX1
+      try wp_auto
+      iapply HΦ
+      ipureintro
+      exact ⟨Or.inl rfl, (fun h => by cases h), fun h => absurd h he0⟩
+    rw [decide_eq_false hX1]
+    try wp_auto
+    by_cases hX95 : e = W64 95
+    · subst hX95
+      try wp_auto
+      iapply HΦ
+      ipureintro
+      exact ⟨Or.inl rfl, (fun h => by cases h), fun h => absurd h he0⟩
+    rw [decide_eq_false hX95]
+    try wp_auto
+    by_cases hX5 : e = W64 5
+    · subst hX5
+      try wp_auto
+      iapply HΦ
+      ipureintro
+      exact ⟨Or.inl rfl, (fun h => by cases h), fun h => absurd h he0⟩
+    rw [decide_eq_false hX5]
+    try wp_auto
+    by_cases hX22 : e = W64 22
+    · subst hX22
+      try wp_auto
+      iapply HΦ
+      ipureintro
+      exact ⟨Or.inl rfl, (fun h => by cases h), fun h => absurd h he0⟩
+    rw [decide_eq_false hX22]
+    try wp_auto
+    by_cases hX18 : e = W64 18
+    · subst hX18
+      try wp_auto
+      iapply HΦ
+      ipureintro
+      exact ⟨Or.inl rfl, (fun h => by cases h), fun h => absurd h he0⟩
+    rw [decide_eq_false hX18]
+    try wp_auto
+    iapply HΦ
+    ipureintro
+    exact ⟨Or.inr rfl, (fun _ h => by cases h), fun h => absurd h he0⟩
 
 theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac)
     (dd ds : OsFd) (m : OsMeta) (qm qb : DFrac) (bs : List ByteG) (o j : Nat)
@@ -69,30 +143,27 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
         structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ins) ↦{dqs} fds ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         io.cpG ind ins dd.ino o bs j }}
-      (App (App (App (App (Val (@! os.modelPollCopyFileRange)) (Val #ind)) (Val #ins))
-        (Val #(null : Loc))) (Val #(W64 0x7fffffffffffffff)))
+      (App (App (App (Val (@! os.modelPollCopyFileRange)) (Val #ind)) (Val #ins))
+        (Val #(W64 0x7fffffffffffffff)))
     {{ (wr : w64) (h : Bool) (err : GoInterface), RET (PairV (PairV #wr #h) #err);
         structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ind) ↦{dqd} fdd ∗ structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ins) ↦{dqs} fds ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         ∃ j' : Nat, io.cpG ind ins dd.ino o bs j' ∗ ⌜(h = true → err = interface.nil → o + j' = bs.length) ∧
-          (err = interface.nil ∨ ∃ l : Loc, err = interface.mkOk (go.GoType.PointerType os.SyscallError.ty) #l)⌝ }} := by
-  iintro %Φ ⟨#Hinv, Hdfd, Hsfd, Hfdd, Hfds, Hm, Hbs, HG⟩ HΦ
-  unfold os.model.pollCopyFileRange
-  wp_pure
-  wp_pure
-  wp_pure
-  wp_pure
-  wp_pure
-  wp_pure
-  wp_pure
-  wp_pure
-  wp_bind (App (App (Val _) (Val _)) (Val _))
-  iapply os.wp_genArgs2
-  iintro %rem0 %wr0 %hrem0 %hwr0
-  have hrem : 2 ^ 63 - 1 ≤ sint.Z rem0 + j := by rw [hrem0]; have : sint.Z (W64 9223372036854775807) = 2 ^ 63 - 1 := rfl; omega
-  clear hrem0 hwr0
-  iloeb as IH generalizing %rem0 %wr0 %j %hrem HG HΦ
+          ∃ e : w64, err = errnoErr e⌝ }} := by
+  wp_start as ⟨#Hinv, Hdfd, Hsfd, Hfdd, Hfds, Hm, Hbs, HG⟩
   try wp_auto
+  ihave Hst : (∃ (rem0 wr0 : w64) (hd0 : Bool) (er0 : GoInterface), remain_ptr ↦ rem0 ∗
+      written_ptr ↦ wr0 ∗ handled_ptr ↦ hd0 ∗ err_ptr ↦ er0 ∗
+      ⌜2 ^ 63 - 1 ≤ sint.Z rem0 + j⌝ : IProp GF) $$ [remain written handled err]
+  · iexists _, _, _, _
+    iframe
+    ipureintro
+    have : sint.Z (W64 9223372036854775807) = 2 ^ 63 - 1 := rfl
+    omega
+  icases Hst with ⟨%rem0, %wr0, %hd0, %er0, Hrem, Hwr, Hhd, Her, %hrem⟩
+  wp_for_bind
+  iloeb as IH generalizing %rem0 %wr0 %hd0 %er0 %j %hrem Hrem Hwr Hhd Her HG HΦ Hdfd Hsfd Hfdd Hfds Hm Hbs src dst
+  wp_for_step
   iunfold io.cpG at HG
   icases HG with ⟨%hj0, HG⟩
   ihave HG : io.cpG ind ins dd.ino o bs j $$ [HG]
@@ -103,7 +174,12 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
   rw [decide_eq_false (show ¬ sint.Z rem0 < sint.Z (W64 2147479552) by
     rw [show sint.Z (W64 2147479552) = 2147479552 from rfl]; omega)]
   try wp_auto
-  iloeb as IH2 generalizing Hdfd Hsfd Hfdd Hfds Hm Hbs HG HΦ
+  ihave Hnc : (∃ (n0 c0 : w64), n_ptr ↦ n0 ∗ c_ptr ↦ c0 : IProp GF) $$ [n c]
+  · iexists _, _; iframe
+  icases Hnc with ⟨%n0, %c0, Hn, Hc⟩
+  wp_for_bind
+  iloeb as IH2 generalizing %n0 %c0 Hn Hc Hdfd Hsfd Hfdd Hfds Hm Hbs HG HΦ Hrem Hwr Hhd Her src dst max
+  wp_for_step
   iunfold io.cpG at HG
   icases HG with ⟨%hj, Hdoff, Hsoff, Hdst⟩
   have hvl : (((bs.map Prod.fst).drop o).take j).length = j := by
@@ -130,133 +206,63 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
     rw [show ((o : Int) + (j + k)) = o + j + k by omega]
     iframe
     ipureintro; omega
+  try wp_auto
   by_cases he4 : e = W64 4
   · have hk0 : k = 0 := by
       rcases Nat.eq_zero_or_pos k with h | h
       · exact h
       · have := hk1 h; rw [this] at he4; exact absurd he4 (by decide)
     subst hk0
-    rw [decide_eq_true he4]
-    wp_pure
-    wp_pure
-    iapply IH2 $$ Hdfd Hsfd Hfdd Hfds Hm Hbs HG HΦ
-  rw [decide_eq_false he4]
+    try rw [decide_eq_true he4]
+    try wp_auto
+    wp_for_post
+    inext
+    iapply IH2 $$ %_ %_ Hn Hc Hdfd Hsfd Hfdd Hfds Hm Hbs HG HΦ Hrem Hwr Hhd Her src dst max
+  try rw [decide_eq_false he4]
   try wp_auto
+  wp_for_post
   have hkZ : sint.Z (W64 (k : Int)) = k := (os.cfr_natZ k (by omega)).1
   by_cases hkp : 0 < k
   · rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 (k : Int)) by rw [hkZ, show sint.Z (W64 0) = 0 from rfl]; omega)]
     try wp_auto
     have he0 := hk1 hkp
     subst he0
-    rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 (k : Int)) by rw [hkZ, show sint.Z (W64 0) = 0 from rfl]; omega)]
-    try wp_auto
-    unfold syscall.model.errno
-    try wp_auto
-    rw [show (go!"internal/poll.handleCopyFileRangeErr" : GoString) =
-      _root_.Perennial.internal.poll.handleCopyFileRangeErr from rfl]
-    wp_func_call
-    wp_call
-    try wp_auto
     have hkne : ¬ (W64 (k : Int)) = W64 0 := by
       intro h; have := congrArg BitVec.toNat h; simp at this; omega
-    rw [decide_eq_false hkne]
+    wp_apply os.wp_modelErrno
+    wp_apply os.wp_modelHandleCFRErr as %hd %er %hh
+    obtain ⟨rfl, rfl⟩ := hh.2.2 rfl hkne
     try wp_auto
-    rw [decide_eq_false hkne]
+    try rw [decide_eq_false hkne]
+    try wp_auto
     have hremk : sint.Z (rem0 - W64 (k : Int)) = sint.Z rem0 - k := by
       have h1 : sint.Z rem0 < 2 ^ 63 := by simp only [sint.Z]; word
       simp only [sint.Z] at hkZ hrem h1 ⊢; word
-    repeat (first
-      | iapply IH $$ %(rem0 - W64 (k : Int)) %(wr0 + W64 (k : Int)) %(j + k) %(by rw [hremk]; push_cast; omega) HG HΦ
-           Hdfd Hsfd Hfdd Hfds Hm Hbs
-      | wp_pure)
+    wp_for_post
+    inext
+    iapply IH $$ %(rem0 - W64 (k : Int)) %(wr0 + W64 (k : Int)) %true %interface.nil %(j + k)
+      %(by rw [hremk]; push_cast; omega) Hrem Hwr Hhd Her HG HΦ Hdfd Hsfd Hfdd Hfds Hm Hbs src dst
   · have hk0 : k = 0 := by omega
     subst hk0
     rw [decide_eq_false (show ¬ sint.Z (W64 0) < sint.Z (W64 ((0 : Nat) : Int)) by decide)]
     try wp_auto
-    unfold syscall.model.errno
+    wp_apply os.wp_modelErrno
+    wp_apply os.wp_modelHandleCFRErr as %hd %er %hh
     try wp_auto
-    by_cases he0 : e = W64 0
-    · subst he0
-      rw [decide_eq_true (rfl : W64 0 = W64 0)]
-      try wp_auto
-      rw [show (go!"internal/poll.handleCopyFileRangeErr" : GoString) =
-        _root_.Perennial.internal.poll.handleCopyFileRangeErr from rfl]
-      wp_func_call
-      wp_call
-      try wp_auto
-      by_cases hw : wr0 = W64 0
-      · rw [decide_eq_true hw]
-        try wp_auto
-        rw [show (go!"os.wrapSyscallError" : GoString) = _root_.Perennial.os.wrapSyscallError from rfl]
-        wp_func_call
-        wp_call
-        try wp_auto
-        iapply HΦ
-        iframe
-        ipureintro
-        exact ⟨fun h => (by cases h), Or.inl rfl⟩
-      · rw [decide_eq_false hw]
-        try wp_auto
-        rw [show (go!"os.wrapSyscallError" : GoString) = _root_.Perennial.os.wrapSyscallError from rfl]
-        wp_func_call
-        wp_call
-        try wp_auto
-        iapply HΦ
-        iframe
-        ipureintro
-        refine ⟨fun _ _ => ?_, Or.inl rfl⟩
-        have := hk2 rfl rfl
-        omega
-    · rw [decide_eq_false he0, errno_ty_eq]
-      try wp_auto
-      rw [show (go!"internal/poll.handleCopyFileRangeErr" : GoString) =
-        _root_.Perennial.internal.poll.handleCopyFileRangeErr from rfl]
-      wp_func_call
-      wp_call
-      try wp_auto
-      by_cases hX38 : e = W64 38
-      · subst hX38
-        cfr_unhandled HΦ
-      rw [decide_eq_false hX38]
-      try wp_auto
-      by_cases hX1 : e = W64 1
-      · subst hX1
-        cfr_unhandled HΦ
-      rw [decide_eq_false hX1]
-      try wp_auto
-      by_cases hX95 : e = W64 95
-      · subst hX95
-        cfr_unhandled HΦ
-      rw [decide_eq_false hX95]
-      try wp_auto
-      by_cases hX5 : e = W64 5
-      · subst hX5
-        cfr_unhandled HΦ
-      rw [decide_eq_false hX5]
-      try wp_auto
-      by_cases hX22 : e = W64 22
-      · subst hX22
-        cfr_unhandled HΦ
-      rw [decide_eq_false hX22]
-      try wp_auto
-      by_cases hX18 : e = W64 18
-      · subst hX18
-        cfr_unhandled HΦ
-      rw [decide_eq_false hX18]
-      try wp_auto
-      rw [show (go!"os.wrapSyscallError" : GoString) = _root_.Perennial.os.wrapSyscallError from rfl]
-      wp_func_call
-      wp_call
-      try wp_auto
-      wp_func_call
-      wp_call
-      try wp_auto
-      wp_alloc l as Hl
-      try wp_auto
-      iapply HΦ
-      iframe
-      ipureintro
-      exact ⟨fun _ h => (by cases h), Or.inr ⟨l, rfl⟩⟩
+    try rw [decide_eq_true (show W64 ((0 : Nat) : Int) = W64 0 from rfl)]
+    try wp_auto
+    wp_for_post
+    iapply HΦ
+    iframe
+    ipureintro
+    obtain ⟨her, hhe, -⟩ := hh
+    refine ⟨fun h1 h2 => ?_, ?_⟩
+    · have he := hhe h1 h2
+      have := hk2 rfl he
+      omega
+    · rcases her with rfl | rfl
+      · exact ⟨W64 0, by unfold errnoErr; exact (if_pos rfl).symm⟩
+      · exact ⟨e, rfl⟩
 
 end proof
 
