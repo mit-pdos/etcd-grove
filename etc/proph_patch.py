@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Prophecy patches: changes to a project's Go code, applied before translation, that only add
-prophecy-only code: prophecies (`primitive.NewProph`) in locals, package variables and struct fields,
-their resolutions (`ResolveBool`, `ResolveU64` on read-only expressions, `Resolve` on a value built from them), and prophecy-only helpers.
+prophecy-only code: prophecies (`NewProph` of goose's `primitive` or Perennial's `proph`) in locals,
+package variables and struct fields, their resolutions (`ResolveBool`, `ResolveU64` on read-only
+expressions, and `proph`'s `Resolve` on a value built from them), and prophecy-only helpers.
 
 usage: etc/proph_patch.py [--project NAME]... [--src NAME=DIR]...
 
@@ -24,8 +25,8 @@ conditions and calls prophecy-only helpers that do only that (etc/prophcheck/mai
 its doc comment gives the argument; notes/proph-patch-rule.md lists the checks).  In short, Go's prophecy operations do nothing and a read-only expression has no
 effect but may fail, so the patched program has every behavior of the original plus possibly
 failing ones (a nil dereference in a resolution's argument, say), which its proof rules out.
-Besides the Go files, a patch may only add the `github.com/goose-lang/primitive` lines a
-`go.mod`/`go.sum` needs; it creates, deletes and renames no file.
+Besides the Go files, a patch may only add the `github.com/goose-lang/primitive` and
+`github.com/mit-pdos/perennial/proph` lines a `go.mod`/`go.sum` needs; it creates, deletes and renames no file.
 
 The patched code must still compile and translate (goose reports otherwise).  A resolution's
 argument is evaluated where the patch puts it: the proof sees the value at that point.
@@ -40,11 +41,12 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 PATCH_DIR = os.path.join(ROOT, "etc", "proph-patches")
-PRIM = "github.com/goose-lang/primitive"
+PROPH_PKGS = ("github.com/goose-lang/primitive", "github.com/mit-pdos/perennial/proph")
 GO_TOOLCHAIN = "go1.27.3"  # etc/goose.py's
 
-GOMOD_RE = re.compile(r"^(require\s+)?github\.com/goose-lang/primitive\s+v\S+(\s*//\s*indirect)?$")
-GOSUM_RE = re.compile(r"^github\.com/goose-lang/primitive\s+v\S+\s+h1:\S+$")
+_PKG_RE = "(?:" + "|".join(re.escape(p) for p in PROPH_PKGS) + ")"
+GOMOD_RE = re.compile(r"^(require\s+)?" + _PKG_RE + r"\s+v\S+(\s*//\s*indirect)?$")
+GOSUM_RE = re.compile(r"^" + _PKG_RE + r"\s+v\S+\s+h1:\S+$")
 
 
 def patches(project):
@@ -98,7 +100,7 @@ def patch_errors(patch_path, src):
         if base in ("go.mod", "go.sum"):
             pat = GOMOD_RE if base == "go.mod" else GOSUM_RE
             errs += [f"{name}: {path}: removes or changes the line {l!r}" for l in removed]
-            errs += [f"{name}: {path}: adds {l.strip()!r}, not a line of {PRIM}"
+            errs += [f"{name}: {path}: adds {l.strip()!r}, not a line of {' or '.join(PROPH_PKGS)}"
                      for l in added if l.strip() and not pat.match(l.strip())]
         elif not path.endswith(".go"):
             errs.append(f"{name}: {path}: not a Go file, go.mod or go.sum")

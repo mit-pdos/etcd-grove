@@ -21,6 +21,18 @@ still pass.
 
 ## The exact checks
 
+**The prophecy packages**: Perennial's `github.com/mit-pdos/perennial/proph` (name `proph`; on
+Perennial `lean` since 0ab015afd: `NewProph`, `ProphId`, `ResolveBool`, `ResolveU64` and
+`Resolve(any)`, Lean namespace `github_com.mit_pdos.perennial.proph`) and goose's
+`github.com/goose-lang/primitive` (name `primitive`: the same without `Resolve`). Below,
+`primitive.NewProph()` / `primitive.ProphId` stand for either package's (prophcheck's `prophPkgs`),
+and "the import" is the unnamed import of either; a file may add one beside another it already has
+(e.g. `proph` where ORIG imports `primitive` for `RandomUint64`), and not to a file that uses the
+added package's name. A file that declares a local prophecy must import a prophecy package.
+`Resolve` is `proph`'s only: Go refuses it on a `primitive.ProphId`, so prophcheck does not check
+which package a resolved prophecy comes from. In `go.mod`/`go.sum` a patch may add only those two
+packages' lines (`etc/proph_patch.py`).
+
 prophcheck takes the pairs (ORIG, PATCHED) of every Go file the project's patches change. Files of
 one directory are one package; a name is **fresh** if it occurs as an identifier in no Go file of
 ORIG's directory (tests included).
@@ -108,11 +120,12 @@ slices and maps. Refused:
 - `unsafe.Sizeof`/`Alignof`/`Offsetof` of a value that reaches T.
 This is conservative (a `*T` passed as `any` is refused even if only its methods are used).
 
-## `Resolve(any)` (branch `proph-resolve-any`, 2026-11-23)
+## `Resolve(any)` (branch `proph-resolve-any`, 2026-11-23; package updated 2026-11-24)
 
-Upamanyu chose option (a) for swiftpaxos (#24): goose's `primitive` gains `(ProphId) Resolve(v
-any)` (Perennial branch `resolve-any`: trusted, modelled by GooseLang's `ResolveProph` on the
-interface value), so an event resolves as one value, atomic by construction, with no prophecy-only
+Upamanyu chose option (a) for swiftpaxos (#24): a `(ProphId) Resolve(v any)`, first planned in goose's
+`primitive` (Perennial branch `resolve-any`, which will not land), now in Perennial's own package
+`github.com/mit-pdos/perennial/proph` (Perennial `lean` 0ab015afd; trusted, modelled by GooseLang's
+`ResolveProph` on the interface value; primitive is unchanged), so an event resolves as one value, atomic by construction, with no prophecy-only
 mutex. The rule admits it (coordinator-E's text): `Resolve(any)` calls in prophecy-only helpers
 (and, like the other resolutions, as prophecy-only statements), "with an argument built from
 read-only values the caller already has: a struct literal or conversion to any, with no
@@ -123,12 +136,15 @@ literal with a nested one, `any(...)`, `interface{}(...)`, a struct type of the 
 read-only expression; at statement level: a local prophecy resolved with a struct literal) and
 `TestResolveAnyRefusals` (`&T{}`, slice, map and array literals, a non-struct named type, another
 package's type, `make`, `new`, `append`, a call inside a struct literal or under `any(...)`, a
-closure, two arguments; and `&T{}` in a helper).
+closure, two arguments; and `&T{}` in a helper); both now import `proph`. `TestProphPackage`: a local
+`proph` prophecy with `ResolveBool` and `Resolve` (the `proph` import erased), `proph` added beside
+an import of `primitive` the file keeps, refused when the file uses the name `proph`, and a local
+prophecy with no prophecy package imported refused.
 
 ## Not admitted (interpretations of the rule)
 - Constants and types (the rule lists variables, fields and helpers): inline constants.
 - `init` functions other than a prophecy-only initializer.
-- New files (`etc/proph_patch.py` still refuses them) and imports other than `primitive` (an
+- New files (`etc/proph_patch.py` still refuses them) and imports other than `proph` or `primitive` (an
   import can change package initialization): helpers go in an existing file that has the imports.
 - Calls of another package's helpers (each package's helpers are its own).
 - A prophecy-only field initialized from anything but `NewProph` (e.g. a copy of a prophecy-only variable).

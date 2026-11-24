@@ -44,8 +44,10 @@
 //	                                           prophecy-only statements only, at least one)
 //
 // and, in a composite literal, a prophecy-only field's keyed element `F: primitive.NewProph()`; and the
-// import "github.com/goose-lang/primitive" when ORIG does not have it (ORIG must then not use the
-// name `primitive`). E, E2, C and X are read-only expressions: identifiers, literals, field
+// import of a prophecy package when ORIG does not have it (ORIG must then not use its name). The
+// prophecy packages (prophPkgs) are "github.com/goose-lang/primitive" (name `primitive`: NewProph,
+// ProphId, ResolveBool, ResolveU64) and Perennial's "github.com/mit-pdos/perennial/proph" (name
+// `proph`: the same, plus Resolve(any)); `primitive.` above stands for either. E, E2, C and X are read-only expressions: identifiers, literals, field
 // selections, dereferences, indexing, slicing, type assertions, `&` of a field selection or of an
 // indexing, unary (but `<-`) and binary operations of read-only expressions, and calls of `len`,
 // `cap` and conversions to predeclared basic types (names the package does not redeclare). A
@@ -55,7 +57,8 @@
 // value built from read-only values, with no allocation (no `&T{}`, slice or map literal, `new`,
 // `make` or `append`).
 //
-// Why this is enough: Go's prophecy operations do nothing (goose-lang/primitive's proph.go). A
+// Why this is enough: Go's prophecy operations do nothing (goose-lang/primitive's proph.go,
+// perennial/proph's proph.go). A
 // read-only expression has no effect: evaluated, it either produces a value or fails (a nil
 // dereference, an out-of-range index, a failed assertion, a division by zero, a data race). A
 // helper only evaluates read-only expressions, writes its own locals, resolves prophecies and
@@ -84,7 +87,22 @@ import (
 	"strings"
 )
 
-const primPath = "github.com/goose-lang/primitive"
+// prophPkgs: the prophecy packages, import path -> package name. Their prophecy operations are
+// no-op stubs in Go. `Resolve(any)` is perennial/proph's only (Go refuses it on a primitive.ProphId).
+var prophPkgs = map[string]string{
+	"github.com/goose-lang/primitive":     "primitive",
+	"github.com/mit-pdos/perennial/proph": "proph",
+}
+
+// isProphPkg reports whether name is a prophecy package's name.
+func isProphPkg(name string) bool {
+	for _, n := range prophPkgs {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
 
 var conversions = map[string]bool{
 	"bool": true, "string": true, "int": true, "int8": true, "int16": true, "int32": true,
@@ -170,7 +188,7 @@ func (c *checker) readOnly(e ast.Expr) bool {
 	return false
 }
 
-// isNewProph reports whether e is `primitive.NewProph()`.
+// isNewProph reports whether e is `primitive.NewProph()` or `proph.NewProph()`.
 func isNewProph(e ast.Expr) bool {
 	call, ok := e.(*ast.CallExpr)
 	if !ok || len(call.Args) != 0 || call.Ellipsis.IsValid() {
@@ -181,7 +199,7 @@ func isNewProph(e ast.Expr) bool {
 		return false
 	}
 	pkg, ok := sel.X.(*ast.Ident)
-	return ok && pkg.Name == "primitive"
+	return ok && isProphPkg(pkg.Name)
 }
 
 func isNewProphStmt(s ast.Stmt) (string, bool) {
@@ -196,14 +214,14 @@ func isNewProphStmt(s ast.Stmt) (string, bool) {
 	return id.Name, true
 }
 
-// isProphType reports whether e is `primitive.ProphId`.
+// isProphType reports whether e is `primitive.ProphId` or `proph.ProphId`.
 func isProphType(e ast.Expr) bool {
 	sel, ok := e.(*ast.SelectorExpr)
 	if !ok || sel.Sel.Name != "ProphId" {
 		return false
 	}
 	pkg, ok := sel.X.(*ast.Ident)
-	return ok && pkg.Name == "primitive"
+	return ok && isProphPkg(pkg.Name)
 }
 
 // addedProph reports whether p is an added prophecy: a prophecy-only variable, X.F for a prophecy-only field F and
@@ -639,15 +657,15 @@ func (c *checker) erase(n ast.Node) {
 	})
 }
 
-// eraseImport removes the import of primitive.
-func eraseImport(f *ast.File) {
+// eraseImport removes the (unnamed) imports of the prophecy packages in paths.
+func eraseImport(f *ast.File, paths map[string]bool) {
 	keep := f.Decls[:0:0]
 	for _, d := range f.Decls {
 		g, ok := d.(*ast.GenDecl)
 		if ok && g.Tok == token.IMPORT {
 			specs := g.Specs[:0:0]
 			for _, sp := range g.Specs {
-				if p, _ := strconv.Unquote(sp.(*ast.ImportSpec).Path.Value); p == primPath &&
+				if p, _ := strconv.Unquote(sp.(*ast.ImportSpec).Path.Value); paths[p] &&
 					sp.(*ast.ImportSpec).Name == nil {
 					continue
 				}
@@ -664,13 +682,15 @@ func eraseImport(f *ast.File) {
 	f.Imports = nil
 }
 
-func importsPrim(f *ast.File) bool {
+// importsProph: the prophecy packages f imports (unnamed), by path.
+func importsProph(f *ast.File) map[string]bool {
+	out := map[string]bool{}
 	for _, sp := range f.Imports {
-		if p, _ := strconv.Unquote(sp.Path.Value); p == primPath && sp.Name == nil {
-			return true
+		if p, _ := strconv.Unquote(sp.Path.Value); prophPkgs[p] != "" && sp.Name == nil {
+			out[p] = true
 		}
 	}
-	return false
+	return out
 }
 
 var (
@@ -1038,18 +1058,27 @@ func check(pairs [][2]string) []string {
 			}
 			return true
 		})
-		patchedImports := importsPrim(p.pf)
-		if patchedImports && !importsPrim(p.of) {
-			if c.origNames["primitive"] {
-				c.errorf(p.pf.Pos(), "adds the import of primitive to a file that uses the name `primitive`")
+		patchedImports := importsProph(p.pf)
+		origImports := importsProph(p.of)
+		added := map[string]bool{}
+		for _, path := range sortedKeys(patchedImports) {
+			if origImports[path] {
+				continue
 			}
-			eraseImport(p.pf)
-			eraseImport(p.of)
+			added[path] = true
+			if name := prophPkgs[path]; c.origNames[name] {
+				c.errorf(p.pf.Pos(), "adds the import of %s to a file that uses the name `%s`", name, name)
+			}
+		}
+		if len(added) > 0 {
+			eraseImport(p.pf, added)
+			eraseImport(p.of, added)
 		}
 		c.eraseDecls(p.pf)
 		c.erase(p.pf)
-		if len(c.declared) > 0 && !patchedImports {
-			c.errorf(p.pf.Pos(), "declares prophecies but does not import %q (unnamed)", primPath)
+		if len(c.declared) > 0 && len(patchedImports) == 0 {
+			c.errorf(p.pf.Pos(), "declares prophecies but imports no prophecy package (%s, unnamed)",
+				strings.Join(sortedKeys(prophPkgs), " or "))
 		}
 		if !equal(reflect.ValueOf(p.of), reflect.ValueOf(p.pf)) {
 			c.errs = append(c.errs, fmt.Sprintf("%s: with its prophecy-only code erased, it is not %s "+
@@ -1092,4 +1121,13 @@ func main() {
 	if len(errs) > 0 {
 		os.Exit(1)
 	}
+}
+
+func sortedKeys[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
