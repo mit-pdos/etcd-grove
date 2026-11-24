@@ -170,7 +170,7 @@ local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tacti
       · iframe
       · iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, «$res0», HΦ', Hlt⟩ -
         (try wp_auto)
-        iapply HΦ' $$ %(⟨key, ($lr), null, ($hd)⟩ : ElectionSt)
+        iapply HΦ' $$ %(⟨key, ($lr), null, ($hd)⟩ : ElectionSt) [Hk Hrv Hls Hh] Hlt
         unfold electionState
         iframe
         ipureintro; exact ⟨Or.inl rfl, Hkey28⟩
@@ -491,7 +491,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
         · icases Hrest with (⟨-, Hst⟩ | ⟨-, Hst, -⟩) <;> iexists _ <;> iexact Hst
         icases Hst with ⟨%st'', Hst⟩
         (try wp_auto)
-        wp_apply hResign e s γ client id pfx st'' ctx cs r $$ [$Hpkg $He $Hst $Hctx $HctxC $Hr] as %rerr Hres
+        wp_apply hResign e s γ client id pfx st'' ctx cs r $$ [$Hlt $Hpkg $He $Hst $Hctx $HctxC $Hr] as %rerr ⟨Hlt, Hres⟩
         (try wp_auto)
         iapply HΦ
         iframe Hlt
@@ -504,9 +504,9 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
           | nil => exact absurd rfl Hpne
           | ok e' => exact ⟨e', rfl⟩
         (try wp_auto)
-        wp_apply hResign e s γ client id pfx _ ctx cs r $$ [$Hpkg $He $Hst $Hctx $HctxC $Hr] as %rerr Hres
+        wp_apply hResign e s γ client id pfx _ ctx cs r $$ [$Hlt $Hpkg $He $Hst $Hctx $HctxC $Hr] as %rerr ⟨Hlt, Hres⟩
         (try wp_auto)
-        iapply HΦ $$ [Hlt]
+        iapply HΦ
         iframe Hlt
         iright
         isplitr

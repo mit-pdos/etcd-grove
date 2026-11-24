@@ -157,7 +157,7 @@ theorem Mutex.Lock.wp_proof
     ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
     · iapply etcdReached_zero
     wp_apply wp_Unlock m s γ client id pfx ⟨key, rev, st.hdr⟩ cctx ccs (W64 0)
-      $$ [$Hm HmyKey HmyRev Hmhdr $Hcctx $HcctxC $H0] as %uerr Hu
+      $$ [$Hlt $Hm HmyKey HmyRev Hmhdr $Hcctx $HcctxC $H0] as %uerr ⟨Hlt, Hu⟩
     · unfold mutexState; iframe; ipureintro; exact Hkln
     iapply HΦ
     iframe Hlt
@@ -171,7 +171,7 @@ theorem Mutex.Lock.wp_proof
   · iapply optsAt_nil
   iunfold isEtcdKV at HKV
   ihave #HG := HKV $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %R0
-  wp_apply HG $$ [] as %gresp %gerr #Hgres
+  wp_apply HG $$ [$Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
   · iframe Hctx HctxC Hopts HR0
     ipureintro
     exact ⟨keyOp_not_panics, (keyOp_t key).1, keyOp_size Hkln⟩
@@ -186,7 +186,7 @@ theorem Mutex.Lock.wp_proof
     ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
     · iapply etcdReached_zero
     wp_apply wp_Unlock m s γ client id pfx ⟨key, rev, st.hdr⟩ cctx ccs (W64 0)
-      $$ [$Hm HmyKey HmyRev Hmhdr $Hcctx $HcctxC $H0] as %uerr Hu
+      $$ [$Hlt $Hm HmyKey HmyRev Hmhdr $Hcctx $HcctxC $H0] as %uerr ⟨Hlt, Hu⟩
     · unfold mutexState; iframe; ipureintro; exact Hkln
     iapply HΦ
     iframe Hlt

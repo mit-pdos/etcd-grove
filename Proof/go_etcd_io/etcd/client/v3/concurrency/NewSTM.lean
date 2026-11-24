@@ -112,7 +112,7 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
     · unfold applySpec
       imodintro
       iintro %lvl %p %st #Hm
-      wp_start_folded as ⟨Hst, %Hn0⟩
+      wp_start_folded as ⟨Hlt, Hst, %Hn0⟩
       ihave #Hm' := Hm
       iunfold stmMethods at Hm'
       icases Hm' with ⟨#HGet, -⟩
@@ -120,7 +120,7 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
       ihave #HGet1 := HGet $$ %st %psl %O.prefetch
       simp only [stmIface]
       wp_auto
-      wp_apply HGet1 $$ [$Hst $Hpsl] as %r Hr
+      wp_apply HGet1 $$ [$Hst $Hpsl $Hlt] as %r ⟨Hlt, Hr⟩
       · ipureintro
         refine ⟨Hpre.2, ?_, Hsz.2.2, by simp⟩
         have := Hsz.1; have := Hsz.2.1; omega
@@ -132,11 +132,12 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
         unfold stmAbort
         wp_auto
         iapply HΦ
+        iframe Hlt
         iapply stmRet_abort _ Hne
       subst Hv
       wp_auto
       ihave #Hap3 := Hap1 $$ %st' Hm
-      wp_apply Hap3 $$ [$Hst] as %r' Hres
+      wp_apply Hap3 $$ [$Hst $Hlt] as %r' ⟨Hlt, Hres⟩
       · ipureintro; have := Hgp.2.2.1; have := Hsz.1; omega
       iunfold stmRet at Hres
       icases Hres with (⟨%err, %Herr, Hres⟩ | %Hab)
@@ -145,10 +146,12 @@ theorem NewSTM.wp_proof (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
         unfold stmAbort
         wp_auto
         iapply HΦ
+        iframe Hlt
         iapply stmRet_abort _ Hne
       subst Herr
       wp_auto
       iapply HΦ
+      iframe Hlt
       iapply stmRet_ret
       iexact Hres
     iapply HΦ
