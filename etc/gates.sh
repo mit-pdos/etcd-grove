@@ -438,6 +438,14 @@ if python3 etc/tier-check.py --check > "$tmp/tier.log" 2>&1; then
 else
   echo "tier: FAILED"; head -20 "$tmp/tier.log"; fail=1
 fi
+# every top-level statement has a satisfiability witness of its premises, or a baseline line
+# (etc/premise-witness-baseline.txt; Robustness/PremiseSat.lean; reads the sources only: the build
+# checks the witnesses' proofs)
+if python3 etc/premise-witness.py --check > "$tmp/pw.log" 2>&1; then
+  echo "$(tail -1 "$tmp/pw.log")"
+else
+  echo "premise-witness: FAILED"; head -20 "$tmp/pw.log"; fail=1
+fi
 return $fail
 }
 

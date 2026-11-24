@@ -121,6 +121,12 @@ jobs:
       # thread-bound, receipt-bound or reader-slot premise in a spec. Reads the sources only.
       - name: Check the bounds baseline
         run: ./etc/bounds-check.py --check
+      # Every top-level statement (`Spec/**/TopLevelRobustness.lean`) has a satisfiability witness of
+      # its premises (`premise_sat%`, `Robustness/PremiseSat.lean`) in `Proof/**/TopLevelWitness.lean`,
+      # or a line in `etc/premise-witness-baseline.txt`. Reads the sources only; the build below
+      # checks the witnesses.
+      - name: Check the premise witnesses
+        run: ./etc/premise-witness.py --check
       # The auth-mode divergence outside the auth component only goes down (the auth component's
       # stage 2, D2): no new match on a mode, off/on twin or literal mode. Reads the sources only.
       - name: Check the auth-mode baseline
