@@ -15,6 +15,7 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.Fact
 public import Net.Spec.models_lab.jsoncodec.AppendRaw
 public import Net.Spec.models_lab.jsoncodec.AppendQuotedUint
 public import Net.Spec.models_lab.jsoncodec.AppendString
+public import Net.Proof.models_lab.jsoncodec.QuoteBridge
 
 @[expose] public section
 
@@ -87,7 +88,8 @@ theorem vsrnet.wp_jenc_Log (b : GoSlice) (bs : List w8) (x : pkg.log.Log) (d : w
   repeat (first
     | wp_apply (wp_AppendRaw _ _ _) $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap⟩
     | wp_apply (wp_AppendQuotedUint _ _ _) $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap⟩
-    | wp_apply (wp_AppendString _ _ _ (by assumption)) $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap⟩
+    | (wp_apply (wp_AppendString _ _ _) $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap⟩
+       rw [models_lab.jsoncodec.jsonQuote_plain _ (by assumption)])
     ; try wp_auto)
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.byte))))
     (Val (LiteralValueV _)))

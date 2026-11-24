@@ -1,13 +1,10 @@
 /-
-`jsoncodec.AppendUint(b, x)`: `b` with the decimal digits of `x` (`JsonScan.decN`) after it (a
-slice with its capacity, owned whole). Proved in `Net/Proof/models_lab/jsoncodec/AppendUint.lean`;
-ported from dsverify-lab's `wp_AppendUint` (`examples/vr/proof/VsrProof/Proof/jsoncodec/GoEnc.lean`,
-lab master 915f964).
+`jsoncodec.AppendUint(b, x)`: `b` with `x`'s decimal digits after it (`decU64`; a slice with its
+capacity, owned whole).
 -/
 module
 
-public import Net.Proof.models_lab.jsoncodec.Base
-public import Net.Proof.models_lab.jsoncodec.Scan.Lits
+public import Net.Proof.models_lab.jsoncodec.Quote
 
 @[expose] public section
 
@@ -30,8 +27,7 @@ abbrev AppendUint.spec : Prop :=
   ∀ (b : GoSlice) (bs : List w8) (x : w64),
   {{ (b ↦* bs ∗ ownSliceCap w8 b (DFrac.own 1) : IProp GF) }}
     (App (App (Val (@! models_lab.jsoncodec.AppendUint)) (Val #b)) (Val #x))
-  {{ (b' : GoSlice), RET #b'; b' ↦* (bs ++ JsonScan.decN (uint.nat x)) ∗
-      ownSliceCap w8 b' (DFrac.own 1) }}
+  {{ (b' : GoSlice), RET #b'; b' ↦* (bs ++ decU64 x) ∗ ownSliceCap w8 b' (DFrac.own 1) }}
 
 end spec
 
