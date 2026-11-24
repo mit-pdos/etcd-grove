@@ -273,3 +273,23 @@ version, same checks): a planted `KitProof.lean` fails (1) and (4); a `sorry` ad
   session (`systemd-run` needs polkit rights it lacks, as `etc/gates.sh` notes), so the build took the
   three slot locks with `flock` itself and ran with `LEAN_NUM_THREADS=16`, the artifact cache on,
   `.lake/package-overrides.json` at `/shared/perennial-47ec64a9d` (built here).
+- The exported paxos challenge (with the skill, the split; exported from the docs commit after
+  f7559c131f, its Lean identical to the head's), built here in its own directory (one slot lock, the artifact
+  cache, the same Perennial): `lake build` of the goal's module
+  `Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.TopLevelRobustness`, 2,477 jobs, rc 0,
+  no error; the only `sorry` is the goal stub's (`declaration uses sorry` at its line 14). So the
+  statement and everything it needs elaborate without the kit's specs and proofs.
+- fk-lean1: my worktree `dsv-kitgen` and the branches `kitgen-export-*` removed there.
+
+## What remains
+
+- rabia, quepaxa, epaxos, swiftpaxos: `challenge_allow` (and likely each kit's address move, as
+  paxos's), then their exports; quepaxa and epaxos KITGEN retrofits (statement premises of raw form,
+  `heapAt` in `TopLevelDefs`: `defs.heap_at` not implemented).
+- epaxos's `go.mod` lacks the `models.lab` requirement, so its codec can't be checked by rpcgen.
+- The lab side (not touched): comparator-check.sh's `tree=` mode; sandbox.sh `--challenge DIR`.
+- The non-vacuity scaffold is untested against Lean (no kit with premises has a NonVacuityLinked yet).
+- `go_consts` (`kit_gen.go`) is unexercised by any kit (the landed kits keep their addresses in
+  `kit.go`; moving them changes the translation).
+- `build-slot.sh` fails in sessions without polkit rights (`systemd-run`); builds here took the slot
+  locks with `flock` directly.
