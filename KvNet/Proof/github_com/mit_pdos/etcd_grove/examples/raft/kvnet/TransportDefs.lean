@@ -52,7 +52,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The counters, guarded by their mutex. -/
 def statsInv (s : Loc) : IProp GF :=
-  iprop(∃ a : GoArray w64 23,
+  iprop(∃ a : GoArray w64 24,
     s.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Stats, go!"c"] ↦ a)
 
 /-- A stats object: its mutex (see the file header). -/
