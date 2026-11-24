@@ -1,25 +1,39 @@
-# Unit split: `internal/bytealg` (MakeNoZero, init.0, Count/CountString) and the real-`strings.Split` follow-up (D-S1b)
+# Unit split: `internal/bytealg` (MakeNoZero, init.0; Count/CountString now `lean`'s) and the real-`strings.Split` follow-up (D-S1b)
 
 Branch `goose-model-overlay-rest-split` (Perennial), head `8a6feff49`, on `lean` 54a29571e (S1). Note: commit
 8a86dc88f's subject says "strings.Split real"; Split was then put back to its model (cedcc0138, 8a6feff49): see D-split-b.
 
+## Merged with `lean` fce59af75 (on `goose-model-overlay-rest`)
+
+`lean` fce59af75 (Zeldovich) translates and proves `strings.Count`, `Index`, `IndexAny`, `IndexRune` (a Go
+model) and `utf8.RuneCountInString`, with Go models of `bytealg.Count`/`CountString` (count.go, the same
+count_generic.go bodies as ours) and goose/util's `asm_amd64.h` header allowance (as our 867d5adb3). Resolution in
+the merge on `goose-model-overlay-rest`:
+- **Dropped as redundant (lean's kept):** our `strings.Count`/`Index` specs and proofs (lean's `Count.spec` is
+  stronger: no `substr ≠ []` premise, RET `strings.count s substr`, empty substr = rune count + 1; `Index.spec` the
+  same statement), our `bytealg.CountString` proof (same statement), our count.go header comment, our
+  asm_amd64.h comment in goose/util/model.go, our Count/CountString rows of bytealg.toml.
+- **Kept (covers more than lean):** the `MakeNoZero` and `init.0` Go models (lean still trusts both in
+  TrustedCode/internal/bytealg.lean, which stays deleted), their toml entries, the runtime-linkname blanking
+  (fb61fea3d) and TestModelBytealgDifftest's MakeNoZero coverage; strings.toml's D-split-b reason for Split's model
+  (lean's comment still says Count/Index end in assembly, no longer true).
+
 ## What changed
 
-**Today (lean):** `Perennial/TrustedCode/internal/bytealg.lean` (81 lines) holds hand-written GooseLang for
-`bytealg.MakeNoZero` (a capacity from `ArbitraryInt`, a recursive `fillArbitrary`) and `init.0` (`ArbitraryInt` picks
-`MaxLen` 63 or 31); `bytealg.toml` has `trusted = ["MakeNoZero", "init.0"]`. `strings.Split` is a Go model (S1).
+**Before (lean before fce59af75):** `Perennial/TrustedCode/internal/bytealg.lean` (81 lines) holds hand-written
+GooseLang for `bytealg.MakeNoZero` (a capacity from `ArbitraryInt`, a recursive `fillArbitrary`) and `init.0`
+(`ArbitraryInt` picks `MaxLen` 63 or 31); `bytealg.toml` has `trusted = ["MakeNoZero", "init.0"]`. `strings.Split` is
+a Go model (S1). (fce59af75 keeps those two trusted.)
 
-**With this branch:** that file and its empty `ManualProof` stub are deleted; `trusted = []` in bytealg.toml.
+**With this unit:** that file and its empty `ManualProof` stub are deleted; no `trusted` in bytealg.toml.
 
-### Became real translations (no trust)
-- `strings.Count`, `strings.Index` (strings' wrapper of `stringslite.Index`): translated, with new proved specs
-  (`Count`: for `substr ≠ []`, RET `(split s substr).length - 1`; `Index`: = `stringslite.Index`'s). No caller needs them
-  yet (Split stays a model); kept so option (a) below is cheap.
+### Real translations
+- `strings.Count`, `strings.Index`: now `lean`'s (fce59af75), not this unit's.
 
 ### Go models (trusted Go; side by side with the real Go in the details below)
 | model | where | why not the real Go | choice points |
 |---|---|---|---|
-| `bytealg.Count`, `CountString` | `goose/model/overlay/internal/bytealg/count.go` | bodyless in count_native.go (goose: `[unsupported]: external function`), assembly in count_amd64.s | none: Go's own `count_generic.go` bodies, verbatim (diffed); `blank_asm += count_amd64.s` (defines only `·Count`, `·CountString`, `countbody<>`; includes only go_asm.h/asm_amd64.h/textflag.h) |
+| `bytealg.Count`, `CountString` (now `lean`'s, fce59af75) | `goose/model/overlay/internal/bytealg/count.go` | bodyless in count_native.go (goose: `[unsupported]: external function`), assembly in count_amd64.s | none: Go's own `count_generic.go` bodies, verbatim (diffed); `blank_asm += count_amd64.s` (defines only `·Count`, `·CountString`, `countbody<>`; includes only go_asm.h/asm_amd64.h/textflag.h) |
 | `bytealg.MakeNoZero` | `.../bytealg/bytealg.go` | no Go body (goose: `external function`); defined by the runtime (`runtime/slice.go`, a push `go:linkname`, which the overlay builder now blanks: fb61fea3d) | capacity `int(ChooseUint64()>>1)` raised to `n` (covers `roundupsize`); each byte up to cap (`mallocgc(needzero=false)`) |
 | `bytealg.init.0` | `.../bytealg/init.go` (`//gomodel:replace init.0`) | translates, but reads `internal/cpu.X86`, filled only by the runtime from `cpuid`; translated, `MaxLen` would always be 31 (more defined than gc) | `gomodel.Choose()`: the AVX2 bit |
 
@@ -29,7 +43,7 @@ Known divergence (no new premise; existing limitation): `MakeNoZero(n)` with `n 
 `make` as in Go.
 
 ### Translator (goose/util/model.go; reported to the lead earlier)
-- 867d5adb3: a blanked assembly file may include the toolchain's `asm_amd64.h` (count_amd64.s does).
+- 867d5adb3 (a blanked assembly file may include `asm_amd64.h`): `lean` fce59af75 has the same; lean's kept.
 - fb61fea3d: for a replaced function defined by a runtime push `//go:linkname <local> P.<Name>`, the `go build
   -overlay` map also drops that directive from the runtime file (test `model_linkname_test.go`). Only affects the
   Go build of the model tests; goose's translation is unchanged.
@@ -43,7 +57,7 @@ None. Uses S1's `gomodel.Choose`/`ChooseUint64` (specs cherry-picked from 634fd6
 
 ## Premise and statement changes
 None. `bytealg.MakeNoZero.spec`, `bytealg.initialize'.spec` (isInit: `MaxLen ∈ {31, 63}`), `strings.Split.spec`
-(keeps `sep ≠ []`, D-split-a) unchanged. New specs: `bytealg.CountString`, `strings.Count`, `strings.Index`.
+(keeps `sep ≠ []`, D-split-a) unchanged. (`bytealg.CountString`, `strings.Count`, `strings.Index` specs: `lean`'s.)
 
 ## Decisions
 - **D-split-a** (lead: keep). `strings.Split.spec` keeps `sep ≠ []`: dropping it needs `split` extended to Go's UTF-8
@@ -59,8 +73,7 @@ None. `bytealg.MakeNoZero.spec`, `bytealg.initialize'.spec` (isInit: `MaxLen ∈
   `split_index`, `split_length_single` are on the branch).
 
 ## `#print axioms`
-`internal.bytealg.wp_MakeNoZero`, `wp_initialize'`, `wp_CountString`, `strings.wp_Count`, `wp_Index`, `wp_Split`,
-`strings.Builder.wp_grow`: `[propext, Classical.choice, Quot.sound]` each.
+`internal.bytealg.wp_MakeNoZero`, `wp_initialize'`, `strings.wp_Split`, `strings.Builder.wp_grow`: `[propext, Classical.choice, Quot.sound]` each.
 
 ## Evidence
 - `etc/model-tests.sh` (go1.26.11, linux/amd64, under the overlay): `strings`, `errors`, `bytes` ok (bytes' Count
@@ -88,7 +101,7 @@ For each replaced declaration: every behaviour of the real one (gc, linux/amd64,
 - `[model]` after:  dir = 'goose/model/overlay/internal/bytealg', replaces = ['IndexByte', 'IndexByteString', 'Index', 'IndexString', 'CompareString', 'Count', 'CountString', 'MakeNoZero', 'init.0'], added_methods = []
 - model files: goose/model/overlay/internal/bytealg/bytealg.go, goose/model/overlay/internal/bytealg/compare_native.go, goose/model/overlay/internal/bytealg/count.go, goose/model/overlay/internal/bytealg/index.go, goose/model/overlay/internal/bytealg/indexbyte.go, goose/model/overlay/internal/bytealg/init.go; changed: goose/model/overlay/internal/bytealg/bytealg.go, goose/model/overlay/internal/bytealg/count.go, goose/model/overlay/internal/bytealg/init.go
 
-#### `internal/bytealg.Count` (new)
+#### `internal/bytealg.Count` (new; `lean` fce59af75 has the same model)
 
 Model (goose/model/overlay/internal/bytealg/count.go:16):
 
@@ -116,7 +129,7 @@ package bytealg // import "internal/bytealg"
 func Count(b []byte, c byte) int
 ```
 
-#### `internal/bytealg.CountString` (new)
+#### `internal/bytealg.CountString` (new; `lean` fce59af75 has the same model)
 
 Model (goose/model/overlay/internal/bytealg/count.go:29):
 
