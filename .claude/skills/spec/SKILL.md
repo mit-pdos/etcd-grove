@@ -51,5 +51,5 @@ version, each critique with what it changed, the approved spec; one sitting to r
   don't unseal), generated files only through their scripts, issues found in the Go code go to
   `issues/`, no Perennial changes for one proof.
 - A changed spec is done when `lake build`, `etc/tcb-report.py --check` (and the collections),
-  `etc/api-check.py` and `etc/gen-interface.py --check --layout` pass, with `interface/` regenerated,
-  and a note in `notes/decisions.md` says what the spec was and why it changed.
+  and `etc/api-check.py` pass, and a note in `notes/decisions.md` says what the spec was and why it
+  changed.
