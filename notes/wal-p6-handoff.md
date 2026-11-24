@@ -125,3 +125,22 @@ law); `saveState` builds it from `MarshalHsLaw` (non-empty); `Save`'s fresh `&Ha
 `ReadAll`'s `proto.Clone` of the empty/zero state build it from one new WalPbIn law, proved for the
 instance from `proto.MarshalPbNonNil.law` (the strengthened `Marshal` spec as an `abbrev`, the single
 place the approval discharges).
+
+**Where `walStIn` comes from (worked out 2026-11-24, partly implemented):**
+- `Handle.lean`: `walStMarsh`, `walStIn` (`P.hsIn ∗ (sp ≠ null → walStMarsh)`), `walStIn_null`; the
+  handle's `w.state` slot is `walStIn` (`Handle.lean`, `CloseHandle.lean`, `SaveHandle.lean`'s
+  `walHandleIn_state`, `CreateHandle.lean`'s premise; `Create.lean` builds it from `NilLaw` with
+  `walStIn_null`: `Create` leaves `w.state` nil). Not compiled yet.
+- `saveState(s)` (non-empty `s`, also `cut`'s `saveState(w.state)`): `walStMarsh` from `MarshalHsLaw`
+  (its post already says non-nil). No new law.
+- `Save`'s `w.state = &HardState{}`: a new law `WalPbIn.ZeroStLaw P Mr` (as `ZeroLaw.2` with
+  `walStMarsh Mr p hsZero` added), discharged for the instance from `proto.MarshalPbNonNil.law`.
+- `ReadAll`'s `w.state = proto.Clone(state)`: **needs provenance tracking** in the loop. `proto.Clone`
+  copies the content with its presence bits, and `walHsIn` admits non-canonical empty contents, so a
+  law over any `hsIn` pointer is false. True: `state` is `&HardState{}` or `MustUnmarshalState(d)` of a
+  record's data, and on the ok path the last state record's data is `Mr.encState (walLastHS …)`
+  (records = the history's). Plan: the loop invariant keeps `bsSt : Option (List w8)` (the data
+  `state` was unmarshalled from, `none` = the zero alloc) and the unmarshal law's post adds
+  `⌜bs = Mr.encState h⌝ -∗ canonical`; at the end `bsSt` is the last state record's data, which
+  the decoding lemmas equate to `Mr.encState`; a `CloneStLaw` carries `walStMarsh` through `Clone`.
+  Both laws discharged in `RaftModel/` from `proto.MarshalPbNonNil.law` (and the unmarshal model).

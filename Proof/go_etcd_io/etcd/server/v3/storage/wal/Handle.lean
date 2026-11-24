@@ -380,6 +380,49 @@ theorem tailOk_prefix [GooseExts] {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {
 
 /-! ## The tail and the handle -/
 
+/-! ## `w.state`: canonical (P6, the torn-`Save` fix)
+
+`Save` with entries and an empty `st` writes `w.state`'s state record (`encodeState(w.state)`), so the
+bytes it marshals to must be the state's encoding `Mr.encState`, also when it is empty: `w.state` is
+only ever `&raftpb.HardState{}`, a state decoded from a record or a non-empty `st`, whose content is
+canonical (a raft `Ready`'s empty hard state, with explicit zero fields, never reaches it).
+`notes/wal-p6-handoff.md`, "Coordinator's answer". -/
+
+section st
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **`pbutil.MustMarshalMessage(sp)` marshals `sp` to `Mr.encState hs`**, a non-nil slice. -/
+def walStMarsh (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) : IProp GF :=
+  iprop(□ ∀ Φ, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil -∗
+    (∀ d : GoSlice, d ↦* Mr.encState hs -∗ ⌜d ≠ slice.nil⌝ -∗ Φ #d) -∗
+    WP (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #sp))) {{ Φ }})
+
+instance walStMarsh_persistent (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) :
+    Persistent (walStMarsh (GF := GF) Mr sp hs) := by
+  unfold walStMarsh; infer_instance
+
+/-- **`w.state`'s pointer**: it holds `hs` (`P.hsIn`) and, when not nil, marshals to its encoding. -/
+def walStIn (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) : IProp GF :=
+  iprop(P.hsIn sp hs ∗ (⌜sp ≠ null⌝ -∗ walStMarsh Mr sp hs))
+
+instance walStIn_persistent (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) :
+    Persistent (walStIn (GF := GF) P Mr sp hs) := by
+  unfold walStIn; infer_instance
+
+theorem walStIn_null (P : WalPbIn GF) (Mr : WalMarshal) (hs : HardStateM) :
+    P.hsIn null hs ⊢ walStIn P Mr null hs := by
+  iintro #H
+  unfold walStIn
+  isplitr
+  · iexact H
+  · iintro %h; exact absurd rfl h
+
+end st
+
 section handle
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
@@ -564,7 +607,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ mds ∗
     recBytes mds (some h.md) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
-    P.hsIn sp h.st ∗
+    walStIn P Mr sp h.st ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦ GoInterface.nil ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false ∗

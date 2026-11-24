@@ -81,9 +81,9 @@ theorem walHandleIn_pkgInit (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : 
 theorem walHandleIn_state (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (h : WalHS) (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
     ⊢ walHandleIn (W := W) P Mr w dir h tm -∗ ∃ sp : Loc,
-      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗ P.hsIn sp h.st ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗ walStIn P Mr sp h.st ∗
       (∀ sp' : Loc, structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp' -∗
-        P.hsIn sp' h.st -∗ walHandleIn (W := W) P Mr w dir h tm) := by
+        walStIn P Mr sp' h.st -∗ walHandleIn (W := W) P Mr w dir h tm) := by
   iintro Hh
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
