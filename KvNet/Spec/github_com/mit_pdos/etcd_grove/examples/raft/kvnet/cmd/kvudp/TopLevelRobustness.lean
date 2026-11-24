@@ -34,12 +34,9 @@ deployment sends datagrams to the replicas' addresses.
 `(*UDPConn).WriteToUDP` and `(*UDPConn).ReadFromUDP` (`Net/TrustedCode/net.lean`, section "UDP"), and
 the package assumption `net.UdpFieldAssumptions` (the layout of `UDPConn`/`UDPAddr` those models read).
 
-**The bounds**: fewer than `2 ^ 61` steps, as many as the proof allows (raft's cluster invariant
-needs `receiptBound + bootLen ≤ 2 ^ 61`, `readyFits_intro`, through kvnet's `kvnet_store_alloc`), and
-fewer than `kvudpThreads` live threads on every machine, a bound the proof does not need, set to
-exclude no execution of fewer than `2 ^ 61` steps (`TopLevelDefs.lean`). The bridge takes the thread
-bound along the execution at hand (Perennial's `goose_dist_mixed_crash_adequacy_below`), independent
-of the step bound.
+**The bounds**:
+* Steps: fewer than `2 ^ 61`, the most the proof allows: raft's cluster invariant needs `receiptBound + bootLen ≤ 2 ^ 61` (`readyFits_intro`).
+* Threads: fewer than `kvudpThreads = 2 ^ 61 + 1` per machine, which excludes nothing: a machine starts with one thread and each step forks at most one.
 
 Safety only, as kvnet's.
 -/
