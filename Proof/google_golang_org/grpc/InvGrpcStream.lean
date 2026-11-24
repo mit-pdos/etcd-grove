@@ -602,6 +602,16 @@ responses received (`downClosed`), or another error (`out` back owned); `CloseSe
 up queue after the requests sent (`upClosed`); `Context()` returns the stream's context, of the
 descriptor `cd` (derived from the caller's: done when it is, or when the stream ends).
 
+Since phase 7's switch (SW1, 2026-11-24, `notes/phase7-endstate.md` §2, R2): the responses' content
+is indexed by the address and the metadata the stream was dispatched with (`Dn a md`), which the
+client learns with each response (`streamDispIs γ a md`, with `Md a md`: the call's family of
+dispatches, `NewStream`'s: an address of the connection and an attempt's metadata), since a
+transparent retry before the stream is committed recomputes the head and its per-RPC credentials
+(R2: until then one `md` fixed when `NewStream` returned) and may re-pick the address. A bare `io.EOF`
+with no handler run (R1: a refused first attempt whose replay's write fails, grpc/grpc-go#9443) is in
+the last arm (`cliStreamErr`: `io.EOF` is a client error), so `downClosed` is claimed only by the
+second arm, which an implementation chooses only when the handler returned.
+
 Since 2026-11-23 (#24's S2 signatures, the resource parameter): `SendMsg`, `RecvMsg` and `CloseSend`
 are each given a resource `R` of the connection's family (`Ok R`, `grpcConn`'s) and give it back,
 because each may call the per-RPC credentials (`perRPCCredsOk pc Ok Q`): until the stream is
@@ -614,7 +624,8 @@ transport stream calls the credentials (`http2Client.createHeaderFields` → `ge
 synchronously, on the goroutine of the operation's caller (the transport model the network part
 runs: `models/grpc/model_transport.go:242,277-345`). `Context()` makes no attempt. -/
 def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
+    (Up : Nat → Req.M → IProp GF) (Md : GoString → GrpcMd → IProp GF)
+    (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
     (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cs = GoInterface.ok ci⌝ ∗
     □ (∀ (L : List Req.M) (l : Loc) (m : Req.M) (R : IProp GF),
@@ -629,7 +640,8 @@ def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
       {{ ⌜Ok R⌝ ∗ R ∗ cliRecvTok (Rep := Rep) γ L ∗ Rep.own out }}
         (App (Val #(methods ci.ty go!"RecvMsg" ci.v)) (Val #(msgAny Rep.ty out)))
       {{ (err : GoInterface), RET #err; R ∗
-          ((⌜err = GoInterface.nil⌝ ∗ ∃ m : Rep.M, Rep.recv out m ∗ Dn L.length m ∗
+          ((⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (md : GrpcMd) (m : Rep.M), Md a md ∗
+            streamDispIs γ a md ∗ Rep.recv out m ∗ Dn a md L.length m ∗
             cliRecvTok (Rep := Rep) γ (L ++ [m])) ∨
           (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ cliRecvTok (Rep := Rep) γ L ∗
             downClosed (Rep := Rep) γ L ∗ Rep.own out) ∨
@@ -643,9 +655,10 @@ def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
       {{ (cx : GoInterfaceOk), RET #(GoInterface.ok cx); context.isContext cx cd }}))
 
 instance cliStreamIs_persistent (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
+    (Up : Nat → Req.M → IProp GF) (Md : GoString → GrpcMd → IProp GF)
+    (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
     (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
-    Persistent (cliStreamIs cs γ Req Rep Up Dn cd Ok) := by
+    Persistent (cliStreamIs cs γ Req Rep Up Md Dn cd Ok) := by
   unfold cliStreamIs; infer_instance
 
 /-- **The client end of a bidirectional stream, as the generated stub wraps it** (persistent):
@@ -653,9 +666,11 @@ the interface value `cs` (grpc's `BidiStreamingClient[Req, Res]`, the generated
 `Watch_WatchClient`, holding a `*GenericClientStream[Req, Res]`): `Send(l)` is `SendMsg`'s,
 `Recv()` allocates the response and returns it (`Rep.recv resp m` for a fresh `resp`, with the
 server's content) or `nil` and the error, `CloseSend()` and `Context()` the raw end's. Derived
-from the raw end (`cliBidiStreamIs_of_raw`). -/
+from the raw end (`cliBidiStreamIs_of_raw`). The dispatch family `Md` and the content `Dn` indexed by
+the dispatch, as `cliStreamIs`'s (phase 7's switch, SW1, R2). -/
 def cliBidiStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
+    (Up : Nat → Req.M → IProp GF) (Md : GoString → GrpcMd → IProp GF)
+    (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
     (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cs = GoInterface.ok ci⌝ ∗
     □ (∀ (L : List Req.M) (l : Loc) (m : Req.M) (R : IProp GF),
@@ -670,7 +685,8 @@ def cliBidiStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg G
       {{ ⌜Ok R⌝ ∗ R ∗ cliRecvTok (Rep := Rep) γ L }}
         (App (Val #(methods ci.ty go!"Recv" ci.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
-          ((⌜err = GoInterface.nil⌝ ∗ ∃ m : Rep.M, Rep.recv resp m ∗ Dn L.length m ∗
+          ((⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (md : GrpcMd) (m : Rep.M), Md a md ∗
+            streamDispIs γ a md ∗ Rep.recv resp m ∗ Dn a md L.length m ∗
             cliRecvTok (Rep := Rep) γ (L ++ [m])) ∨
           (⌜resp = null⌝ ∗ eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ cliRecvTok (Rep := Rep) γ L ∗
             downClosed (Rep := Rep) γ L) ∨
@@ -684,9 +700,10 @@ def cliBidiStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg G
       {{ (cx : GoInterfaceOk), RET #(GoInterface.ok cx); context.isContext cx cd }}))
 
 instance cliBidiStreamIs_persistent (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
+    (Up : Nat → Req.M → IProp GF) (Md : GoString → GrpcMd → IProp GF)
+    (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
     (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
-    Persistent (cliBidiStreamIs cs γ Req Rep Up Dn cd Ok) := by
+    Persistent (cliBidiStreamIs cs γ Req Rep Up Md Dn cd Ok) := by
   unfold cliBidiStreamIs; infer_instance
 
 /-! ## The generated wrappers over the raw ends -/
@@ -787,11 +804,12 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
     (wp_CloseSend : grpc.GenericClientStream.CloseSend.spec (GF := GF) (hG := hG))
     (wp_Context : grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG))
     (p : Loc) (cs : GoInterface) (γ : StreamNames) (Up : Nat → Req.M → IProp GF)
-    (Dn : Nat → Rep.M → IProp GF) (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
+    (Md : GoString → GrpcMd → IProp GF) (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
     structFieldRef (google_golang_org.grpc.GenericClientStream V W) go!"ClientStream" p ↦□ cs ∗
-      cliStreamIs cs γ Req Rep Up Dn cd Ok ∗ (□ ∀ l : Loc, l ↦ (zero_val W) -∗ Rep.own l) ⊢
+      cliStreamIs cs γ Req Rep Up Md Dn cd Ok ∗ (□ ∀ l : Loc, l ↦ (zero_val W) -∗ Rep.own l) ⊢
     cliBidiStreamIs (interface.mkOk (go.GoType.PointerType
-      (google_golang_org.grpc.GenericClientStream.ty Req.ty Rep.ty)) #p) γ Req Rep Up Dn cd Ok := by
+      (google_golang_org.grpc.GenericClientStream.ty Req.ty Rep.ty)) #p) γ Req Rep Up Md Dn cd Ok := by
   iintro ⟨#Hf, #Hraw, #Hown⟩
   iunfold cliStreamIs at Hraw
   icases Hraw with ⟨%ci, %Hcs, #HSend, #HRecv, #HClose, #HCtx⟩
@@ -826,7 +844,7 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
     iexists err
     isplitr
     · ipureintro; rfl
-    icases Hres with (⟨%Herr, %mm, Hr, HDn, Htok⟩ | ⟨#Heof, %Hne, Htok, #Hcl, -⟩ |
+    icases Hres with (⟨%Herr, %a, %md, %mm, HMd, #Hmd, Hr, HDn, Htok⟩ | ⟨#Heof, %Hne, Htok, #Hcl, -⟩ |
       ⟨#Hse, Htok, -⟩)
     · subst Herr
       simp only [↓reduceIte]
@@ -835,7 +853,8 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
       ileft
       isplitr
       · ipureintro; rfl
-      iexists mm
+      iexists a, md, mm
+      iframe Hmd
       iframe
     · simp only [Hne, ↓reduceIte]
       iapply HΦ

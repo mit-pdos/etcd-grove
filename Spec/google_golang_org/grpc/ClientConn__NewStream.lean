@@ -52,12 +52,23 @@ client stream (`ClientStreams`), an `Unimplemented` error); grpc's own stream (`
 its retries of the stream's creation). The stream's context (`cd'`) is grpc's child of `ctx`: done
 when `ctx` is (with a quiet `ctx`, only when the stream ends). Since G2 (2026-10-30): the
 registration is metadata-indexed (`isGrpcStreamsMd`; a plain one is the instance at a spec
-ignoring it), and the stream is opened with some metadata `md` an attempt of the call delivers
-(`clientAttemptMd`: the interceptor's `withVersion(ctx)` (`retry_interceptor.go:120`), the
+ignoring it). Since phase 7's switch (SW1, 2026-11-24, `notes/phase7-endstate.md` §2, R2; ledger
+2026-11-24): the post fixes neither the metadata nor the address. The client's content `Up` is one for
+every address (a transparent retry before the stream is committed re-picks the transport,
+`getTransportConn`, the model's `modelChooseAddr`, `model_clientconn.go:322`, and replays the requests
+sent, so their content must suit any address; the review of SW1, finding 2), and the address the
+stream ran at is learned with each response, as the metadata (`streamDispIs γ a md`). The stream is dispatched with the metadata of the attempt the
+server ran, which a transparent retry recomputes (`createHeaderFields` again, the per-RPC credentials
+called again: `models/grpc/model_transport.go:239-245`, from `stream.go:482-505`), so it is not known
+when `NewStream` returns; the stream specification holds at every metadata an attempt may deliver
+(`a ∈ addrs` and `clientAttemptMdI conn om md`: the interceptor's `withVersion(ctx)` (`retry_interceptor.go:120`), the
 credentials' data, then the outgoing metadata and `added`, reserved keys skipped:
-`internal/transport/http2_client.go:579-655`), once for the stream's life (grpc sends the headers
-once), and the stream specification is the registration's at `md`. True of a connection whose
-stream interceptor is etcd's (`dialOk`). Since stage A of the per-type models (2026-11-07): the
+`internal/transport/http2_client.go:579-655`), at that dispatch's content `Dn a md`. Until then one
+`a` and one `md` were fixed when `NewStream` returned ("grpc sends the headers once"), with one `Dn`:
+false under a retry with refreshed credentials. (R1) A refused first attempt whose replay's write
+fails ends the stream with a bare `io.EOF` and no handler run: `cliStreamIs`' error arm
+(`cliStreamErr`), not its `downClosed` one. True of a connection whose stream interceptor is etcd's
+(`dialOk`). Since stage A of the per-type models (2026-11-07): the
 request's and the reply's models are the ones registered for their Go types (`streamReqModelOf`,
 `streamRepModelOf`). (errdesc stage 1, 2026-11-20) The attempt's metadata is over the context's outgoing
 metadata `om`, which the precondition relates to `ctx` (`metadata.outMD ctx om`); until then over the
@@ -73,25 +84,25 @@ abbrev grpc.ClientConn.NewStream.spec : Prop :=
   ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (Ok : IProp GF → Prop)
     (method : GoString) (Req Rep : StreamMsgT GF),
     streamReqModelOf GF Req.ty = some Req → streamRepModelOf GF Rep.ty = some Rep →
-  ∀ (Up : GoString → Nat → Req.M → IProp GF)
+  ∀ (Up : Nat → Req.M → IProp GF)
     (Spec : GoString → GrpcMd → StreamSpec Rep.toStreamMsg) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (desc : Loc) (opts : GoSlice)
     (vs : List GoInterface) (R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addrs ics [] Ok ∗
       ⌜Ok R⌝ ∗ R ∗
-      isGrpcStreamsMd addrs method Up Spec ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗
+      isGrpcStreamsMd addrs method (fun _ => Up) Spec ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗
       (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d ∗ ⌜d.ClientStreams' = true⌝) ∗
       opts ↦*□ vs ∗ streamCallOptsOk vs }}
     (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"NewStream"))
       (Val #(GoInterface.ok ctx))) (Val #desc)) (Val #method)) (Val #opts))
   {{ (cs err : GoInterface), RET (PairV #cs #err); R ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF)
-          (cd' : context.ContextDesc (IProp GF)) (md : GrpcMd),
-        ⌜a ∈ addrs ∧ clientAttemptMd conn om md⌝ ∗
-        cliStreamIs cs γ Req.toStreamMsg Rep.toStreamMsg (Up a) Dn cd' Ok ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
+          (cd' : context.ContextDesc (IProp GF)),
+        cliStreamIs cs γ Req.toStreamMsg Rep.toStreamMsg Up
+          (fun a md => iprop(⌜a ∈ addrs⌝ ∗ clientAttemptMdI conn om md)) Dn cd' Ok ∗
         cliSendTok (Req := Req.toStreamMsg) γ [] ∗ cliRecvTok (Rep := Rep.toStreamMsg) γ [] ∗
-        Spec a md γ Dn) ∨
+        □ (∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMdI conn om md -∗ Spec a md γ (Dn a md))) ∨
       (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err)) }}
 
 end spec

@@ -483,10 +483,12 @@ instance watchDescOk_persistent : Persistent (watchDescOk (GF := GF)) := by
 /-- **The client end of a watch stream** (persistent; what `watchClient.Watch` returns, the
 `Watch_WatchClient` the client's `watch.go` uses): `cliBidiStreamIs` at the watch messages.
 `Send(req)` of a request `watchReqSend req m` with the client's content `Up i m`;
-`Recv()` returns a fresh response `watchRespMsg resp m` with the server's content `Dn j m`. -/
+`Recv()` returns a fresh response `watchRespMsg resp m` with the server's content `Dn a md j m` at
+the stream's dispatch (`streamDispIs γ a md`, with `Md a md`; phase 7's switch, SW1, R2). -/
 abbrev cliWatchStreamIs (cs : GoInterface) (γ : StreamNames) (Up : Nat → WatchReqM → IProp GF)
-    (Dn : Nat → WatchRespM → IProp GF) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Dn cd anyRes
+    (Md : GoString → GrpcMd → IProp GF) (Dn : GoString → GrpcMd → Nat → WatchRespM → IProp GF)
+    (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Md Dn cd anyRes
 
 end defs
 
