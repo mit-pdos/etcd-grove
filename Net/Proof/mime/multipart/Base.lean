@@ -1,12 +1,13 @@
 /-
-The package fact of `mime.multipart` for the part `Dsverify/`: `True` (the part `Net/`'s translation, from models-rpc-http). It has no proof that reads
-its variables; the fact exists so that `net/http`'s and `net/rpc`'s initialization hypotheses
-(`Dsverify/Proof/net/{http,rpc}/Init.lean`) can name every package their initializers reach.
+The package fact of `mime.multipart` (the part `Net/`'s translation): `True`. No proof reads its variables;
+the fact exists so that the initialization facts of `net/http` and `net/rpc`
+(`Net/Proof/net/{http,rpc}/PkgInit.lean`) can name every package their initializers reach.
+Shared by `Net/` and `Dsverify/` (rpc-driver, 2026-11-24: until then `Dsverify/Proof/mime/multipart/Base.lean`).
 -/
 module
 
 public import Net.GeneratedProof.mime.multipart
-public import Dsverify.Proof.net.textproto.Base
+public import Net.Proof.net.textproto.Base
 public import Perennial.Proof.ProofPrelude
 
 @[expose] public section

@@ -1,7 +1,8 @@
 /-
-The package fact of `net.textproto` for the part `Dsverify/`: `True` (the part `Net/`'s translation, names only). It has no proof that reads
-its variables; the fact exists so that `net/http`'s and `net/rpc`'s initialization hypotheses
-(`Dsverify/Proof/net/{http,rpc}/Init.lean`) can name every package their initializers reach.
+The package fact of `net.textproto` (the part `Net/`'s translation): `True`. No proof reads its variables;
+the fact exists so that the initialization facts of `net/http` and `net/rpc`
+(`Net/Proof/net/{http,rpc}/PkgInit.lean`) can name every package their initializers reach.
+Shared by `Net/` and `Dsverify/` (rpc-driver, 2026-11-24: until then `Dsverify/Proof/net/textproto/Base.lean`).
 -/
 module
 

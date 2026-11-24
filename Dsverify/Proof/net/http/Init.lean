@@ -4,31 +4,17 @@ The initializer of `net/http` as a **hypothesis** of the part's EPaxos proofs (n
 it establishes the package's fact (`True` here: no proof of the part reads a variable of `net/http`) and those of
 every package its initializer reaches (its imports' initializers run first: the well-formedness
 condition `GetIsPkgInitProp pkg_id.net.http` constrains the table at each of them; a package of
-that closure with no fact elsewhere has a `True` one in the part, `Dsverify/Proof/<pkg>/Base.lean`);
+that closure with no fact elsewhere has a `True` one in `Net/`, `Net/Proof/<pkg>/Base.lean`);
 generated initializers take it as an instance (dsv-vr's mechanism, `dsv_hyp_fix`). To discharge:
 prove `net.http.wp_initialize'` (a generated `Init.lean` without axioms) and replace this module by it.
+Its fact is `Net/`'s (`Net/Proof/net/http/PkgInit.lean`), shared with the part `Net/`, whose
+`wp_initialize'` is an interim axiom instead (`Net/Proof/net/http/Init.lean`; rpc-driver, 2026-11-24:
+until then the fact was declared here, and its closure's `True` facts were the part's).
 -/
 module
 
-public import Net.GeneratedProof.net.http
+public import Net.Proof.net.http.PkgInit
 public import Proof.runtime.PkgInitExt
-public import Net.Proof.net.Base
-public import Proof.bufio.PkgInit
-public import Proof.net.url.PkgInit
-public import Proof.path.PkgInit
-public import Proof.crypto.tls.PkgInit
-public import Dsverify.Proof.net.textproto.Base
-public import Dsverify.Proof.mime.multipart.Base
-public import Dsverify.Proof.net.http.internal.ascii.Base
-public import Dsverify.Proof.vendor.golang_org.x.net.http.httpguts.Base
-public import Perennial.Proof.fmt.Base
-public import Perennial.Proof.strings.Base
-public import Perennial.Proof.strconv.Base
-public import Perennial.Proof.sync.Base
-public import Perennial.Proof.sync.atomic.Base
-public import Perennial.Proof.runtime.Base
-public import Perennial.Proof.slices.Base
-public import Perennial.Proof.log.Base
 
 @[expose] public section
 
@@ -42,22 +28,6 @@ namespace Perennial
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 namespace net.http
-
-section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- The package's fact: `True`, with its imports' facts (`define_is_pkg_init`). -/
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.http :=
-  define_is_pkg_init iprop(True)
-/-- Its well-formedness: `get_is_pkg_init` gives its fact and, recursively, the facts of every
-package its initializer reaches (its `PkgInfo` imports, which are the packages whose initializers
-`initialize'` runs: `build_get_is_pkg_init_wf`). -/
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
-  build_get_is_pkg_init_wf
-
-end def_
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
