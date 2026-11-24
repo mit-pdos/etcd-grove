@@ -37,7 +37,8 @@ system package's global variable's address `globalAddr X` may occur at **negativ
 precondition, a hypothesis), never in a postcondition (gogo `proto.RegisterEnum` consuming
 `message.MsgType_value`'s points-to, rabia's landed premise).
 
-The file `KitLibs.lean` (`kitlibs_file=`) is checked as text too: only `namespace`/`section`/`end`
+The file `KitLibs.lean` (`kitlibs_file=`) is elaborated again over its own imports, and every
+command it holds is checked (an elaboration error refuses it): only `namespace`/`section`/`end`
 (no `meta section`), `open`, `variable`, `universe`, `set_option` (`linter.*`, `maxHeartbeats`,
 `maxRecDepth`, `autoImplicit`, `relaxedAutoImplicit`), `attribute [local instance] ...`, doc
 comments, and `def`/`abbrev`/`structure`/`class`
@@ -270,6 +271,9 @@ partial def scanApp (e : Expr) (pol : Pol) (d : Nat) : M Unit := do
         scan args[n-2]! pol (d + 1); scan args[n-1]! pol (d + 1); return
     | _ => pure ()
   if pol == .neg && (← sysGlobalAddr? e) then return
+  -- a proof (a theorem, the agent's `_proof_` auxiliaries among them) says nothing a statement
+  -- could depend on (proof irrelevance)
+  if let some (.thmInfo _) ← findConst c then return
   if ← isAgent c then
     if let some (s, sargs) ← isStructApp? e then return ← expandStruct s sargs pol d
     match ← unfoldHead? e with
@@ -574,32 +578,33 @@ partial def checkCommand (stx : Syntax) : Except String Unit := do
     return
   throw s!"a command of kind {k}"
 
-def checkFile (env : Environment) (file : String) : IO (Array String) := do
+/-- The file's text rules: the file is elaborated over its own imports (so that scoped notation
+parses as in the build), and every command it holds is checked; an elaboration error refuses it.
+Returns the refusals and, as `import M` lines, its imports. -/
+unsafe def checkFile (file : String) : IO (Array String) := do
   let src ← IO.FS.readFile file
   let inputCtx := Parser.mkInputContext src file
   let (header, mps, msgs) ← Parser.parseHeader inputCtx
   let mut errs : Array String := #[]
-  for m in msgs.toList do errs := errs.push s!"{file}: header: {← m.toString}"
-  -- imports
-  let imports := collectKind header ``Lean.Parser.Module.import
-  let mut mods : Array Name := #[]
-  for i in imports do
-    for a in i.getArgs do
-      if a.isIdent then mods := mods.push a.getId
-  let pmctx : Parser.ParserModuleContext := { env, options := {} }
-  let mut mps := mps
-  let mut msgs : MessageLog := {}
-  while true do
-    let (cmd, mps', msgs') := Parser.parseCommand inputCtx pmctx mps msgs
-    mps := mps'; msgs := msgs'
-    if Parser.isTerminalCommand cmd then break
+  for m in msgs.toList do
+    if m.severity == .error then errs := errs.push s!"{file}: header: {← m.toString}"
+  let mods := (collectKind header ``Lean.Parser.Module.import).flatMap fun i =>
+    i.getArgs.filter (·.isIdent) |>.map (·.getId)
+  -- (a previous `importModules` turned initializer execution off again)
+  enableInitializersExecution
+  let (env, msgs) ← Elab.processHeader ⟨header⟩ {} msgs inputCtx
+  for m in msgs.toList do
+    if m.severity == .error then errs := errs.push s!"{file}: imports: {← m.toString}"
+  let st ← IO.processCommands inputCtx mps (Command.mkState env {} {})
+  for m in st.commandState.messages.toList do
+    if m.severity == .error then errs := errs.push s!"{file}: does not elaborate: {← m.toString}"
+  for cmd in st.commands do
+    if Parser.isTerminalCommand cmd then continue
     match checkCommand cmd with
     | .ok _ => pure ()
     | .error e =>
       let pos := inputCtx.fileMap.toPosition (cmd.getPos?.getD 0)
       errs := errs.push s!"{file}:{pos.line}: not allowed in KitLibs.lean: {e}"
-  for m in msgs.toList do
-    if m.severity == .error then errs := errs.push s!"{file}: parse: {← m.toString}"
   return errs ++ (mods.map fun m => s!"import {m}")
 
 /-! ## Running -/
@@ -705,7 +710,7 @@ unsafe def main (args : List String) : IO UInt32 := do
     return 0
   if let some f := fileOnly then
     -- the text check alone (selftests of the file rules)
-    let errs ← checkFile env f
+    let errs ← checkFile f
     let bad := errs.filter (!·.startsWith "import ")
     for e in bad do IO.println s!"premcheck: REFUSED: {e}"
     return if bad.isEmpty then 0 else 1
@@ -714,7 +719,7 @@ unsafe def main (args : List String) : IO UInt32 := do
   let mut ok := true
   -- the file
   if let some f := conf.kitlibsFile then
-    let lines ← checkFile env f
+    let lines ← checkFile f
     for l in lines do
       if let some m := l.dropPrefix? "import " then
         let m := m.toString.toName

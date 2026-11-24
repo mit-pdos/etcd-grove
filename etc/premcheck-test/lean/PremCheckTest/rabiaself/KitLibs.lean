@@ -4,7 +4,9 @@ as a challenge's agent would write them, the library `Spec.lean` files not being
 the reference solution): their definitions copied here (namespaces `zl`, `pb`, `rnd`, `sig`, each
 opening the library's), the class's fields the same ten premises. premcheck must accept it with
 the fixed-module rule on (`etc/premcheck-test/rabiaself.conf`'s `fixed=`: every module of the
-statement's closure but those four `Spec.lean` and the validation's own).
+statement's closure but those four `Spec.lean` and the validation's own). One edit beyond copying:
+zerolog's `New` is written `github_com.rs.zerolog.New`; copied as `New`, it resolved to the rabia kit's
+own `rabianet.New`, and premcheck refused the field (a triple about the system's function).
 -/
 module
 
@@ -74,7 +76,7 @@ abbrev SetGlobalLevel.spec : Prop :=
 abbrev New.spec : Prop :=
   ∀ (w : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.rs.zerolog }}
-    (App (Val (@! New)) (Val #w))
+    (App (Val (@! github_com.rs.zerolog.New)) (Val #w))
   {{ (lg : Logger), RET #lg; True }}
 
 end spec
