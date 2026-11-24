@@ -524,7 +524,7 @@ vote responses. -/
 theorem reach_leadOk {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {ps₁ : PState}
     (hnet : NetOk S net) (hv : NodeOk S net n v) (hr : Reach (nodeId n) net v ps₁) :
     LeadHint (nodeId n) ps₁ := by
-  obtain ⟨-, -, -, -, hqs, -, -, hlo⟩ := hv
+  obtain ⟨-, -, -, -, hqs, -, -, hlo, -⟩ := hv
   have hid := nodeId_ne_zero n
   cases hr with
   | stay _ => exact hlo
@@ -716,7 +716,7 @@ theorem reach_selfFree {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {
     (hnet : NetOk S net) (hv : NodeOk S net n v) (hr : Reach (nodeId n) net v ps₁)
     (hro : ps₁.role = v.ps.role) (ht : ps₁.term = v.ps.term) (hl : ps₁.log = v.ps.log) :
     SelfFree (nodeId n) ps₁ := by
-  obtain ⟨hd, -, -, -, hqs, -, -, hlo⟩ := hv
+  obtain ⟨hd, -, -, -, hqs, -, -, hlo, -⟩ := hv
   have hX0 : v.ps.outbox = [] := hd.2.2.2.2.2.2.1
   have hX : SelfFree (nodeId n) v.ps := fun q hq => by rw [hX0] at hq; cases hq
   cases hr with
@@ -799,8 +799,8 @@ theorem nodeOk_quiet {S : State} {net : List Msg} {n : Fin 3} {v v' : NodeView}
     (hq : Quiet (nodeId n) net v v') : NodeOk S net n v' := by
   cases hq with
   | input inp hidle hin =>
-    obtain ⟨hd, hlp, hcp, -, -, -, -, hlo⟩ := hv
-    refine ⟨hd, hlp, hcp, fun q hq => ?_, fun q hq => ?_, fun h => ?_, fun m hm => ?_, hlo⟩
+    obtain ⟨hd, hlp, hcp, -, -, -, -, hlo, hvs⟩ := hv
+    refine ⟨hd, hlp, hcp, fun q hq => ?_, fun q hq => ?_, fun h => ?_, fun m hm => ?_, hlo, hvs⟩
     · have hq' : q ∈ v.pend := hq
       rw [hidle.2.1] at hq'; cases hq'
     · have hq' : q ∈ v.qs := hq
@@ -816,7 +816,7 @@ theorem nodeOk_quiet {S : State} {net : List Msg} {n : Fin 3} {v v' : NodeView}
     have hk := quiet_reach hcf hnet hv hr hro ht hl
     have hpe := reach_pend hr
     have hlead := reach_leadOk hnet hv hr
-    obtain ⟨hd, hlp, hcp, -, -, htold, hcause, -⟩ := hv
+    obtain ⟨hd, hlp, hcp, -, -, htold, hcause, -, hvs⟩ := hv
     have hpre : v.delivered ++ v.ce <+: ps₁.log := by
       rw [hl]; exact hd.2.2.2.2.2.2.2.2.2.2.2.1
     have hlen : (v.delivered ++ v.ce).length ≤ uint.nat ps₁.commit := by
@@ -825,7 +825,7 @@ theorem nodeOk_quiet {S : State} {net : List Msg} {n : Fin 3} {v v' : NodeView}
       leaderPart_of hlp hro ht hl (fun hr' hm => hk.2.2.1 (hro.trans hr') hm),
       candPart_of hcp hro (fun hr' hm => hk.2.2.2 (hro.trans hr') hm),
       fun q hq => ?_, (fun q hq => by have : q ∈ ([] : List Msg) := hq; cases this), htold, hcause,
-      hlead⟩
+      hlead, fun h => hvo.trans (hvs fun h' => h (hro.trans h'))⟩
     have hq' : q ∈ v.pend := hq
     rw [hpe] at hq'; cases hq'
   | silentReady ps₁ rd hr hro hs =>
@@ -834,7 +834,7 @@ theorem nodeOk_quiet {S : State} {net : List Msg} {n : Fin 3} {v v' : NodeView}
     have hsf := reach_selfFree hnet hv hr hR hT hL
     have hpend := pendOk_of_reach hnet hv hr hro
     have hlead := reach_leadOk hnet hv hr
-    obtain ⟨hd, hlp, hcp, -, -, htold, hcause, -⟩ := hv
+    obtain ⟨hd, hlp, hcp, -, -, htold, hcause, -, hvs⟩ := hv
     obtain ⟨-, -, -, -, -, -, hqp, -, hpre, hlen, hb, -, -⟩ := hro
     have hf : ps₁.outbox.filter (fun q => decide (q.dst = nodeId n)) = [] :=
       List.filter_eq_nil_iff.mpr fun q hq => by simpa using hsf q hq
@@ -843,7 +843,7 @@ theorem nodeOk_quiet {S : State} {net : List Msg} {n : Fin 3} {v v' : NodeView}
     refine ⟨durableIs_of hd hR hT hV hC hL rfl rfl hb hpre hlen,
       leaderPart_of hlp hR hT hL (fun hr' hm => hk.2.2.1 (hR.trans hr') hm),
       candPart_of hcp hR (fun hr' hm => hk.2.2.2 (hR.trans hr') hm),
-      hpend, fun q hq => ?_, htold, hcause, hlead⟩
+      hpend, fun q hq => ?_, htold, hcause, hlead, fun h => hV.trans (hvs fun h' => h (hR.trans h'))⟩
     have hq' : q ∈ rd.qs := hq
     rw [hqs] at hq'; cases hq'
 

@@ -105,10 +105,10 @@ theorem NodeOk.send {S : State} {net : List Msg} {k n : Fin 3} {v : NodeView} {M
     {C : List Confirmed} {q : Msg} (hok : SendOk S n q M C) (h : NodeOk S net k v) (p : List Msg)
     (hp : ∀ x ∈ p, x ∈ v.pend) : NodeOk (sendS S n.val M C) (net ++ [q]) k { v with pend := p } := by
   have hsub := hok.sub
-  obtain ⟨hd, hL, hC, hP, hQ, hT, hca, hlo⟩ := h
+  obtain ⟨hd, hL, hC, hP, hQ, hT, hca, hlo, hvs⟩ := h
   have hack : ∀ {src dst : Str} {t k : Int}, AckIn S src dst t k → AckIn (sendS S n.val M C) src dst t k :=
     fun h => AckIn.mono hsub h
-  refine ⟨hd, ?_, ?_, fun x hx => hP x (hp x hx), ?_, hT, ?_, hlo⟩
+  refine ⟨hd, ?_, ?_, fun x hx => hP x (hp x hx), ?_, hT, ?_, hlo, hvs⟩
   · intro hl
     obtain ⟨l1, l2, l3, l4, l5⟩ := hL hl
     exact ⟨l1, l2, fun j k h1 h2 => hack (l3 j k h1 h2), fun j hj => (l4 j hj).imp id hack,

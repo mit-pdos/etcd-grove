@@ -117,7 +117,7 @@ theorem readyOk_plain {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G :
     (hqs : ∀ q ∈ rd.qs, QsOk (readyS S n.val (uint.Z ps₁.term) vo (S.log[n.val]!) (uint.Z ps₁.commit)
       (S.role.set n.val (roleOf ps₁.role)) (S.confirmed[n.val]!) M Vs S.leaders S.ledLog p S.chain
       S.termLen S.viol (memNL S n.val (roleOf ps₁.role))) n ((V n).afterReady ps₁ rd) q)
-    (hlh : LeadHint (nodeId n) ps₁) :
+    (hlh : LeadHint (nodeId n) ps₁) (hvsp : ps₁.role ≠ .follower → ps₁.vote = nodeId n) :
     ReadyOk S V net G n ((V n).afterReady ps₁ rd) (uint.Z ps₁.term) vo (S.log[n.val]!)
       (uint.Z ps₁.commit) (S.role.set n.val (roleOf ps₁.role)) (S.confirmed[n.val]!) M Vs
       S.leaders S.ledLog p S.chain S.termLen S.viol (memNL S n.val (roleOf ps₁.role)) := by
@@ -189,7 +189,8 @@ theorem readyOk_plain {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G :
     hpend := pendOk_of_reach hnet (hno n) hr hro
     hqs := hqs
     drain := ⟨rfl, rfl⟩
-    hlead := hlh }
+    hlead := hlh
+    hvself := hvsp }
 
 /-! ## Facts of the kinds -/
 
@@ -517,7 +518,8 @@ theorem readyOk_fol {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : R
     hpend := pendOk_of_reach hnet (hno n) hr hro
     hqs := fun q hq => (qs_follower hro hso hpr q hq).elim
     drain := ⟨rfl, rfl⟩
-    hlead := hlh }
+    hlead := hlh
+    hvself := fun h => absurd hpr h }
 
 theorem nat_commit_le {G : RaftFacts} {id : w64} {ps : PState} (hrf : ReadyFacts G id ps) :
     uint.Z ps.commit ≤ ps.log.length := by
@@ -620,15 +622,13 @@ def ReadyGoal (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : List 
     AntSim S' (setV V n ((V n).afterReady ps₁ rd)) net ∧ GlobalOk S' net G
 
 set_option maxHeartbeats 2000000 in
-/-- **`antSim_ready`, with "a non-follower's vote is its own" at the node** (raft's invariant,
-`VoteSelf`). -/
+/-- **`antSim_ready`**, with the cases not proved here as premises. -/
 theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : List Event)
     (G : RaftFacts) (n : Fin 3) (ps₁ : PState) (rd : ReadyD)
     (hp : Prefix cfg3 evs S) (hs : AntSim S V net) (hl : RaftLaws G) (hgo : GlobalOk S net G)
     (hr : Reach (nodeId n) net (V n) ps₁) (hro : ReadyOutP (nodeId n) (V n) ps₁ rd)
     (hrep : Reported (V n) rd) (htold : (V n).byE = go!"recv" → (V n).told = true)
     (hrf : ReadyFacts G (nodeId n) ps₁) (htb : uint.Z (V n).ps.term + 1 < 2 ^ 64)
-    (hvs : (V n).ps.role ≠ .follower → (V n).ps.vote = nodeId n)
     -- the cases not proved yet, as premises
     (hstoreB : ∀ m : Msg, RecvAt (nodeId n) net (V n) m → m.ty = .app → FolTerm (V n).ps m ps₁ →
       ps₁.term = m.term → ps₁.role = .follower → uint.Z (V n).ps.commit ≤ uint.Z m.index →
@@ -672,7 +672,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
   have hn3 : n.val < S1.role.length := by rw [hrl]; exact n.isLt
   have hct3 : n.val < S1.currentTerm.length := by rw [hsh.2.1]; exact n.isLt
   have hlg3 : n.val < S1.log.length := by rw [hsh.2.2.2.2.1]; exact n.isLt
-  obtain ⟨hd, -, -, -, hQ, -, hca, hlo⟩ := hno n
+  obtain ⟨hd, -, -, -, hQ, -, hca, hlo, hvs⟩ := hno n
   obtain ⟨d1, d2, d3, d4, d5, -, d7, d8, d9, d10, -, -, -⟩ := hd
   have hq0 : S1.queue[n.val]! = [] := (hb.2.1 n).1
   have hin : ∀ m ∈ net, InMsg m := fun m hm => ⟨(hnet.1 m hm).1, hnet.2.2 m hm⟩
@@ -683,6 +683,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
   have hlh := reach_leadOk hnet (hno n) hr
   have hbyE := reach_byE hr hro hrep
   have hk := ready_kind hr hro hrep d8 (nodeId_ne_zero n) hvs hin hqs
+  have hvs1 := voteSelf_kind hk hvs
   obtain ⟨hR, hT, hVt, hC, -⟩ := id hro
   rw [hR, hT, hVt, hC]
   -- the sender of a received message: another node, at a term it has
@@ -707,7 +708,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
       (fun h => by rw [hvc] at h; cases h) (.inl ⟨hpt, hpv⟩) (fun f hf => hf)
       (fun f hf hn => absurd hf hn) (fun y hy => hy) (fun y hy hn => absurd hy hn)
       (fun h => absurd rfl h) hpm (fun h => absurd (h.symm.trans hpr) (by decide))
-      (fun q hq => (qs_follower hro hso hpr q hq).elim) hlh
+      (fun q hq => (qs_follower hro hso hpr q hq).elim) hlh hvs1
   | camp hbe hnl0 hpt hpv hpr hpl hpc hen =>
     rw [hen, hbe, hpv]
     have htz : uint.Z ps₁.term = uint.Z (V n).ps.term + 1 := by
@@ -750,7 +751,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
         · rw [hpr] at h; cases h
         · refine ⟨h1, h2, h3, h4, .inr ⟨rfl, ?_⟩⟩
           rw [rS_votes]; exact mem_lset_add.mpr (.inr rfl))
-      hlh
+      hlh hvs1
     rw [hpr] at hok
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm rfl (queued_other _ _ _ _ _ _ _ _ (by decide)) hod) hok
@@ -771,7 +772,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
       (.inr ⟨by rw [hpt]; exact hlt, hpv⟩) (fun f hf => hf)
       (fun f hf hn => absurd hf hn) (fun y hy => hy) (fun y hy hn => absurd hy hn)
       (fun h => absurd rfl h) hpm (fun h => absurd (h.symm.trans hpr) (by decide))
-      (fun q hq => (qs_follower hro hso hpr q hq).elim) hlh
+      (fun q hq => (qs_follower hro hso hpr q hq).elim) hlh hvs1
     rw [hpr] at hok
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok
@@ -823,7 +824,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
         · rw [hpv]; exact ⟨h, by rw [hsi]; exact nodeId_ne_zero i⟩)
       (fun _ => by rw [hpv]; exact mem_lset_add.mpr (.inr rfl)) hpm
       (fun h => absurd (h.symm.trans hpr) (by decide))
-      (fun q hq => (qs_follower hro hso hpr q hq).elim) hlh
+      (fun q hq => (qs_follower hro hso hpr q hq).elim) hlh hvs1
     rw [hpr] at hok
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok
@@ -1034,7 +1035,7 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
   have hrl : S1.role.length = 3 := hsh.2.2.2.2.2.2.1
   have hn3 : n.val < S1.role.length := by rw [hrl]; exact n.isLt
   have hlg3 : n.val < S1.log.length := by rw [hsh.2.2.2.2.1]; exact n.isLt
-  obtain ⟨hd, -, -, -, hQ, -, hca, hlo⟩ := hno n
+  obtain ⟨hd, -, -, -, hQ, -, hca, hlo, hvsN⟩ := hno n
   obtain ⟨d1, d2, d3, d4, d5, -, d7, d8, d9, d10, -, -, -⟩ := hd
   have hq0 : S1.queue[n.val]! = [] := (hb.2.1 n).1
   have hin : ∀ m ∈ net, InMsg m := fun m hm => ⟨(hnet.1 m hm).1, hnet.2.2 m hm⟩
@@ -1259,15 +1260,13 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok
 
-/-- **`antSim_ready` for every kind but a leader's** (`win`, `prop`, `cmt` as premises), with
-"a non-follower's vote is its own" at the node. -/
+/-- **`antSim_ready` for every kind but a leader's** (`win`, `prop`, `cmt` as premises). -/
 theorem ready_nonleader (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : List Event)
     (G : RaftFacts) (n : Fin 3) (ps₁ : PState) (rd : ReadyD)
     (hp : Prefix cfg3 evs S) (hs : AntSim S V net) (hl : RaftLaws G) (hgo : GlobalOk S net G)
     (hr : Reach (nodeId n) net (V n) ps₁) (hro : ReadyOutP (nodeId n) (V n) ps₁ rd)
     (hrep : Reported (V n) rd) (htold : (V n).byE = go!"recv" → (V n).told = true)
     (hrf : ReadyFacts G (nodeId n) ps₁) (htb : uint.Z (V n).ps.term + 1 < 2 ^ 64)
-    (hvs : (V n).ps.role ≠ .follower → (V n).ps.vote = nodeId n)
     (hwin : ∀ (src : w64) (rej : Bool) (mt : GMap w64 w64), (V n).ps.role = .candidate →
       ((∃ m, RecvAt (nodeId n) net (V n) m ∧ m.ty = .voteResp ∧ m.term = (V n).ps.term ∧ m.src = src ∧
           m.reject = rej) ∨
@@ -1288,7 +1287,7 @@ theorem ready_nonleader (S : State) (V : Fin 3 → NodeView) (net : List Msg) (e
     ∃ S', Prefix cfg3
         (evs ++ [evReady (nodeId n) (V n).byE rd.role rd.term rd.vote rd.commit rd.ents]) S' ∧
       AntSim S' (setV V n ((V n).afterReady ps₁ rd)) net ∧ GlobalOk S' net G :=
-  ready_main S V net evs G n ps₁ rd hp hs hl hgo hr hro hrep htold hrf htb hvs
+  ready_main S V net evs G n ps₁ rd hp hs hl hgo hr hro hrep htold hrf htb
     (fun m hm hty hft hpt hpr hpc0 hprv hsl hcmv =>
       ready_storeB S V net evs G n ps₁ rd hp hs hl hgo hr hro htold hrf m hm hty hft hpt hpr hpc0 hprv hsl hcmv)
     hwin hprop hcmt

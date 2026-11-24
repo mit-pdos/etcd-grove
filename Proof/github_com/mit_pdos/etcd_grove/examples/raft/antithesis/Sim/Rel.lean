@@ -208,15 +208,21 @@ down resets `lead` (`becomeFollower`), or sets it to the sender of a message, ne
 `m.src ≠ m.dst`). -/
 def LeadOk (n : Fin 3) (v : NodeView) : Prop := v.ps.role ≠ .leader → v.ps.lead ≠ nodeId n
 
+/-- **C1, a non-follower's vote is its own** (raft's `GhostState` fact `s.role ≠ .follower →
+s.vote = id`): a campaign votes for the node itself (`TickEnd`'s `elect`), a win and a leader's
+steps keep the vote, and every step that changes the vote otherwise makes the node a follower
+(`voteSelf_ready`). -/
+def VoteSelf (n : Fin 3) (v : NodeView) : Prop := v.ps.role ≠ .follower → v.ps.vote = nodeId n
+
 /-- C1, C2 and the drain's facts for node `n`: its pending messages (`PendOk`), its queued
 self-messages (`QsOk`), once its drain's `recv` is reported, `pending[n]` (B 201), and the message
 its drain handles was sent to it (an acknowledgement's `send` reads its `Sendable`, kept by C4);
-the leader hint (`LeadOk`). -/
+the leader hint (`LeadOk`); a non-follower's vote its own (`VoteSelf`). -/
 def NodeOk (S : AntCheck.State) (net : List Msg) (n : Fin 3) (v : NodeView) : Prop :=
   DurableIs S n v ∧ LeaderPart S n v ∧ CandPart S n v ∧
   (∀ q ∈ v.pend, PendOk (nodeId n) v q) ∧ (∀ q ∈ v.qs, QsOk S n v q) ∧
   (v.told = true → ∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∧
-  (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧ LeadOk n v
+  (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧ LeadOk n v ∧ VoteSelf n v
 
 /-! ## C3: the binding's own invariants -/
 

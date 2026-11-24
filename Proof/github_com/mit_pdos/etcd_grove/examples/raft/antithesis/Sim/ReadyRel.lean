@@ -309,6 +309,7 @@ structure ReadyOk (S : State) (V : Fin 3 → NodeView) (net : List Msg) (G : Raf
   hqs : ∀ q ∈ w.qs, QsOk (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) n w q
   drain : w.told = (V n).told ∧ w.cause = (V n).cause
   hlead : LeadOk n w
+  hvself : VoteSelf n w
 
 
 /-! ## The new state, piece by piece -/
@@ -662,7 +663,7 @@ theorem rr_node_self (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1
     by rw [rr_cm_n sh.2.2.2.2.2.1]; exact hok.hcommit, hok.hrole, by rw [hok.hdel]; exact d6, w1, w2, w3,
     by show r.config[n.val]! = _; rw [hok.hmem.1]; exact d10,
     by show r.confAt[n.val]! = _; rw [hok.hmem.2]; exact d11, w4, w5⟩,
-    hok.lpart, hok.cpart, hok.hpend, hok.hqs, ?_, ?_, hok.hlead⟩
+    hok.lpart, hok.cpart, hok.hpend, hok.hqs, ?_, ?_, hok.hlead, hok.hvself⟩
   · intro ht
     rw [hok.drain.1] at ht
     obtain ⟨m, hm, hp⟩ := hT ht
