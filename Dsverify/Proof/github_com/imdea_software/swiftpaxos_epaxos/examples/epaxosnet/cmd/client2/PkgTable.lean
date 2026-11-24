@@ -278,7 +278,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
   have h40 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h11, h39, h10, h7, h16, h6, h2, h35, h27, h32, True.intro⟩
+    exact ⟨h0, h11, h39, h10, h7, h16, h6, h2, True.intro⟩
   have h41 : GetIsPkgInitProp pkg_id.log (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

@@ -255,7 +255,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h33 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h3, h30, h25, h10, h32, h9, h1, h23, h13, h20, True.intro⟩
+    exact ⟨h0, h3, h30, h25, h10, h32, h9, h1, True.intro⟩
   have h34 : GetIsPkgInitProp pkg_id.bytes (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

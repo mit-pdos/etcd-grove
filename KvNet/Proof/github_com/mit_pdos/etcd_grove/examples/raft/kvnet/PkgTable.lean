@@ -221,7 +221,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h31 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h10, h28, h27, h12, h30, h6, h2, h24, h14, h21, True.intro⟩
+    exact ⟨h0, h10, h28, h27, h12, h30, h6, h2, True.intro⟩
   have h32 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
