@@ -8,7 +8,7 @@ variable).
 module
 
 public import Proof.hash.PkgInit
-public import Proof.hash.Init
+public import Perennial.Proof.hash.Link
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -47,7 +47,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.hash.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.hash _root_.Perennial.hash.initialize'
+      EtcdGrove.ExternalInit.hash _root_.Perennial.hash.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish
 

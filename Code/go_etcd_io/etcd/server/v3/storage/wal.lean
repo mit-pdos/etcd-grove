@@ -4,7 +4,7 @@ module
 public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
-public import Code.hash
+public import Perennial.Code.hash
 public import Perennial.Code.io
 public import Perennial.Code.sync
 public import Code.google_golang_org.protobuf.proto

@@ -3,7 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import ManualProof.hash.crc32
-public import GeneratedProof.hash
+public import Perennial.GeneratedProof.hash
 public import GeneratedProof.internal.byteorder
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
