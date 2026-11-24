@@ -42,7 +42,7 @@ theorem bootFs.touchData_law_holds
     bootFs.touchData.law (GF := GF) := by
   intro cfg lg
   iintro %Φ ⟨#Hpkg, #Hlg, Hb⟩ HΦ
-  icases (wal.bootRes_iff cfg).1 $$ Hb with ⟨Hdd, %hw, Hma⟩
+  icases (wal.bootRes_iff cfg).1 $$ Hb with ⟨%hw, Hma⟩
   iunfold memberAreasFresh at Hma
   icases Hma with ⟨Hw, Hda⟩
   iunfold dataAreaFresh at Hda
@@ -79,7 +79,6 @@ theorem bootFs.touchData_law_holds
     isplitr
     · ipureintro; rfl
     iapply (wal.bootRes_iff cfg).2
-    iframe Hdd
     isplitr
     · ipureintro; exact hw
     iunfold memberAreasFresh

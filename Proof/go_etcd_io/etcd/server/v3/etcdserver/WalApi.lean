@@ -550,14 +550,13 @@ theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) 
     memberAreasFresh (GF := GF) d ⊢ wal.bootRes cfg := by
   unfold wal.bootRes; subst hd; iintro Ha; iframe Ha; ipureintro; exact hw
 
-/-- **`wal.bootRes` is the data directory's token, the dedicated WAL directory's equation and the
-member's fresh areas** (claim #34, 2026-11-23): the slot's body as a law, so that `bootstrap`'s
+/-- **`wal.bootRes` is the dedicated WAL directory's equation and the member's fresh areas** (claim #34,
+2026-11-23; without the data directory's token since `wal.bootRes` dropped it, 2026-11-24): the slot's body as a law, so that `bootstrap`'s
 file-system laws (`BootFsLaws.lean`), which split the data area, need no `import all` of this sealed
 module. It says what the slot is made of; the WAL's sealed records (`WalRecs`) are not involved. -/
 theorem wal.bootRes_iff (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
     wal.bootRes (GF := GF) cfg ⊣⊢
-      dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗
-        memberAreasFresh cfg.DataDir' := by
+      ⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗ memberAreasFresh cfg.DataDir' := by
   unfold wal.bootRes; exact .rfl
 
 /-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the
