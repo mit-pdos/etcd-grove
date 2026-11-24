@@ -52,7 +52,7 @@ theorem StartMemberAuth.wp_proof
   iunfold bootPremiseOn at Hboot
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
+  icases Hcom with ⟨#Hzap, #Htd⟩
   iunfold memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩

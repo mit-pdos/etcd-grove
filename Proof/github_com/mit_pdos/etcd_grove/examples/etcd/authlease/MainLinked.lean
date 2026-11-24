@@ -114,7 +114,8 @@ theorem etcd_authlease.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_i
 
 /-- **authlease's `Main(k)` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/Main.lean`). -/
-theorem etcd_authlease.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authlease.wp_Main [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_authlease.Main.spec (GF := GF) (hG := hG) :=
   etcd_authlease.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     (etcdstart.StartMembersAuth.wp_proof (etcdstart.StartMemberAuth.wp_proof

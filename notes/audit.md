@@ -661,6 +661,15 @@ The [snapshot release finding](release-snapdb-held-file.md) led to a sealed snap
 led to the removal of `incomingOf_cancelCtx` and `v3rpc.incomingOf_cancellableContext`.
 The remaining baseline and the two generated admissions have not been discharged in this review.
 
+### Found by etcd-grove-03's WAL axiom review (2026-11-21, branch `wal-nostorageok`; `notes/axiom-review/wal-pb-fmt.md`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `snapEncC_ok`, `pbSnapC_reg`, `pbRecordC_reg` | ok | The only registrations of `walpb.Snapshot`/`walpb.Record`; Perennial has no protobuf model to clash with. Go's decoder meets `snapEncC_ok`'s claim over its full premise (groups, depth-10001 groups, large and reserved numbers, non-minimal values, both levels): `examples/stdlib/walpb/snapshot_adv_test.go` |
+| `proto.MarshalAppendCachedRecord.wp_proof` | ok (caveat) | A stale cached size only picks reuse of `b`'s array or a fresh one, both allowed (`record_clone_test.go`); on paper a near-2^31 stale size with a buffer near 2^47 makes Go's allocation panic, unreachable in practice |
+| `fmt.SscanfWalName.wp_proof` | ok | `scanWalName` matches go1.27.3's `fmt/scan.go` on edge inputs and 1,000,000 random byte strings; `Sscanf` is names-only in Perennial, so no model contradicts it |
+| `fmt.SprintfWalName.wp_proof` | **false of the model** (true of Go) | Its premise `fmt.Assumptions` fixes `Sprintf` to Perennial's model, whose `intVerb` takes a width only before `d`: from `%016x` on the output is `out + arbitraryString()`, so the model has runs returning other strings than `walNameStr s i`. **Retired** (proved) by the real-`fmt` pin bump (Perennial `52d62e83c`, lean `af4fd74b00`, 2026-11-24); `wal-nostorageok` held until then |
+
 ### Claim #26 (2026-11-22; Go: go1.27.3 `slices/slices.go:491-507`; Perennial PR #670's `Spec/slices/Concat.lean`)
 
 | axiom | verdict | reason |

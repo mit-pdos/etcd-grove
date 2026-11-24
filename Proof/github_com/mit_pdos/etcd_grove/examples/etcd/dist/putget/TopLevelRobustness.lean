@@ -163,11 +163,19 @@ start resources with no source yet (`MemberBootHyps`), and the client's boot (`P
 theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
     (HM : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics]
       [github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions], MemberBootHyps)
-    (HC : PutgetClientS2) :
+    (HC : PutgetClientS2)
+    -- (wal-nostorageok, 2026-11-24) `os`'s field steps, which `etcdstart`'s linked results take since
+    -- `NewStorage`'s contract `rnNewStorageOk` left `etcdstart.premises` (proved over the real WAL): what
+    -- `putget_safe.spec` binds once this is settled (as the single-process theorems do), or goose emits
+    -- (`notes/perennial-changes.md`, 2026-11-21, "Goose emits no field steps for a trusted struct layout")
+    (HOs : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics],
+      os.file.FieldAssumptions ∧ os.fileStat.FieldAssumptions) :
     putget_safe.spec := by
   refine putget_safe_of_boot ?_
   intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
     Hm Hc Hok HEnv HEnvTok G hlo hb
+  haveI : os.file.FieldAssumptions := HOs.1
+  haveI : os.fileStat.FieldAssumptions := HOs.2
   have HCb : ClientBootS2 client id σc := HC Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
     Hprem σc Hc
   have hpeer : Net.addrOk peer = true := Hok peer (by simp [addrs])

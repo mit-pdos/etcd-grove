@@ -251,10 +251,19 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringNotWriter",
     # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
     "EtcdGrove.MutexLitSemantics",
+    # (wal-nostorageok, 2026-11-21) `os`'s field steps of its trusted `file`/`fileStat` layouts, which
+    # goose does not emit (`TrustedCode/os.lean`): the WAL's results take them, and so, through
+    # `=rnNewStorageOk_law_holds`, does the server's `newRaftNode` and every result reaching it. A mode
+    # that has them as section variables (`PRE_VARS`, `EXTRA_VARS`) does not repeat them per result.
+    "os.file.FieldAssumptions",
+    "os.fileStat.FieldAssumptions",
     # (net-swap, 2026-11-22) the net extension's `net`'s hand-stated field facts (`Net/TrustedCode/net.lean`),
     # which Net's `Listen` spec takes (`Proof/net/Listen.lean`)
     "_root_.Perennial.net.FieldAssumptions",
 ]
+# The semantic premises a proof takes only as a section variable: `os`'s field assumptions also occur
+# inside the binders of a hypothesis (backend's `∀ [os.file.FieldAssumptions] ..., bbolt.Tx.Commit.spec`).
+SEM_VARIABLE_ONLY = {"os.file.FieldAssumptions", "os.fileStat.FieldAssumptions"}
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
 # are stated under, a description for the header, the module roots holding their specs).
@@ -1257,8 +1266,9 @@ variable [sem : go.Semantics]
     def arg(fn, c):
         if c.startswith("="):
             # a term given as is (`=http.respWrite_ok`): a boundary statement's axiom, or another
-            # library's linked result, which no spec file of a mode names
-            return c[1:]
+            # library's linked result, which no spec file of a mode names; `~` separates its arguments
+            # (`=rnNewStorageOk_law_holds~raftpb.SnapshotMetadata.wp_GetIndex`, wal-nostorageok)
+            return f"({c[1:].replace('~', ' ')})" if "~" in c else c[1:]
         if c in pending:
             return hyp(c)
         if c in blocked:
@@ -1325,7 +1335,8 @@ variable [sem : go.Semantics]
         # storage is a `MemoryStorage`, `memStorageModel` under the registry's name)
         elif "[MemStorReg GF]" in src:
             allg += " [MemStorReg GF]"
-        allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES if p in premises[fn])
+        allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES
+                        if p in premises[fn] and premise_binder(p) not in em)
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
@@ -1378,6 +1389,19 @@ variable [sem : go.Semantics]
     def premise_binder(p):
         return "[" + p + "]"
 
+    def eq_premises(c):
+        """The semantic premises of an `=` callee declared in one of the mode's extra imports: those
+        among that module's section variables (`RnNewStorageLinked.lean`'s `os` field assumptions)."""
+        if not c.startswith("="):
+            return set()
+        last = c[1:].split("~")[0].split(".")[-1]
+        ps = set()
+        for src in extra_srcs:
+            if re.search(r"^theorem " + re.escape(last) + r"\b", src, re.M):
+                vs = "\n".join(l for l in src.splitlines() if l.startswith("variable "))
+                ps |= {p for p in SEM_PREMISES if premise_binder(p) in vs}
+        return ps
+
     premises = {}
     for fn in order:
         ps = set()
@@ -1394,10 +1418,13 @@ variable [sem : go.Semantics]
         else:
             if fn not in pending and os.path.exists(proof_file(fn)):
                 src = open(proof_file(fn)).read()
+                vs = "\n".join(l for l in src.splitlines() if l.startswith("variable "))
                 ps |= {p for p in SEM_PREMISES
-                       if premise_binder(p.split(".")[-1]) in src or premise_binder(p) in src}
+                       if (premise_binder(p) in vs if p in SEM_VARIABLE_ONLY else
+                           premise_binder(p.split(".")[-1]) in src or premise_binder(p) in src)}
             for c in callees[fn]:
                 ps |= premises.get(c, set())
+                ps |= eq_premises(c)
         premises[fn] = ps
 
     # the results whose specs take the v3rpc package's assumptions besides the mode's (the

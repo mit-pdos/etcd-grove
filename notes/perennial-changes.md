@@ -4035,6 +4035,25 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   nil) proved over `UTC`'s global, held by time's `isInit`. **Status.** Landed on Perennial `lean` as
   `7103946b3` (2026-11-21, srvloops2), in the pin since `5dab16ec2`: with it
   `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
+  `Location` call, branch `prove-srvloops2`'s follow-up) retire `EtcdServer.ensureLeadership.wp_proof`.
+
+## 2026-11-21: Goose emits no field steps for a trusted struct layout (`os.file`, `os.fileStat`)
+
+- **The gap.** goose writes a translated struct's field steps (`get_f`/`set_f`: `StructFieldGet`/`StructFieldSet`
+  on its underlying struct type) into `T.TypeAssumptions`, hence into its package's `Assumptions`, which every
+  closed statement binds through its program's package. A trusted struct (its layout in `TrustedCode`, as
+  `os.file`'s and `os.fileStat`'s in `TrustedCode/os.lean`) gets none, and the semantics has no generic step
+  for a field of a `go.StructType`. So `TrustedCode/os.lean` states them by hand as two classes,
+  `os.file.FieldAssumptions`/`os.fileStat.FieldAssumptions`, which every closed statement reaching `os`'s
+  files binds separately (`mvccfull`, `mvccrand`, `bboltfs`, `walfs`, `crashlog`; since wal-nostorageok,
+  2026-11-21, also `etcd_robust`/`etcd_safe`, `etcd_leaseexpiryN`, `k8s_robust`/`k8s_safe`, in place of the
+  premise `rnNewStorageOk`; since the single-process renames, 2026-11-23, their `_single_process` names; and
+  `putget_safe`'s member boot `member_boot`, with `putget_safe_of_s2` taking them as its hypothesis `HOs` while
+  `putget_safe.spec` binds neither them nor `rnNewStorageOk`: to be settled by etcd-dist, 2026-11-24).
+- **Proposed (general).** A Goose configuration entry giving a trusted type's layout (field names and types),
+  from which goose emits the same `get_f`/`set_f` fields into `T.TypeAssumptions`; the hand-written classes
+  then go, and the closed statements lose the two binders. **Status.** Recorded only (option (B) of
+  `questions.md` Q1, wal-nostorageok).
   `Location` call) retired `EtcdServer.ensureLeadership.wp_proof` (2026-11-22, `prove-srvloops2b`).
 
 ## 2026-11-21: Goose refuses unnamed struct types with field tags (v2stats' `ServerStats`)
@@ -4293,6 +4312,20 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
 - **Status.** Not filed yet.
 
+## 2026-11-23: `log`'s `Logger` methods, `Default`, `Fatalf`, and `Printf` of error arguments (go-craq; branch `dsv-craq`)
+
+- **Limitation.** Perennial's `log` model (`Code/log.toml`) trusts `Printf` and `Println` only: `log.Default`,
+  `log.Fatalf` and the methods of `*log.Logger` (`Printf`, `Println`) are names only, so a call is stuck.
+  go-craq's node logs through a `*log.Logger` (`n.log.Printf`, `n.log.Println`, 30 calls; `log.Default()` in
+  `node.New`; `log.Fatalf` in `Start`'s backfill failure). And `log.Printf.spec` takes `fmt.ArgsWf` (predeclared
+  basic types only), while go-craq's coordinator passes errors with `%v` (Go calls their `Error()`) and the node
+  errors and struct pointers with `%#v`/`%+v` (Go's `%#v` calls only a `GoString()` method, which none of these
+  values has; `%+v` of a `*store.Item` or `*transport.NodeMeta` calls none).
+- **Work-around here.** None yet: the node's and the coordinator's proofs are not ported (notes/dsv-craq.md). The
+  plan: specs of these as hypotheses of the closed statement (the lab had its own `log` model, `Harness/Code/log.lean`).
+- **Proposed (general).** `*log.Logger`'s `Printf`/`Println`/`Print`, `log.Default`, `log.New` in the log model
+  (as `Printf`); `fmt.ArgsWf` widened to error arguments whose `Error()` has a spec (`%v`, `%s`) and to `%#v`/`%+v`
+  of values without formatting methods. **Status.** Not started.
 ## 2026-11-23: `os.Unsetenv` has no model (the environment as machine-local state; `putget_safe`, branch `putget-dist`)
 
 `examples/etcd/dist/env.ClearProxy` (called first by `etcd_safe`'s and `putget_safe`'s machine programs) unsets the
