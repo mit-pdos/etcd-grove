@@ -29,73 +29,69 @@ variable [go.BasicIntoValInj]
 
 theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) := by
   intro t l x la Qfail Qok
-  unfold lisAt
-  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hx, %hl0⟩, #Hla, HQ⟩
-  (try wp_method_call)
-  (try unfold TCPListener.Accept.impl)
-  rw [TCPListener_ty_eq]
+  wp_start as ⟨#Hl, Hon, HAU⟩
+  ihave ⟨%nw, %fd, %lc, %ra, %hnl, #Ht, #Hfd, #Hx⟩ := lisAt_elim _ _ _ $$ Hl
+  ihave ⟨%v, %hv, #Hv⟩ := fdAt_elim _ _ _ _ _ $$ Hfd
+  obtain ⟨-, rfl, rfl, rfl⟩ := hv
+  ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
+  iStructNamed Hv
   ihave #Ht2 := Ht
   iStructNamed Ht2
+  (try wp_method_call)
   wp_auto
-  (try (rw [show decide (l = W64 0) = false by simpa using hl0]; wp_auto))
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_Accept l la $$ Hla
+  wp_apply wp_TCPListener_ok t fd lc Hfdn $$ Ht
+  (try wp_auto)
+  wp_apply wp_TCPListener_accept t l v.laddr' la $$ Hl Hon
   isplit
-  · -- a failure
-    icases HQ with ⟨HQ, -⟩
-    imod HQ with ⟨%o, Hl, HQ⟩
+  · icases HAU with ⟨HAU, -⟩
+    imod HAU with ⟨%o, Hlo, Hk⟩
     imodintro
     iexists o
-    iframe Hl
-    iintro Hl
-    imod HQ $$ Hl with HQ
+    iframe Hlo
+    iintro Hlo
+    imod Hk $$ Hlo with HQ
     imodintro
-    rw [Conn_ty_eq]
+    iintro %e #He
+    ihave %hne := kindErr_ne_nil _ none _ e (fun _ h => by cases h) $$ He
+    obtain ⟨ie, rfl⟩ : ∃ ie, e = GoInterface.ok ie := by
+      cases e with | ok ie => exact ⟨ie, rfl⟩ | nil => exact absurd rfl hne
     wp_auto
-    cases o
-    · wp_apply wp_kindErr (c := NetErr.closed.code) .closed none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
-      (try wp_auto)
-      wp_apply wp_opError $$ %Hnw as %err #Herr
-      (try wp_auto)
-      iapply HΦ
-      iright
-      iexists .closed
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      iframe HQ
-      unfold resErr
-      iexists e
-      iframe Herr He
-    · wp_apply wp_kindErr (c := NetErr.sys.code) .sys none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
-      (try wp_auto)
-      wp_apply wp_opError $$ %Hnw as %err #Herr
-      (try wp_auto)
-      iapply HΦ
-      iright
-      iexists .sys
-      simp only [↓reduceIte]
-      iframe HQ
-      unfold resErr
-      iexists e
-      iframe Herr He
-  · -- a connection, dialed to `a`
+    wp_alloc pe as Hpe
+    ipersist Hpe
+    wp_auto
+    iapply HΦ
+    iright
+    iexists _
+    iframe HQ
+    unfold resErr opErr
+    iexists GoInterface.ok ie
+    iframe He
+    iexists pe, v.net'
+    iframe Hpe
+    ipureintro; exact ⟨rfl, hnl.1⟩
+  · icases HAU with ⟨-, HAU⟩
     iintro %a %ha
-    icases HQ with ⟨-, HQ⟩
-    imod HQ $$ %a %ha with ⟨%o, %S, Hl, Hpend, Hk⟩
+    imod HAU $$ %a %ha with ⟨%o, %S, Hlo, Hp, Hk⟩
     imodintro
     iexists o, S
-    iframe Hl Hpend
-    iintro %ho %cn %HcS Hl Hpend #Hat
-    imod Hk $$ %ho %cn %HcS Hl Hpend Hat with HQ
+    iframe Hlo Hp
+    iintro %ho %c %hc Hlo Hp #Hat
+    imod Hk $$ %ho %c %hc Hlo Hp Hat with HQ
     imodintro
+    iintro %tc %la' %ra' #Hc
     wp_auto
-    wp_apply wp_newConn cn true a nw $$ %Hnw Hat as %c #Hc
     iapply HΦ
     ileft
     isplitr
     · ipureintro; rfl
-    iexists cn, a
-    iframe HQ Hc
-    ipureintro; exact ha
+    iexists c, a
+    iframe HQ
+    isplitr
+    · ipureintro; exact ha
+    unfold isConn
+    iexists tc, la', ra'
+    iframe Hc
+    ipureintro; rfl
 
 end proof
 
