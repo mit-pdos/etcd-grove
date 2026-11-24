@@ -110,7 +110,8 @@ structure ReadyD where
 at `ps` from a node whose view (its durable state) is `v` reports `ps`'s role and hard state; its
 entries are what the write appends (the log after it is `ps.log`, from the first entry's index,
 which starts at a conflict with the durable log or past its end: raft's unstable entries); its
-messages are `ps`'s outbox, those to the node itself queued for `Advance`, the others to voters;
+messages are `ps`'s outbox, those to the node itself queued for `Advance` (in some order: raft's
+invariants relate `msgsAfterAppend` to the outbox up to permutation), the others to voters;
 its committed entries follow what was handed out, within the commit index; no snapshot, the log's
 indices its positions. -/
 def ReadyOutP (id : w64) (v : NodeView) (ps : PState) (rd : ReadyD) : Prop :=
@@ -118,7 +119,7 @@ def ReadyOutP (id : w64) (v : NodeView) (ps : PState) (rd : ReadyD) : Prop :=
   (rd.ents = [] → ps.log = v.ps.log) ∧
   (∀ e0 ∈ rd.ents.head?, ps.log = v.ps.log.take (uint.nat e0.Index' - 1) ++ rd.ents ∧
     ∀ e ∈ v.ps.log[uint.nat e0.Index' - 1]?, e.Term' ≠ e0.Term') ∧
-  rd.qs = ps.outbox.filter (fun q => decide (q.dst = id)) ∧
+  rd.qs.Perm (ps.outbox.filter (fun q => decide (q.dst = id))) ∧
   rd.msgs.Perm (ps.outbox.filter (fun q => decide (q.dst ≠ id))) ∧
   v.delivered ++ rd.ce <+: ps.log ∧ (v.delivered ++ rd.ce).length ≤ uint.nat ps.commit ∧
   ps.base = base0 ∧ LogIdx ps.log
@@ -204,12 +205,13 @@ abbrev antSim_ready.stmt : Prop :=
       AntSim S' (setV V n ((V n).afterReady ps₁ rd)) net ∧ GlobalOk S' net G
 
 /-- **`send`** (`drain`, B 510-593): the next message of the node's `Ready` is reported, then it is on
-the network. -/
+the network. The message the drain handles was sent (the harness took it from the network). -/
 abbrev antSim_send.stmt : Prop :=
   ∀ (S : AntCheck.State) (V : Fin 3 → NodeView) (net : List Msg) (evs : List AntCheck.Event)
     (G : RaftFacts) (n : Fin 3) (q : Msg) (rest : List Msg),
     Prefix cfg3 evs S → AntSim S V net → RaftLaws G → GlobalOk S net G →
-    (V n).pend = q :: rest → ((V n).byE = go!"recv" → (V n).told = true) → MsgFacts G q →
+    (V n).pend = q :: rest → ((V n).byE = go!"recv" → (V n).told = true) →
+    (∀ m, (V n).cause = some m → m ∈ net) → MsgFacts G q →
     ∃ S', Prefix cfg3 (evs ++ [evSend (nodeId n) (V n).byE q]) S' ∧
       AntSim S' (setV V n { V n with pend := rest }) (net ++ [q]) ∧ GlobalOk S' (net ++ [q]) G
 

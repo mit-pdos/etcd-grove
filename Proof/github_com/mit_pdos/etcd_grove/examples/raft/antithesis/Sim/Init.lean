@@ -63,7 +63,7 @@ theorem antSim_init : antSim_init.stmt := by
   · exact ⟨rfl, rep3_length _, rep3_length _, rep3_length _, rep3_length _, rep3_length _,
       rep3_length _, rep3_length _, rep3_length _, rep3_length _, rep3_length _, rep3_length _,
       rep3_length _, rep3_length _, rep3_length _⟩
-  · refine ⟨rfl, fun n => ⟨rep3_get _ n, rep3_get _ n⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · refine ⟨rfl, fun n => ⟨rep3_get _ n, rep3_get _ n⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro n p hp
       change (List.replicate cfg3.server.length (none : Option Pre))[n.val]! = some p at hp
       rw [rep3_get] at hp; cases hp
@@ -82,6 +82,13 @@ theorem antSim_init : antSim_init.stmt := by
     · intro n l hl; cases hl
     · intro f hf; cases hf
     · intro v hv; cases hv
+    · intro n hv
+      have h0 : initS.currentTerm[n.val]! = 0 := rep3_get _ n
+      have hv0 : initS.voteTerm[n.val]! = 0 := rep3_get _ n
+      have hbt : initS.bootTerm = 0 := rfl
+      exfalso; apply hv
+      unfold State.vote State.voteOf
+      rw [h0, hv0, hbt]; rfl
   · intro m hm; cases hm
   · intro n
     obtain ⟨⟨hterm, hvote, _, hrole, _, hout, hbase, hlog, hcommit, _⟩, hdel, ⟨hqs, hpend, hce⟩, htold⟩ :=

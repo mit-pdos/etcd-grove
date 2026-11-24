@@ -525,17 +525,17 @@ section rel
 variable [GooseExts]
 
 theorem BindingOk.factsWf {S : State} (hb : BindingOk S) : FactsWf S :=
-  ⟨hb.2.2.2.2.2.2.2.2.2.2.1, hb.2.2.2.2.2.2.2.2.2.2.2⟩
+  ⟨hb.2.2.2.2.2.2.2.2.2.2.1, hb.2.2.2.2.2.2.2.2.2.2.2.1⟩
 
 theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFacts} {g : List Fact}
     {o : List VoteRec} (hs : AntSim S V net) (hgo : GlobalOk S net G) (hg : S.garbage = .ok g)
     (ho : S.oldVotes = .ok o) : AntSim (gcRes S g o) V net ∧ GlobalOk (gcRes S g o) net G := by
   obtain ⟨hsh, hb, hn, hno⟩ := hs
   have hc : S.cfg = cfg3 := hsh.1
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12⟩ := hb
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13⟩ := hb
   refine ⟨⟨hsh, ?_, ?_, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro n l hl
       exact hb7 n l (gcRes_get_ok hl)
     · intro n a ha
@@ -550,6 +550,8 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
       exact hb11 f (gcRes_msgs_sub hf)
     · intro v hv
       exact hb12 v (gcRes_votes_sub hv)
+    · intro n hv
+      exact gcRes_votes_keep hc ho (hb13 n hv) n rfl (Int.le_refl _)
   · -- NetOk
     intro m hm
     obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn m hm
@@ -585,8 +587,10 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
         rcases hl4 j hj with h | h
         · exact .inl h
         · exact .inr (gcRes_ack_keep hc hg n h (by rw [hct]; exact Int.le_refl _))
-    · intro hcand j hj
-      have := hC hcand j hj
+    · intro hcand
+      obtain ⟨hC1, hC2⟩ := hC hcand
+      refine ⟨fun j hj => ?_, gcRes_vote_keep hc hg hC2 rfl (over_false hc n (Int.le_refl _))⟩
+      have := hC1 j hj
       have heq : (gcRes S g o).granted n.val = S.granted n.val := by
         refine granted_congr (s1 := gcRes S g o) (s := S) n.val rfl rfl ?_ ?_
         · intro x

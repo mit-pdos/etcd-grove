@@ -141,10 +141,13 @@ def LeaderPart (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
         (uint.Z (matchOf v.ps (nodeId j))))
 
 /-- **C2, a candidate's part**: its tally's grants are in the binding's `Granted(n)` (R 277: the
-grant facts of its term sent to it, its own vote). -/
+grant facts of its term sent to it, its own vote), and its campaign's vote request is in `msgs`
+(`VoteRequest(n, currentTerm[n])`, R 217-219, recorded by the campaign's `ready`, B 418: what a
+`send` of one of its requests checks, B 532). -/
 def CandPart (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
   v.ps.role = .candidate →
-    ∀ j : Fin 3, v.ps.votes !! nodeId j = some true → (S.granted n.val).has (nameOf (nodeId j))
+    (∀ j : Fin 3, v.ps.votes !! nodeId j = some true → (S.granted n.val).has (nameOf (nodeId j))) ∧
+    S.voteRequest n.val (S.currentTerm[n.val]!) ∈ S.msgs
 
 /-- What raft says of a message of a `Ready` that the harness has not reported yet, at the view's
 state (the `Ready`'s; `InputEnd` queues only at the state after the preamble, and the outbox was
@@ -153,7 +156,9 @@ campaign's (its fact recorded by the campaign's `ready`), a grant answers at the
 append or heartbeat is the leader's (`AppSendOk`, `HeartbeatOk`), an acknowledgement answers the
 handled `MsgApp` (accepting: its last index, the log after the write matching it, B 571-575; stale:
 the commit index, B 577-580), a heartbeat response is at the node's term; a forwarded proposal is
-unchecked (B 524, 586). -/
+unchecked (B 524, 586), from the node at term `0` (`ProposeEnd`'s forward). A heartbeat
+carries no index, term or entries (`sendHeartbeat`), which the binding's `Sendable` reads (B 120-124).
+An acknowledgement is of a drain caused by a `recv` (`by = "recv"`, whose `pending[n]` it reads). -/
 def PendOk (id : w64) (v : NodeView) (q : Msg) : Prop :=
   q.dst ≠ id ∧ (∃ j : Fin 3, q.dst = nodeId j) ∧
   match q.ty with
@@ -161,8 +166,9 @@ def PendOk (id : w64) (v : NodeView) (q : Msg) : Prop :=
       q.index = (plogLast base0 v.ps.log).index' ∧ q.logterm = (plogLast base0 v.ps.log).term'
   | .voteResp => q.src = id ∧ (q.reject = false → q.term = v.ps.term ∧ v.ps.vote = q.dst)
   | .app => v.ps.role = .leader ∧ AppSendOk id v.ps q
-  | .heartbeat => v.ps.role = .leader ∧ HeartbeatOk id v.ps q
-  | .appResp => q.src = id ∧ ∃ m, v.cause = some m ∧ m.ty = .app ∧ q.dst = m.src ∧
+  | .heartbeat => v.ps.role = .leader ∧ HeartbeatOk id v.ps q ∧
+      q.index = W64 0 ∧ q.logterm = W64 0 ∧ q.entries = []
+  | .appResp => q.src = id ∧ v.byE = go!"recv" ∧ ∃ m, v.cause = some m ∧ m.ty = .app ∧ q.dst = m.src ∧
       q.term = m.term ∧ q.term = v.ps.term ∧
       (q.reject = false →
         (uint.Z q.index = uint.Z m.index + m.entries.length ∧
@@ -171,7 +177,7 @@ def PendOk (id : w64) (v : NodeView) (q : Msg) : Prop :=
             plogTermAt base0 v.ps.log (m.index + W64 ((k : Int) + 1)) = some e.Term') ∨
         (uint.Z m.index < uint.Z v.ps.commit ∧ q.index = v.ps.commit))
   | .heartbeatResp => q.src = id ∧ q.term = v.ps.term
-  | .propose => True
+  | .propose => q.src = id ∧ q.term = W64 0
   | _ => False
 
 /-- The self-addressed messages `Advance` steps (`stepsOnAdvance`): a leader's self-acknowledgement,
@@ -201,7 +207,8 @@ and agreeing with it (`subSeq`'s domain, B 434, 600), recorded under a term it h
 log while that is kept; every ack of a node at its term within its `confirmed` or its commit (what
 `CommitBeyondConfirmed`, B 435, needs); `ledLog`'s terms led; a node in `leaders` at its current term
 only while it leads it; the grants' and acks' senders and receivers and the votes' voters servers
-(`GC` looks them up, B 699-708: an evaluation error otherwise). -/
+(`GC` looks them up, B 699-708: an evaluation error otherwise); a node's vote at its term in
+`votes` (recorded by the write that made it, B 410: what a `send` of its grant checks, B 540). -/
 def BindingOk (S : AntCheck.State) : Prop :=
   S.viol = [] ∧
   (∀ n : Fin 3, S.queue[n.val]! = [] ∧ S.reads[n.val]! = []) ∧
@@ -224,7 +231,9 @@ def BindingOk (S : AntCheck.State) : Prop :=
       (l.term = S.currentTerm[n.val]! ∧ S.role[n.val]! = AntCheck.leader)) ∧
   (∀ f ∈ S.msgs, f.type ≠ go!"vote" →
     (∃ i : Fin 3, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin 3, f.dst = nameOf (nodeId j)) ∧
-  (∀ v ∈ S.votes, ∃ i : Fin 3, v.voter = nameOf (nodeId i))
+  (∀ v ∈ S.votes, ∃ i : Fin 3, v.voter = nameOf (nodeId i)) ∧
+  (∀ n : Fin 3, S.vote n.val ≠ [] →
+    { voter := nameOf (nodeId n), term := S.currentTerm[n.val]!, cand := S.vote n.val } ∈ S.votes)
 
 /-! ## C4: the network -/
 
