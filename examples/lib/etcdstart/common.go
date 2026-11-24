@@ -233,8 +233,8 @@ func NewClient(addr string, lg *zap.Logger) (*clientv3.Client, error) {
 // next endpoint; a write is retried only after a refusal (a learner's, an authentication error),
 // which the examples' members never send, so it is sent at most once (notes/read-retry-plan.md).
 // No proxy (grpc.WithNoProxy): every connection goes to an endpoint itself, never through an HTTP
-// CONNECT proxy that the process environment names (HTTPS_PROXY, grpc-go's default dialer reads
-// it), so that a call reaches only the member serving the endpoint (notes/putget-dist-plan.md
+// CONNECT proxy that the process environment names (HTTPS_PROXY or https_proxy, which grpc-go's
+// delegating resolver reads otherwise), so that a call reaches only the member serving the endpoint (notes/putget-dist-plan.md
 // section 12, finding F1).
 func NewClients(eps []string, lg *zap.Logger) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{

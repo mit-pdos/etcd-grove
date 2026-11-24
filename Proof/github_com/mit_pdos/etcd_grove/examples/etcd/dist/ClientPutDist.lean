@@ -51,7 +51,8 @@ receives every attempt (`TestProxyRogue`).
 
 Retired by #24's switch (`isGrpcRpcMd := grpcSvcAt`, `etcdAddrAt` defined; `grpcSvcAt_of_addr`
 gives `kvRegsPub ep γE mid`) together with clientv3's pub-form put, `client_Put_pub`, a new proved
-lemma. Then it is a theorem with this statement. -/
+lemma. Then it is a theorem with this statement. The deposit is an update at the full mask (`={⊤}=∗`):
+the retiring proof's server must fire it with no invariant open, or this statement changes. -/
 axiom Client_Put_dist.wp_proof : Client_Put_dist.spec (GF := GF) (hG := hG)
 
 end proof

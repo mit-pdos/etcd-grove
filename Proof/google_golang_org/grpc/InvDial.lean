@@ -30,7 +30,7 @@ proof holds a descriptor of is one of these:
   `notes/putget-dist-plan.md` §12, finding F1; etcdstart's `NewClients` passes it): it sets no
   interceptor, no resolver and no credentials; at run time the connection dials each resolved
   address itself, never through an HTTP `CONNECT` proxy named by the process environment
-  (`HTTPS_PROXY`), which grpc-go's default dialer reads otherwise. The model (`models/grpc`) reads no
+  (`HTTPS_PROXY` or `https_proxy`), which grpc-go's delegating resolver reads otherwise. The model (`models/grpc`) reads no
   proxy variable, so `NewClient`'s axiom says the same of a dial with or without it.
 An option a descriptor does not describe (`WithChainUnaryInterceptor`, `WithDefaultCallOptions`,
 ...) has no descriptor: a dial that holds one is not covered
