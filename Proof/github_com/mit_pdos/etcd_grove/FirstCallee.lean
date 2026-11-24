@@ -130,7 +130,7 @@ components with its package (`"zap.String"`; a tag without a package, `"String"`
 function's). A method's tag is its name (`"String"`), or its name after its receiver type's
 (`"ID.String"`, `"*ID.String"` for a pointer receiver: `recvName?`), which no other receiver
 type's method matches. The primes goose adds to a name Lean has taken are ignored (`"zap.Bool"`
-names `go_uber_org.zap.Bool'`). -/
+names `go_uber_org.zap.Bool''`). -/
 meta def tagMatches (c : Callee) (t : String) : Bool :=
   let n := String.ofList (c.name.toList.reverse.dropWhile (· == '\'')).reverse
   if c.isMethod then

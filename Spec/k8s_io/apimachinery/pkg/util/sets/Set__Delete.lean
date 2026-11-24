@@ -28,7 +28,7 @@ abbrev Set.Delete.spec : Prop :=
     {T : go.GoType} [IntoValTyped (GF := GF) K T] [∀ k : K, SafeMapKey (GF := GF) T k]
     (m : Loc) (s : GMap K Elem) (sl : GoSlice) (dq : DFrac) (ks : List K),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m ↦$ s ∗ sl ↦*{dq} ks }}
-    (App (Val (m @!! Set'.ty T @!! go!"Delete")) (Val #sl))
+    (App (Val (m @!! Set''.ty T @!! go!"Delete")) (Val #sl))
   {{ RET #m; m ↦$ deleteAll s ks ∗ sl ↦*{dq} ks }}
 
 end spec

@@ -61,7 +61,7 @@ def Apply.spec : Prop :=
     (P : IProp GF) (Q : Bool → Loc → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       Zap.isLogger lg ∗ EtcdServer.entryAt ptr k ent ∗ ⌜irrDecodes ent.data ir ∧ ir.hasId⌝ ∗
-      ⌜w = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list'.ty) #l⌝ ∗
+      ⌜w = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list''.ty) #l⌝ ∗
       Wait.listAt l γw Pw ∗ (Wait.waitWasReg γw ir.reqId ∨ Wait.waitNever γw ir.reqId) ∗ threadTok ∗
       (∃ ui : GoInterfaceOk, ⌜ua = GoInterface.ok ui⌝ ∗
         □ ∀ (r : Loc) (sk : Bool),

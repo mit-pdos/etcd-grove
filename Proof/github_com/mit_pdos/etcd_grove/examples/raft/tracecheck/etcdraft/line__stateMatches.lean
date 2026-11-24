@@ -120,7 +120,7 @@ theorem line.stateMatches.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG 
   wp_auto
   try rw [show sint.Z (W64 0) = 0 from rfl]
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
   try rw [show sint.Z (W64 0) = 0 from rfl]
   wp_auto
   wp_apply wp_SetEqual _ _ _ _ $$ [Hja Hc0] as -
@@ -136,7 +136,7 @@ theorem line.stateMatches.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG 
   wp_auto
   try rw [show sint.Z (W64 1) = 1 from rfl]
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
   try rw [show sint.Z (W64 1) = 1 from rfl]
   wp_auto
   wp_apply wp_SetEqual _ _ _ _ $$ [Hjb Hc1] as -

@@ -30,7 +30,7 @@ abbrev Set.Intersection.spec : Prop :=
     (m1 m2 : Loc) (d1 d2 : DFrac) (s1 s2 : GMap K Elem),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m1 ↦${d1} s1 ∗
       m2 ↦${d2} s2 }}
-    (App (Val (m1 @!! Set'.ty T @!! go!"Intersection")) (Val #m2))
+    (App (Val (m1 @!! Set''.ty T @!! go!"Intersection")) (Val #m2))
   {{ (r : Loc), RET #r; m1 ↦${d1} s1 ∗ m2 ↦${d2} s2 ∗ ∃ s : GMap K Elem, r ↦$ s }}
 
 end spec

@@ -27,7 +27,7 @@ abbrev Set.Add.spec : Prop :=
   ∀ (sl : GoSlice) (s : SetIds) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
       setRO sl s }}
-    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set'.ty @!! go!"Add")) (Val #id))
+    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.ty @!! go!"Add")) (Val #id))
   {{ (u : GoSlice), RET #u; setRO u (s.add (uint.nat id)) }}
 
 end spec

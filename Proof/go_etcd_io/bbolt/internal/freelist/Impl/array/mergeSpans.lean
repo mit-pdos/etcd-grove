@@ -55,7 +55,7 @@ theorem arrayImpl_mergeSpans
   have Hys' : ys' = sortPgids ys := sort_post_eq Hperm Hsorted
   subst Hys'
   wp_apply (hVerify _ iprop(f_ptr ↦ a ∗ ids_ptr ↦ idsl ∗ idsl ↦* sortPgids ys ∗
-      structFieldRef array' go!"ids" a ↦ ids ∗ ids ↦* free)) $$ [f ids Hys Hidsf Hids]
+      structFieldRef array'' go!"ids" a ↦ ids ∗ ids ↦* free)) $$ [f ids Hys Hidsf Hids]
   · isplit
     · wp_auto
       wp_apply (wp_map_make1 (K := w64) (V := Unit)) as %mi Hmi

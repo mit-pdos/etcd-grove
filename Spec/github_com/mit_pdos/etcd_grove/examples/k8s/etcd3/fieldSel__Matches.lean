@@ -30,7 +30,7 @@ abbrev fieldSel.Matches.spec : Prop :=
   ∀ (s : fieldSel) (m : Loc) (M : GMap GoString GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ mapRO m M }}
     (App (Val #(methods github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel.ty go!"Matches" #s))
-      (Val #(interface.mkOk k8s_io.apimachinery.pkg.fields.Set'.ty #m)))
+      (Val #(interface.mkOk k8s_io.apimachinery.pkg.fields.Set''.ty #m)))
   {{ RET #(fmL s M); True }}
 
 end spec

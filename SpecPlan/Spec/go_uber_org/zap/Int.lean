@@ -30,7 +30,7 @@ variable [sem : go.Semantics]
 def Int.spec : Prop :=
   ∀ (k : GoString) (v : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap }}
-    (App (App (Val (@! zap.Int')) (Val #k)) (Val #v))
+    (App (App (Val (@! zap.Int'')) (Val #k)) (Val #v))
   {{ (f : zap.zapcore.Field), RET #f; True }}
 
 end spec

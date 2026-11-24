@@ -50,7 +50,7 @@ variable [sem : go.Semantics]
 abbrev typedListMeta.spec : Prop :=
   ∀ (r : Res),
     go.typeSetContains (go.GoType.PointerType (resListTy r))
-      k8s_io.apimachinery.pkg.api.«meta».List'.ty = true ∧
+      k8s_io.apimachinery.pkg.api.«meta».List''.ty = true ∧
     (∀ (q : Loc) (os : List Obj) (rv : GoString),
       {{ typedListAt (GF := GF) r q os rv }}
         (App (Val #(methods (go.GoType.PointerType (resListTy r)) go!"GetResourceVersion" #q))

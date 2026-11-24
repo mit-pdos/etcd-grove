@@ -58,7 +58,7 @@ def labelSelOk (ls : GoInterface) (le : Bool) (lm : GMap GoString GoString → B
         WP (App (Val #(methods ii.ty go!"Empty" ii.v)) (Val #())) {{ Φ }}) ∗
     □ (∀ (m : Loc) (M : GMap GoString GoString) (Φ : val → IProp GF), mapRO m M -∗ ▷ Φ #(lm M) -∗
         WP (App (Val #(methods ii.ty go!"Matches" ii.v))
-          (Val #(interface.mkOk k8s_io.apimachinery.pkg.labels.Set'.ty #m))) {{ Φ }}))
+          (Val #(interface.mkOk k8s_io.apimachinery.pkg.labels.Set''.ty #m))) {{ Φ }}))
 
 /-- The same for a field selector (`fields.Selector` on a `fields.Set`). -/
 def fieldSelOk (fs : GoInterface) (fe : Bool) (fm : GMap GoString GoString → Bool) : IProp GF :=
@@ -67,7 +67,7 @@ def fieldSelOk (fs : GoInterface) (fe : Bool) (fm : GMap GoString GoString → B
         WP (App (Val #(methods ii.ty go!"Empty" ii.v)) (Val #())) {{ Φ }}) ∗
     □ (∀ (m : Loc) (M : GMap GoString GoString) (Φ : val → IProp GF), mapRO m M -∗ ▷ Φ #(fm M) -∗
         WP (App (Val #(methods ii.ty go!"Matches" ii.v))
-          (Val #(interface.mkOk k8s_io.apimachinery.pkg.fields.Set'.ty #m))) {{ Φ }}))
+          (Val #(interface.mkOk k8s_io.apimachinery.pkg.fields.Set''.ty #m))) {{ Φ }}))
 
 /-- **A selector's `Empty` answers `e`** (a label or a field selector; what `labelFieldEmpty` reads of
 each: `labelSelOk`/`fieldSelOk` without `Matches`; k8s 7f-5b, so that `storage.Everything`'s selectors,

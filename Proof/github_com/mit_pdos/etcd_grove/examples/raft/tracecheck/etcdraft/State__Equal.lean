@@ -47,7 +47,7 @@ theorem State.Equal.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG := hG)
   icases Hpsf with ⟨#S1, #S2, #S3, #S4, #S5, #S6, #S7, -⟩
   icases Hptf with ⟨#T1, #T2, #T3, #T4, #T5, #T6, #T7, -⟩
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
   wp_auto
   wp_apply wp_SetEqual _ _ _ _ $$ [Hsrvs Hsrvt] as -
   · iframe Hsrvs Hsrvt

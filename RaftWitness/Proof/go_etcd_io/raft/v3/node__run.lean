@@ -68,7 +68,7 @@ theorem node.run.wp_proof
   icombine Hn Hn0 gives %Heq
   subst Heq
   wp_auto
-  simp only [None']
+  simp only [None'']
   wp_auto
   ihave HI : iprop(∃ (pc rc ac : GoChan) (rdv : Ready) (ld : w64),
       "propc" ∷ propc_ptr ↦ pc ∗ "readyc" ∷ readyc_ptr ↦ rc ∗ "advancec" ∷ advancec_ptr ↦ ac ∗

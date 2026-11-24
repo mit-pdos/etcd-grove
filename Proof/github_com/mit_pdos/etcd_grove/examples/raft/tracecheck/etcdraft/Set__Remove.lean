@@ -35,7 +35,7 @@ theorem Set.Remove.wp_proof (wp_Minus : Set.Minus.spec (GF := GF) (hG := hG)) :
   iintro %sl0 ⟨Hsl0, -⟩
   imod ownSlice_persist $$ Hsl0 with #Hsl0
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Minus_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Minus_unfold.method_unfold]
   try wp_auto
   wp_apply wp_Minus sl s _ [uint.nat id] $$ [Hsl0] as %u #Hu
   · iframe Hs

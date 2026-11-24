@@ -30,7 +30,7 @@ abbrev labelSel.Matches.spec : Prop :=
   ∀ (s : labelSel) (m : Loc) (M : GMap GoString GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ mapRO m M }}
     (App (Val #(methods github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel.ty go!"Matches" #s))
-      (Val #(interface.mkOk k8s_io.apimachinery.pkg.labels.Set'.ty #m)))
+      (Val #(interface.mkOk k8s_io.apimachinery.pkg.labels.Set''.ty #m)))
   {{ RET #(lmL s M); True }}
 
 end spec

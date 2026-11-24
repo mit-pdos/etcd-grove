@@ -100,7 +100,7 @@ def selOk (sel : GoInterface) (S : Option SelV) : IProp GF :=
     {{ True }} (App (Val #(methods i.ty go!"Empty" i.v)) (Val #())) {{ RET #(selEmpty S); True }} ∗
     □ (∀ (lm : Loc) (L : GMap GoString GoString), {{ lm ↦${DFrac.discard} L }}
         (App (Val #(methods i.ty go!"Matches" i.v))
-          (Val #(interface.mkOk k8s_io.apimachinery.pkg.labels.Set'.ty #lm)))
+          (Val #(interface.mkOk k8s_io.apimachinery.pkg.labels.Set''.ty #lm)))
         {{ RET #(decide (selMatch S L)); True }}))
 
 instance selOk_persistent (sel : GoInterface) (S : Option SelV) :

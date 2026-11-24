@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `Count` on a `*array`: `Interface.Count`'s contract at `arrayIface l`. -/
 def array.Count.spec : Prop := ∀ (l : Loc),
-  Interface.Count.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"Count"))
+  Interface.Count.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"Count"))
 
 end spec
 

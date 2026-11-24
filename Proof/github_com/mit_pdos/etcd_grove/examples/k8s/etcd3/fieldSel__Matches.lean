@@ -34,7 +34,7 @@ theorem fields_Get_ro (wp_Get : fields.Set.Get.spec (GF := GF) (hG := hG)) (m : 
     (M : GMap GoString GoString) (k : GoString) (Φ : val → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.fields -∗ mapRO m M -∗
       ▷ Φ #((M !! k).getD []) -∗
-      WP (App (Val #(methods k8s_io.apimachinery.pkg.fields.Set'.ty go!"Get" #m)) (Val #k)) {{ Φ }} := by
+      WP (App (Val #(methods k8s_io.apimachinery.pkg.fields.Set''.ty go!"Get" #m)) (Val #k)) {{ Φ }} := by
   iintro #Pf #Hm HΦ
   iunfold mapRO at Hm
   icases Hm with (⟨%hm, %hM⟩ | #Hm)

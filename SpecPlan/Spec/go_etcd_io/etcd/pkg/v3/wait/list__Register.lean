@@ -44,7 +44,7 @@ def list.Register.spec : Prop :=
   ∀ (l : Loc) (γw : WaitNames) (P : w64 → GoInterface → IProp GF) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ listAt l γw P ∗
       waitTok γw id }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list'.ty @!! go!"Register"))
+    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list''.ty @!! go!"Register"))
       (Val #id))
   {{ (ch : Loc), RET #ch; waitRecv γw id ch ∗ waitWasReg γw id }}
 

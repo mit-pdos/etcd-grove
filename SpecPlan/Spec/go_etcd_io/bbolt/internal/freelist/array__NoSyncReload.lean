@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `NoSyncReload` on a `*array`: `Interface.NoSyncReload`'s contract at `arrayIface l`. -/
 def array.NoSyncReload.spec : Prop := ∀ (l : Loc),
-  Interface.NoSyncReload.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"NoSyncReload"))
+  Interface.NoSyncReload.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"NoSyncReload"))
 
 end spec
 

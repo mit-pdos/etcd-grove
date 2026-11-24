@@ -1290,7 +1290,7 @@ theorem stateFields_with_viol (g : G.State) (s : State) (sl : GoSlice) (xs : SSe
 /-- `ns.Viol = sl` on an owned successor: `{ s with viol := xs }`. -/
 theorem wp_set_viol (q : Loc) (s : State) (sl : GoSlice) (xs : SSet) :
     {{ stateOwn (GF := GF) q s ∗ strsRO sl xs }}
-      (App (Val (GoInstruction (GoStore (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'.ty))))
+      (App (Val (GoInstruction (GoStore (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.ty))))
         (Val (PairV #(q.[github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State, go!"Viol"]) #sl)))
     {{ RET #(); stateOwn q { s with viol := xs } }} := by
   iintro %Φ ⟨Hq, #Hn⟩ HΦ

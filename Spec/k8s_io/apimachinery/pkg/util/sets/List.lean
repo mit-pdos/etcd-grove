@@ -28,7 +28,7 @@ the items, each once, in increasing order. -/
 abbrev List'.spec : Prop :=
   ∀ (m : Loc) (dq : DFrac) (s : GMap GoString Elem), GMap.size s ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m ↦${dq} s }}
-    (App (Val #(functions List' [go.string])) (Val #m))
+    (App (Val #(functions List'' [go.string])) (Val #m))
   {{ (sl : GoSlice) (ks : List GoString), RET #sl; m ↦${dq} s ∗ sl ↦* ks ∗
       ⌜(∀ k, k ∈ ks ↔ (s !! k).isSome) ∧ ks.Nodup ∧
         ∀ (i j : Nat) (a b : GoString), ks[i]? = some a → ks[j]? = some b → i < j →

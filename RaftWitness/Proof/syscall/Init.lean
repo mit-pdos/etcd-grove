@@ -69,7 +69,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _) fcntl64Syscall _ as Hfcntl64Syscall
   wp_apply wp_GlobalAlloc (V := _) forceClone3 _ as HforceClone3
   wp_apply wp_GlobalAlloc (V := _) slash _ as Hslash
-  wp_apply wp_GlobalAlloc (V := _) none' _ as Hnone'
+  wp_apply wp_GlobalAlloc (V := _) none'' _ as Hnone''
   wp_apply wp_GlobalAlloc (V := _) copyenv _ as Hcopyenv
   wp_apply wp_GlobalAlloc (V := _) envs _ as Henvs
   wp_apply wp_GlobalAlloc (V := _) env _ as Henv
@@ -81,7 +81,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of envs))
   -- translated initializer of copyenv))
-  -- translated initializer of none'))
+  -- translated initializer of none''))
   -- translated initializer of slash))
   -- translated initializer of forceClone3))
   -- translated initializer of fcntl64Syscall))

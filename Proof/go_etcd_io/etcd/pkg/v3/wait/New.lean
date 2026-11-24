@@ -250,7 +250,7 @@ theorem wait.New.wp_proof
         (Φ := fun j (_ : Option Loc) => waitShard (GF := GF) γi γw R (waitShardAddr sl j) (W64 j)) ho) $$ Hsh
     isplitl []
     · iunfold isWait
-      iexists interface.mk wait.list'.ty.PointerType #res_ptr
+      iexists interface.mk wait.list''.ty.PointerType #res_ptr
       isplitr
       · ipureintro; rfl
       isplitr

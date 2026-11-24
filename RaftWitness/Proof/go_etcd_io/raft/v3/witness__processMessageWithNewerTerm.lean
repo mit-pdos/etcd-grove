@@ -105,7 +105,7 @@ theorem witness.processMessageWithNewerTerm.wp_proof :
       rw [if_neg (show ¬ μ.ty = MsgPreVote by rw [← Hty]; exact hpv),
         if_pos (show μ.ty = MsgApp ∨ μ.ty = MsgHeartbeat ∨ μ.ty = MsgSnap by rw [← Hty]; exact hl)]
     rw [hw]
-    simp only [None']
+    simp only [None'']
     wp_auto
     rename_i pte pvo
     irename : (pte ↦ mv.Term' : IProp GF) => Ht
@@ -125,7 +125,7 @@ theorem witness.processMessageWithNewerTerm.wp_proof :
       rw [if_neg (show ¬ μ.ty = MsgPreVote by rw [← Hty]; exact hpv),
         if_neg (show ¬ (μ.ty = MsgApp ∨ μ.ty = MsgHeartbeat ∨ μ.ty = MsgSnap) by rw [← Hty]; exact hl)]
     rw [hw]
-    simp only [None']
+    simp only [None'']
     wp_auto
     rename_i pte pvo
     irename : (pte ↦ mv.Term' : IProp GF) => Ht

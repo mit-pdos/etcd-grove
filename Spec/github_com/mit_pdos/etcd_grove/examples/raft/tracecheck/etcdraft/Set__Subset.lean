@@ -28,7 +28,7 @@ abbrev Set.Subset.spec : Prop :=
   ∀ (sl : GoSlice) (s : SetIds) (tl : GoSlice) (t : SetIds),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
       setRO sl s ∗ setRO tl t }}
-    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set'.ty @!! go!"Subset"))
+    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.ty @!! go!"Subset"))
       (Val #tl))
   {{ RET #(s.subset t); True }}
 

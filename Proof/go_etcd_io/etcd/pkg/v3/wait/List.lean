@@ -151,7 +151,7 @@ instance waitShard_persistent (γi : IdNames) (γw : GName)
 /-- **The `*list` `l`** (persistent): its 64 shards. -/
 def waitList (l : Loc) (γi : IdNames) (γw : GName)
     (R : w64 → (GoInterface → IProp GF) → IProp GF) : IProp GF :=
-  iprop(∃ sl : GoSlice, structFieldRef wait.list' go!"e" l ↦□ sl ∗ ⌜sint.Z sl.len = 64⌝ ∗
+  iprop(∃ sl : GoSlice, structFieldRef wait.list'' go!"e" l ↦□ sl ∗ ⌜sint.Z sl.len = 64⌝ ∗
     □ (∀ i : Nat, ⌜i < 64⌝ -∗ waitShard γi γw R (waitShardAddr sl i) (W64 i)))
 
 instance waitList_persistent (l : Loc) (γi : IdNames) (γw : GName)
@@ -168,7 +168,7 @@ def waitShardReader (γi : IdNames) (γw : GName) (R : w64 → (GoInterface → 
 /-- **The reader's resource** of the `*list` `l`: a reader slot of each shard's lock. -/
 def waitListReader (l : Loc) (γi : IdNames) (γw : GName)
     (R : w64 → (GoInterface → IProp GF) → IProp GF) : IProp GF :=
-  iprop(∃ sl : GoSlice, structFieldRef wait.list' go!"e" l ↦□ sl ∗ ⌜sint.Z sl.len = 64⌝ ∗
+  iprop(∃ sl : GoSlice, structFieldRef wait.list'' go!"e" l ↦□ sl ∗ ⌜sint.Z sl.len = 64⌝ ∗
     [∗list] i ↦ _u ∈ List.replicate 64 (), waitShardReader γi γw R (waitShardAddr sl i) (W64 i))
 
 /-! ## Ghost steps -/

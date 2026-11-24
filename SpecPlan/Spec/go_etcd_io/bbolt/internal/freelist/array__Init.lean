@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `Init` on a `*array`: `Interface.Init`'s contract at `arrayIface l`. -/
 def array.Init.spec : Prop := ∀ (l : Loc),
-  Interface.Init.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"Init"))
+  Interface.Init.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"Init"))
 
 end spec
 

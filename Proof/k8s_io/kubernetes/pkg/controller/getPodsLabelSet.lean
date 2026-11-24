@@ -31,7 +31,7 @@ theorem getPodsLabelSet.wp_proof : getPodsLabelSet.spec (GF := GF) (hG := hG) :=
   icases tmplAt_labels tp dq t $$ Ht with ⟨%m, Hm, Hmd, Hback⟩
   wp_auto
   rw [go.make1_underlying, (go.is_underlying :
-    underlying k8s_io.apimachinery.pkg.labels.Set'.ty = _)]
+    underlying k8s_io.apimachinery.pkg.labels.Set''.ty = _)]
   wp_apply (wp_map_make1 (K := GoString) (V := GoString)) as %c Hc
   cases hlab : t.ObjectMeta'.Labels' with
   | none =>

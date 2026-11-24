@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem wp_ix_lookup (ip : Loc) (dq : DFrac) (ix : Ix) (n v : GoString) (l : Loc) (X : IxN)
     (hx : ix !! n = some (l, X)) :
     {{ ownIx (GF := GF) ip dq ix }}
-      (App (App (Val (map.lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)))
+      (App (App (Val (map.lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)))
         (Val #l)) (Val #v))
     {{ RET #(setLoc ix n v); ownIx ip dq ix }} := by
   iintro %Φ Hix HΦ
@@ -39,7 +39,7 @@ theorem wp_ix_lookup (ip : Loc) (dq : DFrac) (ix : Ix) (n v : GoString) (l : Loc
   icases (BigSepM.bigSepM_lookup_acc hx) $$ HIX with ⟨HX, HIXc⟩
   iunfold ownIxN at HX
   icases HX with ⟨Hl, HXs⟩
-  wp_apply (wp_map_lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)
+  wp_apply (wp_map_lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)
     l _ v dq) $$ [$Hl] as Hl
   have hs : ((GMap.fmap Prod.fst X) !! v).getD (zero_val Loc) = setLoc ix n v := by
     unfold setLoc; rw [hx]; simp only [Option.bind_some, GMap.lookup_fmap]

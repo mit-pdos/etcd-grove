@@ -746,7 +746,7 @@ theorem State.InMemory.wp_proof
       have := (List.getElem?_eq_some_iff.1 Hcx).1; constructor <;> word
     rw [ite_eq_left_of_eq_true _ _ (eq_true hnb)]
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set.TypeAssumptions.ptr_Has_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_Has_unfold.method_unfold]
     try wp_auto
     iunfold confRO at Hcn
     icases Hcn with ⟨#HcIn, #HcOut⟩
@@ -768,7 +768,7 @@ theorem State.InMemory.wp_proof
     · iexact Hme
     rw [ite_eq_left_of_eq_true _ _ (eq_true hnb)]
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set.TypeAssumptions.ptr_Has_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_Has_unfold.method_unfold]
     try wp_auto
     wp_apply wp_Has gcn.Out' _ s.cfg.server[sint.nat n]! $$ [HcOut] as -
     · iexact HcOut

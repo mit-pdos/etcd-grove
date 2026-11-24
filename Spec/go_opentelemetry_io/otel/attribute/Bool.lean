@@ -29,7 +29,7 @@ attribute: no effect the model sees); it returns. -/
 abbrev «attribute».Bool.spec : Prop :=
   ∀ (k : GoString) (v : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» }}
-    (App (App (Val (@! go_opentelemetry_io.otel.«attribute».Bool')) (Val #k)) (Val #v))
+    (App (App (Val (@! go_opentelemetry_io.otel.«attribute».Bool'')) (Val #k)) (Val #v))
   {{ (kv : go_opentelemetry_io.otel.«attribute».KeyValue), RET #kv; True }}
 
 end spec

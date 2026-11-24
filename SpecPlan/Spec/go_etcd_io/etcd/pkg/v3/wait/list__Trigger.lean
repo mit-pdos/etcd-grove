@@ -51,7 +51,7 @@ def list.Trigger.spec : Prop :=
   ∀ (l : Loc) (γw : WaitNames) (P : w64 → GoInterface → IProp GF) (id : w64) (x : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ listAt l γw P ∗
       (P id x ∨ (∃ ch, waitRecv γw id ch) ∨ waitDone γw id) }}
-    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list'.ty @!! go!"Trigger"))
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list''.ty @!! go!"Trigger"))
       (Val #id)) (Val #x))
   {{ RET #(); True }}
 

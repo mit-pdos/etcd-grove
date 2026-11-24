@@ -84,7 +84,7 @@ theorem storeIndex.getKeysByIndex.wp_proof :
       iunfold ownIxN at HX
       icases HX with ⟨Hl, HXs⟩
       (try wp_auto)
-      wp_apply (wp_map_lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)
+      wp_apply (wp_map_lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)
         l _ v dq) $$ [$Hl] as Hl
       (try wp_auto)
       iapply HΦ

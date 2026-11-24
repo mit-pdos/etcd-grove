@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `ReleasePendingPages` on a `*array`: `Interface.ReleasePendingPages`'s contract at `arrayIface l`. -/
 def array.ReleasePendingPages.spec : Prop := ∀ (l : Loc),
-  Interface.ReleasePendingPages.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"ReleasePendingPages"))
+  Interface.ReleasePendingPages.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"ReleasePendingPages"))
 
 end spec
 

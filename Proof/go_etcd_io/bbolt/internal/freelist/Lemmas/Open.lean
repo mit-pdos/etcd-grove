@@ -32,11 +32,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-theorem array_ne_hash : (go.GoType.PointerType array'.ty) ≠ go.GoType.PointerType hashMap.ty := by
-  unfold array'.ty hashMap.ty; simp
+theorem array_ne_hash : (go.GoType.PointerType array''.ty) ≠ go.GoType.PointerType hashMap.ty := by
+  unfold array''.ty hashMap.ty; simp
 
 theorem mkOk_array_ne_hash (a b : Loc) :
-    interface.mkOk (go.GoType.PointerType array'.ty) #a ≠
+    interface.mkOk (go.GoType.PointerType array''.ty) #a ≠
       interface.mkOk (go.GoType.PointerType hashMap.ty) #b := by
   intro h; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
   exact array_ne_hash h.1
@@ -135,7 +135,7 @@ theorem flPgOwn_close (I : FLImpl (GF := GF)) (a s : Loc) (fli : GoInterface) (f
     ipureintro; exact ⟨Hok.1, Hok.2⟩
 
 theorem flImplAt_array (a s : Loc) :
-    structFieldRef array' go!"shared" a ↦□ s ⊢
+    structFieldRef array'' go!"shared" a ↦□ s ⊢
       flImplAt (GF := GF) (arrayImpl (GF := GF) a).iface a s := by
   iintro #H
   iunfold flImplAt

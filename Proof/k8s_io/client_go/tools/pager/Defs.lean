@@ -99,9 +99,9 @@ deep, which Perennial's `≤u` (one `UnderlyingDirectedEq` step, no transitivity
 an interface method call on a `meta.List` does not step without it. Proved from the two
 packages' type assumptions (`notes/perennial-changes.md`). -/
 instance metaList_underlying :
-    go.UnderlyingEq k8s_io.apimachinery.pkg.api.«meta».List'.ty
+    go.UnderlyingEq k8s_io.apimachinery.pkg.api.«meta».List''.ty
       k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.underlying :=
-  ⟨(go.UnderlyingDirectedEq.underlying_unfold (t := k8s_io.apimachinery.pkg.api.«meta».List'.ty)).trans
+  ⟨(go.UnderlyingDirectedEq.underlying_unfold (t := k8s_io.apimachinery.pkg.api.«meta».List''.ty)).trans
     (go.UnderlyingDirectedEq.underlying_unfold
       (t := k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty))⟩
 

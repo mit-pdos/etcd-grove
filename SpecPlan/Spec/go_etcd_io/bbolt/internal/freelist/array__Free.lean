@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `Free` on a `*array`: `Interface.Free`'s contract at `arrayIface l`. -/
 def array.Free.spec : Prop := ∀ (l : Loc),
-  Interface.Free.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"Free"))
+  Interface.Free.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"Free"))
 
 end spec
 

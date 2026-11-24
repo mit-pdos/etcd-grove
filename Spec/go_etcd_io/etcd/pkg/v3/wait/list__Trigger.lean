@@ -32,7 +32,7 @@ abbrev wait.list.Trigger.spec : Prop :=
       ((∃ t : GName, waitGone γw id t) ∨
         (∃ γh : HandoffNames, ⌜x = GoInterface.nil⌝ ∗ handoffConsumer γh false ∗
           waitRegd γw id γh.takenName) ∨ waitTrig R id x) }}
-    (App (App (Val (l @!! go.GoType.PointerType wait.list'.ty @!! go!"Trigger")) (Val #id))
+    (App (App (Val (l @!! go.GoType.PointerType wait.list''.ty @!! go!"Trigger")) (Val #id))
       (Val #x))
   {{ RET #(); True }}
 

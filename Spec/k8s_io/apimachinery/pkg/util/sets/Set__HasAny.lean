@@ -30,7 +30,7 @@ abbrev Set.HasAny.spec : Prop :=
     (m : Loc) (dq : DFrac) (s : GMap K Elem) (sl : GoSlice) (dl : DFrac) (ks : List K),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m ↦${dq} s ∗
       sl ↦*{dl} ks }}
-    (App (Val (m @!! Set'.ty T @!! go!"HasAny")) (Val #sl))
+    (App (Val (m @!! Set''.ty T @!! go!"HasAny")) (Val #sl))
   {{ RET #(decide (∃ k ∈ ks, (s !! k).isSome)); m ↦${dq} s ∗ sl ↦*{dl} ks }}
 
 end spec

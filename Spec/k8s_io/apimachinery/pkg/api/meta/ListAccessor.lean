@@ -45,10 +45,10 @@ variable [package_sem : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 itself and `nil`. -/
 abbrev ListAccessor.spec : Prop :=
   ∀ (ii : GoInterfaceOk),
-    go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.«meta».List'.ty = true →
+    go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.«meta».List''.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.«meta» }}
     (App (Val (@! k8s_io.apimachinery.pkg.api.«meta».ListAccessor)) (Val #(GoInterface.ok ii)))
-  {{ RET (PairV #(GoInterface.ok ii : k8s_io.apimachinery.pkg.api.«meta».List')
+  {{ RET (PairV #(GoInterface.ok ii : k8s_io.apimachinery.pkg.api.«meta».List'')
       #(interface.nil : GoInterface)); True }}
 
 end spec

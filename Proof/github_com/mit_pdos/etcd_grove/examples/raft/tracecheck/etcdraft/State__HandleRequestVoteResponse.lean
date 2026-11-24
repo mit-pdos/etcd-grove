@@ -73,7 +73,7 @@ theorem State.HandleRequestVoteResponse.wp_proof (wp_clone : State.clone.spec (G
   wp_auto
   mut_open t, st, [], i, Ht
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Add_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Add_unfold.method_unfold]
   wp_auto
   wp_apply wp_Add _ _ j $$ [Hvr] as %u #Hu
   · iexact Hvr
@@ -93,7 +93,7 @@ theorem State.HandleRequestVoteResponse.wp_proof (wp_clone : State.clone.spec (G
     rw [show st.handleRequestVoteResponse (uint.nat i) (uint.nat j) m = some ((st.upd (uint.nat i) (fun w => { w with votesResponded := (st.s (uint.nat i)).votesResponded.add (uint.nat j) })).discard m) by unfold State.handleRequestVoteResponse; simp [h1, h2, hg]]
     iexact Ht
   · try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Add_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Add_unfold.method_unfold]
     wp_auto
     wp_apply wp_Add _ _ j $$ [Hvg] as %u2 #Hu2
     · iexact Hvg

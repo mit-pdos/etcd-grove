@@ -179,9 +179,9 @@ theorem Model.equalListResponse.wp_proof
   wp_auto
   have hle1 : k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty ≤u go.GoType.InterfaceType _ :=
     inferInstance
-  have hle2 : go.UnderlyingDirectedEq k8s_io.apimachinery.pkg.api.«meta».List'.ty
+  have hle2 : go.UnderlyingDirectedEq k8s_io.apimachinery.pkg.api.«meta».List''.ty
     k8s_io.apimachinery.pkg.apis.«meta».v1.ListInterface.ty := inferInstance
-  haveI : k8s_io.apimachinery.pkg.api.«meta».List'.ty ≤u go.GoType.InterfaceType _ :=
+  haveI : k8s_io.apimachinery.pkg.api.«meta».List''.ty ≤u go.GoType.InterfaceType _ :=
     ⟨hle2.underlying_unfold.trans hle1.underlying_eq⟩
   wp_apply (ListAccessor_objList wp_LA p1) as %acc %aerr %hacc
   obtain ⟨rfl, rfl⟩ := hacc

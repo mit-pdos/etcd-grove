@@ -27,7 +27,7 @@ abbrev Set.Len.spec : Prop :=
   ∀ {K : Type} [ZeroVal K] [DecidableEq K] [go.IntoValInj K] [TypedPointsto (GF := GF) K]
     {T : go.GoType} [IntoValTyped (GF := GF) K T] (m : Loc) (dq : DFrac) (s : GMap K Elem),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m ↦${dq} s }}
-    (App (Val (m @!! Set'.ty T @!! go!"Len")) (Val #()))
+    (App (Val (m @!! Set''.ty T @!! go!"Len")) (Val #()))
   {{ RET #(W64 (GMap.size s)); m ↦${dq} s }}
 
 end spec

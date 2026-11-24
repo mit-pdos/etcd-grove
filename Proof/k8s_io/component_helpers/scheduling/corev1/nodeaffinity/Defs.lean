@@ -72,8 +72,8 @@ instance optMatcherOk_persistent (T : go.GoType) (sel : GoInterface) :
 
 /-- **A parsed node selector term** (persistent). -/
 def termOk (t : nodeSelectorTerm) : IProp GF :=
-  iprop(optMatcherOk k8s_io.apimachinery.pkg.labels.Set'.ty t.matchLabels' ∗
-    optMatcherOk k8s_io.apimachinery.pkg.fields.Set'.ty t.matchFields' ∗
+  iprop(optMatcherOk k8s_io.apimachinery.pkg.labels.Set''.ty t.matchLabels' ∗
+    optMatcherOk k8s_io.apimachinery.pkg.fields.Set''.ty t.matchFields' ∗
     ∃ es : List GoInterface, t.parseErrs' ↦*□ es)
 
 instance termOk_persistent (t : nodeSelectorTerm) : Persistent (termOk (GF := GF) t) := by
@@ -89,7 +89,7 @@ instance lesOk_persistent (ns : Loc) : Persistent (lesOk (GF := GF) ns) := by
 
 /-- **A parsed `RequiredNodeAffinity`** (persistent). -/
 def rnaOk (r : RequiredNodeAffinity) : IProp GF :=
-  iprop(optMatcherOk k8s_io.apimachinery.pkg.labels.Set'.ty r.labelSelector' ∗
+  iprop(optMatcherOk k8s_io.apimachinery.pkg.labels.Set''.ty r.labelSelector' ∗
     (⌜r.nodeSelector' = null⌝ ∨ lesOk r.nodeSelector'))
 
 instance rnaOk_persistent (r : RequiredNodeAffinity) : Persistent (rnaOk (GF := GF) r) := by

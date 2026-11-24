@@ -37,7 +37,7 @@ theorem storeIndex.deleteKeyFromIndex.wp_proof
   ihave #Hsets : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets $$ []
   · iPkgInit
   wp_auto
-  wp_apply (wp_map_lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string) l _ v)
+  wp_apply (wp_map_lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string) l _ v)
     $$ [$Hl] as Hl
   cases hv : X !! v with
   | none =>
@@ -69,7 +69,7 @@ theorem storeIndex.deleteKeyFromIndex.wp_proof
     (try wp_auto)
     wp_apply (sets.Set.wp_ptr_Delete_of wp_Delete) $$ [$set $Hs $Hl1] as ⟨Hset, Hs, -⟩
     (try wp_auto)
-    wp_apply (wp_map_len_lt (t := k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)
+    wp_apply (wp_map_len_lt (t := k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)
       s (sets.deleteAll S [key]) _) $$ [$Hs] as ⟨Hs, %hlt⟩
     simp only [sets.deleteAll_cons, sets.deleteAll_nil]
     have hview : ∀ (X' : IxN), (X' !! v).map Prod.snd = some (GMap.delete key S) ∨

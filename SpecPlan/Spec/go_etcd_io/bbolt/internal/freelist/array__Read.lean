@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `Read` on a `*array`: `Interface.Read`'s contract at `arrayIface l`. -/
 def array.Read.spec : Prop := ∀ (l : Loc),
-  Interface.Read.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"Read"))
+  Interface.Read.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"Read"))
 
 end spec
 

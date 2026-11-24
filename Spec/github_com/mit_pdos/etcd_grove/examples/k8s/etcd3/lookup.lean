@@ -29,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 abbrev lookup.spec : Prop :=
   ∀ (sl : GoSlice) (its : List item) (dq : DFrac) (k : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ sl ↦*{dq} its }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup')) (Val #sl)) (Val #k))
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup'')) (Val #sl)) (Val #k))
   {{ (it : item) (ok : Bool), RET (PairV #it #ok); sl ↦*{dq} its ∗ ⌜(it, ok) = lookupL its k⌝ }}
 
 end spec

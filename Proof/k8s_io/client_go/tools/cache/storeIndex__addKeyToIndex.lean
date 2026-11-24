@@ -36,7 +36,7 @@ theorem storeIndex.addKeyToIndex.wp_proof
   ihave #Hsets : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets $$ []
   · iPkgInit
   wp_auto
-  wp_apply (wp_map_lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string) l _ v)
+  wp_apply (wp_map_lookup1 go.string (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string) l _ v)
     $$ [$Hl] as Hl
   cases hv : X !! v with
   | none =>

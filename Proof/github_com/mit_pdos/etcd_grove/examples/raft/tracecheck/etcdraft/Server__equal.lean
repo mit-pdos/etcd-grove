@@ -92,7 +92,7 @@ theorem Server.equal.wp_proof (wp_EntriesEqual : EntriesEqual.spec (GF := GF) (h
   · rw [decide_eq_false h7]; eq_fail h7
   rw [decide_eq_true h7]
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
   wp_auto
   wp_apply wp_SetEqual _ _ _ _ $$ [Hrv Hrw] as -
   · iframe Hrv Hrw
@@ -101,7 +101,7 @@ theorem Server.equal.wp_proof (wp_EntriesEqual : EntriesEqual.spec (GF := GF) (h
   · rw [decide_eq_false h8]; eq_fail h8
   rw [decide_eq_true h8]
   wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
   wp_auto
   wp_apply wp_SetEqual _ _ _ _ $$ [Hgv Hgw] as -
   · iframe Hgv Hgw

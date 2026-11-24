@@ -27,7 +27,7 @@ abbrev Set.Minus.spec : Prop :=
   ∀ (sl : GoSlice) (xs : SSet) (tl : GoSlice) (ys : SSet),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
       strsRO sl xs ∗ strsRO tl ys }}
-    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'.ty @!! go!"Minus")) (Val #tl))
+    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.ty @!! go!"Minus")) (Val #tl))
   {{ (u : GoSlice), RET #u; strsRO u (xs.minus ys) }}
 
 end spec

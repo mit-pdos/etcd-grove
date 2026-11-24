@@ -27,7 +27,7 @@ abbrev Set.Equal.spec : Prop :=
   ∀ (sl : GoSlice) (s : SetIds) (tl : GoSlice) (t : SetIds),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
       setRO sl s ∗ setRO tl t }}
-    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set'.ty @!! go!"Equal")) (Val #tl))
+    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.ty @!! go!"Equal")) (Val #tl))
   {{ RET #(decide (s = t)); True }}
 
 end spec

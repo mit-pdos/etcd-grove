@@ -28,7 +28,7 @@ abbrev Set.Has.spec : Prop :=
     {T : go.GoType} [IntoValTyped (GF := GF) K T] (m : Loc) (dq : DFrac) (s : GMap K Elem) (k : K)
     [SafeMapKey (GF := GF) T k],
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m ↦${dq} s }}
-    (App (Val (m @!! Set'.ty T @!! go!"Has")) (Val #k))
+    (App (Val (m @!! Set''.ty T @!! go!"Has")) (Val #k))
   {{ RET #(decide ((s !! k).isSome)); m ↦${dq} s }}
 
 end spec

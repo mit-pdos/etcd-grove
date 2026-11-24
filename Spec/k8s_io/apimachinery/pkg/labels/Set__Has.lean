@@ -26,7 +26,7 @@ variable [package_sem : k8s_io.apimachinery.pkg.labels.Assumptions]
 abbrev labels.Set.Has.spec : Prop :=
   ∀ (m : Loc) (dq : DFrac) (M : GMap GoString GoString) (k : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.labels ∗ m ↦${dq} M }}
-    (App (Val #(methods k8s_io.apimachinery.pkg.labels.Set'.ty go!"Has" #m)) (Val #k))
+    (App (Val #(methods k8s_io.apimachinery.pkg.labels.Set''.ty go!"Has" #m)) (Val #k))
   {{ RET #(decide ((M.lookup k).isSome)); m ↦${dq} M }}
 
 end spec

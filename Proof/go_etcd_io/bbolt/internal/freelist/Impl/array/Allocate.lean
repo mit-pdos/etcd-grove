@@ -117,7 +117,7 @@ theorem arrayImpl_allocate' (a : Loc) : (arrayImpl (GF := GF) a).AllocateSpec :=
       have e3 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
       have e2 : sint.nat ids.len = fl.free.length := by word
       try wp_auto
-      wp_join iprop(∃ (ids' : GoSlice), "Hidsf" ∷ structFieldRef array' go!"ids" a ↦ ids' ∗
+      wp_join iprop(∃ (ids' : GoSlice), "Hidsf" ∷ structFieldRef array'' go!"ids" a ↦ ids' ∗
           "Hids" ∷ ids' ↦* (fl.free.take (sint.nat k + 1 - sint.nat n) ++ fl.free.drop (sint.nat k + 1)) ∗
           "Hidscap" ∷ ownSliceCap w64 ids' (DFrac.own 1) ∗
           "f" ∷ f_ptr ↦ a ∗ "n" ∷ n_ptr ↦ n ∗ "Hgi" ∷ gi_ptr ↦ k)

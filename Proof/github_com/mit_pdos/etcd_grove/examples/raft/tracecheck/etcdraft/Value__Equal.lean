@@ -87,14 +87,14 @@ theorem Value.Equal.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG := hG)
       icases typedPointsto_split _ _ _ $$ v with Hvf
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hvf
-      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
       try wp_auto
       wp_apply wp_SetEqual _ _ _ _ $$ [Hvn Hwn] as -
       · iframe Hvn Hwn
       by_cases hnc : a.ncS = b.ncS
       · rw [decide_eq_true hnc]
         wp_auto
-        rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
         try wp_auto
         wp_apply wp_SetEqual _ _ _ _ $$ [Hvl Hwl] as -
         · iframe Hvl Hwl

@@ -149,7 +149,7 @@ theorem storeIndex.updateSingleIndex.wp_proof
       simp only [Option.map_none, Option.getD_none]
       (try wp_auto)
       wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string
-        (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string)) as %m Hm
+        (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string)) as %m Hm
       (try wp_auto)
       wp_apply (wp_mapInsert go.string ip _ name m) $$ [$Hip] as Hip
       (try wp_auto)

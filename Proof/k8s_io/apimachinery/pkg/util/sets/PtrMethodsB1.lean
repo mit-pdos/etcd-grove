@@ -33,9 +33,9 @@ variable {K : Type} [ZeroVal K] [DecidableEq K] [go.IntoValInj K] [TypedPointsto
 theorem Set.wp_ptr_UnsortedList_of (wp_UnsortedList : Set.UnsortedList.spec (GF := GF) (hG := hG))
     (l : Loc) (dl : DFrac) (m : Loc) (dq : DFrac) (s : GMap K Elem) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗
-        l ↦{dl} (m : Set' K) ∗ m ↦${dq} s }}
-      (App (Val (l @!! go.GoType.PointerType (Set'.ty T) @!! go!"UnsortedList")) (Val #()))
-    {{ (sl : GoSlice) (ks : List K), RET #sl; l ↦{dl} (m : Set' K) ∗ m ↦${dq} s ∗ sl ↦* ks ∗
+        l ↦{dl} (m : Set'' K) ∗ m ↦${dq} s }}
+      (App (Val (l @!! go.GoType.PointerType (Set''.ty T) @!! go!"UnsortedList")) (Val #()))
+    {{ (sl : GoSlice) (ks : List K), RET #sl; l ↦{dl} (m : Set'' K) ∗ m ↦${dq} s ∗ sl ↦* ks ∗
         ⌜(∀ k, k ∈ ks ↔ (s !! k).isSome) ∧ ks.Nodup ∧ ks.length = GMap.size s⌝ }} := by
   wp_start as ⟨Hl, Hm⟩
   wp_auto

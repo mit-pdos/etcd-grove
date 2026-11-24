@@ -27,7 +27,7 @@ abbrev Set.Has.spec : Prop :=
   ∀ (sl : GoSlice) (xs : SSet) (x : Str),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
       strsRO sl xs }}
-    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'.ty @!! go!"Has")) (Val #x))
+    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.ty @!! go!"Has")) (Val #x))
   {{ RET #(SSet.has xs x); True }}
 
 end spec

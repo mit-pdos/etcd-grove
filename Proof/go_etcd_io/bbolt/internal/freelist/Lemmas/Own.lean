@@ -159,11 +159,11 @@ def FLImpl.AllocateSpec (I : FLImpl (GF := GF)) : Prop :=
 
 /-- The `*array` at `a`, its `shared` at `s`. -/
 def arrayImpl (a : Loc) : FLImpl (GF := GF) where
-  ity := go.GoType.PointerType array'.ty
+  ity := go.GoType.PointerType array''.ty
   iv := #a
-  own free := iprop(∃ sl : GoSlice, structFieldRef array' go!"ids" a ↦ sl ∗ sl ↦* free ∗
+  own free := iprop(∃ sl : GoSlice, structFieldRef array'' go!"ids" a ↦ sl ∗ sl ↦* free ∗
     ownSliceCap w64 sl (DFrac.own 1))
-  hdl s := iprop(structFieldRef array' go!"shared" a ↦□ s)
+  hdl s := iprop(structFieldRef array'' go!"shared" a ↦□ s)
   hdl_persistent _ := by infer_instance
 
 /-- The `*hashMap` at `h`, its `shared` at `s`. -/

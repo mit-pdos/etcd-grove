@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `PendingCount` on a `*array`: `Interface.PendingCount`'s contract at `arrayIface l`. -/
 def array.PendingCount.spec : Prop := ∀ (l : Loc),
-  Interface.PendingCount.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"PendingCount"))
+  Interface.PendingCount.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"PendingCount"))
 
 end spec
 

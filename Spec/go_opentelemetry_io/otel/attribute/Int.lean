@@ -29,7 +29,7 @@ attribute: no effect the model sees); it returns. -/
 abbrev «attribute».Int.spec : Prop :=
   ∀ (k : GoString) (v : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» }}
-    (App (App (Val (@! go_opentelemetry_io.otel.«attribute».Int')) (Val #k)) (Val #v))
+    (App (App (Val (@! go_opentelemetry_io.otel.«attribute».Int'')) (Val #k)) (Val #v))
   {{ (kv : go_opentelemetry_io.otel.«attribute».KeyValue), RET #kv; True }}
 
 end spec

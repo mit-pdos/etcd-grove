@@ -32,7 +32,7 @@ theorem set_ptr_Len_nil (l : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗
         l ↦ (null : Loc) }}
       (App (Val (l @!! go.GoType.PointerType
-        (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string) @!! go!"Len")) (Val #()))
+        (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string) @!! go!"Len")) (Val #()))
     {{ RET #(W64 0); l ↦ (null : Loc) }} := by
   wp_start as Hl
   wp_auto
@@ -48,14 +48,14 @@ theorem set_ptr_Len_lt (l m : Loc) (dq : DFrac) (S : KSet) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗
         l ↦ m ∗ m ↦${dq} S }}
       (App (Val (l @!! go.GoType.PointerType
-        (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string) @!! go!"Len")) (Val #()))
+        (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string) @!! go!"Len")) (Val #()))
     {{ RET #(W64 (GMap.size S)); l ↦ m ∗ m ↦${dq} S ∗ ⌜GMap.size S < 2 ^ 63⌝ }} := by
   wp_start as ⟨Hl, Hm⟩
   wp_auto
   wp_method_call
   wp_call
   (try wp_auto)
-  wp_apply (wp_map_len_lt (t := k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string) m S dq)
+  wp_apply (wp_map_len_lt (t := k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string) m S dq)
     $$ [$Hm] as ⟨Hm, %hlt⟩
   (try wp_auto)
   iapply HΦ; iframe; ipureintro; exact hlt

@@ -52,7 +52,7 @@ theorem nodeSelectorTerm.match.wp_proof : nodeSelectorTerm.match.spec (GF := GF)
       icases HmF with ⟨%j, %Hj, #HmF⟩
       rw [Hj]
       wp_auto
-      wp_apply (wp_ownMapD_len (t := k8s_io.apimachinery.pkg.fields.Set'.ty) fm dqf oF) $$ [$HF]
+      wp_apply (wp_ownMapD_len (t := k8s_io.apimachinery.pkg.fields.Set''.ty) fm dqf oF) $$ [$HF]
         as %n HF
       wp_if_destruct
       · rw [Hj]
@@ -92,7 +92,7 @@ theorem nodeSelectorTerm.match.wp_proof : nodeSelectorTerm.match.spec (GF := GF)
       icases HmF with ⟨%j, %Hj, #HmF⟩
       rw [Hj]
       wp_auto
-      wp_apply (wp_ownMapD_len (t := k8s_io.apimachinery.pkg.fields.Set'.ty) fm dqf oF) $$ [$HF]
+      wp_apply (wp_ownMapD_len (t := k8s_io.apimachinery.pkg.fields.Set''.ty) fm dqf oF) $$ [$HF]
         as %n HF
       wp_if_destruct
       · rw [Hj]

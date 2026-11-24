@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `Write` on a `*array`: `Interface.Write`'s contract at `arrayIface l`. -/
 def array.Write.spec : Prop := ∀ (l : Loc),
-  Interface.Write.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"Write"))
+  Interface.Write.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"Write"))
 
 end spec
 

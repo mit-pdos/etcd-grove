@@ -46,14 +46,14 @@ under a verb other than the method verbs it prints the map the same way (`%!d(..
 only read (the post forgets it, as the statement did). -/
 axiom wp_Errorf_setArgs (format : GoString) (args_sl : GoSlice) (args : List GoInterface)
     (_hargs : ∀ a ∈ args, ∃ m : Loc,
-      a = interface.mkOk (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string) #m) :
+      a = interface.mkOk (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string) #m) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args ∗
         [∗list] a ∈ args, ∃ (m : Loc) (dq : DFrac) (st : GMap GoString sets.Elem),
-          ⌜a = interface.mkOk (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string) #m⌝ ∗ m ↦${dq} st }}
+          ⌜a = interface.mkOk (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string) #m⌝ ∗ m ↦${dq} st }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
     {{ (err : GoInterfaceOk), RET #(interface.ok err);
         [∗list] a ∈ args, ∃ (m : Loc) (dq : DFrac) (st : GMap GoString sets.Elem),
-          ⌜a = interface.mkOk (k8s_io.apimachinery.pkg.util.sets.Set'.ty go.string) #m⌝ ∗ m ↦${dq} st }}
+          ⌜a = interface.mkOk (k8s_io.apimachinery.pkg.util.sets.Set''.ty go.string) #m⌝ ∗ m ↦${dq} st }}
 
 end proof
 

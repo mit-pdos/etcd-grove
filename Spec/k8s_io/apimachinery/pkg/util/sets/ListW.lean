@@ -32,7 +32,7 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 abbrev List'.specW : Prop :=
   ∀ (m : Loc) (dq : DFrac) (s : GMap w64 Elem), GMap.size s ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m ↦${dq} s }}
-    (App (Val #(functions List' [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty]))
+    (App (Val #(functions List'' [_root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty]))
       (Val #m))
   {{ (sl : GoSlice) (ks : List w64), RET #sl; m ↦${dq} s ∗ sl ↦* ks ∗
       ⌜∀ k, k ∈ ks ↔ (s !! k).isSome⌝ }}

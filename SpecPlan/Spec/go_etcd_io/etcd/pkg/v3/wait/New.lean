@@ -45,7 +45,7 @@ def New.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.wait.New)) (Val #()))
   {{ (w : GoInterface), RET #w; ∃ (l : Loc) (γw : WaitNames),
-      ⌜w = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list'.ty) #l⌝ ∗
+      ⌜w = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list''.ty) #l⌝ ∗
       listAt l γw P ∗ waitToks γw [] }}
 
 end spec

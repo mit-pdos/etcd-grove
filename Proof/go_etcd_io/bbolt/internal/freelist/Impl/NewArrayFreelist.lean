@@ -56,7 +56,7 @@ theorem NewArrayFreelist.wp_proof : NewArrayFreelist.spec (GF := GF) (hG := hG) 
   · ipureintro; simp
   isplitr [Hro]
   · iapply (flPgOwn_close (arrayImpl «$r0_ptr») «$r0_ptr» s
-      (interface.mkOk (go.GoType.PointerType array'.ty) #«$r0_ptr») FLPg.empty (Or.inl rfl) rfl)
+      (interface.mkOk (go.GoType.PointerType array''.ty) #«$r0_ptr») FLPg.empty (Or.inl rfl) rfl)
     dsimp only [arrayImpl]
     iframe
     isplitl []

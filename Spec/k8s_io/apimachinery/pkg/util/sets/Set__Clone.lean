@@ -31,7 +31,7 @@ abbrev Set.Clone.spec : Prop :=
     {T : go.GoType} [IntoValTyped (GF := GF) K T] [∀ k : K, SafeMapKey (GF := GF) T k]
     (m : Loc) (dq : DFrac) (s : GMap K Elem),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m ↦${dq} s }}
-    (App (Val (m @!! Set'.ty T @!! go!"Clone")) (Val #()))
+    (App (Val (m @!! Set''.ty T @!! go!"Clone")) (Val #()))
   {{ (r : Loc), RET #r; m ↦${dq} s ∗ r ↦$ s }}
 
 end spec

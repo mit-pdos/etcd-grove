@@ -29,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 abbrev lookup.spec : Prop :=
   ∀ (sl : GoSlice) (es : List entry) (dq : DFrac) (k : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗ sl ↦*{dq} es }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.lookup')) (Val #sl)) (Val #k))
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.lookup'')) (Val #sl)) (Val #k))
   {{ (v : VR) (ok : Bool), RET (PairV #v #ok); sl ↦*{dq} es ∗ ⌜(v, ok) = lookupL es k⌝ }}
 
 end spec

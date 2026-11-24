@@ -34,7 +34,7 @@ theorem extractNodeFields.wp_proof (h_body : extractNodeFields_body.spec (sem :=
   icases node_name_eq v dq d $$ Hd with ⟨Hd, %Hname⟩
   wp_auto
   rw [go.make1_underlying, (go.is_underlying :
-    underlying k8s_io.apimachinery.pkg.fields.Set'.ty = _)]
+    underlying k8s_io.apimachinery.pkg.fields.Set''.ty = _)]
   wp_apply (wp_map_make1 (K := GoString) (V := GoString)) as %m Hm
   icases (Access.access
       (A := n.[k8s_io.api.core.v1.Node, go!"ObjectMeta"].[k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta,

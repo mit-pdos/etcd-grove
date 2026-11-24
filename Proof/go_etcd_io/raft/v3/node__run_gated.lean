@@ -114,7 +114,7 @@ theorem node.run.gated_of
   -- (D22 S-d4) nothing queued, so nothing lent
   icases ownRawNode_slent_nil γ.raft nv.rn' id rs Hrs.1 $$ Hrn with ⟨%Hsl0, Hrn⟩
   wp_auto
-  simp only [None']
+  simp only [None'']
   wp_auto
   ihave HI : iprop(∃ (pc rc ac : GoChan) (rdv : Ready) (ld : w64),
       "propc" ∷ propc_ptr ↦ pc ∗ "readyc" ∷ readyc_ptr ↦ rc ∗ "advancec" ∷ advancec_ptr ↦ ac ∗

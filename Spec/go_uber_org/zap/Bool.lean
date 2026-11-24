@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 abbrev zap.Bool.spec : Prop :=
   ∀ (k : GoString) (v : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap }}
-    (App (App (Val (@! zap.Bool')) (Val #k)) (Val #v))
+    (App (App (Val (@! zap.Bool'')) (Val #k)) (Val #v))
   {{ (f : zap.zapcore.Field), RET #f; True }}
 
 end spec

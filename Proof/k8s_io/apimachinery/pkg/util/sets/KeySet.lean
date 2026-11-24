@@ -59,7 +59,7 @@ theorem KeySet.wp_proof (wp_Insert : Set.Insert.spec (GF := GF) (hG := hG)) :
   wp_start as Hm
   wp_auto
   wp_apply wp_map_len $$ Hm as Hm
-  rw [go.make2_underlying, (go.is_underlying : underlying (Set'.ty T) = _)]
+  rw [go.make2_underlying, (go.is_underlying : underlying (Set''.ty T) = _)]
   wp_apply (wp_map_make2 (K := K) (V := Elem) _ T Empty.ty) as %r Hr
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)

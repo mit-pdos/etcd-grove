@@ -212,7 +212,7 @@ def flCall (fl : GoInterface) (m : GoString) : Expr :=
 
 /-- A `*array` as a `freelist.Interface`. -/
 def arrayIface (l : Loc) : GoInterface :=
-  interface.mkOk (go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty) #l
+  interface.mkOk (go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty) #l
 
 /-- A `*hashMap` as a `freelist.Interface`. -/
 def hashMapIface (l : Loc) : GoInterface :=

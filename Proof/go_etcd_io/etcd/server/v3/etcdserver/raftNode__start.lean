@@ -286,7 +286,7 @@ theorem raftNode.start.wp_proof
             subst hss
             iunfold softStateIs at Hss
             icases Hss with ⟨-, #Hlead, #Hrs⟩
-            try simp only [None']
+            try simp only [None'']
             wp_auto
             -- `newLeader`
             wp_join (Q := fun v => iprop(∃ nl : Bool, ⌜v = #nl⌝ ∗ rh_ptr ↦ rh ∗ rd_ptr ↦ rd))
@@ -1117,7 +1117,7 @@ theorem raftNode.start.wp_proof
           subst hss
           iunfold softStateIs at Hss
           icases Hss with ⟨-, #Hlead, #Hrs⟩
-          try simp only [None']
+          try simp only [None'']
           wp_auto
           -- `newLeader`
           wp_join (Q := fun v => iprop(∃ nl : Bool, ⌜v = #nl⌝ ∗ rh_ptr ↦ rh ∗ rd_ptr ↦ rd))

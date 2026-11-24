@@ -37,14 +37,14 @@ theorem Conf.Equal.wp_proof (wp_SetEqual : Set.Equal.spec (GF := GF) (hG := hG))
   iNamed Hcf
   iNamed Hdf
   try wp_auto
-  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
   try wp_auto
   wp_apply wp_SetEqual _ _ _ _ $$ [Hci Hdi] as -
   · iframe Hci Hdi
   by_cases hi : c.cin = d.cin
   · rw [decide_eq_true hi]
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set.TypeAssumptions.ptr_Equal_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_Equal_unfold.method_unfold]
     try wp_auto
     wp_apply wp_SetEqual _ _ _ _ $$ [Hco Hdo] as -
     · iframe Hco Hdo

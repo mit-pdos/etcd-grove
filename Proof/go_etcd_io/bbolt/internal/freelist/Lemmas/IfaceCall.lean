@@ -39,7 +39,7 @@ theorem ifaceCall_array [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalCont
     {GF : BundledGFunctors} [HeapGS hlc GF] [go.Semantics]
     [go_etcd_io.bbolt.internal.freelist.Assumptions] (a : Loc) (m : GoString) :
     ifaceCall (FLImpl.iface (arrayImpl (GF := GF) a)) m =
-      Val #(methods (go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty) m #a) :=
+      Val #(methods (go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty) m #a) :=
   rfl
 
 theorem ifaceCall_hash [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}

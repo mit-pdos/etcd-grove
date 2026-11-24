@@ -257,7 +257,7 @@ theorem State.Send.wp_proof
     wp_apply wp_to gm m dt $$ [Hm]
     · iframe Hm; ipureintro; exact hdt
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set.TypeAssumptions.ptr_Has_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.TypeAssumptions.ptr_Has_unfold.method_unfold]
     try wp_auto
     wp_apply wp_SetHas gc.Server' s.cfg.server dt $$ [Hsrv]
     · iexact Hsrv

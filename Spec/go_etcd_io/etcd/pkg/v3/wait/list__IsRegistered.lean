@@ -28,7 +28,7 @@ abbrev wait.list.IsRegistered.spec : Prop :=
     (id : w64) (ot : Option GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ waitListReader l γi γw R ∗
       waitRegdOpt γw id ot }}
-    (App (Val (l @!! go.GoType.PointerType wait.list'.ty @!! go!"IsRegistered")) (Val #id))
+    (App (Val (l @!! go.GoType.PointerType wait.list''.ty @!! go!"IsRegistered")) (Val #id))
   {{ (b : Bool), RET #b; waitListReader l γi γw R ∗ (⌜b = true⌝ ∨ waitGoneOpt γw id ot) }}
 
 end spec

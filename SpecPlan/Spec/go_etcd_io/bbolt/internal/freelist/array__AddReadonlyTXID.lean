@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `AddReadonlyTXID` on a `*array`: `Interface.AddReadonlyTXID`'s contract at `arrayIface l`. -/
 def array.AddReadonlyTXID.spec : Prop := ∀ (l : Loc),
-  Interface.AddReadonlyTXID.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"AddReadonlyTXID"))
+  Interface.AddReadonlyTXID.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"AddReadonlyTXID"))
 
 end spec
 

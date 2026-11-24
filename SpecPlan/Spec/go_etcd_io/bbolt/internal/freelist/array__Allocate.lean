@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `Allocate` on a `*array`: `Interface.Allocate`'s contract at `arrayIface l`. -/
 def array.Allocate.spec : Prop := ∀ (l : Loc),
-  Interface.Allocate.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"Allocate"))
+  Interface.Allocate.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"Allocate"))
 
 end spec
 

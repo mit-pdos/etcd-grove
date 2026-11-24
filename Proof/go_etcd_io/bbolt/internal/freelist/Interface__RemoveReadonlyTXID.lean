@@ -39,7 +39,7 @@ theorem Interface.RemoveReadonlyTXID.wp_proof : Interface.RemoveReadonlyTXID.spe
   icases Himpl with (⟨%Hfli, #Hhdl⟩ | ⟨%Hfli, #Hhdl⟩) <;> (
     subst Hfli
     first
-      | rw [show interface.mkOk (go.GoType.PointerType array'.ty) #a = (arrayImpl (GF := GF) a).iface
+      | rw [show interface.mkOk (go.GoType.PointerType array''.ty) #a = (arrayImpl (GF := GF) a).iface
           from rfl]
       | rw [show interface.mkOk (go.GoType.PointerType hashMap.ty) #a = (hashImpl (GF := GF) a).iface
           from rfl]

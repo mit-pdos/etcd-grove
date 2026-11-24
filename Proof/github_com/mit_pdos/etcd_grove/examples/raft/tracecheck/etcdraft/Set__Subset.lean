@@ -51,7 +51,7 @@ theorem Set.Subset.wp_proof (wp_Has : Set.Has.spec (GF := GF) (hG := hG)) :
       · iexact Hxs
       ipureintro; exact Hy
     try wp_auto
-    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Has_unfold.method_unfold]
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set''.TypeAssumptions.ptr_Has_unfold.method_unfold]
     try wp_auto
     wp_apply wp_Has tl t y $$ [Ht]
     · iexact Ht

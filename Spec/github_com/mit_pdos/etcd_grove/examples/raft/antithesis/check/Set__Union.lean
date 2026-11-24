@@ -27,7 +27,7 @@ abbrev Set.Union.spec : Prop :=
   ∀ (sl : GoSlice) (xs : SSet) (tl : GoSlice) (ys : SSet),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
       strsRO sl xs ∗ strsRO tl ys ∗ ⌜(xs.length : Int) + ys.length < 2 ^ 62⌝ }}
-    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'.ty @!! go!"Union")) (Val #tl))
+    (App (Val (sl @!! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set''.ty @!! go!"Union")) (Val #tl))
   {{ (u : GoSlice), RET #u; strsRO u (xs.union ys) }}
 
 end spec

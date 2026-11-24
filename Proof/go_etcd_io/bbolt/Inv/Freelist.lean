@@ -59,8 +59,8 @@ variable [sem : go.Semantics]
 /-- The freelist interface value `fli` is an implementation (an `*array` or a `*hashMap` at
 `a`) whose embedded `*shared` is `s` (persistent). -/
 def flImplAt (fli : GoInterface) (a s : Loc) : IProp GF :=
-  iprop((⌜fli = interface.mkOk (go.GoType.PointerType array'.ty) #a⌝ ∗
-      structFieldRef array' go!"shared" a ↦□ s) ∨
+  iprop((⌜fli = interface.mkOk (go.GoType.PointerType array''.ty) #a⌝ ∗
+      structFieldRef array'' go!"shared" a ↦□ s) ∨
     (⌜fli = interface.mkOk (go.GoType.PointerType hashMap.ty) #a⌝ ∗
       structFieldRef hashMap go!"shared" a ↦□ s))
 
@@ -83,8 +83,8 @@ def ownPending (p : Loc) (pd : Pending) : IProp GF :=
 /-- The implementation's own part, holding the free ids: an `array`'s sorted `ids`, or a
 `hashMap`'s spans. -/
 def flImplOwn (fli : GoInterface) (a : Loc) (free : List w64) : IProp GF :=
-  iprop((⌜fli = interface.mkOk (go.GoType.PointerType array'.ty) #a⌝ ∗
-      ∃ sl : GoSlice, structFieldRef array' go!"ids" a ↦ sl ∗ sl ↦* free ∗
+  iprop((⌜fli = interface.mkOk (go.GoType.PointerType array''.ty) #a⌝ ∗
+      ∃ sl : GoSlice, structFieldRef array'' go!"ids" a ↦ sl ∗ sl ↦* free ∗
         ownSliceCap w64 sl (DFrac.own 1)) ∨
     (⌜fli = interface.mkOk (go.GoType.PointerType hashMap.ty) #a⌝ ∗
       ∃ (cnt : w64) (sp bwm : GMap w64 w64) (sets : GMap w64 (GMap w64 Unit))

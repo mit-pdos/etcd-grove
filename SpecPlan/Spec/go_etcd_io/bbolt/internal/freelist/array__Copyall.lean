@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 /-- `Copyall` on a `*array`: `Interface.Copyall`'s contract at `arrayIface l`. -/
 def array.Copyall.spec : Prop := ∀ (l : Loc),
-  Interface.Copyall.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty @!! go!"Copyall"))
+  Interface.Copyall.contract (GF := GF) (arrayIface l) (Val (l @!! go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array''.ty @!! go!"Copyall"))
 
 end spec
 

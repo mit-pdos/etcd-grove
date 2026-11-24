@@ -27,7 +27,7 @@ abbrev Set.UnsortedList.spec : Prop :=
   ∀ {K : Type} [ZeroVal K] [DecidableEq K] [go.IntoValInj K] [TypedPointsto (GF := GF) K]
     {T : go.GoType} [IntoValTyped (GF := GF) K T] (m : Loc) (dq : DFrac) (s : GMap K Elem),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m ↦${dq} s }}
-    (App (Val (m @!! Set'.ty T @!! go!"UnsortedList")) (Val #()))
+    (App (Val (m @!! Set''.ty T @!! go!"UnsortedList")) (Val #()))
   {{ (sl : GoSlice) (ks : List K), RET #sl; m ↦${dq} s ∗ sl ↦* ks ∗
       ⌜(∀ k, k ∈ ks ↔ (s !! k).isSome) ∧ ks.Nodup ∧ ks.length = GMap.size s⌝ }}
 

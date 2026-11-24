@@ -37,7 +37,7 @@ variable [meta_sem : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 theorem objList_in_list :
     go.typeSetContains (go.GoType.PointerType
         github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList.ty)
-      k8s_io.apimachinery.pkg.api.«meta».List'.ty = true := by
+      k8s_io.apimachinery.pkg.api.«meta».List''.ty = true := by
   go_type_set
 
 /-- **`meta.ListAccessor` of an `*ObjList`** `l`: the same interface value, no error. -/

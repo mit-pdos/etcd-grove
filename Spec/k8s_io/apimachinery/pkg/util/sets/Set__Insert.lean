@@ -28,7 +28,7 @@ abbrev Set.Insert.spec : Prop :=
     {T : go.GoType} [IntoValTyped (GF := GF) K T] [∀ k : K, SafeMapKey (GF := GF) T k]
     (m : Loc) (s : GMap K Elem) (sl : GoSlice) (dq : DFrac) (ks : List K),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗ m ↦$ s ∗ sl ↦*{dq} ks }}
-    (App (Val (m @!! Set'.ty T @!! go!"Insert")) (Val #sl))
+    (App (Val (m @!! Set''.ty T @!! go!"Insert")) (Val #sl))
   {{ RET #m; m ↦$ insertAll s ks ∗ sl ↦*{dq} ks }}
 
 end spec

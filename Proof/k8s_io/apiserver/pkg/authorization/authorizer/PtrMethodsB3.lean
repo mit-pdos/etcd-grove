@@ -142,9 +142,9 @@ open k8s_io.apimachinery.pkg.util.sets in
 theorem sets_wp_ptr_UnsortedList_of (wp_UnsortedList : sets.Set.UnsortedList.spec (GF := GF) (hG := hG))
     (l : Loc) (dl : DFrac) (m : Loc) (dq : DFrac) (s : GMap K sets.Elem) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗
-        l ↦{dl} (m : Set' K) ∗ m ↦${dq} s }}
-      (App (Val (l @!! go.GoType.PointerType (Set'.ty T) @!! go!"UnsortedList")) (Val #()))
-    {{ (sl : GoSlice) (ks : List K), RET #sl; l ↦{dl} (m : Set' K) ∗ m ↦${dq} s ∗ sl ↦* ks ∗
+        l ↦{dl} (m : Set'' K) ∗ m ↦${dq} s }}
+      (App (Val (l @!! go.GoType.PointerType (Set''.ty T) @!! go!"UnsortedList")) (Val #()))
+    {{ (sl : GoSlice) (ks : List K), RET #sl; l ↦{dl} (m : Set'' K) ∗ m ↦${dq} s ∗ sl ↦* ks ∗
         ⌜(∀ k, k ∈ ks ↔ (s !! k).isSome) ∧ ks.Nodup ∧ ks.length = GMap.size s⌝ }} := by
   wp_start as ⟨Hl, Hm⟩
   wp_auto
@@ -157,9 +157,9 @@ theorem sets_wp_ptr_Clone_of (wp_Clone : sets.Set.Clone.spec (GF := GF) (hG := h
     [∀ k : K, SafeMapKey (GF := GF) T k]
     (l : Loc) (dl : DFrac) (m : Loc) (dq : DFrac) (s : GMap K sets.Elem) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets ∗
-        l ↦{dl} (m : Set' K) ∗ m ↦${dq} s }}
-      (App (Val (l @!! go.GoType.PointerType (Set'.ty T) @!! go!"Clone")) (Val #()))
-    {{ (r : Loc), RET #r; l ↦{dl} (m : Set' K) ∗ m ↦${dq} s ∗ r ↦$ s }} := by
+        l ↦{dl} (m : Set'' K) ∗ m ↦${dq} s }}
+      (App (Val (l @!! go.GoType.PointerType (Set''.ty T) @!! go!"Clone")) (Val #()))
+    {{ (r : Loc), RET #r; l ↦{dl} (m : Set'' K) ∗ m ↦${dq} s ∗ r ↦$ s }} := by
   wp_start as ⟨Hl, Hm⟩
   wp_auto
   wp_apply wp_Clone (T := T) $$ [$Hm] as %r ⟨Hm, Hr⟩
