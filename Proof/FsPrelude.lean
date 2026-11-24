@@ -9,6 +9,4 @@ public import Perennial.Proof.ProofPrelude
 public import GooseLang.Ext.Fs.Impl
 public import GooseLang.Ext.Fs.Specs
 public import GooseLang.Ext.Fs.Truncate
-public import GooseLang.Ext.Fs.TreeSpecsOpen
-public import GooseLang.Ext.Fs.TreeSpecsMeta
-public import GooseLang.Ext.Fs.TreeSpecsDirFd
+public import GooseLang.Ext.Fs.TreeShared

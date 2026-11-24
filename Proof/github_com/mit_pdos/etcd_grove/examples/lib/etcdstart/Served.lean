@@ -125,7 +125,7 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
     #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo,
-    Hlis, #Hlu⟩
+    Hlis, Hleft, #Hlu⟩
   ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal addr gs q p s lis E ρ [il, im, iu]
       [ims, is] svcs regs sregs HC.2.2.1 HEo) $$ [Hgsn Hlis]
   · iframe Hgsn Hlis; iframe #

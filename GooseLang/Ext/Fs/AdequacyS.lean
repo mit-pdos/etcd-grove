@@ -48,7 +48,7 @@ theorem fs_startS (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : StepK
     ∀ (σ : state) (_ : FsInit (extLocal fsExt σ.world)), (⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
       osInv (L := hG.goose_localGS) ∗
       ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files, osFileStart (L := hG.goose_localGS) i f) ∗
-      osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal fsExt σ.world).fs.roots
+      osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
         ((extLocal fsExt σ.world).fs.treeDur, [])) := by
   letI := fsExtsSemanticsWithS SQ Q; letI := fsSemWithS SQ Q; letI := fsExtsWithS_hasFs SQ Q
   haveI : FsSemOk := fsSemWithS_ok SQ Q hk
@@ -66,12 +66,11 @@ theorem fs_startS (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : StepK
   ihave Hfs := start_files (gooseOsGS (L := hG.goose_localGS)) hdisk $$ [Hb Hm]
   · iframe
   imod osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
+  imod osSwitchKit_open (L := hG.goose_localGS) _ _ ⊤ $$ Hd with Hsh
   imodintro
-  iframe Hinv
-  isplitl [Hfs]
-  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
-      (fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
-  · unfold osTree; iexact Hd
+  iframe Hinv Hsh
+  iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+    (fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
 
 
 /-- **Crash adequacy for a program with Linux files, under a premise `SQ` on steps and `Q` on
@@ -95,7 +94,7 @@ theorem fsSQ_crash_adequacy (SQ : StepPrem) (Q : OsState → OsState → Prop) (
       ⊢ osInv (L := hG.goose_localGS) -∗
         ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files,
           osFileStart (L := hG.goose_localGS) i f) -∗
-        osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal fsExt σ.world).fs.roots
+        osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
           ((extLocal fsExt σ.world).fs.treeDur, []) -∗
         ownGoState σ.goState.packageState ={⊤}=∗ P hG.goose_localGS)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
@@ -107,7 +106,7 @@ theorem fsSQ_crash_adequacy (SQ : StepPrem) (Q : OsState → OsState → Prop) (
         ∀ (L' : GooseLocalGS GF) (V' : Hist), crashed (hC := hG.goose_localGS.goose_crashGS) -∗
           osInv (L := L') -∗
           crashRest Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) [] false V' -∗
-          ownGoState (hG := L'.goose_go_stateGS) ∅ ={⊤}=∗ P L')
+          ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗ P L')
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
     (Hsteps : @RealCrashNsteps fsExts (fsExtsSemanticsWithS SQ Q) _ e n
       ([e], ((σ, g) : CfgState)) κs (t2, σ2) b)
@@ -132,7 +131,7 @@ theorem fsSQ_crash_adequacy (SQ : StepPrem) (Q : OsState → OsState → Prop) (
     imod Hwp HN HT Hlctx $$ HP Htok with ⟨Hwp, Hcrash⟩
     imodintro
     iframe Hwp
-    iintro %L' Hcr Hcs Hgs _
+    iintro %L' Hcr Hcs Hgs Hlc
     have Hc : @extsCrashStart fsExts (fsExtsSemanticsWithS SQ Q) fsExtsInterp
         (fsExtsCrashInterpWithS SQ Q) GF hG.goose_localGS L' ⊢
         osCrashStart Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) := by
@@ -141,7 +140,7 @@ theorem fsSQ_crash_adequacy (SQ : StepPrem) (Q : OsState → OsState → Prop) (
     unfold osCrashStart
     icases Hcs with ⟨Hv, %V', Hr⟩
     imod osInv_alloc (L := L') ⊤ $$ Hv with #Hinv
-    iapply Hcrash $$ %L' %V' Hcr Hinv Hr Hgs
+    iapply Hcrash $$ %L' %V' Hcr Hinv Hr Hgs Hlc
 
 end adequacySQ
 

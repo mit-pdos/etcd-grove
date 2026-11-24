@@ -9,7 +9,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Inv.Tx
 public import Proof.go_etcd_io.bbolt.Read.TxBytes
-public import GooseLang.Ext.Fs.TreeSpecsOpen
+public import GooseLang.Ext.Fs.TreeShared
 public import Proof.go_etcd_io.bbolt.Inv.FileImg
 
 @[expose] public section

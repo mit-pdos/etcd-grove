@@ -4,9 +4,9 @@
 `Proof/runtime/Start.lean`) handed a closed theorem's proof `backend.fileHolds f ∅` for each fresh
 database file `f` (premise `dbFilesAbsent`). Since `backend.fileHolds` is the concrete claim on the
 file's name in the tree's shared mode, it is derived instead, from what the file extension's start
-gives (`osStart`: the whole tree, `fs_start`) and a premise on the initial state (no file at the
-names): `start_fileHolds` switches the tree to the shared mode at the program's first step
-(`wp_osShareE`), splits the claim on the root directory's names into one claim per fresh name
+gives (`osStart`: the tree's shared view, filled in, as `fs_start` opens it) and a premise on the
+initial state (no file at the names): `start_fileHolds` opens the tree's shared invariants
+(`osSwitchKit_open`, giving `osShared`), splits the claim on the root directory's names into one claim per fresh name
 (`claims_split`), and gives each name a share of the root's call permission (its key's, since
 wal-link's L4: `osCallPerms_root`) and the root's path. Untrusted.
 
@@ -17,7 +17,6 @@ entry at `b` in the durable tree the program starts with (`FsInit`: the tree as 
 module
 
 public import Proof.runtime.Start
-public import GooseLang.Ext.Fs.TreeSharedSwitchE
 public import GooseLang.Ext.Fs.TreeShared
 public import GooseLang.Ext.Fs.CrashTok
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
@@ -103,12 +102,11 @@ variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [backend.FsNo
 /-- **The fresh files at program start** (see the file header): from the file extension's start
 resources (`osStart` of an `FsInit` state), at the step of the program `e` (not a value), the
 proof of `e` gets `backend.fileHolds (child r b) ∅` for each fresh name `b` of the root `r`. The
-tree is switched to the shared mode: the program's proof gets nothing else of the tree. -/
+program's proof gets nothing else of the tree. -/
 theorem start_fileHolds (σ : OsState) (hfs : FsInit σ) (r : GoString) (j0 : Ino)
     (bs : List GoString) (hr : (r, j0) ∈ σ.fs.roots) (hbs : bs.Nodup)
     (hok : ∀ b ∈ bs, NameOk b ∧ PathFits (child r b))
-    (habs : ∀ b ∈ bs, σ.fs.treeDur.entry j0 b = none) (e : Expr) (he : toVal e = none)
-    (Φ : val → IProp GF) :
+    (habs : ∀ b ∈ bs, σ.fs.treeDur.entry j0 b = none) (e : Expr) (Φ : val → IProp GF) :
     ⊢ osStart (gooseOsGS (L := hG.goose_localGS)) σ -∗
       (([∗list] b ∈ bs, backend.fileHolds (GF := GF) (child r b) ∅) -∗
         WP e @ Stuckness.NotStuck; ⊤ {{ Φ }}) ={⊤}=∗
@@ -117,12 +115,9 @@ theorem start_fileHolds (σ : OsState) (hfs : FsInit σ) (r : GoString) (j0 : In
   unfold osStart osStartF treeStart bytesMap metaMap
   icases Hs with ⟨⟨-, -, Hv⟩, Hd⟩
   imod osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
-  imodintro
-  ihave Ht : osTree (L := hG.goose_localGS) (DFrac.own 1) σ.fs.roots (σ.fs.treeDur, []) $$ [Hd]
-  · unfold osTree; iexact Hd
-  iapply wp_osShareE (L := hG.goose_localGS) σ.fs.roots (σ.fs.treeDur, []) e he
-    (fun _ _ => CoPset.mem_full) Φ $$ Hinv Ht
-  iintro #Hsh #- Hperms - Hcl
+  imod osSwitchKit_open (L := hG.goose_localGS) σ.fs.roots (σ.fs.treeDur, []) ⊤ $$ Hd with Hsh
+  unfold osShared
+  icases Hsh with ⟨#Hsh, #-, Hperms, -, Hcl⟩
   icases osCallPerms_root (L := hG.goose_localGS) σ.fs.roots r j0 hfs.2.2.2.1 hr $$ Hperms with ⟨Hperm, -⟩
   -- the root's claim
   have hnow : Hist.now (σ.fs.treeDur, ([] : List LogEntry)) = σ.fs.treeDur := rfl
@@ -134,7 +129,6 @@ theorem start_fileHolds (σ : OsState) (hfs : FsInit σ) (r : GoString) (j0 : In
   obtain ⟨k, hk⟩ := List.getElem?_of_mem hmem
   ihave Hj := BigSepL.bigSepL_lookup (Φ := fun _ j => osNames (L := hG.goose_localGS) j
     (.except []) (DFrac.own 1) (namesOf (σ.fs.treeDur, []) j (.except []))) hk $$ Hcl
-  iapply fupd_wp
   imod files_of_claim (hG := hG) σ.fs.roots r j0 hr bs [] (namesOf (σ.fs.treeDur, []) j0 (.except []))
     1 hbs (fun _ _ h => absurd h List.not_mem_nil) hok
     (fun b hb => by

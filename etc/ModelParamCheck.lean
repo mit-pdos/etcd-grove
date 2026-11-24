@@ -807,10 +807,15 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
         if let .lam _ _ lb _ := (body.getArg! 1).consumeMData then
           let lb := lb.consumeMData
           let lhs := if lb.isAppOfArity ``LT.lt 4 then (lb.getArg! 2).consumeMData else mkConst `_
-          let exact := (lhs.isAppOfArity `Perennial.EtcdGrove.ProtoMsg.wireLen 3 ||
-              lhs.isAppOfArity `Perennial.EtcdGrove.StreamMsg.wireLen 3) &&
-            (lhs.getArg! 2).consumeMData == .bvar 0 &&
-            (let x := (lhs.getArg! 1).consumeMData
+          -- the projection applied to its structure's parameters, then `X`, then `m`: matched from
+          -- the end, so a parameter the structure gains does not hide the witness (`ProtoMsg` took
+          -- `[GooseExts]` when its `tree : M → VTree` came in, phase 7 S2, and this exact-arity match
+          -- then missed every request's witness)
+          let n := lhs.getAppNumArgs
+          let exact := (lhs.isAppOf `Perennial.EtcdGrove.ProtoMsg.wireLen ||
+              lhs.isAppOf `Perennial.EtcdGrove.StreamMsg.wireLen) && n ≥ 3 &&
+            (lhs.getArg! (n - 1)).consumeMData == .bvar 0 &&
+            (let x := (lhs.getArg! (n - 2)).consumeMData
              (x.isAppOf `Perennial.EtcdGrove.ProtoMsgT.toProtoMsg ||
                 x.isAppOf `Perennial.EtcdGrove.StreamMsgT.toStreamMsg) &&
                x.appArg!.consumeMData.getAppFn.isConstOf vc)

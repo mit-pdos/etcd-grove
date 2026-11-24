@@ -3,16 +3,16 @@ Crash-aware specs of `os` over a crash invariant generic in a predicate on the f
 the definitions (Lean-first, no Rocq counterpart).
 
 `CrashFile.lean`'s invariant (`cfInv N p R γ Good`) holds half of every byte of the file at `p`
-(of its inode) and half of the tree's history, and asks `CrashOk Good` of its state. A client such
+(of its inode) and half of the claim on its name, and asks `CrashOk Good` of its state. A client such
 as minibolt needs three things more:
 
 * **Any predicate on states** (`csInv N p R γ Good Ok`): the specs move the state and ask the
   caller to show `Ok` of each state the call passes through; `Ok` is the caller's, so a premise on
   crashes (`FileOkS Q Good`, which uses the crash's facts `CrashSeenR`) or a predicate tracking
-  more than what a crash leaves can be used. The tree's part stays the invariant's: every crash of
-  the history leaves `p` naming nothing (then `Good none`) or the state's file (`TreeOkI`).
-  `csInv_crash_keep` takes the tree and the file after a crash from the invariant's halves, given
-  `FileOkS Q Good` of the state's file.
+  more than what a crash leaves can be used. The claim's part stays the invariant's: every crash of
+  the claim leaves `p` naming nothing (then `Good none`) or the state's file (`TreeOkI`).
+  `csInv_crash_keep` takes what the crash left at `p` and the file from the invariant's halves,
+  given `FileOkS Q Good` of the state's file.
 * **Bytes frozen at a discarded fraction**: the state's bytes `[fa, fb)` sit in the invariant
   as `osBytes ... DFrac.discard` (persistent: minibolt's committed pages, which readers hold too),
   and the others at a half each, the invariant's and the caller's. A write never touches the frozen
@@ -24,7 +24,7 @@ Mappings are allowed (the state's `OsMeta` may have any): the specs pass the cli
 mapped cells through (`mcellsAny`).
 
 A state is the file's inode and `CSt` (or none at `p`). The caller's part is `csOwnF` of the file
-(which the operations of `CrashStOps.lean` move) and its half of the history (`csOwn`). A crash
+(which the operations of `CrashStOps.lean` move) and its half of the claim (`csOwn`). A crash
 sees the file through `CSt.vmeta`, `CSt.vruns` (`CSt.runs`, one run per byte, empty for a byte a
 write in flight took, and the token's bytes) and `CSt.toks`; `FileOkS` is `FileOkQ` (`CrashFileQ.lean`) of that view, and
 `fileOkS_idle`/`fileOkS_write` reduce it to `FileOkQ` of the corresponding `CFile` file (the same
@@ -81,11 +81,11 @@ def sIno : CState → Option Ino
   | none => none
   | some (i, _) => some i
 
-/-- What `p` names now: nothing, or the state's file. -/
-def SPathOk (p : GoString) (R : Roots) (s : CState) (V : Hist) : Prop :=
+/-- What `b` names now (the claim's `cur`): nothing, or the state's file. -/
+def SPathOk (b : GoString) (s : CState) (h : NamesH) : Prop :=
   match s with
-  | none => lookupH R V p = none
-  | some (i, _) => lookupH R V p = some (.file i)
+  | none => h.cur !! b = none
+  | some (i, _) => h.cur !! b = some (.file i)
 
 def CBusy.enc : CBusy → Option ((Nat × Nat × List w8 × Nat) ⊕ (Nat × Nat × Nat))
   | .idle => none
@@ -478,13 +478,16 @@ def CsCut : CState → Prop
   | none => True
   | some (_, s) => s.m.cut = none
 
-/-- The crash invariant of the file at `p` (the roots `R`): its state `s` (named by `γ`), the
-invariant's part of it, half of the tree's history `V`, `Ok s`, and that every crash of the
-history leaves `p` naming nothing (then `Good none`) or the state's file (`TreeOkI`). -/
+/-- The crash invariant of the file at `p` (the name `b` of the root directory `j`, `FileAt`): its
+state `s` (named by `γ`), the invariant's part of it, half of the claim on `b` (history `h`),
+`Ok s`, and that every crash of the claim leaves `b` naming nothing (then `Good none`) or the
+state's file (`TreeOkI`). -/
 def csInv (N : Namespace) (p : GoString) (R : Roots) (γ : GName) (Good : Option OsFile → Prop)
     (Ok : CState → Prop) : IProp GF :=
-  inv N iprop(∃ (s : CState) (V : Hist), ghostVar γ (1 : Qp).half s ∗ invResS (L := L) s ∗
-    osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗ ⌜Ok s ∧ TreeOkI Good p R (sIno s) V ∧ CsCut s⌝)
+  inv N iprop(∃ (s : CState) (j : Ino) (b : GoString) (h : NamesH), ⌜FileAt R p j b⌝ ∗
+    ghostVar γ (1 : Qp).half s ∗ invResS (L := L) s ∗
+    osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h ∗
+    ⌜Ok s ∧ TreeOkI Good j b (sIno s) h ∧ CsCut s⌝)
 
 instance csInv_persistent (N : Namespace) (p : GoString) (R : Roots) (γ : GName)
     (Good : Option OsFile → Prop) (Ok : CState → Prop) :
@@ -499,9 +502,10 @@ def CsWf : CState → Prop
 def csOwnF (γ : GName) (s : CState) : IProp GF :=
   iprop(ghostVar γ (1 : Qp).half s ∗ thrResS (L := L) s ∗ ⌜CsWf s⌝)
 
-/-- The caller's part of the file at `p` in the state `s`, the history being `V`. -/
-def csOwn (p : GoString) (R : Roots) (γ : GName) (s : CState) (V : Hist) : IProp GF :=
-  iprop(csOwnF (L := L) γ s ∗ osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗ ⌜SPathOk p R s V⌝)
+/-- The caller's part of the file at `p` in the state `s`: and the other half of the claim. -/
+def csOwn (p : GoString) (R : Roots) (γ : GName) (s : CState) : IProp GF :=
+  iprop(csOwnF (L := L) γ s ∗ ∃ (j : Ino) (b : GoString) (h : NamesH),
+    osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h ∗ ⌜SPathOk b s h ∧ FileAt R p j b⌝)
 
 /-- The state of the file `i` a generation starts with, as `osFileStart` gives it, nothing
 frozen. -/
@@ -545,28 +549,35 @@ theorem csStartRes_split (s : CState) (hs : ∀ i x, s = some (i, x) → x.busy 
   icases (idleBytes_whole i ⟨m, bs, fa, fb, .idle⟩ rfl hf).1 $$ Hb with ⟨Hb1, Hb2⟩
   iframe
 
-/-- **The file at `p` and the history, in an invariant**, if `Ok` of the state and a crash of the
-history is `Good`. -/
-theorem csInv_alloc (N : Namespace) (p : GoString) (R : Roots) (V : Hist)
-    (Good : Option OsFile → Prop) (Ok : CState → Prop) (s : CState)
-    (hs : ∀ i x, s = some (i, x) → x.busy = .idle ∧ x.fb ≤ x.fa) (hok : Ok s)
-    (htr : TreeOkI Good p R (sIno s) V) (hwf : CsWf s) (hcut : CsCut s) (hp : SPathOk p R s V) :
-    ⊢ osTree (L := L) (DFrac.own 1) R V -∗ csStartRes (L := L) s ={⊤}=∗ ∃ γ,
-      csInv (L := L) N p R γ Good Ok ∗ csOwn (L := L) p R γ s V := by
+/-- **The file at `p` and the claim on its name, in an invariant**, if `Ok` of the state and a
+crash of the claim is `Good`. -/
+theorem csInv_alloc (N : Namespace) (p : GoString) (R : Roots) (j : Ino) (b : GoString)
+    (h : NamesH) (Good : Option OsFile → Prop) (Ok : CState → Prop) (s : CState)
+    (hs : ∀ i x, s = some (i, x) → x.busy = .idle ∧ x.fb ≤ x.fa) (hfa : FileAt R p j b) (hok : Ok s)
+    (htr : TreeOkI Good j b (sIno s) h) (hwf : CsWf s) (hcut : CsCut s) (hp : SPathOk b s h) :
+    ⊢ osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ csStartRes (L := L) s ={⊤}=∗ ∃ γ,
+      csInv (L := L) N p R γ Good Ok ∗ csOwn (L := L) p R γ s := by
   iintro Ht Hf
   imod ghostVar_alloc (GF := GF) s with ⟨%γ, Hv⟩
   icases (ghostVar_split_half (A := CState) γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
-  icases (osTree_halves R V).1 $$ Ht with ⟨Ht1, Ht2⟩
+  icases (osNames_halves' j _ h).1 $$ Ht with ⟨Ht1, Ht2⟩
   icases csStartRes_split s hs $$ Hf with ⟨Hi, Hth⟩
-  imod inv_alloc N ⊤ (iprop(∃ (s : CState) (V : Hist), ghostVar γ (1 : Qp).half s ∗
-      invResS (L := L) s ∗ osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗
-      ⌜Ok s ∧ TreeOkI Good p R (sIno s) V ∧ CsCut s⌝)) $$ [Hv1 Hi Ht1] with #Hinv
-  · inext; iexists s, V; iframe; ipureintro; exact ⟨hok, htr, hcut⟩
+  imod inv_alloc N ⊤ (iprop(∃ (s : CState) (j : Ino) (b : GoString) (h : NamesH),
+      ⌜FileAt R p j b⌝ ∗ ghostVar γ (1 : Qp).half s ∗ invResS (L := L) s ∗
+      osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h ∗
+      ⌜Ok s ∧ TreeOkI Good j b (sIno s) h ∧ CsCut s⌝)) $$ [Hv1 Hi Ht1] with #Hinv
+  · inext; iexists s, j, b, h; iframe; isplitr
+    · ipureintro; exact hfa
+    ipureintro; exact ⟨hok, htr, hcut⟩
   imodintro
   iexists γ
   unfold csInv csOwn csOwnF
-  iframe Hinv Hv2 Hth Ht2
-  ipureintro; exact ⟨hwf, hp⟩
+  iframe Hinv Hv2 Hth
+  isplitr
+  · ipureintro; exact hwf
+  iexists j, b, h
+  iframe Ht2
+  ipureintro; exact ⟨hp, hfa⟩
 
 end res
 
@@ -574,87 +585,99 @@ end res
 
 section crash
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
+variable [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
 /-- What a crash may leave of the file `i`, from what the invariant holds of it. -/
 theorem metaRes_take (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
-    (V' : Hist) (i : Ino) (hi : i ∉ D) (x : CSt) :
-    ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' -∗ metaRes (L := L) i x -∗
+    (tt : Bool) (V' : Hist) (i : Ino) (hi : i ∉ D) (x : CSt) :
+    ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗ metaRes (L := L) i x -∗
       ([∗list] r ∈ x.runs, osBytes (L := L) i r.1 r.2.1 r.2.2) -∗
       ∃ fo, ⌜FileCrashedR x.vmeta x.vruns fo ∧ (Named V'.now i → fo.isSome) ∧
           CrashSeenR Q i x.vmeta x.vruns (x.toks i) fo⌝ ∗ osFileStartO (L := L') i fo ∗
-        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (i :: D) true V' ∗
+        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (i :: D) tt V' ∗
         metaRes (L := L) i x ∗ ([∗list] r ∈ x.runs, osBytes (L := L) i r.1 r.2.1 r.2.2) := by
   iintro Hr Hm Hb
   rcases x with ⟨m, bs, fa, fb, _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩⟩
   · dsimp only [metaRes]
-    icases osCrash_take_runs_keep Q L L' D true V' i hi _ m _ $$ Hr Hm Hb
+    icases osCrash_take_runs_keep Q L L' D tt V' i hi _ m _ $$ Hr Hm Hb
       with ⟨%fo, %h, Hf, Hr, Hm, Hb⟩
     iexists fo; iframe; ipureintro; exact h
   · dsimp only [metaRes, pwTok]
     icases Hm with ⟨Ht, %hgap⟩
-    icases osCrash_take_tok_keep Q L L' D true V' t _ hi _ $$ Hr Ht Hb
+    icases osCrash_take_tok_keep Q L L' D tt V' t _ hi _ $$ Hr Ht Hb
       with ⟨%fo, %h, Hf, Hr, Ht, Hb⟩
     iexists fo; iframe; isplitr
     · ipureintro; exact h
     ipureintro; exact hgap
   · dsimp only [metaRes, rsTok]
     icases Hm with ⟨Ht, %hlen⟩
-    icases osCrash_take_tok_keep Q L L' D true V' t _ hi _ $$ Hr Ht Hb
+    icases osCrash_take_tok_keep Q L L' D tt V' t _ hi _ $$ Hr Ht Hb
       with ⟨%fo, %h, Hf, Hr, Ht, Hb⟩
     iexists fo; iframe; isplitr
     · ipureintro; exact h
     ipureintro; exact hlen
 
-/-- **The tree and the file after a crash under the premise `Q`**, from the invariant's part of
-the old generation's state `s` and its half of the history `V`: the new generation's history,
-whole, and the file at `p` in it, `Good` (by `TreeOkI`, and by `FileOkS` of the state's file);
-the old parts come back, so that the invariant can be closed again. -/
+/-- **The file after a crash under the premise `Q`**, from the invariant's part of the old
+generation's state `s` and its half of the claim on `b` (history `h`): what the new tree names at
+`p` (`crashRest_region'`), and the file there, whole, `Good` (by `TreeOkI`, and by `FileOkS` of the
+state's file); the old parts come back, so that the invariant can be closed again. -/
 theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
-    (V' : Hist) (p : GoString) (R : Roots) (Good : Option OsFile → Prop) (s : CState) (V : Hist)
-    (hD : ∀ i, sIno s = some i → i ∉ D) (htr : TreeOkI Good p R (sIno s) V)
+    (tt : Bool) (V' : Hist) (p : GoString) (R : Roots) (Good : Option OsFile → Prop) (s : CState)
+    (j : Ino) (b : GoString) (h : NamesH) (E : CoPset) (hE : ↑osShN ⊆ E) (hfa : FileAt R p j b)
+    (hD : ∀ i, sIno s = some i → i ∉ D) (htr : TreeOkI Good j b (sIno s) h)
     (hok : ∀ i x, s = some (i, x) → FileOkS Q Good i x) (hcut : CsCut s) :
-    ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' -∗ invResS (L := L) s -∗
-      osTree (L := L) (DFrac.own (1 : Qp).half) R V -∗
-      ∃ fo, ⌜Good fo ∧ TreeCrashed V V'⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗ startAt L' p R V' fo ∗
-        (∃ D', crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D' true V') ∗
-        invResS (L := L) s ∗ osTree (L := L) (DFrac.own (1 : Qp).half) R V := by
-  iintro Hr Hs Ht
-  icases osTreeCrash_take Q L L' D V' _ R V $$ Hr Ht with ⟨%htc, Ht', Hr, Ht⟩
-  have hto := htr V' htc
+    ⊢ osSharedInv (L := L) R -∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
+      invResS (L := L) s -∗ osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h ={E}=∗
+      ∃ fo, ⌜Good fo⌝ ∗ startAt L' p R V' fo ∗
+        (∃ D', crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D' tt V') ∗
+        invResS (L := L) s ∗ osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h := by
+  iintro #Hsi Hr Hs Hn
+  imod osCommitLb_zero (L := L) with #Hlb
+  imod crashRest_region' Q L L' D tt V' R [((j, .only [b], h), DFrac.own (1 : Qp).half)] 0 E hE
+    $$ Hsi Hr [Hn] Hlb with ⟨%hc, Hr, Hcl⟩
+  · unfold osClaims; iapply BigSepL.bigSepL_singleton.2; iexact Hn
+  unfold osClaims
+  icases BigSepL.bigSepL_singleton.1 $$ Hcl with Hn
+  obtain ⟨K, -, -, hv⟩ := hc
+  have hent : V'.now.entry j b = h.valAfter j K b :=
+    hv _ (List.mem_singleton_self _) b (by simp [NameSet.Mem])
+  have hlk : lookupH R V' p = h.valAfter j K b := by rw [lookupH_fileAt hfa, hent]
+  have hto := htr K
+  imodintro
   rcases s with _ | ⟨i, x⟩
   · -- no file at `p`: `p` names nothing after the crash
     rcases hto with ⟨hn, hg⟩ | ⟨i, hi, -⟩
     · iexists none
-      iframe Ht' Hs Ht
+      iframe Hn Hs
       isplitr
-      · ipureintro; exact ⟨hg, htc⟩
+      · ipureintro; exact hg
       isplitr
-      · unfold startAt; rw [hn]; ipureintro; rfl
+      · unfold startAt; rw [hlk, hn]; ipureintro; rfl
       iexists D; iexact Hr
     · cases hi
   dsimp only [invResS]
   icases Hs with ⟨Hm, Hb⟩
   icases (invBytes_runs (L := L) i x).1 $$ Hb with Hb
-  icases metaRes_take Q L L' D V' i (hD i rfl) x $$ Hr Hm Hb with ⟨%fo, %hfo, Hf, Hr, Hm, Hb⟩
+  icases metaRes_take Q L L' D tt V' i (hD i rfl) x $$ Hr Hm Hb with ⟨%fo, %hfo, Hf, Hr, Hm, Hb⟩
   ihave Hb := (invBytes_runs (L := L) i x).2 $$ Hb
   obtain ⟨hfc, hnm, hseen⟩ := hfo
   rcases hto with ⟨hn, hg⟩ | ⟨i', hi, hl⟩
   · iexists none
-    iframe Ht' Ht Hm Hb
+    iframe Hn Hm Hb
     isplitr
-    · ipureintro; exact ⟨hg, htc⟩
+    · ipureintro; exact hg
     isplitr
-    · unfold startAt; rw [hn]; ipureintro; rfl
+    · unfold startAt; rw [hlk, hn]; ipureintro; rfl
     iexists (i :: D); iexact Hr
   · cases hi
-    obtain ⟨f, rfl⟩ := Option.isSome_iff_exists.1 (hnm (named_of_lookup hl))
+    obtain ⟨f, rfl⟩ := Option.isSome_iff_exists.1 (hnm ⟨j, b, hent.trans hl⟩)
     iexists (some f)
-    iframe Ht' Ht Hm Hb
+    iframe Hn Hm Hb
     isplitr
-    · ipureintro; exact ⟨hok i x rfl hcut f hfc hseen, htc⟩
+    · ipureintro; exact hok i x rfl hcut f hfc hseen
     isplitl [Hf]
-    · unfold startAt; rw [hl]; iexists f; isplitr
+    · unfold startAt; rw [hlk, hl]; iexists f; isplitr
       · ipureintro; rfl
       unfold osFileStartO; iexact Hf
     iexists (i :: D); iexact Hr

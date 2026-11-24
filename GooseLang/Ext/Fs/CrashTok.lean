@@ -3,32 +3,30 @@ The crash interpretation of the Linux file extension (`ExtCrashInterp fsExt`): w
 boot program gets after a machine crash (a process's restart is one, by the environment's
 assumption on restarts). Untrusted.
 
-* The state a crash leaves is one a program may start in (`osCrash_rel`: `FsInit`), so the new
+* The state a crash leaves is one a program may start in (`osCrash_relS`: `FsInit`), so the new
   generation's ghost state is allocated as the first generation's (`os_local_init`): every file
   with its `OsMeta` and bytes as on disk (`fileStart`: `initMeta`, each byte durable), and the
-  tree's history, whole: a prefix of the old history replayed, nothing logged (`TreeCrashed`).
-* The restart gets `crashRest Q old new [] false V'` (for the new history `V'`): the old
+  tree's names filled in for the new tree, nothing logged (`treeStart`). Nothing of the old
+  generation is updated.
+* The restart gets `crashRest Q old new [] false V'` (`V' = (st'.fs.treeDur, [])`): the old
   generation's maps of bytes, files and changes in flight with what they hold, the old history's
-  authority, the new generation's files and history, and the crash's facts (the crashed state, its
-  coherence with the old maps, and the premise `Q`). A client takes from it, with what its
-  invariant kept of the old generation:
+  authority with the crash's facts (`crashShared`), the new generation's files and tree resources,
+  and the crash's facts (the crashed state, its coherence with the old maps, and the premise `Q`).
+  A client takes from it, with what its invariant kept of the old generation:
   - a file (`crashRest_take_runs_keep`, with a fraction of its `OsMeta` and its bytes in runs;
     `crashRest_take_tok_keep`, with the token of the change in flight on it, which holds its
     `OsMeta` and the bytes it announced): what the crash did to it (`FileCrashedR`: on disk, a
     size within the old bounds, each byte of the runs one of its crash candidates), whether the new
     tree names it (then it is there), and the crash's facts (`CrashSeenR`);
-  - the tree (`crashRest_tree`): the new history, whole, and that it is a crash of the old one.
-  - with a lower bound `n` of the old generation's committed prefix (`osCommitLb`, given by a
-    directory's successful `fsync`, `TreeCommit.lean`), that the crash kept at least the first `n`
-    entries of the old history (`crashRest_lb`, `TreeCrashCommit.lean`: `TreeCrashedLb`), from
-    the old generation's authoritative bound the restart's resources keep (`crashCommit`).
+  - the tree (`crashRest_treeS'`, `TreeShared.lean`): the new generation's `osShared`, and with the
+    claims it held and a lower bound of the committed prefix, what the crash kept of them
+    (`crashRest_region'`).
 * `Q` is a premise on crashes (`fsSemWith Q`); `Q := fun _ _ => True` for the plain interpretation
   (`fs_crash_interp`).
 -/
 module
 
 public import GooseLang.Ext.Fs.CrashFiles
-public import GooseLang.Ext.Fs.TreeCrashLb
 public import Perennial.GooseLang.CrashAdequacy
 
 @[expose] public section
@@ -158,56 +156,41 @@ def fileStartO (hL : OsGS GF) (i : Ino) : Option OsFile → IProp GF
   | none => iprop(emp)
   | some f => fileStart hL i f
 
-/-- The new generation's history, until it is taken. -/
+/-- The new generation's tree resources (its shared names, filled in: `osSwitchKitG`), until they are
+taken (`crashRest_treeS'`). -/
 def treeLeft (hL : OsGS GF) (R : Roots) (V' : Hist) : Bool → IProp GF
   | true => iprop(emp)
-  | false => gElem hL hL.γd () (DFrac.own 1) (R, V')
+  | false => osSwitchKitG hL R V'
 
-/-- What the restart keeps of the old generation's committed entries: the crash kept at least the
-first `c` entries of the history for every `c` below which the crashed state had them committed,
-and the old generation's authoritative bound on them (`commitRes`). -/
-def crashCommit (hL : OsGS GF) (st : OsState) (V V' : Hist) : IProp GF :=
-  iprop(⌜∀ c, (∀ y, y < c → st.fs.committed y) → TreeCrashedLb V V' c⌝ ∗ commitRes hL st)
-
-/-- What the restart keeps of the old generation's tree in the shared mode (`notes/wal-fsext-i2-design.md`,
-§4.2): its legacy history `V`, whole (no legacy resource exists), the shared history's authority (the
-crashed state's), the crash's facts (a closed set `S` of the log's entries kept, with the committed
-ones, each slot of the new tree `V'` as right after its last kept writer; the entries' calls began no
-later than they took effect; the new tree well formed, `closed_cut`), and the committed prefix's
-authoritative bound. -/
-def crashShared (hL : OsGS GF) (st : OsState) (V V' : Hist) : IProp GF :=
-  iprop(gElem hL hL.γd () (DFrac.own 1) (st.fs.roots, V) ∗
-    gAuth hL hL.γs (histMap (st.fs.roots, ((st.fs.treeDur, st.fs.metaLog) : Hist))) ∗
+/-- What the restart keeps of the old generation's tree (`notes/fs-interp-state-determined.md`,
+§7.2): the history's authority (the crashed state's), the crash's facts (a closed set `S` of the
+log's entries kept, with the committed ones, each slot of the new tree `V'` as right after its last
+kept writer; the entries' calls began no later than they took effect; the new tree well formed,
+`closed_cut`), and the committed prefix's authoritative bound. -/
+def crashShared (hL : OsGS GF) (st : OsState) (V' : Hist) : IProp GF :=
+  iprop(gAuth hL hL.γs (histMap (st.fs.roots, ((st.fs.treeDur, st.fs.metaLog) : Hist))) ∗
     ⌜TreeWf st.fs.roots V'.now ∧ Starts st.fs.metaLog ∧ ∃ S : Nat → Prop, (∀ x, S x → x < st.fs.metaLog.length) ∧
       Closed st.fs.metaLog S ∧ (∀ y, st.fs.committed y → S y) ∧
       ∀ j b, V'.now.entry j b = slotAfter st.fs.treeDur st.fs.metaLog S j b⌝ ∗
     commitRes hL st)
 
-/-- What the restart keeps of the old generation's tree: in the legacy mode, the committed entries
-(`crashCommit`) and the shared history's authority, empty (so the shared mode's invariant cannot be
-the generation's); in the shared mode, `crashShared`. -/
-def crashMode (hL : OsGS GF) (st : OsState) (V V' : Hist) : IProp GF :=
-  iprop((crashCommit hL st V V' ∗ gAuth hL hL.γs (∅ : GMap Unit (Roots × Hist))) ∨
-    crashShared hL st V V')
-
 /-- **The restart's resources**, once the files `D` and (if `tt`) the tree are taken, the new
 history being `V'`: the crashed state `st`, coherent with the old generation's ghost maps, which a
 crash (and `Q`) made the new state `st'` of; the old maps' authorities and the resources of the
-changes in flight; the new generation's files not taken, which are the new state's; the old
-history's authority and the new history, until taken. The new state's tree is the new history's
-(`st'.fs.treeDur = V'.now`: the crash starts it with nothing logged). -/
+changes in flight; the new generation's files not taken, which are the new state's; the new
+generation's tree resources, until taken; what the restart keeps of the old tree (`crashShared`).
+The new history is the new state's tree with nothing logged (`V' = (st'.fs.treeDur, [])`). -/
 def crashRest (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) (D : List Ino) (tt : Bool)
     (V' : Hist) : IProp GF :=
   iprop(∃ (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta) (F : GMap Ino OsFile)
-      (st st' : OsState) (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo) (V : Hist),
+      (st st' : OsState) (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo),
     ⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt ∧ OsCrash st st' ∧ Q st st' ∧
       (∀ i, i ∉ D → F !! i = st'.fs.files !! i) ∧
-      st'.fs.roots = st.fs.roots ∧ TreeCrashed V V' ∧
-      (∀ i, Named V'.now i → (st'.fs.files !! i).isSome) ∧ st'.fs.treeDur = V'.now⌝ ∗
+      st'.fs.roots = st.fs.roots ∧ V' = (st'.fs.treeDur, []) ∧
+      (∀ i, Named V'.now i → (st'.fs.files !! i).isSome)⌝ ∗
     gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ ([∗map] i ↦ f ∈ F, fileStart hL' i f) ∗
-    gAuth hL hL.γt Γt ∗ tokRes hL Γt ∗
-    gAuth hL hL.γd (histMap (st.fs.roots, V)) ∗ treeLeft hL' st.fs.roots V' tt ∗
-    crashMode hL st V V')
+    gAuth hL hL.γt Γt ∗ tokRes hL Γt ∗ treeLeft hL' st.fs.roots V' tt ∗
+    crashShared hL st V')
 
 /-- The restart's resources, and the new generation's half of the cells' view (for
 `osInv_alloc`). -/
@@ -267,9 +250,9 @@ theorem crashRest_take_runs_keep (Q : OsState → OsState → Prop) (hL' : OsGS 
         fileStartO hL' i fo ∗ crashRest Q hL hL' (i :: D) tt V' ∗
         gElem hL hL.γm i dq m ∗ ([∗list] r ∈ rs, bytesG hL i r.1 r.2.1 r.2.2) := by
   unfold crashRest
-  iintro ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Ht⟩
+  iintro ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %hrel, Hab, Ham, Hfs, HAt, Htok, Ht, Hsh⟩
     Hm Hbs
-  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩ := hrel
+  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, hV, hnamed⟩ := hrel
   icases gAuth_lookup hL _ _ _ _ _ $$ Ham Hm with %hmo
   icases bytesG_lookup_runs hL i Γb rs $$ Hab Hbs with %hxs
   icases tokRes_meta_whole hL $$ Htok Hm with %hnt
@@ -283,10 +266,10 @@ theorem crashRest_take_runs_keep (Q : OsState → OsState → Prop) (hL' : OsGS 
   isplitr
   · ipureintro
     exact ⟨crashSeen_crashed hseen, fun hn => by rw [hFi]; exact hnamed i hn, hseen⟩
-  iexists Γb, Γm, GMap.delete i F, st, st', Γf, Γt, V
-  iframe Hab Ham Hfs HAt Htok HAd Ht
+  iexists Γb, Γm, GMap.delete i F, st, st', Γf, Γt
+  iframe Hab Ham Hfs HAt Htok Ht Hsh
   ipureintro
-  exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed, htd⟩
+  exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, hV, hnamed⟩
 
 /-- **Taking the file a change in flight is on**, with its token, giving back the token: the
 change holds the file's `OsMeta` and the bytes it announced below the size (a run at `ti.lo`). -/
@@ -303,9 +286,9 @@ theorem crashRest_take_tok_keep (Q : OsState → OsState → Prop) (hL' : OsGS G
         ([∗list] r ∈ rs, bytesG hL ti.ino r.1 r.2.1 r.2.2) := by
   iintro Hr Ht Hbs
   unfold crashRest
-  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok,
-    HAd, Htl⟩
-  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩ := hrel
+  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %hrel, Hab, Ham, Hfs, HAt, Htok,
+    Htl, Hsh⟩
+  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, hV, hnamed⟩ := hrel
   icases gAuth_lookup hL _ _ _ _ _ $$ HAt Ht with %hti
   unfold tokRes
   icases (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
@@ -330,109 +313,46 @@ theorem crashRest_take_tok_keep (Q : OsState → OsState → Prop) (hL' : OsGS G
   isplitr
   · ipureintro
     exact ⟨crashSeen_crashed hseen, fun hn => by rw [hFi]; exact hnamed _ hn, hseen⟩
-  iexists Γb, Γm, GMap.delete ti.ino F, st, st', Γf, Γt, V
-  iframe Hab Ham Hfs HAt HAd Htl
+  iexists Γb, Γm, GMap.delete ti.ino F, st, st', Γf, Γt
+  iframe Hab Ham Hfs HAt Htl Hsh
   isplitr
   · ipureintro
-    exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed, htd⟩
+    exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, hV, hnamed⟩
   iapply (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
       gElem hL hL.γm ti.ino (DFrac.own 1) ti.meta ∗
       bytesG hL ti.ino ti.lo (DFrac.own 1) ti.saved)) hti).2
   iframe
 
-/-- **The tree after a crash**: from (a fraction of) the old generation's history `W`, the new
-generation's, whole, a crash of `W` (`TreeCrashed`), on the same roots. The old fraction is given
-back. -/
-theorem crashRest_tree (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D : List Ino) (V' : Hist)
-    (dq : DFrac) (R : Roots) (W : Hist) :
-    ⊢ crashRest Q hL hL' D false V' -∗ gElem hL hL.γd () dq (R, W) -∗
-      ⌜TreeCrashed W V'⌝ ∗ gElem hL' hL'.γd () (DFrac.own 1) (R, V') ∗
-        crashRest Q hL hL' D true V' ∗ gElem hL hL.γd () dq (R, W) := by
-  unfold crashRest
-  iintro ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Htl, Hcc⟩
-    Hd
-  icases gAuth_lookup hL _ _ _ _ _ $$ HAd Hd with %hh
-  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hh
-  obtain ⟨rfl, rfl⟩ := hh
-  unfold treeLeft
-  iframe Htl Hd
-  isplitr
-  · ipureintro; exact hrel.2.2.2.2.2.2.1
-  iexists Γb, Γm, F, st, st', Γf, Γt, V
-  iframe
-  ipureintro; exact hrel
-
 /-- **The crash of the extension's ghost state**: the new generation's ghost state from the state
-the crash left (one a program may start in), and the restart's resources. -/
+the crash left (one a program may start in), and the restart's resources. Nothing of the old
+generation is updated. -/
 theorem os_local_crash (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (st st' : OsState)
     (hc : OsCrash st st') (hQ : Q st st') :
     ⊢@{IProp GF} osCtx hL st ==∗ ∃ hL' : OsGS GF, osCtx hL' st' ∗ osCrashStart Q hL hL' := by
-  unfold osCtx osCtxF treeCtx treeLegacy treeShared
-  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩, ⟨Hmode, Hcm⟩, -⟩
-  icases Hmode with (⟨%V, %Γdf, %Γc, %htw, HAd, -, -, -, -, Hlh⟩ |
-    ⟨%V0, %s0, %Γdf, %Γc, %Γg, %htw, HAd, Hd0, -, -, Has, -, -, -⟩)
-  · unfold legacyHolds
-    icases Hlh with ⟨Has, -⟩
-    obtain ⟨hinit, hroots, hcr, hnamed⟩ := osCrash_rel htw.1 htw.2 hc
-    have hdisk : ∀ i f, st'.fs.files !! i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
-      fun i f hf => let ⟨img, sz, _, h⟩ := (hinit.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, h⟩
-    imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
-    unfold osStart osStartF treeStart bytesMap metaMap
-    icases Hst with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
-    ihave Hfs := start_files hL' hdisk $$ [Hb Hm]
-    · iframe
-    imodintro
-    iexists hL'
-    unfold osCtx osCtxF treeCtx treeLegacy treeShared legacyHolds
-    iframe Hctx
-    unfold osCrashStart crashRest treeLeft
-    iframe Hv
-    iexists (st'.fs.treeDur, []), Γb, Γm, st'.fs.files, st, st', Γf, Γt, V
-    rw [hroots]
-    iframe Hab Ham Hfs HAt Htok HAd Hd
-    isplitr
-    · ipureintro
-      exact ⟨hwc.1, hwc.2, hc, hQ, fun _ _ => rfl, rfl, hcr, hnamed, rfl⟩
-    unfold crashMode
-    ileft
-    unfold crashCommit
-    iframe Hcm Has
-    ipureintro
-    exact fun c hcm => osCrash_lb htw.2 hc c hcm
-  · obtain ⟨hinit, hroots, hnamed, hS⟩ := osCrash_relS htw.1 htw.2 hc
-    have hdisk : ∀ i f, st'.fs.files !! i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
-      fun i f hf => let ⟨img, sz, _, h⟩ := (hinit.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, h⟩
-    imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
-    unfold osStart osStartF treeStart bytesMap metaMap
-    icases Hst with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
-    ihave Hfs := start_files hL' hdisk $$ [Hb Hm]
-    · iframe
-    imod gAuth_update hL _ _ _ _ (st.fs.roots, ((st'.fs.treeDur, []) : Hist)) $$ HAd Hd0
-      with ⟨HAd, Hd0⟩
-    have hU : (<[() := (st.fs.roots, ((st'.fs.treeDur, []) : Hist))]>
-        (histMap (st.fs.roots, V0))) = histMap (st.fs.roots, ((st'.fs.treeDur, []) : Hist)) := by
-      apply GMap.ext; intro u; cases u; simp [histMap]
-    rw [hU]
-    imodintro
-    iexists hL'
-    unfold osCtx osCtxF treeCtx treeLegacy treeShared
-    iframe Hctx
-    unfold osCrashStart crashRest treeLeft
-    iframe Hv
-    iexists (st'.fs.treeDur, []), Γb, Γm, st'.fs.files, st, st', Γf, Γt,
-      ((st'.fs.treeDur, []) : Hist)
-    rw [hroots]
-    iframe Hab Ham Hfs HAt Htok HAd Hd
-    isplitr
-    · ipureintro
-      exact ⟨hwc.1, hwc.2, hc, hQ, fun _ _ => rfl, rfl, ⟨0, Nat.zero_le _, rfl⟩, hnamed, rfl⟩
-    unfold crashMode
-    iright
-    unfold crashShared
-    rw [← hroots]
-    iframe Hd0 Has Hcm
-    ipureintro
-    exact ⟨hinit.2.2.2.2.1, htw.2.starts, hS⟩
+  unfold osCtx osCtxF treeCtx
+  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩,
+    ⟨%Γdf, %Γc, %Γg, %htw, Has, -, -, -, -, -, Hcm⟩, -⟩
+  obtain ⟨hinit, hroots, hnamed, hS⟩ := osCrash_relS htw.1 htw.2 hc
+  have hdisk : ∀ i f, st'.fs.files !! i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
+    fun i f hf => let ⟨img, sz, _, h⟩ := (hinit.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, h⟩
+  imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
+  unfold osStart osStartF bytesMap metaMap
+  icases Hst with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
+  ihave Hfs := start_files hL' hdisk $$ [Hb Hm]
+  · iframe
+  imodintro
+  iexists hL'
+  isplitl [Hctx]
+  · unfold osCtx osCtxF treeCtx; iexact Hctx
+  unfold osCrashStart crashRest treeLeft crashShared
+  iframe Hv
+  iexists (st'.fs.treeDur, []), Γb, Γm, st'.fs.files, st, st', Γf, Γt
+  unfold treeStart
+  rw [hroots]
+  iframe Hab Ham Hfs HAt Htok Hd Has Hcm
+  ipureintro
+  exact ⟨⟨hwc.1, hwc.2, hc, hQ, fun _ _ => rfl, rfl, rfl, hnamed⟩,
+    by rw [← hroots]; exact hinit.2.2.2.2.1, htw.2.starts, hS⟩
 
 /-- The crash interpretation of the Linux file extension. -/
 instance fs_crash_interp : ExtCrashInterp fsExt where
@@ -518,19 +438,6 @@ theorem osCrash_take_tok_keep (Q : OsState → OsState → Prop) (L L' : GooseLo
   isplitr
   · ipureintro; exact h
   iapply (fileStartO_eq (L := L') _ fo).1 $$ Hf
-
-/-- **The tree after a crash**, from the old generation `L` to the new one `L'`: from (a fraction
-of) the old history `W`, the new history, whole, a crash of `W`. -/
-theorem osTreeCrash_take (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
-    (V' : Hist) (dq : DFrac) (R : Roots) (W : Hist) :
-    ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' -∗
-      osTree (L := L) dq R W -∗
-      ⌜TreeCrashed W V'⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗
-        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' ∗
-        osTree (L := L) dq R W := by
-  unfold osTree
-  iintro Hr Hd
-  iapply crashRest_tree _ Q _ D V' dq R W $$ Hr Hd
 
 end gen
 

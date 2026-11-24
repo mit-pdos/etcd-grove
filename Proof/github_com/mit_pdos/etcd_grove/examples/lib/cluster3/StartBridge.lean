@@ -40,7 +40,7 @@ theorem StartBridge.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
   wp_auto
   wp_apply wp_Listen go!"tcp" addr $$ [Hfree] as %l %err Hr
   · iframe; ipureintro; rfl
-  icases Hr with (⟨%Herr, Hl⟩ | %Herr)
+  icases Hr with (⟨%Herr, Hl, -⟩ | %Herr)
   · subst Herr
     wp_auto
     wp_apply wp_New client addr l $$ [Hl] as %br ⟨Hob, #Hfw, %Hnr⟩

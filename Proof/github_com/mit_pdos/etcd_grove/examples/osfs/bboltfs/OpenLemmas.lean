@@ -271,10 +271,10 @@ theorem clean_of (xs : List ByteG) (h : ∀ x ∈ xs, x = durB x.1) :
 
 /-- `Open`'s precondition, as the file to open and what it will be once open: no file at the
 path (`Open` creates one, at transaction 1 with no value, high water mark 4), or the file there. -/
-theorem dbFile_norm (R : Roots) (V : Hist) (p : GoString) (t : Nat) (vo : Option w64) (n : Nat) :
-    dbFile (GF := GF) R V p t vo n ⊢
-      |==> (⌜lookupH R V p = none ∧ t = 1 ∧ vo = none ∧ n = 4⌝ ∨
-        ∃ (i : Ino) (m : OsMeta), ⌜lookupH R V p = some (.file i)⌝ ∗
+theorem dbFile_norm (h : NamesH) (b : GoString) (t : Nat) (vo : Option w64) (n : Nat) :
+    dbFile (GF := GF) h b t vo n ⊢
+      |==> (⌜h.cur !! b = none ∧ t = 1 ∧ vo = none ∧ n = 4⌝ ∨
+        ∃ (i : Ino) (m : OsMeta), ⌜h.cur !! b = some (.file i)⌝ ∗
           osMeta (GF := GF) i (DFrac.own 1) m ∗ openSt (GF := GF) i t vo n m) := by
   unfold dbFile dbFresh dbStored openSt
   iintro ((%H | ⟨%i, %m, %xs, %hi, Hm, Hb, %H⟩) | ⟨%i, %hi, %m, Hm, Hs⟩)
