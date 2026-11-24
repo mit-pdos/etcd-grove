@@ -976,6 +976,9 @@ def backoffOk (bf : GoFunc) : IProp GF :=
 instance backoffOk_persistent (bf : GoFunc) : Persistent (backoffOk (GF := GF) bf) := by
   unfold backoffOk; infer_instance
 
+/-- The namespace of `clientTargetSeq`'s invariant (`clientv3Init`). -/
+def clientTargetSeqN : Namespace := nroot.@"clientv3_target_seq"
+
 /-- `clientv3`'s package facts: `noPrefixEnd` (`[]byte{0}`, never written), which
 `getPrefix` returns for a prefix with no successor; and (unit P3a) `defaultOptions`, the retry
 interceptor's options (never written), whose backoff function (`backoffLinearWithJitter`'s, float
@@ -1006,7 +1009,12 @@ abbrev clientv3Init : IProp GF :=
       globalAddr go_etcd_io.etcd.client.v3.zeroTime ↦□ t ∗
       globalAddr go_etcd_io.etcd.client.v3.maxBackoff ↦□ d) ∗
     -- (item 1, the client lease, 2026-10-18) `lease.go`'s `LeaseResponseChSize` (never written)
-    globalAddr go_etcd_io.etcd.client.v3.LeaseResponseChSize ↦□ (W64 16 : w64))
+    globalAddr go_etcd_io.etcd.client.v3.LeaseResponseChSize ↦□ (W64 16 : w64) ∗
+    -- (real fmt stage 1, 2026-11-24) `client.go`'s `clientTargetSeq`, the counter `Client.dial`
+    -- numbers its targets with (an `atomic.Uint64`, any value)
+    inv clientTargetSeqN (∃ n : w64,
+      _root_.Perennial.sync.atomic.ownUint64 (globalAddr go_etcd_io.etcd.client.v3.clientTargetSeq)
+        (DFrac.own 1) n))
 
 instance clientv3_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
   define_is_pkg_init clientv3Init

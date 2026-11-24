@@ -123,6 +123,9 @@ theorem startCluster.wp_proof
     fun x hx => members_names_utf8 k _ (List.of_mem_zip hx).1
   have hnlen : ∀ x ∈ (members k).zip gs, x.1.Name'.length ≤ 200 :=
     fun x hx => members_names_len k _ (List.of_mem_zip hx).1
+  -- (fmt stage 1, 2026-11-24) the members' addresses within etcd's URL bounds
+  have haf : ∀ x ∈ (members k).zip gs, etcdstart.addrFits x.1.Peer' ∧ etcdstart.addrFits x.1.Client' :=
+    fun x hx => etcdstart.membersOf_addrFits _ _ _ _ x.1 (List.of_mem_zip hx).1
   have hnd : (((members k).zip gs).map (·.1.Name')).Nodup := by
     rw [show ((members k).zip gs).map (·.1.Name') = (((members k).zip gs).map (·.1)).map (·.Name')
       by rw [List.map_map]; rfl, hxs1]
@@ -157,7 +160,7 @@ theorem startCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs
       (etcd_putgetN.dirN (members k) ids) Φs γn .none true Htb Hrb48 HrbN HwbN
       (by simp [LogEntry.toEntries, hblen]; omega)
-      hγn2 Hdok Hbc hnd hutf hnlen hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
+      hγn2 Hdok Hbc hnd hutf hnlen haf hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
   · rw [hxs1]
     iframe; iframe #
   icases Hsr with ⟨Htok, (%Hserr | ⟨%Hserr, %ss, Hss, Hups⟩)⟩
@@ -293,13 +296,13 @@ theorem startCluster.wp_proof
       iintro %gs' %lis %cid %mid %R Hg
       rw [HsvOff.1]
       ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-      ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs'
-        lis xj.1.Client' cid mid R HEo $$ [Hg]
-      · iframe; iframe #
       imod (etcdstart.kvWatch_served Hp Hr sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd cfg gs' lis
         xj.1.Client' cid mid R Hrb48 Hrf rfl HLv Hms
-        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hwr⟩
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hksa, #Hwr⟩
       · iframe; iframe #
+      -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
+      ihave %Hnr := EtcdGrove.etcd_noRefusal_srv xj.1.Client' sj E { xj.2.ρ with wait := γw } HEo $$ [Hksa]
+      · iframe #
       imodintro
       iframe Htk
       iframe #

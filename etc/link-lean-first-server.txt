@@ -967,6 +967,9 @@ etcdserver_NewServer+R: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger_
 # configuration's `BackendPath`; raft's metadata getter and `fmt.Errorf` are linked elsewhere (`@`).
 fmt_Errorf: @
 snap_Snapshotter__DBFilePath:
+# (claim #34, 2026-11-23) the snapshotter's constructor, proved (`snapshotterRO` defined, the
+# `fsyncDir` field: axiom review in notes/axiom-review/)
+snap_New: zap_NewNop
 os_Rename:
 # (bkarea, 2026-11-22) `BackendPath` proved over `datadir` (translated with its bodies) and
 # `filepath.Join` (the part's translation, proved; the WAL's Link links it in its own namespace)

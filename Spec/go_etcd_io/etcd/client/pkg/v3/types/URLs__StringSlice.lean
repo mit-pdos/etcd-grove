@@ -29,7 +29,9 @@ the URLs read-only (`sl ↦*□ us`): a fresh slice of as many strings (`out[i] 
 (prove-ps2-misc, 2026-11-21: proved over `url.URL.String`'s spec; until then a trust-boundary axiom
 over `p ≠ null` alone, owning nothing of `*p`, with post `True`: the premise is the one caller's,
 `NewServer` on its configuration's `ClientURLs` field, `bootCfgRO`'s `cfg.ClientURLs' ↦*□ U.client`;
-the ledger's entry of that date.) -/
+the ledger's entry of that date.) (fmt stage 1, 2026-11-24) Each URL of only the scheme `http` and a
+plain host (`http.urlRootPlain`) gives `http://host` (`url.URL.String`'s spec): `NewServer` bounds the
+strings' lengths from its URLs' (`etcdURLsFit`, for `publishV3`'s `strings.Join` of them). -/
 abbrev types.URLs.StringSlice.spec : Prop :=
   ∀ (p : Loc) (dq : DFrac) (sl : GoSlice) (us : List _root_.Perennial.net.url.URL),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types ∗
@@ -37,7 +39,9 @@ abbrev types.URLs.StringSlice.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.types.URLs.ty @!!
       go!"StringSlice")) (Val #()))
   {{ (out : GoSlice), RET #out; p ↦{dq} sl ∗
-      ∃ ss : List GoString, out ↦* ss ∗ ⌜ss.length = us.length⌝ }}
+      ∃ ss : List GoString, out ↦* ss ∗ ⌜ss.length = us.length ∧
+        ∀ (j : Nat) (u : _root_.Perennial.net.url.URL), us[j]? = some u → http.urlRootPlain u →
+          ss[j]? = some (go!"http://" ++ u.Host')⌝ }}
 
 /-- **`us.StringSlice()` of plain URLs** (claim #34, stage 2, 2026-11-25: `computeMemberID`'s and
 `newMember`'s, whose ids and members name the strings): as `spec`, the strings `http://` and each

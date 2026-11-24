@@ -1285,7 +1285,7 @@ theorem rangeErrΨ_of_ifc (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : O
   by_cases hm : d ∈ handlerDescs
   · iapply H
     · ipureintro
-      refine ⟨⟨go!"Range", rfl⟩, ?_⟩
+      refine ⟨kvMethod_range, ?_⟩
       intro a ha
       obtain ⟨x, hx, rfl⟩ := List.mem_map.1 ha
       exact h x hx

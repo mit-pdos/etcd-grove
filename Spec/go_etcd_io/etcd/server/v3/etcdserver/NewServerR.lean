@@ -86,6 +86,8 @@ abbrev NewServer.specR : Prop :=
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   netDirOk dir →
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24) the URLs within etcd's URL bounds (`NewServer.spec`'s)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m false →
   -- what the restart contract covers: no forced new cluster, the WAL in the data directory's

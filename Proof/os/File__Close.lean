@@ -45,7 +45,7 @@ private abbrev os.File.Close.tripleNE : Prop :=
 private theorem os.File.Close.wp_old : os.File.Close.tripleOld (GF := GF) (hG := hG) := by
   intro f fd name d
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hlt⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hlt⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -67,21 +67,21 @@ private theorem os.File.Close.wp_old : os.File.Close.tripleOld (GF := GF) (hG :=
     iframe Hokn
     iexists inner
     iframe
-    isplitl [] <;> iassumption
+    (repeat' isplitl []) <;> iassumption
   · rw [decide_eq_false he]
     wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn as %pe #Hok
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn Hsys as %pe #Hok
     ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
     iapply HΦ
     iframe Hokn
     iexists inner
     iframe
-    isplitl [] <;> iassumption
+    (repeat' isplitl []) <;> iassumption
 
 private theorem os.File.Close.wp_NE : os.File.Close.tripleNE (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name d
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hlt⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hlt⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -98,7 +98,7 @@ private theorem os.File.Close.wp_NE : os.File.Close.tripleNE (GF := GF) (hG := h
   iapply HΦ
   iexists inner
   iframe
-  isplitl [] <;> iassumption
+  (repeat' isplitl []) <;> iassumption
 
 /-- **`Close.spec`**: by cases on `FsNoErr`, the error-free triple (`nil`) or the one without the
 witness. -/

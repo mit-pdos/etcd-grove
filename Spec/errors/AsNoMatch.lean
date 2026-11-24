@@ -9,7 +9,8 @@ theorem, and lets `apierrors`' `APIStatus` checks (`IsTimeout`, `IsTooManyReques
 `HasStatusCause`, `SuggestsClientDelay`), until then axioms, be proved over their real bodies, whose
 `.plain` errors include such wrappers, `*storage.StorageError`s; `notes/axiom-review/asnomatch.md`.)
 
-Trusted text. Go (go1.27.3, `src/errors/wrap.go:102-160`): `As` returns `false` at once on a `nil`
+Proved since Perennial 52d62e83c (`Proof/errors/AsNoMatch.lean`, over `errors.wp_As`'s no-match
+case); until then an axiom, of which the following was the evidence. Go (go1.27.3, `src/errors/wrap.go:102-160`): `As` returns `false` at once on a `nil`
 `err` (`:103-105`); otherwise it panics unless the target is a non-nil pointer (`l ↦ v` makes `l`
 non-null) to a type that is an interface or implements `error` (`AsTarget T`, `:106-116`), then
 runs `as` (`:121-160`), a loop over the error: (1) if `reflectlite.TypeOf(err).AssignableTo(T)` the

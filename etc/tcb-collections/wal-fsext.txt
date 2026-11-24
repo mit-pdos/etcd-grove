@@ -13,7 +13,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/storage/wal/Link\.lean
 axiom fmt.ErrorfStrs.wp_proof
-axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom pbRecordC_reg
 axiom pbSnapC_reg

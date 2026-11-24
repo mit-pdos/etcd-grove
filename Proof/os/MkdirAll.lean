@@ -77,6 +77,9 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   intro d b perm R j qd h q r Q hb hn hq
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases (os.osPathS_unfold R d _ j).1 $$ Hp with ⟨%r0, %j0, %cs, %hp, Hs⟩
   obtain ⟨hR, hm, hcs, rfl⟩ := hp
   have hkr : callKey R (joinPath r0 cs) = callKey R r0 := callKey_joinPath hR hm cs

@@ -13,6 +13,8 @@ public import Spec.context.TODO
 public import Spec.fmt.Sscanf
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesLemmas
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -221,12 +223,16 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   try (isplitr; (ipureintro; rfl))
   iintro %sla ⟨Hargs, -⟩
   (try wp_auto)
-  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %key ⟨-, %Hkey⟩
-  case wf =>
-    exact .cons_string _ _ (.cons_int _ _ _ (.int n) .nil)
-  rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
-  simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
-  have Hkey' := sprintf_slash_016d kp n key Hkey
+  wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s/%016d"
+    [.dir none _root_.Perennial.fmt.verb_s, .lit go!"/", .dir (some 16) _root_.Perennial.fmt.verb_d] _ _ _ _ (by fmt_encode) ?fits ?pa
+    $$ [$Hfmt $Hargs] as %key ⟨-, %Hkey⟩
+  case pa =>
+    rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+    simp only [List.set_cons_succ, List.set_cons_zero]
+    exact .str _ _ _ (.int _ _ _ _ (.int n) .nil)
+  case fits => fmt_fits
+  have Hkey' : key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimalPad 16 (sint.Z n) := by
+    simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, Hkey, _root_.Perennial.fmt.render]
   have Hkpk : (kp ++ go!"/") <+: key := by rw [Hkey']; exact List.prefix_append _ _
   have HkeyL : key.length ≤ 2 ^ 28 := seqKey_length_le n Hk.2.2.1 Hkey'
   have Hpk : pfx <+: key := Hk.1.trans ((List.prefix_append _ _).trans Hkpk)

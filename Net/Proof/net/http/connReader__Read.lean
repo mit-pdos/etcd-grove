@@ -91,55 +91,70 @@ theorem readErr_ptrTyped (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) :
     simp only [interface.mkOk] at h
     cases h; exact ⟨pe, rfl⟩
 
-/-- A read error of the connection has an `Error()` returning some string (`errMsgOk`): `io.EOF`'s
-`*errorString` (its `Error()` from `errors.newVar`), or an `*OpError` (`net.wp_OpError_Error`). -/
-theorem readErr_msgOk (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (msg : GoString) :
+/-- `"read" ++ …` is not `"message too large"`. -/
+theorem opErrMsg_read_ne (m : GoString) (h : net.opErrMsg go!"read" m) : m ≠ go!"message too large" := by
+  obtain ⟨s1, s2, rfl⟩ := h
+  intro h
+  have := congrArg List.head? h
+  simp at this
+
+/-- A read error of the connection is `io.EOF`'s `*errorString` or an `*OpError` of a read
+(`crErrId`), whose `Error()` returns a string other than `"message too large"` (`errMsgOk`): `"EOF"`
+(`errors.newVar`), or `net.wp_OpError_Error`'s `"read …"`. -/
+theorem readErr_msgOk (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (msg : GoString)
+    (hmsg : msg ≠ go!"message too large") :
     (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
         WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #xe))
           (Val #())) {{ Φ }}) ∗
+      globalAddr io.EOF ↦□ interface.mkOk errors.errorString.ty.PointerType #xe ∗
       net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err ⊢
       net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err ∗
-        (⌜err = interface.nil⌝ ∨ errMsgOk err) := by
+        (⌜err = interface.nil⌝ ∨ (errMsgOk err ∗ crErrId err)) := by
   cases r with
   | bytes bs =>
     simp only [net.ReadErr]
-    iintro ⟨-, %h⟩; isplitr
+    iintro ⟨-, -, %h⟩; isplitr
     · ipureintro; exact h
     · ileft; ipureintro; exact h
   | eof =>
     simp only [net.ReadErr]
-    iintro ⟨#HW, %h⟩; subst h; isplitr
+    iintro ⟨#HW, #Hxe, %h⟩; subst h; isplitr
     · ipureintro; rfl
     iright
-    iunfold errMsgOk
-    iexists ⟨go.GoType.PointerType errors.errorString.ty, #xe⟩
-    isplitr
-    · ipureintro; rfl
-    rw [fmt.stringMethodSpec_unfold]
-    imodintro
-    iintro %Φ HΦ
-    iapply HW
-    inext
-    iapply HΦ
+    isplitl []
+    · iapply errMsgOk_of ⟨go.GoType.PointerType errors.errorString.ty, #xe⟩ msg hmsg
+      iexact HW
+    iunfold crErrId
+    ileft
+    iexists xe
+    iframe Hxe
+    ipureintro; rfl
   | err k =>
     simp only [net.ReadErr]
-    iintro ⟨-, #HE⟩
+    iintro ⟨-, -, #HE⟩
     iframe HE
     iright
-    unfold net.resErr net.opErr
-    icases HE with ⟨%e, ⟨%pe, %nw, ⟨%h, -⟩, #Hpe⟩, -⟩
-    subst h
-    iunfold errMsgOk
-    iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
-    isplitr
-    · ipureintro; rfl
-    rw [fmt.stringMethodSpec_unfold]
-    imodintro
-    iintro %Φ HΦ
-    iapply net.wp_OpError_Error pe _ Φ $$ Hpe
-    inext
-    iintro %m -
-    iapply HΦ
+    unfold net.resErr
+    icases HE with ⟨%e, #Hop, -⟩
+    isplitl []
+    · unfold net.opErr
+      icases Hop with ⟨%pe, %nw, ⟨%h, -⟩, #Hpe⟩
+      subst h
+      iunfold errMsgOk
+      iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
+      isplitr
+      · ipureintro; rfl
+      imodintro
+      iintro %Φ HΦ
+      iapply net.wp_OpError_Error pe _ Φ $$ Hpe
+      inext
+      iintro %m %hm
+      iapply HΦ
+      ipureintro; exact opErrMsg_read_ne m hm
+    iunfold crErrId
+    iright
+    iexists la, ra, e
+    iexact Hop
 
 /-- `cr.hitReadLimit()`. -/
 theorem wp_hitReadLimit (cr : Loc) (v : w64) :
@@ -204,16 +219,14 @@ theorem connReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG :=
     · unfold EtcdGrove.io.errAt
       isplitl []
       · iright; imodintro; unfold crHeadErr; iframe Hlb
-        iunfold errMsgOk
-        iexists ⟨go.GoType.PointerType errors.errorString.ty, #xe⟩
-        isplitr
-        · ipureintro; rfl
-        rw [fmt.stringMethodSpec_unfold]
-        imodintro
-        iintro %Φ HΦ
-        iapply HxeE
-        inext
-        iapply HΦ
+        isplitl []
+        · iapply errMsgOk_of ⟨go.GoType.PointerType errors.errorString.ty, #xe⟩ go!"EOF" (by decide)
+          iexact HxeE
+        iunfold crErrId
+        ileft
+        iexists xe
+        iframe Hxe
+        ipureintro; rfl
       · ipureintro
         intro ii T h _; simp only [interface.mkOk] at h; cases h; exact ⟨xe, rfl⟩
     iunfold crHead
@@ -349,7 +362,7 @@ theorem connReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG :=
         iframe Hc Hd
         ipureintro; intro bs h; cases h)
   ihave %Hptr := readErr_ptrTyped res la ra ed err0 xe $$ HE
-  icases readErr_msgOk res la ra ed err0 xe _ $$ [$HxeE $HE] with ⟨HE, #Hem⟩
+  icases readErr_msgOk res la ra ed err0 xe go!"EOF" (by decide) $$ [$HxeE $Hxe $HE] with ⟨HE, #Hem⟩
   ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
   wp_auto_lc 1
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
@@ -465,7 +478,7 @@ theorem connReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG :=
       · ileft; ipureintro; exact h
       · icases Hem with (%h | #Hem)
         · ileft; ipureintro; exact h
-        · iright; imodintro; unfold crHeadErr; iframe Hlb Hem
+        · iright; imodintro; unfold crHeadErr; iframe Hlb; iexact Hem
     · ipureintro; exact Hptr.1
   iunfold crHead
   iframe Hph

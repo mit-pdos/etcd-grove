@@ -268,7 +268,7 @@ theorem wp_Create (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
     (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (γ : GName)
     (ko : Option Ino) (hw ht : NamesH) (hA : hw.cur !! walB = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ dsInv (GF := GF) j γ ∗ osCallPerm (callKey R dir) 1 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ dsInv (GF := GF) j γ ∗ osCallPerm (callKey R dir) 1 ∗
         dsHalf (GF := GF) j γ ko false hw none ∗ osNames j (.only [wtB]) (DFrac.own 1) ht ∗
         tmpRes (GF := GF) ht }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Create)) (Val #dir))
@@ -461,7 +461,7 @@ theorem wp_checkDir (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (R : Roots) (w : GoString) (dq : DFrac) (J : Ino) (dqn : DFrac) (hs : NamesH) (qc : Qp) (k : Ino)
     (hk : hs.cur !! segB = some (.file k)) (m : OsMeta) (bs : List ByteG) (hok : CheckOk m bs) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R w dq J ∗ osCallPerm (callKey R w) qc ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R w dq J ∗ osCallPerm (callKey R w) qc ∗
         osNames J sN dqn hs ∗
         osMeta (GF := GF) k (DFrac.own (1 : Qp).half) m ∗
         osBytes (GF := GF) k 0 (DFrac.own (1 : Qp).half) bs }}
@@ -539,7 +539,7 @@ theorem wp_BootDir (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
     (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (γ : GName)
     (m : Tree) (ko : Option Ino) (hs : SafeT j ko m) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ dsInv (GF := GF) j γ ∗ osCallPerm (callKey R dir) 1 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ dsInv (GF := GF) j γ ∗ osCallPerm (callKey R dir) 1 ∗
         dsHalf (GF := GF) j γ ko false (NamesH.init m j wO) (initSeg m j) ∗
         osNames j (.only [wtB]) (DFrac.own 1) (NamesH.init m j (.only [wtB])) ∗
         optClaim (GF := GF) (m, []) (dirOf m j wtB) ∗ optClaim (GF := GF) (m, []) (segDir m j) ∗

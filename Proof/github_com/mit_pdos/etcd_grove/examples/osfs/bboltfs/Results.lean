@@ -19,10 +19,12 @@ The specs `wp_BootMinibolt` uses are linked to their proofs (`Open`, `Get`, `Clo
 the crash-aware proofs of their callees, `Proof/os/CrashStSpec.lean`'s `*.wp_proof_crashS`, and the
 crash-free ones of `Link.lean`).
 
+The package initializer is proved (2026-11-24; until then the hypothesis `Hinit_wp`, its spec with
+`pkgFacts` as its post): each generation runs the generated `wp_initialize'` (`Init.lean`, over the
+package table `PkgTable.lean`) from its fresh package state (`ownInitializing_of_empty`), and
+`pkgFacts` follows from the package's `isPkgInit` (`pkgFacts_of_isPkgInit`).
+
 **What is assumed** (hypotheses of `bootCrashSafety`, besides `BootCrashSafety`'s thread bound):
-* `Hinit_wp`: the package initializer runs from the fresh package state and gives `pkgFacts`; as
-  for crashlog, its proof needs `wp_initialize'` of `os`, `syscall` and their imports, which are
-  not generated.
 * The hand-written `os.file` and `os.fileStat` field facts, as instance hypotheses (as for every
   `OpenFile` and `Stat` spec).
 
@@ -31,6 +33,8 @@ The premises are satisfiable and not vacuous: an empty root is a start state
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.PkgTable
+public import Proof.runtime.InitEmpty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootMinibolt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootP1
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.P1Sat
@@ -177,23 +181,20 @@ def bootPre [G : GooseGlobalGS .hasLC GF] (R : Roots) (dir : GoString) (L : Goos
       startAt L (child dir dbB) R (m, []) fo)
 
 /-- `bootCrashSafety` for executions of fewer than `N` steps along which fewer than `T ≤ 2 ^ 30`
-threads are live. -/
+threads are live (`RealCrashNstepsBelow`: the thread bound on the execution itself, Perennial's
+`goose_crash_adequacy_below`, so `N` is not bounded by `T`). -/
 theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [hPre : GooseGpreS GF]
-    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
-      ∀ hG : HeapGS .hasLC GF, initialize'.spec (GF := GF) (hG := heapAt hG lctx))
     (N T : Nat) (hT : T ≤ 2 ^ 30) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
     (Hnone : (extLocal fsExt σ.world).lookup (child dir dbB) = none)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
-    (Hsteps : @RealCrashNsteps fsExts (fsExtsSemanticsWithS AnyStep P1) _
-      (boot dir) n ([boot dir], ((σ, g) : CfgState)) κs (t2, σ2) b)
-    (Hbound : n < N) (Hthreads : σ.threads = 1)
-    (Hlive : @RealCrashThreadsBelow fsExts (fsExtsSemanticsWithS AnyStep P1) _
-      (boot dir) T n ([boot dir], ((σ, g) : CfgState))) :
+    (Hsteps : @RealCrashNstepsBelow fsExts (fsExtsSemanticsWithS AnyStep P1) _
+      (boot dir) T n ([boot dir], ((σ, g) : CfgState)) κs (t2, σ2) b)
+    (Hbound : n < N) (Hthreads : σ.threads = 1) :
     (∀ e2, e2 ∈ t2 → @RealNotStuck fsExts (fsExtsSemanticsWithS AnyStep P1) _ e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   letI := fsExtsSemanticsWithS AnyStep P1
@@ -212,9 +213,9 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
   obtain ⟨m0, hm0⟩ : ∃ m0, (extLocal fsExt σ.world).fs.treeDur = m0 := ⟨_, rfl⟩
   rw [hm0] at Hnone
   have hfa : FileAt R (child dir dbB) j dbB := ⟨hR, dbB_ok, dir, hrj, rfl⟩
-  have h := fsSQ_crash_adequacy (GF := GF) AnyStep P1 anyStep_keeps N T (boot dir) σ g
+  have h := fsSQ_crash_adequacy_below (GF := GF) AnyStep P1 anyStep_keeps N T (boot dir) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) Hinit (fun L => bootPre R dir L)
-    ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads Hlive
+    ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads
   · exact h.2
   · -- the first generation: the tree as on disk, the file absent
     intro hG _ _ _
@@ -264,7 +265,11 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     isplitl [Hgs Hperm Hown Htok]
     · -- the boot program
       unfold boot
-      wp_apply (Hinit_wp hG) $$ Hgs as #Hpkg
+      ihave Hown0 := ownInitializing_of_empty (github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.getIsPkgInit (GF := GF)) $$ Hgs
+      wp_apply (github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.getIsPkgInit_wf) $$ Hown0 as ⟨-, #Hpkg0⟩
+      ihave #Hpkg := pkgFacts_of_isPkgInit $$ Hpkg0
+      ihave #Hospkg : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+      · iPkgInit
       wp_pures
       wp_apply wp_BootMinibolt wp_OpenC DB.wp_GetC DB.wp_CommitC DB.wp_CloseC dir R 1 γ s hst
         $$ [Hperm Hown Htok]
@@ -298,17 +303,15 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       ipureintro; exact ⟨hw', hg'⟩
 
 /-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`: executions along which fewer
-than `2 ^ 30` threads are live), under the hypotheses of the file header: the package initializer
-(`Hinit_wp`) and the `os.file`/`os.fileStat` field instances. -/
+than `2 ^ 30` threads are live), under the hypotheses of the file header: the `os.file`/`os.fileStat` field instances. -/
 theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (dir : GoString)
-    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
-      ∀ hG : HeapGS .hasLC fsGF, initialize'.spec (GF := fsGF) (hG := heapAt hG lctx)) :
+    (dir : GoString) :
     BootCrashSafety dir := by
   intro σ g Hlctx Hpkgs Hinit Hdir Hnone Hthreads n κs t2 σ2 b Hsteps Hlive
-  exact bootCrashSafety_bounded (GF := fsGF) Hinit_wp (n + 1) (2 ^ 30) (Nat.le_refl _)
-    σ g dir Hlctx Hpkgs Hinit Hdir Hnone n κs t2 σ2 b Hsteps (by omega) Hthreads Hlive
+  exact bootCrashSafety_bounded (GF := fsGF) (n + 1) (2 ^ 30) (Nat.le_refl _)
+    σ g dir Hlctx Hpkgs Hinit Hdir Hnone n κs t2 σ2 b
+    (RealCrashNstepsBelow.of_threadsBelow Hsteps Hlive) (by omega) Hthreads
 
 end adequacy
 

@@ -18,7 +18,7 @@ state as on disk (`FsInit`) is a premise here, as in the osfs examples.
 
 **A visible premise: `Hopen`** (`TOpen`): the specs the proof takes that no proof discharges yet, today
 only `proto.UnmarshalWalRecordE.spec` (`proto.Unmarshal` of a WAL record, with its error's identity;
-upamanyus's protobuf plan, etcd-grove#37 S3). When it is proved the premise goes, a strengthening.
+the protobuf plan, etcd-grove#37 S3). When it is proved the premise goes, a strengthening.
 
 The thread bound is the step bound's (`threads := bound + 1`, `Robust` without a thread bound): the
 bounded theorem's thread bound `T` is free and an execution of `n` steps from one thread has fewer than

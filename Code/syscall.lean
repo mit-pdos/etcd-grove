@@ -113,6 +113,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Flock_unfold : FuncUnfold Flock [] Flock.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_strconv_Assumption : _root_.Perennial.internal.strconv.Assumptions
   import_oserror_Assumption : _root_.Perennial.internal.oserror.Assumptions
 
 attribute [instance] Assumptions.SysProcIDMap_instance
@@ -208,6 +209,7 @@ attribute [instance] Assumptions.SysProcIDMap_instance
   Assumptions.Flock_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_errors_Assumption
+  Assumptions.import_strconv_Assumption
   Assumptions.import_oserror_Assumption
 
 end syscall

@@ -81,6 +81,7 @@ theorem wp_StartServer1 (wp_StartServer : StartServer.spec (GF := GF) (hG := hG)
     (N : Nat) (name peer client : GoString) (lg : Loc) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) (Hbf : BootFacts id ctxs boot)
     (hpl : types.plainPeerURL (go!"http://" ++ peer)) (hu : utf8Valid name) (hn : name.length ≤ 200)
+    (hpf : addrFits peer) (hcf : addrFits client)
     (Htb : threadBound GF ≤ 2 ^ 28) (Hrb48 : receiptBound GF ≤ 2 ^ 48)
     (HrbN : receiptBound GF ≤ N + 1) (HwbN : N + 7 + bootWB ≤ backend.wbInit)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk) :
@@ -118,7 +119,7 @@ theorem wp_StartServer1 (wp_StartServer : StartServer.spec (GF := GF) (hG := hG)
   ihave Hfresh := memberStartRes_fresh _ _ γn rfl $$ Hstart
   wp_apply (wp_StartServer N name peer client lg (LogEntry.toEntries boot 0) ctxs (dir1 peer id) id γ
       ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) hu hn Haf Hbuq Hdbo)
+      (by simp [dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) hu hn hpf hcf Haf Hbuq Hdbo)
     $$ [Htok Hmb Hfresh] as %srv %err Hr
   · iframe; iframe #
   rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot)]

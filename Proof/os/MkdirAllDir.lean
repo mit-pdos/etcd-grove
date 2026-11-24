@@ -114,6 +114,9 @@ theorem os.MkdirAll.wp_proofDirS : os.MkdirAll.specDirS (GF := GF) (hG := hG) :=
   intro d b perm R j J qd qn h qc hb hJ
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases (os.osPathS_unfold R d _ j).1 $$ Hp with ⟨%r0, %j0, %cs, %hp, Hs⟩
   obtain ⟨hR, hm, hcs, rfl⟩ := hp
   have hkr : callKey R (joinPath r0 cs) = callKey R r0 := callKey_joinPath hR hm cs
