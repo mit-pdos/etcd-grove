@@ -10,6 +10,7 @@ variable).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Base
+public import Perennial.Proof.crypto.sha1.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Init
