@@ -23,7 +23,7 @@ public import Perennial.Proof.math.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Proof.github_com.prometheus.client_model.go''.Init
+public import Proof.github_com.prometheus.client_model.go.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Seed
 public import Proof.runtime.PkgInitExt
 

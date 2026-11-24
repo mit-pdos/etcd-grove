@@ -4263,6 +4263,10 @@ def plain(ns):
 # is c'' in the package's namespace (`go/token` is `go''.token`), but its files keep the path
 FRAMEWORK_NAMESPACES = set('go chan map func interface package slice array string pkg_id Iris Classical DFrac Perennial'.split())
 
+def modof(ns):
+    """The module path of a package's files (dirof with dots)."""
+    return dirof(ns).replace('/', '.')
+
 def dirof(ns):
     return '/'.join(c[:-2] if c.endswith("''") and c[:-2] in FRAMEWORK_NAMESPACES else c
                     for c in plain(ns).split('.'))
@@ -4459,8 +4463,8 @@ def init_module(q):
     if q == 'k8s_io.utils.third_party.forked.golang.btree':
         return 'Proof.k8s_io.utils.third_party.forked.golang.btree.initialize'
     if d['perennial'] and q not in PERENNIAL_HERE:
-        return 'Perennial.Proof.' + plain(q) + '.Link'
-    return 'Proof.' + plain(q) + '.Init'
+        return 'Perennial.Proof.' + modof(q) + '.Link'
+    return 'Proof.' + modof(q) + '.Init'
 
 def init_thm(q):
     if q == 'k8s_io.utils.third_party.forked.golang.btree':
@@ -4632,7 +4636,7 @@ def linked_module(q):
     if q in ASSUMED:
         return ASSUMED[q][0]
     if not external(q) and split(q):
-        return 'Proof.' + plain(q) + '.InitLinked'
+        return 'Proof.' + modof(q) + '.InitLinked'
     return init_module(q)
 
 
@@ -4679,7 +4683,7 @@ def gen(p, cfg=None):
                                           if not proofish(init_module(q))}) + \
             [m for m in cfg_imps if not proofish(m)]
         if newvars: facts_mods.append('Proof.errors.NewVarCell')
-        linked_mods = [f'Proof.{plain(p)}.Init'] + sorted({linked_module(q) for q in imps}) + \
+        linked_mods = [f'Proof.{modof(p)}.Init'] + sorted({linked_module(q) for q in imps}) + \
             [m for m in cfg_imps if proofish(m)] + ['Proof.runtime.PkgInitExt']
     lines = []
     A = lines.append
@@ -5175,7 +5179,7 @@ def gen_table(p, path):
     visit(p)
     assert seen == cl, (p, seen ^ cl)
     L = [TABLE_DOC.replace('{p}', plain(p)), 'module', '',
-         f'public import Proof.{plain(p)}.Init', '',
+         f'public import Proof.{modof(p)}.Init', '',
          '@[expose] public section', '', 'set_option linter.unusedSectionVars false',
          'set_option maxRecDepth 100000', '',
          'noncomputable section', '', 'namespace Perennial', f'namespace {p}', '',
