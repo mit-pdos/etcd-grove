@@ -76,17 +76,20 @@ def NodeView.noteInput (v : NodeView) (inp : Input) : NodeView :=
   { v with byE := inp.byE, cause := inp.cause, told := false }
 
 /-- **How the node reached the state `ps₁` a `Ready` (or `HasReady`) is taken at**, from its view
-`v`: an input taken between inputs (`v` noted it, `NodeView.noteInput`; a message received was
-sent to it), or `Advance` at the end of a `Ready` whose reports are all made (`AdvanceEnd` stepping
-the `Ready`'s self-addressed messages; the drain's `by` one of the harness's). -/
+`v`: no input taken (`RunCluster`'s `drain(n, "boot")` right after the `boot` report, at the
+view's own state), an input taken between inputs (`v` noted it, `NodeView.noteInput`; a message
+received was sent to it), or `Advance` at the end of a `Ready` whose reports are all made
+(`AdvanceEnd` stepping the `Ready`'s self-addressed messages; the drain's `by` one of the
+harness's). -/
 inductive Reach (id : w64) (net : List Msg) : NodeView → PState → Prop
+  | stay (v : NodeView) : v.Idle → Reach id net v v.ps
   | input (v : NodeView) (inp : Input) (ps₁ : PState) :
       v.Idle → v.byE = inp.byE → v.cause = inp.cause →
       (∀ m, inp = .recv m → m ∈ net ∧ m.dst = id) →
       InputStep id v.ps inp ps₁ → Reach id net v ps₁
   | advance (v : NodeView) (ps₁ : PState) :
       v.pend = [] → v.ce = [] →
-      (v.byE = go!"recv" ∨ v.byE = go!"tick" ∨ v.byE = go!"propose") →
+      (v.byE = go!"boot" ∨ v.byE = go!"recv" ∨ v.byE = go!"tick" ∨ v.byE = go!"propose") →
       AdvanceEnd cfgM3 id v.ps v.qs ps₁ → Reach id net v ps₁
 
 /-- A `Ready`'s data, as the harness reads it: the role and hard state after it (`SoftState` or the

@@ -852,6 +852,12 @@ Proved so far (`Sim/`, one file per lemma): `antSim_gc` (`GC.lean`, with the sha
   is made from a report of a node among `1, 2, 3` about a message between them (C4).
 - `violated` is empty under `GlobalOk` and `RaftLaws` (`violated_nil`): `OneVotePerTerm` needs
   `nameOf` injective (`nameOf_inj`, from `parseUint_fmtUint10`); no change.
+- **`Reach` gains `stay` (no input taken, from an idle view, at the view's own state), and
+  `advance` allows the drain's `by` to be `"boot"`** (the lead's request): `RunCluster` calls
+  `drain(n, "boot")` right after the `boot` report, before any input, and `RawNode.HasReady`'s spec
+  gives nothing when it is `true`, so the boot drain may take a `Ready` at the view's state.
+  `Reach.mono`/`Quiet.mono` (`Mono.lean`): both are monotone in `net` (the harness holds only a
+  lower bound of the messages sent when it takes a node's steps).
 
 ---
 
