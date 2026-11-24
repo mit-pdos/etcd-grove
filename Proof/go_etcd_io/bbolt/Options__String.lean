@@ -59,6 +59,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+set_option maxRecDepth 20000 in
 theorem Options.String.wp_proof (hSprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG))
     (hDur : _root_.Perennial.time.Duration.String.spec (GF := GF) (hG := hG)) :
     Options.String.spec (GF := GF) (hG := hG) := by
@@ -71,32 +72,39 @@ theorem Options.String.wp_proof (hSprintf : _root_.Perennial.fmt.Sprintf.spec (G
   wp_auto
   simp only [decide_eq_false Hnn]
   wp_auto
-  wp_apply wp_slice_literal (V := GoInterface)
-  try (isplitr; (ipureintro; rfl))
-  iintro %al ⟨Hal, -⟩
-  (try wp_auto)
-  ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
-  · iPkgInit
-  -- the duration by its `String()`; the `bool`s, the free-list type (a string), the `int`s, and
-  -- whether `OpenFile`/`Logger` are set, calling no method
-  wp_apply hSprintf go!"{Timeout: %s, NoGrowSync: %v, NoFreelistSync: %v, PreLoadFreelist: %v, FreelistType: %s, ReadOnly: %v, MmapFlags: %x, InitialMmapSize: %d, PageSize: %d, MaxSize: %d, NoSync: %v, OpenFile: %v, Mlock: %v, Logger: %v, NoStatistics: %v}"
-    [.lit go!"{Timeout: ", .dir none _root_.Perennial.fmt.verb_s, .lit go!", NoGrowSync: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", NoFreelistSync: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", PreLoadFreelist: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", FreelistType: ", .dir none _root_.Perennial.fmt.verb_s, .lit go!", ReadOnly: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", MmapFlags: ", .dir none _root_.Perennial.fmt.verb_x, .lit go!", InitialMmapSize: ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", PageSize: ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", MaxSize: ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", NoSync: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", OpenFile: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", Mlock: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", Logger: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", NoStatistics: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!"}"] _ _
-    [.method fun _ => True, .bool _, .bool _, .bool _, .str _, .bool _, .int _, .int _, .int _, .int _,
-      .bool _, .bool _, .bool _, .bool _, .bool _] (DFrac.own 1) (by fmt_encode) (by fmt_fits)
-    $$ [$Hfmt $Hal] as %str ⟨-, -⟩
-  · iapply BigSepL2.bigSepL2_cons.2
-    isplitr
-    · iapply isArg_duration hDur
-    iapply (EtcdGrove.fmt.PureArgs.isArgs ?pa)
-    case pa => fmt_pure
-  try wp_auto
-  iapply HΦ
-  iexists v
-  isplitl
-  · iapply (optsPt_eq l v dq).2
-    iframe
-    ipureintro; exact Hnn
-  · ipureintro; exact Hv
+  -- `o.Logger != nil`: by the logger's case
+  rcases hLg : v.Logger' with _ | li
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := GoInterface)
+    try (isplitr; (ipureintro; rfl))
+    iintro %al ⟨Hal, -⟩
+    (try wp_auto)
+    ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+    · iPkgInit
+    -- the duration by its `String()`; the `bool`s, the free-list type (a string), the `int`s, and
+    -- whether `OpenFile`/`Logger` are set, calling no method
+    wp_apply hSprintf go!"{Timeout: %s, NoGrowSync: %v, NoFreelistSync: %v, PreLoadFreelist: %v, FreelistType: %s, ReadOnly: %v, MmapFlags: %x, InitialMmapSize: %d, PageSize: %d, MaxSize: %d, NoSync: %v, OpenFile: %v, Mlock: %v, Logger: %v, NoStatistics: %v}"
+      [.lit go!"{Timeout: ", .dir none _root_.Perennial.fmt.verb_s, .lit go!", NoGrowSync: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", NoFreelistSync: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", PreLoadFreelist: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", FreelistType: ", .dir none _root_.Perennial.fmt.verb_s, .lit go!", ReadOnly: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", MmapFlags: ", .dir none _root_.Perennial.fmt.verb_x, .lit go!", InitialMmapSize: ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", PageSize: ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", MaxSize: ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", NoSync: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", OpenFile: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", Mlock: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", Logger: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", NoStatistics: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!"}"] _ _
+      [.method fun _ => True, .bool _, .bool _, .bool _, .str _, .bool _, .int _, .int _, .int _, .int _,
+        .bool _, .bool _, .bool _, .bool _, .bool _] (DFrac.own 1) (by fmt_encode) (by fmt_fits)
+      $$ [$Hfmt $Hal] as %str ⟨-, -⟩
+    · simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1)) = 3 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1)) = 4 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1)) = 5 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1)) = 6 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 7 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 8 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 9 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 10 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 11 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 12 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 13 from rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 14 from rfl,
+        List.set_cons_succ, List.set_cons_zero]
+      iapply BigSepL2.bigSepL2_cons.2
+      isplitr
+      · iapply isArg_duration hDur
+      iapply (EtcdGrove.fmt.PureArgs.isArgs ?pa)
+      case pa => fmt_pure
+    try wp_auto
+    iapply HΦ
+    iexists v
+    isplitl
+    · iapply (optsPt_eq l v dq).2
+      rw [hLg]
+      iframe
+      ipureintro; exact Hnn
+    · ipureintro; exact Hv)
 
 end proof
 
