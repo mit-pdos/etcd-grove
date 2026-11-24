@@ -43,7 +43,7 @@ instance mvccrandInit_persistent : Persistent (mvccrandInit (GF := GF)) := by
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand :=
   define_is_pkg_init mvccrandInit
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand :=
   build_get_is_pkg_init_wf
 

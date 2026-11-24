@@ -58,12 +58,6 @@ def EtcdBootNC : Prop :=
     (d : Deployment) (_Hd : d.WellFormed)
     (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (_Hbf : BootFacts d ps ctxs boot)
     (_Henv : EtcdEnv d) (_Htb : TrustBoundary d ps ctxs boot)
-    (_HNs : (∀ m ∈ d.members, prometheus.namesUnclaimed (serverProg d m) serverNames) ∧
-      (∀ p ∈ d.workloads.zip d.nodes,
-        prometheus.namesUnclaimed (clientProg p.1 (d.members.map Member.client) p.2) clientNames) ∧
-      ∀ n ∈ d.nodeList,
-        prometheus.namesUnclaimed (nodeProg n.1 n.2.1 n.2.2 (d.members.map Member.client))
-          clientNames)
     (σs σc σn : List state)
     (_Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)
     (_Hσc : σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ)
@@ -82,10 +76,10 @@ def EtcdBootNC : Prop :=
 over `etcdNetExts` (`Net.robust_of_distBootIL`), each machine's `FsInit` and listener-free start from the
 statement's `ServerStart`/`ClientStart`, the addresses' validity and distinctness from `WellFormed`. -/
 theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) : etcd_robust_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ d Hd ps ctxs boot Hbf Henv Htb HNs σs σc σn g Hσs Hσc Hσn Hg HEnv HEnvTok
+  intro _ _ _ _ _ _ _ _ _ _ d Hd ps ctxs boot Hbf Henv Htb σs σc σn g Hσs Hσc Hσn Hg HEnv HEnvTok
   refine Net.robust_of_distBootIL (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
     (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
-    (fun hlo hb => HS d Hd ps ctxs boot Hbf Henv Htb HNs σs σc σn Hσs Hσc Hσn HEnv HEnvTok hlo hb) ?_
+    (fun hlo hb => HS d Hd ps ctxs boot Hbf Henv Htb σs σc σn Hσs Hσc Hσn HEnv HEnvTok hlo hb) ?_
   · exact etcdNetExts_initP g _ (fun m hm => (machines_start Hσs.2 Hσc.2 Hσn.2 hm).2)
   · exact ⟨Hd.2.2.2.2.1, Hd.2.2.2.1, Hg, fun m hm => (machines_start Hσs.2 Hσc.2 Hσn.2 hm).1⟩
 

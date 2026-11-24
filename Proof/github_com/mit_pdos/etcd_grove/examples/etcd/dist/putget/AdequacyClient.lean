@@ -4,9 +4,8 @@
 
 `client_boot`: the client machine's boot program (`putget.initialize' #()`, then `putget.Client(client)`,
 its result discarded) is safe from the client's share of the distributed start (`clientShare` at
-`Pub = putgetPub`) and its whole start (`DistBootWpSL`), given the metric names' rights (`MemberBootHyps`'s
-`names`: the client machine initializes the same closure as the member's, so the one hypothesis serves
-both). Linked: `Client.wp_proof` at its callees' linked results (`zap.NewNop`'s, `etcdstart`'s `Link`,
+`Pub = putgetPub`) and its whole start (`DistBootWpSL`); the registration rights of its packages' metric
+IDs are allocated here, the machine's own registry ghost state (prom-registry, as `member_boot`). Linked: `Client.wp_proof` at its callees' linked results (`zap.NewNop`'s, `etcdstart`'s `Link`,
 `context`'s, and the trust-boundary axioms `etcd_dist.Client_Put_dist.wp_proof` and
 `etcd_dist.Client_Get_dist.wp_proof`), `putget`'s `wp_initialize'`. The client touches no file: its
 files' and listeners' start resources are unused. That a valid address is a plain endpoint is proved
@@ -58,7 +57,7 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
       ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (HM : MemberBootHyps) (client : GoString) (hcl : Net.addrOk client = true) (σc : state)
+    (client : GoString) (hcl : Net.addrOk client = true) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) (mid : w64) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootClient client) σc
       (clientShare client γE mid putgetPub) := by
@@ -71,16 +70,22 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   haveI : ContextErrsClient (GF := putgetGF) (hG := hG) := Hcec hG
   haveI : ThreadBoundLe putgetGF (2 ^ 31) := ⟨by rw [hT]; omega⟩
   iintro #Hshare - Hgs -
+  -- (prom-registry) the machine's registration rights: a fresh ghost map of its packages' IDs, the
+  -- machine's registry name (as `member_boot`)
+  imod (prometheus.regKeys_alloc (GF := putgetGF)
+    github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.regQs putget_regQsOk) with ⟨%γreg, Hregs⟩
+  letI : prometheus.PromRegGS putgetGF := ⟨γreg⟩
+  ihave Hns := prometheus.idToks_regsFree (GF := putgetGF)
+    github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.regQs $$ Hregs
   ihave Hown := ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.getIsPkgInit (GF := putgetGF)) $$ Hgs
-  ihave Hns := HM.names
   imodintro
   -- `putget.initialize' #()`
   unfold bootClient
   wp_apply (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.getIsPkgInit_wf) $$ [Hown Hns]
     as ⟨-, #Hpkg⟩
-  · iframe; iexact Hns
+  · iframe
   (try wp_auto)
   -- `putget.Client(client)`, its result discarded
   wp_apply (Client.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClient context.wp_Background

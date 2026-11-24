@@ -29,8 +29,9 @@ addresses, distinct, the members' ids apart in their low bits, the server config
 supported set, the workloads compatible and within their bounds); the machines start as the programs
 expect (`ServerStart`: no listener, the member's data directory and WAL area empty; `ClientStart`; a
 network with no connection, `NetStart`); bootstrap's results (`BootFacts`); and, carried over from
-the single-process `etcd_safe` until discharged, the environment premises (`EtcdEnv`), the programs' prometheus names
-(`HNs`) and the trust-boundary contracts (`TrustBoundary`, a placeholder).
+the single-process `etcd_safe` until discharged, the environment premises (`EtcdEnv`) and the
+trust-boundary contracts (`TrustBoundary`, a placeholder). (Until prom-registry, 2026-11-22, also the
+programs' prometheus names, `HNs`: each proof now allocates its registration rights itself.)
 
 What the single-process `etcd_safe` had and this does not: no `Hlow` (one member per process; the issue record is per
 machine), no per-cluster premises (one cluster per deployment, every deployment covered), no
@@ -105,12 +106,6 @@ def etcd_robust.spec : Prop :=
     -- bootstrap's results; the premises not yet discharged
     (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
     (Henv : EtcdEnv d) (Htb : TrustBoundary d ps ctxs boot)
-    (HNs : (∀ m ∈ d.members, prometheus.namesUnclaimed (serverProg d m) serverNames) ∧
-      (∀ p ∈ d.workloads.zip d.nodes,
-        prometheus.namesUnclaimed (clientProg p.1 (d.members.map Member.client) p.2) clientNames) ∧
-      ∀ n ∈ d.nodeList,
-        prometheus.namesUnclaimed (nodeProg n.1 n.2.1 n.2.2 (d.members.map Member.client))
-          clientNames)
     -- the machines' start states
     (σs σc σn : List state) (g : GlobalState)
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)
@@ -140,12 +135,6 @@ def etcd_robust_nocrash.spec : Prop :=
     (d : Deployment) (Hd : d.WellFormed)
     (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
     (Henv : EtcdEnv d) (Htb : TrustBoundary d ps ctxs boot)
-    (HNs : (∀ m ∈ d.members, prometheus.namesUnclaimed (serverProg d m) serverNames) ∧
-      (∀ p ∈ d.workloads.zip d.nodes,
-        prometheus.namesUnclaimed (clientProg p.1 (d.members.map Member.client) p.2) clientNames) ∧
-      ∀ n ∈ d.nodeList,
-        prometheus.namesUnclaimed (nodeProg n.1 n.2.1 n.2.2 (d.members.map Member.client))
-          clientNames)
     (σs σc σn : List state) (g : GlobalState)
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)
     (Hσc : σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ)

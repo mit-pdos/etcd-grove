@@ -39,7 +39,7 @@ theorem membership.RaftCluster.updateMembershipMetric.wp_proof
   ihave Hmi : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, ⟨%vKP, #HKP, %HKPl⟩⟩
-  ihave #Hprom : isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
+  ihave #Hprom : isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   wp_auto
   wp_if_destruct

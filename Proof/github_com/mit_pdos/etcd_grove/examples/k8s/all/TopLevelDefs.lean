@@ -100,10 +100,6 @@ def k8sProgram [GoSemanticsFunctions] (k₁ : Nat) (clients ops watchers wops : 
     (Val #(W64 (k₁ : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops))
     (schedLit steps₁)) (Val #(W64 (k₂ : Int)))) (schedLit steps₂)
 
-/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
-mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
-def k8sNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.all.initNames
-
 /-- **The program's addresses**: the store cluster's (`k8s_etcd3N.k8setcd3NAddrs k₁`: its `k₁` members'
 peer and client addresses and its bridges'), then the compactor cluster's
 (`k8s_compactorN.k8scompactorNAddrs k₂`, likewise). -/

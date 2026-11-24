@@ -104,7 +104,6 @@ theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     -- the two partition schedules
     (steps₁ steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps₁ : steps₁.length < 2 ^ 63) (Hsteps₂ : steps₂.length < 2 ^ 63)
-    (HNs : prometheus.namesUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) k8sNames)
     (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂) (k8sDirs k₁ k₂))
     (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂))
@@ -126,7 +125,7 @@ theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_adequate Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 (by omega) ids' ps'
     ctxs' boot' Hlen' Hbf' Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps₁ steps₂ Hsteps₁
-    Hsteps₂ HNs HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hsteps₂ HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 
