@@ -344,7 +344,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h47 : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h5, True.intro⟩
+    exact ⟨h5, h1, True.intro⟩
   have h48 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.«attribute» (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

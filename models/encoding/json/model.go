@@ -18,8 +18,9 @@
 // real Decoder may call Read once more after io.EOF than the model (a number completed by the end
 // of the stream inside an unfinished array or object).
 //
-// What replaces reflection is a Codec, which the program registers (SetCodec), generated for the
-// program's types by models/json/jsongen.py (the trusted generator; its core jsongen_core.py says,
+// What replaces reflection is, for a value whose type has them, the methods jsongen emits into the
+// type's own package (the per-type dispatch, below), and otherwise a Codec, which the program
+// registers (SetCodec), generated for the program's types by models/json/jsongen.py (the trusted generator; its core jsongen_core.py says,
 // per kind of type, which of encoding/json's rules it reproduces, with citations):
 //   - Marshal: the encoding of a value of one of the program's types (or a pointer to one, or a
 //     basic value, or nil), as encoding/json writes it; another value panics.
@@ -83,6 +84,39 @@ func SetCodec(c *Codec) {
 	}
 	codec = c
 	codecMu.Unlock()
+}
+
+// The per-type dispatch (MODEL: not in Go's encoding/json). jsongen's same-package mode
+// (models/json/jsongen_core.py, "THE SAME-PACKAGE METHODS") emits these methods into a named type's
+// own package, in a model build only (build tag goose or netmodel, through goose's -overlay): on T,
+// JSONModelMarshal, and on *T, JSONModelMarshalPtr and JSONModelUnmarshal, each encoding/json's
+// Marshal or Unmarshal for a value of type exactly T or *T (any other dynamic type, which can have
+// the methods only by promotion through embedding, is not modelled: a panic). Marshal, Unmarshal,
+// Encoder.Encode and Decoder.Decode call a value's method when its dynamic type has one, and the
+// registered codec otherwise (nil and the program's unnamed types). The names are reserved: no
+// code other than the generated files declares or calls them (the gates).
+type modelMarshalerPtr interface {
+	JSONModelMarshalPtr(v any) ([]byte, error)
+}
+
+type modelMarshaler interface {
+	JSONModelMarshal(v any) ([]byte, error)
+}
+
+type modelUnmarshaler interface {
+	JSONModelUnmarshal(data []byte, v any) error
+}
+
+// marshalAny is Marshal: by v's own method if its dynamic type has one (JSONModelMarshalPtr first:
+// a *T has both, and only that one is nil-safe), else by the registered codec.
+func marshalAny(v any) ([]byte, error) {
+	if m, ok := v.(modelMarshalerPtr); ok {
+		return m.JSONModelMarshalPtr(v)
+	}
+	if m, ok := v.(modelMarshaler); ok {
+		return m.JSONModelMarshal(v)
+	}
+	return getCodec().Marshal(v)
 }
 
 func getCodec() *Codec {

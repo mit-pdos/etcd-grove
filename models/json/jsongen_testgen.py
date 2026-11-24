@@ -9,13 +9,19 @@ mostly in the codec's plain subset, sometimes not):
 
   - TestJSONEncode: jsonMarshal(v) for v, &v and nil is json.Marshal's, bytes and error-or-not; a
     NotModelled panic only where the real encoding has an escape or a non-ASCII byte (a string the
-    codec does not write) or the real Marshal fails.
+    codec does not write), nests 1000 deep (the codec's stand-in for the real cycle detection), or
+    the real Marshal fails.
   - TestJSONDecode: on the real encodings of random values of every type, their mutations (keys in
     other cases or without their delimiters, values of other kinds, numbers out of range, signs,
     quoted numbers, escapes, unknown and repeated members, whitespace, cuts) and fixed literals, the
     model's Unmarshal (jsoncodec.Valid, then jsonUnmarshal) into every type (fresh and pre-filled
     targets) gives the real Unmarshal's error-or-not and value, or a NotModelled panic (counted);
     any other panic fails. Also Unmarshal into nil, a nil pointer and a non-pointer.
+
+Pointers are nil or not, and the exported fields promoted through unexported embedded structs are
+set too. If another test file of the package sets jtCallLog and jtCallReset (the program's types
+log the calls of their own MarshalJSON/UnmarshalJSON methods: models/internal/jsongenrand's do), both
+tests also compare the methods called, in order, by the real encoding/json and by the codec.
 
 Each test logs a `JSONGEN-STATS` line (models/internal/jsongenrand adds them up). Scale:
 JSONGEN_TEST_SCALE (default 1), seed JSONGEN_TEST_SEED (default 1).
@@ -171,19 +177,58 @@ func jtRnd(r *rand.Rand, t reflect.Type, depth int) reflect.Value {
 		}
 		v.Set(s)
 	case reflect.Struct:
-		for i := 0; i < t.NumField(); i++ {
-			f := t.Field(i)
-			if !f.IsExported() || r.Intn(5) == 0 {
-				continue
-			}
-			v.Field(i).Set(jtRnd(r, f.Type, depth+1))
+		jtFill(r, v, depth)
+	case reflect.Pointer:
+		if depth > 3 || r.Intn(3) == 0 {
+			return v
 		}
+		p := reflect.New(t.Elem())
+		p.Elem().Set(jtRnd(r, t.Elem(), depth+1))
+		v.Set(p)
 	case reflect.Interface:
 		if x := jtAny(r, depth); x.IsValid() {
 			v.Set(x)
 		}
 	}
 	return v
+}
+
+// jtFill sets the exported fields of the struct v (each or left zero), also those promoted
+// through an unexported embedded struct (settable through it, as encoding/json sets them).
+func jtFill(r *rand.Rand, v reflect.Value, depth int) {
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.Anonymous && !f.IsExported() {
+			if f.Type.Kind() == reflect.Struct {
+				jtFill(r, v.Field(i), depth+1)
+			}
+			continue
+		}
+		if !f.IsExported() || r.Intn(5) == 0 {
+			continue
+		}
+		v.Field(i).Set(jtRnd(r, f.Type, depth+1))
+	}
+}
+
+// jtCallLog, jtCallReset: set (by another test file of the package, e.g. jsongenrand's) when the
+// program's types log the calls of their JSON methods; the tests then also compare the calls
+// the real encoding/json makes with the codec's.
+var (
+	jtCallLog   func() []string
+	jtCallReset func()
+)
+
+func jtCalls(f func()) (log []string, p any) {
+	if jtCallReset != nil {
+		jtCallReset()
+	}
+	p = jtCall(f)
+	if jtCallLog != nil {
+		log = append([]string{}, jtCallLog()...)
+	}
+	return log, p
 }
 
 // jtCall runs f; a panic is returned (nil if none).
@@ -194,12 +239,12 @@ func jtCall(f func()) (p any) {
 }
 
 type jtStats struct {
-	encEqual, encErr, encPanic, decEqual, decErr, decPanic, decSyntax int
+	encEqual, encErr, encPanic, decEqual, decErr, decPanic, decSyntax, calls int
 }
 
 func (s *jtStats) log(t *testing.T) {
-	t.Logf("JSONGEN-STATS types=%d enc_equal=%d enc_err=%d enc_panic=%d dec_equal=%d dec_err=%d dec_syntax=%d dec_panic=%d",
-		len(jtTypes), s.encEqual, s.encErr, s.encPanic, s.decEqual, s.decErr, s.decSyntax, s.decPanic)
+	t.Logf("JSONGEN-STATS types=%d enc_equal=%d enc_err=%d enc_panic=%d dec_equal=%d dec_err=%d dec_syntax=%d dec_panic=%d calls=%d",
+		len(jtTypes), s.encEqual, s.encErr, s.encPanic, s.decEqual, s.decErr, s.decSyntax, s.decPanic, s.calls)
 }
 
 // jtEscaped: b has an escape sequence, a DEL or a non-ASCII byte (a string the codec does not write).
@@ -214,14 +259,15 @@ func jtEscaped(b []byte) bool {
 
 func jtCheckEncode(t *testing.T, st *jtStats, v any) {
 	t.Helper()
-	want, werr := json.Marshal(v)
-	var got []byte
-	var gerr error
-	if p := jtCall(func() { got, gerr = jsonMarshal(v) }); p != nil {
+	var want, got []byte
+	var werr, gerr error
+	wlog, _ := jtCalls(func() { want, werr = json.Marshal(v) })
+	glog, p := jtCalls(func() { got, gerr = jsonMarshal(v) })
+	if p != nil {
 		if _, ok := p.(jsoncodec.NotModelled); !ok {
 			t.Fatalf("Marshal(%#v): the codec panicked: %v", v, p)
 		}
-		if werr == nil && !jtEscaped(want) {
+		if werr == nil && !jtEscaped(want) && jsoncodec.Nesting(want) < 1000 {
 			t.Fatalf("Marshal(%#v): the codec panicked (%v) where the real output %s has no escape", v, p, want)
 		}
 		st.encPanic++
@@ -230,6 +276,10 @@ func jtCheckEncode(t *testing.T, st *jtStats, v any) {
 	if (werr != nil) != (gerr != nil) || string(got) != string(want) {
 		t.Fatalf("Marshal(%#v):\n real  %s %v\n codec %s %v", v, want, werr, got, gerr)
 	}
+	if !reflect.DeepEqual(wlog, glog) {
+		t.Fatalf("Marshal(%#v): the methods called differ:\n real  %q\n codec %q", v, wlog, glog)
+	}
+	st.calls += len(wlog)
 	if werr != nil {
 		st.encErr++
 	} else {
@@ -318,20 +368,34 @@ func jtMutate(r *rand.Rand, b []byte, samples [][]byte) []byte {
 
 func jtCheckDecode(t *testing.T, st *jtStats, name string, data []byte, a, b any) {
 	t.Helper()
-	werr := json.Unmarshal(data, a)
+	var werr error
+	wlog, _ := jtCalls(func() { werr = json.Unmarshal(data, a) })
 	if !jsoncodec.Valid(data) {
 		if werr == nil {
 			t.Fatalf("Unmarshal(%q) into %s: real accepts what the scanner rejects", data, name)
 		}
-		// the model's Unmarshal: a syntax error, nothing decoded
+		// the model's Unmarshal: a syntax error, nothing decoded, no method called
+		if len(wlog) != 0 {
+			t.Fatalf("Unmarshal(%q) into %s: the real one called methods on a syntax error: %q", data, name, wlog)
+		}
 		if !reflect.DeepEqual(a, b) {
 			t.Fatalf("Unmarshal(%q) into %s: the real one decoded on a syntax error:\n %#v", data, name, a)
+		}
+		if jtSamePackage {
+			// the method checks validity itself: an error, nothing decoded, no method called
+			var gerr error
+			glog, p := jtCalls(func() { gerr = jsonUnmarshal(data, b) })
+			if p != nil || gerr == nil || len(glog) != 0 || !reflect.DeepEqual(a, b) {
+				t.Fatalf("Unmarshal(%q) into %s: the method on invalid JSON: panic %v, error %v, calls %q, %#v",
+					data, name, p, gerr, glog, b)
+			}
 		}
 		st.decSyntax++
 		return
 	}
 	var gerr error
-	if p := jtCall(func() { gerr = jsonUnmarshal(data, b) }); p != nil {
+	glog, p := jtCalls(func() { gerr = jsonUnmarshal(data, b) })
+	if p != nil {
 		if _, ok := p.(jsoncodec.NotModelled); !ok {
 			t.Fatalf("Unmarshal(%q) into %s: the codec panicked: %v", data, name, p)
 		}
@@ -341,6 +405,10 @@ func jtCheckDecode(t *testing.T, st *jtStats, name string, data []byte, a, b any
 	if (werr != nil) != (gerr != nil) || !reflect.DeepEqual(a, b) {
 		t.Fatalf("Unmarshal(%q) into %s:\n real  %#v %v\n codec %#v %v", data, name, a, werr, b, gerr)
 	}
+	if !reflect.DeepEqual(wlog, glog) {
+		t.Fatalf("Unmarshal(%q) into %s: the methods called differ:\n real  %q\n codec %q", data, name, wlog, glog)
+	}
+	st.calls += len(wlog)
 	if werr != nil {
 		st.decErr++
 	} else {
@@ -351,9 +419,11 @@ func jtCheckDecode(t *testing.T, st *jtStats, name string, data []byte, a, b any
 func TestJSONEncode(t *testing.T) {
 	r := rand.New(rand.NewSource(jtSeed()))
 	var st jtStats
-	jtCheckEncode(t, &st, nil)
+	if !jtSamePackage {
+		jtCheckEncode(t, &st, nil)
+	}
 	for it := 0; it < 300*jtScale(); it++ {
-		for _, ty := range jtTypes {
+		for _, ty := range jtTest {
 			v := jtRnd(r, ty.t, 0)
 			jtCheckEncode(t, &st, v.Interface())
 			p := reflect.New(ty.t)
@@ -370,7 +440,7 @@ func TestJSONDecode(t *testing.T) {
 	var st jtStats
 	var samples [][]byte
 	for len(samples) < 300 {
-		ty := jtTypes[r.Intn(len(jtTypes))]
+		ty := jtTest[r.Intn(len(jtTest))]
 		if b, err := json.Marshal(jtRnd(r, ty.t, 0).Interface()); err == nil {
 			samples = append(samples, b)
 		}
@@ -378,7 +448,7 @@ func TestJSONDecode(t *testing.T) {
 	samples = append(samples, []byte("null"), []byte("[]"), []byte("{}"), []byte(`"x"`), []byte("7"),
 		[]byte("-7"), []byte("true"), []byte(" [ 1 , 2 ] "), []byte(`{"a":{"b":[]}}`))
 	for it := 0; it < 3000*jtScale(); it++ {
-		ty := jtTypes[r.Intn(len(jtTypes))]
+		ty := jtTest[r.Intn(len(jtTest))]
 		data := samples[r.Intn(len(samples))]
 		if r.Intn(2) == 0 {
 			// the real encoding of a value of the target's type
@@ -401,8 +471,13 @@ func TestJSONDecode(t *testing.T) {
 		jtCheckDecode(t, &st, ty.name, data, mk(), mk())
 	}
 	// not a non-nil pointer: an error from both
-	for _, ty := range jtTypes {
-		for _, v := range []any{nil, reflect.Zero(reflect.PointerTo(ty.t)).Interface(), reflect.Zero(ty.t).Interface()} {
+	for _, ty := range jtTest {
+		vs := []any{nil, reflect.Zero(reflect.PointerTo(ty.t)).Interface(), reflect.Zero(ty.t).Interface()}
+		if jtSamePackage {
+			// the methods: a nil *T only (nil and a non-pointer T go to the registered codec)
+			vs = vs[1:2]
+		}
+		for _, v := range vs {
 			werr := json.Unmarshal([]byte("null"), v)
 			gerr := jsonUnmarshal([]byte("null"), v)
 			if werr == nil || gerr == nil {
@@ -415,7 +490,33 @@ func TestJSONDecode(t *testing.T) {
 '''
 
 
+SAME_PACKAGE = r'''
+// jtSamePackage: the codec is the same-package methods (jsongen_core.py, THE SAME-PACKAGE
+// METHODS); jsonMarshal and jsonUnmarshal dispatch to them as the encoding/json model does.
+const jtSamePackage = true
+
+func jsonMarshal(v any) ([]byte, error) {
+	if m, ok := v.(interface{ JSONModelMarshalPtr(v any) ([]byte, error) }); ok {
+		return m.JSONModelMarshalPtr(v)
+	}
+	if m, ok := v.(interface{ JSONModelMarshal(v any) ([]byte, error) }); ok {
+		return m.JSONModelMarshal(v)
+	}
+	panic(fmt.Sprintf("jsonMarshal: %T has no model method", v))
+}
+
+func jsonUnmarshal(data []byte, v any) error {
+	if u, ok := v.(interface{ JSONModelUnmarshal(data []byte, v any) error }); ok {
+		return u.JSONModelUnmarshal(data, v)
+	}
+	panic(fmt.Sprintf("jsonUnmarshal: %T has no model method", v))
+}
+'''
+
+
 def gen_test_go(S, header, pkg):
+    """json_gen_test.go (program-wide codec, a real build) or, in the same-package mode,
+    json_model_gen_test.go (build tag netmodel: the methods beside the real encoding/json)."""
     rows = []
     for i in S.closure:
         if S.kind(i) == "interface":
@@ -423,10 +524,20 @@ def gen_test_go(S, header, pkg):
         rows.append(f"\t{{{go_str(S.go(i))}, reflect.TypeFor[{S.go(i)}]()}},")
     table = ("// jtTypes: the codec's types.\n"
              "var jtTypes = []struct {\n\tname string\n\tt    reflect.Type\n}{\n" + "\n".join(rows) + "\n}\n")
+    if S.home is None:
+        table += "\n// jtTest: the types tested (all of them).\nvar jtTest = jtTypes\n\nconst jtSamePackage = false\n"
+    else:
+        rows = [f"\t{{{go_str(S.go(i))}, reflect.TypeFor[{S.go(i)}]()}}," for _, i in S.roots]
+        table += ("\n// jtTest: the types tested: the roots (the types with the methods).\n"
+                  "var jtTest = []struct {\n\tname string\n\tt    reflect.Type\n}{\n" + "\n".join(rows) + "\n}\n")
+        table += SAME_PACKAGE
     text = table + STATIC
-    imps = jsongen_core.imports(S, text, ['\t"math/rand"', '\t"os"', '\t"reflect"', '\t"strconv"',
-                                          '\t"strings"', '\t"testing"', ""])
+    extra = ['\t"math/rand"', '\t"os"', '\t"reflect"', '\t"strconv"', '\t"strings"', '\t"testing"', ""]
+    if S.home is not None:
+        extra = ['\t"fmt"'] + extra
+    imps = jsongen_core.imports(S, text, extra)
     if not any("encoding/json" in l for l in imps):
         imps.insert(1, '\tjson "encoding/json"')
-    return (header.rstrip("\n") + "\n\n//go:build !netmodel && !goose\n\n" + f"package {pkg}\n\n" +
+    tag = "!netmodel && !goose" if S.home is None else "netmodel && !goose"
+    return (header.rstrip("\n") + f"\n\n//go:build {tag}\n\n" + f"package {pkg}\n\n" +
             "\n".join(imps) + "\n" + text)
