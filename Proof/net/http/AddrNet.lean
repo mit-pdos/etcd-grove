@@ -6,8 +6,11 @@ address's net protocols"; `notes/axiom-review/http-reserve-addrproto.md`). Lean-
 `RoundTrip` needs) answers of `a`'s HTTP protocol `P`, from before `a`'s listener exists. That holds only if nothing
 but Go's net/http ever answers at `a`: a program that reserved `a` must not be able to serve `a` with raw net code.
 Here the address's net protocols (the net extension's `addrProto`, `GooseLang/Ext/Net/Proto.lean`) are set, once, to
-the opaque `httpNetCliP`/`httpNetSrvP` (trusted text with no law, as grpc's `grpcCliPI`/`grpcSrvPI`): no program but
-net/http's own client and server (the HTTP boundary's axioms) writes or learns anything on a connection to `a`.
+the opaque `httpNetCliP`/`httpNetSrvP` (trusted text with no law, as grpc's `grpcCliPI`/`grpcSrvPI`): a program over
+the net extension may listen at `a`, accept, dial and read, but writes nothing on a connection to `a` but the empty
+write, and what it reads meets an opaque protocol, so tells it nothing. net/http itself does not run over these
+protocols: its client and server are the HTTP boundary's axioms, outside the extension; the protocols only keep raw
+net code from answering or sending at `a`.
 
 * `httpAddrNet a` (persistent): `a`'s net protocols are net/http's. What `reserve` needs.
 * `httpAddrFree a` := `addrClaim a ∗ httpAddrNet a`: the right to listen at `a`, reserved for HTTP: what a member's

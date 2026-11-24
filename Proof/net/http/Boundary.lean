@@ -32,9 +32,11 @@ The model (the note's points 1-6):
   protocol right (`httpProtoFree a`, from program start) into `httpProtoAt a P` and the right to
   serve it (`httpProtoOwn a P`), which `register` takes with the listener; a member sends to its
   peers before they listen. (2026-11-24) Only of an address whose net protocols are net/http's
-  (`httpAddrNet a`, `AddrNet.lean`, set from `netAddrFree a`): from the reservation on nothing but net/http
-  reads or writes at `a` (no raw net server answers a client of `a`, no raw net client writes to `a`'s
-  server), and the address's listener is made from `httpAddrFree a` (`net.Listen.specHttp`).
+  (`httpAddrNet a`, `AddrNet.lean`, set from `netAddrFree a`): from the reservation on raw net code writes
+  nothing at `a` (no raw net server answers a client of `a`, no raw net client writes to `a`'s server; it may
+  still listen, accept and read), and the address's listener is made from `httpAddrFree a`
+  (`net.Listen.specHttp`): `netListenerAt l a`, the Go listener `l` tied to the extension's listener open at
+  `a` (`lisAt`).
 * (2026-10-23, D38b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
   fresh exclusive ghost ticket (`reqTicket γk`) and the handler of the request receives it; the
   protocols are indexed by the ticket's name. Go's client never replays a `POST` without an

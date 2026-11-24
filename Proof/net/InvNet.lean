@@ -22,9 +22,9 @@ token left:
   resources; since phase 7 S2's interface, 2026-11-24, until then the listening token and validity).
 * `netAddrLeft addr`: what `Listen` leaves of `addrUnset` (the pending set, the validity, the listening
   token in an invariant): what sets the address's protocols afterwards (`grpc.start'`).
-* `netListenerAt l addr` := the claim and `netListenerOpen l addr`, the extension's open listener at
-  `addr` (`netLis`, `netLisAt`), `l` a `*TCPListener` (what Net's `Listen` returns,
-  `Net/Spec/net/Listen.lean`).
+* `netListenerAt l addr` := the claim and `netListenerOpen l addr`: `l` is a `*TCPListener` whose struct
+  names an extension listener (`lisAt`, as Net's `isListener`; since 2026-11-24) and that listener is open at
+  `addr` (`netLis`, `netLisAt`): what Net's `Listen` returns (`Net/Spec/net/Listen.lean`).
 -/
 module
 
@@ -54,6 +54,7 @@ axiom httpProtoFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IPro
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
 
 /-- **The right to listen at `addr`, with the claim on its requests** (see the file header). The
 program has the net extension (`HasExt netExt`, a proposition: inside the predicate, so that its users
@@ -74,10 +75,18 @@ def netAddrLeft (addr : GoString) : IProp GF :=
 
 /-- **The listener `l` is open at `addr`, unused** (no claim; split from `netListenerAt` at phase 7
 S2's interface: what a member that its deployment's start set the address of holds, beside a server
-being built, `grpcServeTok`). -/
+being built, `grpcServeTok`): `l` is the `*TCPListener` `t` whose struct names the extension's listener
+`lv` (`lisAt t lv x`, persistent, as Net's `isListener`), and `lv` is open at `addr` (`netLis`, `netLisAt`).
+
+(2026-11-24) The tie `lisAt t lv x` is what makes `l` the listener at `addr`: without it the facts of the
+listener at one address could be packed around the Go value of a listener at another, and the trust-boundary
+axioms over `netListenerAt l a` (`http.register`, `grpc.start`, `bridge.New`) served the wrong socket (a raw
+listener at an unreserved `b` registered as the HTTP listener of `a`: `examples/axiomcx/httpregfwd/`,
+`notes/axiom-review/http-reserve-addrproto.md`). `net.Listen`'s proofs keep it from Net's `isListener`. -/
 def netListenerOpen (l : GoInterface) (addr : GoString) : IProp GF :=
-  iprop(∃ (_ : HasExt netExt) (t : Loc) (lv : w64),
+  iprop(∃ (_ : HasExt netExt) (t : Loc) (lv : w64) (x : GoInterface),
     ⌜l = interface.mkOk (go.GoType.PointerType net.TCPListener.ty) #t⌝ ∗
+    _root_.Perennial.net.lisAt (hG := hG) t lv x ∗
     netLis (extLocalGS netExt (L := hG.goose_localGS)) lv addr true ∗
     netLisAt (extLocalGS netExt (L := hG.goose_localGS)) lv addr)
 

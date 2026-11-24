@@ -1,7 +1,8 @@
 /-
 `net.Listen` at an address reserved for HTTP (see `Spec/net/ListenHttp.lean`): from the part `Net/`'s `Listen` spec
 (`Net/Spec/net/Listen.lean`), the callee its `Link` passes, at the address's validity and its listening token, which
-the address's net protocols hold in an invariant (`addrProto_tok`, `listen_au`).
+the address's net protocols hold in an invariant (`addrProto_tok`, `listen_au`); the listener's Go value tied to the
+extension's listener by Net's `isListener` (`lisAt`, kept in `netListenerOpen`).
 -/
 module
 
@@ -54,10 +55,10 @@ theorem net.Listen.wp_proofHttp
     iunfold netListenerAt
     iframe Hclaim
     iunfold _root_.Perennial.net.isListener at Hli
-    icases Hli with ⟨%t, %x, %Hli, -⟩
+    icases Hli with ⟨%t, %x, %Hli, #Hla⟩
     iunfold netListenerOpen
-    iexists hX, t, l
-    iframe Hlis Hat
+    iexists hX, t, l, x
+    iframe Hla Hlis Hat
     ipureintro; exact Hli
   · iright
     iunfold _root_.Perennial.net.resErr at Hres

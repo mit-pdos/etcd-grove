@@ -52,9 +52,11 @@ answers at `a`, so nothing but net/http's server may answer there. Without it a 
 it, listened at `a` with `net.Listen` (`netAddrFree a`), set `a`'s net protocols to trivial ones from its `netAddrLeft a`
 (`addr_set_proto_tok`) and answered a raw `HTTP/1.1 200 OK`, a status the protocol excluded, which `RoundTrip`'s post
 (`roundTripperOk`) promised the client could not come (Go panics: `examples/axiomcx/httpreserve/`,
-`notes/axiom-review/http-reserve-addrproto.md`). With it `a`'s pending set is spent (no `netAddrLeft a`, no raw
-`Accept` of a pending connection) and a raw acceptor or dialer at `a` can write nothing (the opaque `httpNetSrvP`,
-`httpNetCliP`). -/
+`notes/axiom-review/http-reserve-addrproto.md`). With it `a`'s pending set is spent (no `netAddrLeft a`, so no
+protocols of the program's own at `a`). A raw program may still listen at `a` (`listen_au`) and accept and read
+connections to it, but its connections meet `a`'s protocols, the opaque `httpNetSrvP` and `httpNetCliP`: a raw
+acceptor or dialer at `a` can write nothing a client or server of `a` reads (only the empty write), and what a raw
+reader reads tells it nothing. -/
 axiom reserve (a : GoString) (P : Proto GF) (hP : P.srvOk) :
   ⊢ httpAddrNet (hG := hG) a -∗ httpProtoFree (GF := GF) a ==∗ httpProtoAt a P ∗ httpProtoOwn a P
 
@@ -73,8 +75,11 @@ theorem reserveAddr (E : CoPset) (a : GoString) (P : Proto GF) (hP : P.srvOk) :
   iframe Hat Ha Ho
 
 /-- **Registration** (D38c, D39a): the address's listener, with the right to serve it with the
-address's reserved protocol, serves it with that protocol (the model: the listener bound once,
-`net.Listen` consuming the right to listen at `a`; the protocol the ghost map's entry for `a`).
+address's reserved protocol, serves it with that protocol (the model: the claim on `a`'s requests,
+`addrClaim a`, held once, which `netListenerAt` carries; the protocol the ghost map's entry for `a`). The listener is
+`a`'s: `netListenerAt l a` ties the Go value `l` to the extension's listener open at `a` (`lisAt`, since 2026-11-24;
+before, a listener at another address could be registered as `a`'s: `examples/axiomcx/httpregfwd/`). The net token of
+`a` is not once: `listen_au` re-issues it to whoever holds `a`'s protocols.
 
 (2026-11-24, `http-register-addrleft`) Between it and the address's own net protocols: an address served by net/http
 speaks HTTP, so no program may both register `a` and give `a` net protocols of its own (until then a program

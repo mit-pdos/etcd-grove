@@ -27,7 +27,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `net.Listen("tcp", addr)` with the right to listen at `addr`, reserved for HTTP (`http.httpAddrFree`, consumed)
-returns a listener open at `addr` (`netListenerAt`) and `nil`, or a non-nil error. -/
+returns `nil` and a listener at `addr` (`netListenerAt`: the Go `*TCPListener` `l` tied to the extension's listener
+open at `addr`, with the claim on `addr`'s requests), or a non-nil error. -/
 abbrev net.Listen.specHttp : Prop :=
   ∀ (network addr : GoString),
   {{ ⌜network = go!"tcp"⌝ ∗ http.httpAddrFree (GF := GF) addr }}

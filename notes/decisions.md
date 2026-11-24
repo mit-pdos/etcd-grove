@@ -42377,8 +42377,8 @@ and the previous entry's fix (`register` consuming `netAddrLeft a`) does not rea
 
 **Choice.** `reserve` also takes `httpAddrNet a` (persistent, `Proof/net/http/AddrNet.lean`): `a`'s net protocols are the
 opaque `httpNetCliP`/`httpNetSrvP` (trusted text with no law, as grpc's `grpcCliPI`/`grpcSrvPI`), so no program but
-net/http's own client and server reads or writes at `a`, and `a`'s pending set is spent (no `netAddrLeft a`, no raw
-`Accept` of a pending connection). It is set by a theorem over the net extension (`httpAddrFree_set`: `netProto_alloc`,
+raw net code writes at `a` (it may still listen, accept and read), and `a`'s pending set is spent (no
+`netAddrLeft a`: no protocols of the program's own). It is set by a theorem over the net extension (`httpAddrFree_set`: `netProto_alloc`,
 `addr_set_proto`) from `netAddrFree a`, which leaves `httpAddrFree a := addrClaim a ∗ httpAddrNet a`, the right to listen
 at `a` reserved for HTTP; `reserveAddr` packages the two. The member's peer listener is made from it by a second spec of
 `net.Listen`, `net.Listen.specHttp` (a theorem from Net's `Listen` spec with `listen_au`, linked as `net_Listen+Http`),
@@ -42394,3 +42394,10 @@ back `httpAddrFree a`, never a fresh `netAddrFree a`.
 Alternatives. `reserve` consuming `netAddrFree a` whole and handing the listen right back opaque (an axiom for the
 listener: trust grows). Setting the protocols at `register` (too late: `RoundTrip`'s promise holds from the
 reservation). `httpProtoAt` carrying the net fact for `RoundTrip` to take (the same premise in a less direct place).
+
+**Addendum (the same day, the listener's tie).** An independent review of the fix found `netListenerOpen l a` did not tie
+the Go listener `l` to the extension's listener open at `a` (pre-existing): a raw listener at an unreserved `b` could be
+registered as `a`'s (`examples/axiomcx/httpregfwd/`, `notes/axiom-review/http-reserve-addrproto.md`, "The listener's
+tie"). `netListenerOpen` now carries Net's `lisAt t lv x` (as `isListener`), which `net.Listen`'s proofs keep; its
+consumers are axioms (`register`, `grpc.start`, `bridge.New`), whose premise is stronger. Alternative: an axiom-side
+check (each axiom taking `isListener`): the same fact in three places instead of the one definition.
