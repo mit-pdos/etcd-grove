@@ -27,10 +27,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **An apply environment with nothing in it** (null handle, `default` names, `False` predicates). -/
-def apply.AEnv.none : apply.AEnv GF where
+/-- **An apply environment with nothing in it** (null handle, `default` names, `False` predicates; at a
+store name `γ` the caller gives: `mvcc.api.MvccName` is opaque, with no inhabitant its API exports). -/
+def apply.AEnv.none (γ : mvcc.api.MvccName) : apply.AEnv GF where
   kv := GoInterface.nil
-  γ := default
+  γ := γ
   γs := ⟨default, default, default, default⟩
   Nx := fun _ => iprop(False)
   Pk := fun _ => iprop(False)
@@ -47,11 +48,11 @@ def apply.AEnv.none : apply.AEnv GF where
   BkTie := fun _ => iprop(False)
 
 /-- **A watch server with nothing in it.** -/
-def v3rpc.WSrv.none : v3rpc.WSrv GF := ⟨null, apply.AEnv.none, null, default, W64 0, W64 0, null, W64 0⟩
+def v3rpc.WSrv.none (γ : mvcc.api.MvccName) : v3rpc.WSrv GF := ⟨null, apply.AEnv.none γ, null, default, W64 0, W64 0, null, W64 0⟩
 
 /-- **Watch facts with nothing in them.** -/
-def v3rpc.SrvW.none : v3rpc.SrvW GF :=
-  ⟨GoInterface.nil, default, nroot, fun _ => iprop(False), fun _ => iprop(False)⟩
+def v3rpc.SrvW.none (γ : mvcc.api.MvccName) : v3rpc.SrvW GF :=
+  ⟨GoInterface.nil, γ, nroot, fun _ => iprop(False), fun _ => iprop(False)⟩
 
 /-- **A model of etcd with every predicate `False`** (its laws hold vacuously). -/
 def EtcdModel.none : EtcdModel GF where
@@ -78,10 +79,11 @@ def EtcdModel.none : EtcdModel GF where
   etcdStep_restrict := by intros; iintro H; iexfalso; iexact H
   etcdStep_delete_present := by intros; iintro ⟨H, -⟩; iexfalso; iexact H
 
-/-- **The placeholder watch environment** (see the file header). -/
-def client.WEnv.none : client.WEnv GF :=
-  ⟨v3rpc.WSrv.none, [], [], null, null, [], null, EtcdModel.none, fun _ => iprop(False),
-    fun _ => ([], v3rpc.WSrv.none), 0, default, v3rpc.SrvW.none, fun _ => v3rpc.SrvW.none⟩
+/-- **The placeholder watch environment** (see the file header), at any store name `γ` (the
+member's, from the deployment's start; nothing reads it). -/
+def client.WEnv.none (γ : mvcc.api.MvccName) : client.WEnv GF :=
+  ⟨v3rpc.WSrv.none γ, [], [], null, null, [], null, EtcdModel.none, fun _ => iprop(False),
+    fun _ => ([], v3rpc.WSrv.none γ), 0, default, v3rpc.SrvW.none γ, fun _ => v3rpc.SrvW.none γ⟩
 
 end defs
 

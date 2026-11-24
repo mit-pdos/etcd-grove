@@ -381,7 +381,6 @@ theorem isGrpcRpc_mono_with {Req Rep : ProtoMsg GF} (addr name : GoString) (P : 
     P ∗ isGrpcRpc addr name Spec ⊢ isGrpcRpc addr name Spec' := by
   iintro ⟨#HP, #H⟩
   unfold isGrpcRpc
-  iunfold isGrpcRpc at H
   iunfold isGrpcRpcMd at H
   icases H with ⟨%a₀, %hX, %π, %σ, #Hr, #Hs⟩
   unfold isGrpcRpcMd
