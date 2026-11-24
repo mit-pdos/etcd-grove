@@ -126,7 +126,7 @@ theorem boot_cmap :
 
 set_option hygiene false in
 local macro "client_pre_G" : tactic => `(tactic| (
-  wp_apply wp_GlobalAlloc (V := github_com.goose_lang.primitive.ProphId) github_com.imdea_software.swiftpaxos.client.nodeProph github_com.goose_lang.primitive.ProphId.ty as H_nodeProph
+  wp_apply wp_GlobalAlloc (V := github_com.mit_pdos.perennial.proph.ProphId) github_com.imdea_software.swiftpaxos.client.nodeProph github_com.mit_pdos.perennial.proph.ProphId.ty as H_nodeProph
   try wp_auto
   wp_apply github_com.imdea_software.swiftpaxos.rpc.wp_initialize' _ (wf_github_com_imdea_software_swiftpaxos_rpc hk) $$ Hown as ⟨Hown, #Hc1⟩
   try wp_auto
@@ -137,7 +137,7 @@ local macro "client_pre_G" : tactic => `(tactic| (
 
 set_option hygiene false in
 local macro "client_pre_R" : tactic => `(tactic| (
-  wp_apply wp_GlobalAlloc (V := github_com.goose_lang.primitive.ProphId) github_com.imdea_software.swiftpaxos.client.nodeProph github_com.goose_lang.primitive.ProphId.ty as H_nodeProph
+  wp_apply wp_GlobalAlloc (V := github_com.mit_pdos.perennial.proph.ProphId) github_com.imdea_software.swiftpaxos.client.nodeProph github_com.mit_pdos.perennial.proph.ProphId.ty as H_nodeProph
   try wp_auto
   wp_apply github_com.imdea_software.swiftpaxos.rpc.wp_initialize' _ (wfO_github_com_imdea_software_swiftpaxos_rpc hk bootSR (by decide)) $$ Hown as ⟨Hown, #Hc1⟩
   try wp_auto
@@ -154,11 +154,11 @@ local macro "client_post" : tactic => `(tactic| (
   try wp_auto
   wp_apply bufio.wp_initialize' _ (wf_bufio hk) $$ Hown as ⟨Hown, #Hc12⟩
   try wp_auto
+  wp_apply github_com.mit_pdos.perennial.proph.wp_initialize' _ (wf_github_com_mit_pdos_perennial_proph hk) $$ Hown as ⟨Hown, #Hc0⟩
+  try wp_auto
   wp_apply github_com.imdea_software.swiftpaxos.state.wp_initialize' _ (wf_github_com_imdea_software_swiftpaxos_state hk) $$ Hown as ⟨Hown, #Hc13⟩
   try wp_auto
   wp_apply github_com.imdea_software.swiftpaxos.replica.defs.wp_initialize' _ (wf_github_com_imdea_software_swiftpaxos_replica_defs hk) $$ Hown as ⟨Hown, #Hc14⟩
-  try wp_auto
-  wp_apply github_com.goose_lang.primitive.wp_initialize' _ (wf_github_com_goose_lang_primitive hk) $$ Hown as ⟨Hown, #Hc0⟩
   try wp_auto
   wp_apply github_com.google.uuid.wp_initialize' _ (wf_github_com_google_uuid hk) $$ Hown as ⟨Hown, #Hc15⟩
   try wp_auto
@@ -175,7 +175,7 @@ local macro "client_post" : tactic => `(tactic| (
   wp_func_call
   wp_call
   try wp_auto
-  wp_apply github_com.goose_lang.primitive.wp_NewProph as %pvs %p Hpr
+  wp_apply github_com.mit_pdos.perennial.proph.wp_NewProph as %pvs %p Hpr
   try wp_auto))
 
 set_option maxHeartbeats 4000000 in
@@ -253,7 +253,7 @@ theorem boot_swift :
     | wp_apply wp_GlobalAlloc (V := GoFunc) github_com.imdea_software.swiftpaxos.swift.ExecHook _ as H_ExecHook
     | wp_apply wp_GlobalAlloc (V := sync.Pool) github_com.imdea_software.swiftpaxos.swift.fastAckPool sync.Pool.ty as H_fastAckPool
     | wp_apply wp_GlobalAlloc (V := Bool) github_com.imdea_software.swiftpaxos.swift.useFastAckPool go.bool as H_useFastAckPool
-    | wp_apply wp_GlobalAlloc (V := github_com.goose_lang.primitive.ProphId) github_com.imdea_software.swiftpaxos.swift.nodeProph github_com.goose_lang.primitive.ProphId.ty as H_snodeProph
+    | wp_apply wp_GlobalAlloc (V := github_com.mit_pdos.perennial.proph.ProphId) github_com.imdea_software.swiftpaxos.swift.nodeProph github_com.mit_pdos.perennial.proph.ProphId.ty as H_snodeProph
     | wp_apply wp_GlobalAlloc (V := w64) github_com.imdea_software.swiftpaxos.swift.MaxDescRoutines go.int as H_MaxDescRoutines
     | wp_apply wp_GlobalAlloc (V := GoInterface) github_com.imdea_software.swiftpaxos.swift.errVarintOverflow go.error as H_errVarintOverflow
     | wp_auto)
@@ -269,7 +269,7 @@ theorem boot_swift :
   try wp_auto
   wp_apply boot_cmap hk $$ Hown as ⟨Hown, #Hcm, Hsc⟩
   try wp_auto
-  wp_apply github_com.goose_lang.primitive.wp_initialize' _ (wfO_github_com_goose_lang_primitive hk bootS4 (by decide)) $$ Hown as ⟨Hown, #Hsp⟩
+  wp_apply github_com.mit_pdos.perennial.proph.wp_initialize' _ (wfO_github_com_mit_pdos_perennial_proph hk bootS4 (by decide)) $$ Hown as ⟨Hown, #Hsp⟩
   try wp_auto
   wp_apply log.wp_initialize' _ (wfO_log hk bootS4 (by decide)) $$ Hown as ⟨Hown, #Hs5⟩
   try wp_auto
@@ -309,7 +309,7 @@ theorem boot_swift :
   wp_func_call
   wp_call
   try wp_auto
-  wp_apply github_com.goose_lang.primitive.wp_NewProph as %spvs %sp Hspr
+  wp_apply github_com.mit_pdos.perennial.proph.wp_NewProph as %spvs %sp Hspr
   try wp_auto
   imod (typedPointsto_dfractional _ _).dfractional_persist $$ H_snodeProph with #HsnP
   imod sync.init_Pool (globalAddr swift.fastAckPool)

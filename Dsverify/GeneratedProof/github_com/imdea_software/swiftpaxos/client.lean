@@ -7,11 +7,11 @@ public import Perennial.GeneratedProof.encoding.binary
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import Dsverify.GeneratedProof.github_com.google.uuid
-public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.dlog
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.replica.defs
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.rpc
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.state
+public import Perennial.GeneratedProof.github_com.mit_pdos.perennial.proph
 public import Perennial.GeneratedProof.math.rand
 public import Net.GeneratedProof.net
 public import Net.GeneratedProof.net.rpc

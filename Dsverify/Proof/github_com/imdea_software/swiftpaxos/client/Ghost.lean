@@ -18,7 +18,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.L2Laws
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ISpecs
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.NodeGhost
-public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Perennial.Proof.github_com.mit_pdos.perennial.proph.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.GhostDefs
 
 @[expose] public section

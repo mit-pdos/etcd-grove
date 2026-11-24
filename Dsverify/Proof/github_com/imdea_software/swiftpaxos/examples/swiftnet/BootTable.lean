@@ -129,6 +129,7 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_github_com_emirpasic_gods_maps_treemap : G pkg_id.github_com.emirpasic.gods.maps.treemap = isPkgInit (PROP := IProp GF) pkg_id.github_com.emirpasic.gods.maps.treemap
   e_github_com_imdea_software_swiftpaxos_state : G pkg_id.github_com.imdea_software.swiftpaxos.state = isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.state
   e_github_com_imdea_software_swiftpaxos_replica_defs : G pkg_id.github_com.imdea_software.swiftpaxos.replica.defs = isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.replica.defs
+  e_github_com_mit_pdos_perennial_proph : G pkg_id.github_com.mit_pdos.perennial.proph = isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.perennial.proph
   e_github_com_imdea_software_swiftpaxos_dlog : G pkg_id.github_com.imdea_software.swiftpaxos.dlog = isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.dlog
   e_github_com_imdea_software_swiftpaxos_rpc : G pkg_id.github_com.imdea_software.swiftpaxos.rpc = isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.rpc
   e_github_com_imdea_software_swiftpaxos_client : G pkg_id.github_com.imdea_software.swiftpaxos.client = isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.client
@@ -288,7 +289,7 @@ theorem wf_internal_strconv {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_strconv {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.strconv G :=
-  And.intro h.e_strconv ⟨wf_errors h, wf_internal_strconv h, wf_internal_stringslite h, True.intro⟩
+  And.intro h.e_strconv ⟨wf_errors h, wf_internal_strconv h, wf_internal_stringslite h, wf_unicode_utf8 h, True.intro⟩
 
 theorem wf_path {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.path G :=
@@ -398,6 +399,10 @@ theorem wf_github_com_imdea_software_swiftpaxos_replica_defs {G : GoString → I
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.replica.defs G :=
   And.intro h.e_github_com_imdea_software_swiftpaxos_replica_defs ⟨wf_bufio h, wf_io h, wf_sync h, wf_github_com_imdea_software_swiftpaxos_state h, wf_net h, wf_os h, wf_strings h, wf_time h, True.intro⟩
 
+theorem wf_github_com_mit_pdos_perennial_proph {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.github_com.mit_pdos.perennial.proph G :=
+  And.intro h.e_github_com_mit_pdos_perennial_proph True.intro
+
 theorem wf_github_com_imdea_software_swiftpaxos_dlog {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.dlog G :=
   And.intro h.e_github_com_imdea_software_swiftpaxos_dlog ⟨wf_log h, wf_os h, True.intro⟩
@@ -408,7 +413,7 @@ theorem wf_github_com_imdea_software_swiftpaxos_rpc {G : GoString → IProp GF} 
 
 theorem wf_github_com_imdea_software_swiftpaxos_client {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.client G :=
-  And.intro h.e_github_com_imdea_software_swiftpaxos_client ⟨wf_errors h, wf_math_rand h, wf_net h, wf_sync h, wf_time h, wf_github_com_google_uuid h, wf_github_com_goose_lang_primitive h, wf_github_com_imdea_software_swiftpaxos_replica_defs h, wf_github_com_imdea_software_swiftpaxos_state h, wf_bufio h, wf_encoding_binary h, wf_fmt h, wf_net_rpc h, wf_strings h, wf_github_com_imdea_software_swiftpaxos_dlog h, wf_github_com_imdea_software_swiftpaxos_rpc h, True.intro⟩
+  And.intro h.e_github_com_imdea_software_swiftpaxos_client ⟨wf_errors h, wf_math_rand h, wf_net h, wf_sync h, wf_time h, wf_github_com_google_uuid h, wf_github_com_imdea_software_swiftpaxos_replica_defs h, wf_github_com_imdea_software_swiftpaxos_state h, wf_github_com_mit_pdos_perennial_proph h, wf_bufio h, wf_encoding_binary h, wf_fmt h, wf_net_rpc h, wf_strings h, wf_github_com_imdea_software_swiftpaxos_dlog h, wf_github_com_imdea_software_swiftpaxos_rpc h, True.intro⟩
 
 theorem wf_github_com_imdea_software_swiftpaxos_config {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.config G :=
@@ -444,7 +449,7 @@ theorem wf_github_com_imdea_software_swiftpaxos_hook {G : GoString → IProp GF}
 
 theorem wf_github_com_imdea_software_swiftpaxos_swift {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.swift G :=
-  And.intro h.e_github_com_imdea_software_swiftpaxos_swift ⟨wf_github_com_imdea_software_swiftpaxos_rpc h, wf_github_com_imdea_software_swiftpaxos_client h, wf_github_com_imdea_software_swiftpaxos_replica h, wf_github_com_imdea_software_swiftpaxos_replica_defs h, wf_github_com_imdea_software_swiftpaxos_state h, wf_bufio h, wf_encoding_gob h, wf_fmt h, wf_io h, wf_sync h, wf_time h, wf_bytes h, wf_crypto_sha256 h, wf_slices h, wf_encoding_binary h, wf_log h, wf_github_com_goose_lang_primitive h, wf_github_com_orcaman_concurrent_map h, wf_sync_atomic h, wf_github_com_imdea_software_swiftpaxos_config h, wf_github_com_imdea_software_swiftpaxos_dlog h, wf_github_com_imdea_software_swiftpaxos_hook h, wf_errors h, True.intro⟩
+  And.intro h.e_github_com_imdea_software_swiftpaxos_swift ⟨wf_github_com_imdea_software_swiftpaxos_rpc h, wf_github_com_imdea_software_swiftpaxos_client h, wf_github_com_imdea_software_swiftpaxos_replica h, wf_github_com_imdea_software_swiftpaxos_replica_defs h, wf_github_com_imdea_software_swiftpaxos_state h, wf_bufio h, wf_encoding_gob h, wf_fmt h, wf_io h, wf_sync h, wf_time h, wf_bytes h, wf_crypto_sha256 h, wf_slices h, wf_encoding_binary h, wf_log h, wf_github_com_mit_pdos_perennial_proph h, wf_github_com_orcaman_concurrent_map h, wf_sync_atomic h, wf_github_com_imdea_software_swiftpaxos_config h, wf_github_com_imdea_software_swiftpaxos_dlog h, wf_github_com_imdea_software_swiftpaxos_hook h, wf_errors h, True.intro⟩
 
 theorem wf_github_com_mit_pdos_etcd_grove_examples_lib_lintest {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest G :=
@@ -640,7 +645,7 @@ theorem wfO_internal_strconv {G : GoString → IProp GF} (h : KitG G) (S : List 
 theorem wfO_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.strconv (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.strconv ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_strconv) ⟨wfO_errors h S hS, wfO_internal_strconv h S hS, wfO_internal_stringslite h S hS, True.intro⟩
+    h.e_strconv) ⟨wfO_errors h S hS, wfO_internal_strconv h S hS, wfO_internal_stringslite h S hS, wfO_unicode_utf8 h S hS, True.intro⟩
 
 theorem wfO_path {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.path (gOff S G) :=
@@ -766,6 +771,11 @@ theorem wfO_github_com_imdea_software_swiftpaxos_replica_defs {G : GoString → 
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.replica.defs (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.github_com.imdea_software.swiftpaxos.replica.defs ∉ ownedPkgs) (hS _ hm))).trans
     h.e_github_com_imdea_software_swiftpaxos_replica_defs) ⟨wfO_bufio h S hS, wfO_io h S hS, wfO_sync h S hS, wfO_github_com_imdea_software_swiftpaxos_state h S hS, wfO_net h S hS, wfO_os h S hS, wfO_strings h S hS, wfO_time h S hS, True.intro⟩
+
+theorem wfO_github_com_mit_pdos_perennial_proph {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.mit_pdos.perennial.proph (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.github_com.mit_pdos.perennial.proph ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_github_com_mit_pdos_perennial_proph) True.intro
 
 theorem wfO_github_com_imdea_software_swiftpaxos_dlog {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.dlog (gOff S G) :=

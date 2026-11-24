@@ -1,15 +1,15 @@
 diff --git a/client/buffer.go b/client/buffer.go
-index 6b9ffd4..bd9d38a 100644
+index 6b9ffd4..962d19e 100644
 --- a/client/buffer.go
 +++ b/client/buffer.go
-@@ -8,6 +8,7 @@ import (
- 	"time"
- 
+@@ -10,6 +10,7 @@ import (
  	"github.com/google/uuid"
-+	"github.com/goose-lang/primitive"
  	"github.com/imdea-software/swiftpaxos/replica/defs"
  	"github.com/imdea-software/swiftpaxos/state"
++	"github.com/mit-pdos/perennial/proph"
  )
+ 
+ type ReqReply struct {
 @@ -75,14 +76,18 @@ func (c *BufferClient) RegisterReply(val state.Value, seqnum int32) {
  }
  
@@ -39,10 +39,10 @@ index 6b9ffd4..bd9d38a 100644
 +// words (the Lean project's Spec/swift/L2Words.lean, `encE`), each word as ten one-byte strings,
 +// its 7-bit chunks from the lowest. A client node's events are its
 +// invocations and acceptances; a replica node's are swift's (its own `nodeProph`).
-+var nodeProph primitive.ProphId
++var nodeProph proph.ProphId
 +
 +func init() {
-+	p := primitive.NewProph()
++	p := proph.NewProph()
 +	nodeProph = p
 +}
 +
@@ -85,18 +85,43 @@ index 6b9ffd4..bd9d38a 100644
 +	}
 +	nodeProph.Resolve(s)
 +}
+diff --git a/go.mod b/go.mod
+index 6c6268f..757a83f 100644
+--- a/go.mod
++++ b/go.mod
+@@ -13,6 +13,7 @@ require (
+ 	github.com/google/uuid v1.3.1
+ 	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
+ 	github.com/mit-pdos/etcd-grove/examples/lib/remote v0.0.0-20261123015333-2dce8dc601a1
++	github.com/mit-pdos/perennial/proph v0.0.0-20261124034649-0ab015afd508
+ 	github.com/orcaman/concurrent-map v1.0.0
+ 	models.lab v0.0.0-00010101000000-000000000000
+ )
+diff --git a/go.sum b/go.sum
+index bfc5306..0e4be09 100644
+--- a/go.sum
++++ b/go.sum
+@@ -6,6 +6,8 @@ github.com/google/uuid v1.3.1 h1:KjJaJ9iWZ3jOFZIf1Lqf4laDRCasjl0BCmnEGxkdLb4=
+ github.com/google/uuid v1.3.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+ github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65 h1:iIxG6zAiFGcVGx0hVeQxNZypucNcRhFUoUzTEHTBbp0=
+ github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65/go.mod h1:sDE72zVH81ASwPXc1m9OgSfaaY0aZHu4Ty19FgONpOc=
++github.com/mit-pdos/perennial/proph v0.0.0-20261124034649-0ab015afd508 h1:iGmZxktwpT8DYCkizr8zTNMk9U/Sxl6sx0FUDHY77RE=
++github.com/mit-pdos/perennial/proph v0.0.0-20261124034649-0ab015afd508/go.mod h1:8nZrnFGgqb6itUuopkSHgBfwcK28uhLEpVokP50PKXI=
+ github.com/orcaman/concurrent-map v1.0.0 h1:I/2A2XPCb4IuQWcQhBhSwGfiuybl/J0ev9HDbW65HOY=
+ github.com/orcaman/concurrent-map v1.0.0/go.mod h1:Lu3tH6HLW3feq74c2GC+jIMS/K2CFcDWnWD9XkenwhI=
+ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 diff --git a/swift/recovery.go b/swift/recovery.go
-index df5babb..a54a384 100644
+index df5babb..6cec3dd 100644
 --- a/swift/recovery.go
 +++ b/swift/recovery.go
-@@ -6,6 +6,7 @@ import (
- 	"sync"
- 	"time"
- 
-+	"github.com/goose-lang/primitive"
+@@ -9,6 +9,7 @@ import (
  	"github.com/imdea-software/swiftpaxos/replica"
  	"github.com/imdea-software/swiftpaxos/replica/defs"
  	"github.com/imdea-software/swiftpaxos/state"
++	"github.com/mit-pdos/perennial/proph"
+ 	"github.com/orcaman/concurrent-map"
+ )
+ 
 @@ -31,6 +32,7 @@ func (r *Replica) handleNewLeader(msg *MNewLeader) {
  	r.ballotL.Lock()
  	r.ballot = msg.Ballot
@@ -147,10 +172,10 @@ index df5babb..a54a384 100644
 +// words (the Lean project's Spec/swift/L2Words.lean, `encE`), each word as ten one-byte strings,
 +// its 7-bit chunks from the lowest. A replica node's events are
 +// these; a client node's are the client package's (its own `nodeProph`).
-+var nodeProph primitive.ProphId
++var nodeProph proph.ProphId
 +
 +func init() {
-+	p := primitive.NewProph()
++	p := proph.NewProph()
 +	nodeProph = p
 +}
 +

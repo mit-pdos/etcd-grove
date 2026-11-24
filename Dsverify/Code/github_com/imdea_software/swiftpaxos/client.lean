@@ -7,9 +7,9 @@ public import Net.Code.net
 public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Dsverify.Code.github_com.google.uuid
-public import Perennial.Code.github_com.goose_lang.primitive
 public import Dsverify.Code.github_com.imdea_software.swiftpaxos.replica.defs
 public import Dsverify.Code.github_com.imdea_software.swiftpaxos.state
+public import Perennial.Code.github_com.mit_pdos.perennial.proph
 public import Code.bufio
 public import Perennial.Code.encoding.binary
 public import Perennial.Code.fmt
@@ -648,14 +648,14 @@ noncomputable def BufferClient.randomTrue.impl [GooseExts] [GoGlobalContext] : v
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.NewProph []))) (Val #())) (Val #()))
-  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Val #())))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.perennial.proph.NewProph []))) (Val #())) (Val #()))
+  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.perennial.proph.ProphId.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.perennial.proph.ProphId.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.perennial.proph.ProphId.ty))) (Var "p"))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr nodeProph))) (Val #())) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.perennial.proph.ProphId.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr nodeProph))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (Var "p") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.perennial.proph.ProphId.ty))) (Pair (Var "p") (Var "$r0"))))))))
   (Val #())))
 
 /-- resolveInvoke: client cl invokes command seq, (op, key, val) (prophecy-only). The words: op, cl,
@@ -697,7 +697,7 @@ noncomputable def resolveInvoke.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"Resolve"))) (App (Val (GoInstruction (GlobalVarAddr nodeProph))) (Val #()))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.perennial.proph.ProphId.ty) go!"Resolve"))) (App (Val (GoInstruction (GlobalVarAddr nodeProph))) (Val #()))) (Var "$a0"))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -771,7 +771,7 @@ noncomputable def resolveAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"Resolve"))) (App (Val (GoInstruction (GlobalVarAddr nodeProph))) (Val #()))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.perennial.proph.ProphId.ty) go!"Resolve"))) (App (Val (GoInstruction (GlobalVarAddr nodeProph))) (Val #()))) (Var "$a0"))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2079,7 +2079,7 @@ noncomputable def Client.callMaster.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.imdea_software.swiftpaxos.client where
-  pkgImportedPkgs := [pkg_id.errors, pkg_id.math.rand, pkg_id.net, pkg_id.sync, pkg_id.time, pkg_id.github_com.google.uuid, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.imdea_software.swiftpaxos.replica.defs, pkg_id.github_com.imdea_software.swiftpaxos.state, pkg_id.bufio, pkg_id.encoding.binary, pkg_id.fmt, pkg_id.net.rpc, pkg_id.strings, pkg_id.github_com.imdea_software.swiftpaxos.dlog, pkg_id.github_com.imdea_software.swiftpaxos.rpc]
+  pkgImportedPkgs := [pkg_id.errors, pkg_id.math.rand, pkg_id.net, pkg_id.sync, pkg_id.time, pkg_id.github_com.google.uuid, pkg_id.github_com.imdea_software.swiftpaxos.replica.defs, pkg_id.github_com.imdea_software.swiftpaxos.state, pkg_id.github_com.mit_pdos.perennial.proph, pkg_id.bufio, pkg_id.encoding.binary, pkg_id.fmt, pkg_id.net.rpc, pkg_id.strings, pkg_id.github_com.imdea_software.swiftpaxos.dlog, pkg_id.github_com.imdea_software.swiftpaxos.rpc]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2117,11 +2117,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.google.uuid.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.imdea_software.swiftpaxos.state.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.mit_pdos.perennial.proph.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.bufio.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2137,7 +2137,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc nodeProph _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc nodeProph _root_.Perennial.github_com.mit_pdos.perennial.proph.ProphId.ty)) (Val #()))))))))
 
 structure ReqReply [GooseExts] where
   mk ::
@@ -2626,9 +2626,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_uuid_Assumption : _root_.Perennial.github_com.google.uuid.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_defs_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Assumptions
   import_state_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Assumptions
+  import_proph_Assumption : _root_.Perennial.github_com.mit_pdos.perennial.proph.Assumptions
   import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
@@ -2652,9 +2652,9 @@ attribute [instance] Assumptions.ReqReply_instance
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_uuid_Assumption
-  Assumptions.import_primitive_Assumption
   Assumptions.import_defs_Assumption
   Assumptions.import_state_Assumption
+  Assumptions.import_proph_Assumption
   Assumptions.import_bufio_Assumption
   Assumptions.import_binary_Assumption
   Assumptions.import_fmt_Assumption

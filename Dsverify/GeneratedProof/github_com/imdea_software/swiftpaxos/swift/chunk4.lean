@@ -9,7 +9,6 @@ public import Perennial.GeneratedProof.encoding.binary
 public import Dsverify.GeneratedProof.encoding.gob
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
-public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.client
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.config
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.dlog
@@ -18,6 +17,7 @@ public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.repli
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.replica.defs
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.rpc
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.state
+public import Perennial.GeneratedProof.github_com.mit_pdos.perennial.proph
 public import Dsverify.GeneratedProof.github_com.orcaman.concurrent_map
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log

@@ -21,7 +21,7 @@ public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Defs
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
-public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Perennial.Proof.github_com.mit_pdos.perennial.proph.Link
 
 -- PORT: lab imports dropped: Harness.Proof.bufio.Net, Harness.Proof.net.rpc.ClientDefs
 

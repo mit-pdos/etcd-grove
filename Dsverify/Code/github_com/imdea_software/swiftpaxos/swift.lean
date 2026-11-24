@@ -164,7 +164,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_slices_Assumption : _root_.Perennial.slices.Assumptions
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
   import_log_Assumption : _root_.Perennial.log.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import_proph_Assumption : _root_.Perennial.github_com.mit_pdos.perennial.proph.Assumptions
   import_cmap_Assumption : _root_.Perennial.github_com.orcaman.concurrent_map.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_config_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.config.Assumptions
@@ -316,7 +316,7 @@ attribute [instance] Assumptions.Batcher_instance
   Assumptions.import_slices_Assumption
   Assumptions.import_binary_Assumption
   Assumptions.import_log_Assumption
-  Assumptions.import_primitive_Assumption
+  Assumptions.import_proph_Assumption
   Assumptions.import_cmap_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_config_Assumption

@@ -11,7 +11,7 @@ require (
 	github.com/anishathalye/porcupine v1.3.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/google/uuid v1.3.1
-	github.com/goose-lang/primitive v0.2.2-0.20261123232922-5d8e69df2f96
+	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	github.com/mit-pdos/etcd-grove/examples/lib/remote v0.0.0-20261123015333-2dce8dc601a1
 	github.com/orcaman/concurrent-map v1.0.0
 	models.lab v0.0.0-00010101000000-000000000000
