@@ -36,7 +36,7 @@ abbrev Client.spec : Prop :=
     (ep : GoString) (γE : GName) (mid : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk ∗
-      (⌜ep ≠ []⌝ → ⌜plainEndpoint ep⌝ ∗
+      (⌜ep ≠ []⌝ -∗ ⌜plainEndpoint ep⌝ ∗
         clientShare (G := hG.goose_globalGS) ep γE mid (putgetPub (G := hG.goose_globalGS))) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Client)) (Val #ep))
   {{ (b : Bool), RET #b; True }}

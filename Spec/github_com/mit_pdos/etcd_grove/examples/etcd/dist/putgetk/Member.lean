@@ -64,7 +64,7 @@ abbrev Member.spec : Prop :=
       -- the machine's start
       envVerifyOff (GF := GF) ∗ memberAreasFresh (GF := GF) (memberDataDir (nameOf i)) ∗
       -- its share of the cluster's start, if the configuration is one the program runs
-      (⌜cfgOk peers clients ∧ i < peers.length⌝ →
+      (⌜cfgOk peers clients ∧ i < peers.length⌝ -∗
         memberShareK (G := hG.goose_globalGS) S5 c peers clients ps ctxs boot i γE Pub) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Member)) (Val #(W64 i))) (Val #peersSl)) (Val #clientsSl))
   {{ RET #(); True }}

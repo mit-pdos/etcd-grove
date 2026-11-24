@@ -153,6 +153,7 @@ end defs
 /-! ## Member `i`'s share of the start -/
 
 section shareK
+open Net
 variable {GF : BundledGFunctors} [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
   [GoGlobalContext] [GoLocalContext] [go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
   [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
