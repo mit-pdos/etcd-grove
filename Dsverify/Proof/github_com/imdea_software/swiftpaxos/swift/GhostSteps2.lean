@@ -189,10 +189,9 @@ theorem swift.encP_report (b : Nat) (R : sp.Report) :
   simp [sp.encP, sp.listW]
 
 /-- `resolveReport(m)`: the report's ballot, `cballot`, then each entry's id, phase, command and
-dependencies (`sp.repEntryW`). TODO (proph-swiftpaxos, WIP): the proof (the old `wp_ghostReport`'s
-loop, building the string instead of the slice; nested loops over a command's value and an entry's
-dependencies, the elements' fields read through `ownSlice_elem_acc` + `iStructNamed`, as
-`wp_resolvePreaccept` does). -/
+dependencies (`sp.repEntryW`): a loop over the entries, building the string, with inner loops
+over the command's value bytes and the entry's dependencies; the elements' fields are read through
+`ownSlice_elem_acc` + `iStructNamed`. -/
 theorem swift.wp_resolveReport (γ : sp.Names) (k : Nat) (p : Loc) (bl : w32) (a : Nat × sp.Report)
     (Q : IProp netDistGF) :
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
@@ -201,7 +200,224 @@ theorem swift.wp_resolveReport (γ : sp.Names) (k : Nat) (p : Loc) (bl : w32) (a
       swift.resolveUpd γ k (.report (sp.bal bl) a.2) Q }}
     (App (Val (@! swift.resolveReport)) (Val #p))
   {{ RET #(); Q }} := by
-  sorry
+  wp_start as ⟨#Hok, %Hb, #Hobj, Hupd⟩
+  iunfold swift.ackObjB at Hobj
+  icases Hobj with ⟨%rep, %cb, %ids, %ph, %cm, %dp, %cmL, %dpL, #Hp, #Hids, #Hph, #Hcm, #Hdp,
+    %Hqf, #Hents⟩
+  ihave %Hidl := ownSlice_len $$ Hids
+  ihave %Hphl := ownSlice_len $$ Hph
+  ihave %Hcml := ownSlice_len $$ Hcm
+  ihave %Hdpl := ownSlice_len $$ Hdp
+  simp only [List.length_map] at Hidl Hphl
+  ihave #Hp2 := Hp
+  iStructNamed Hp2
+  have hcb0 : 0 ≤ sint.Z cb := by rw [Hqf.2.1]; omega
+  have hcb31 : a.2.cbal < 2 ^ 31 := by
+    have := Hqf.2.1; have := swift.sint_w32_lt cb; omega
+  iunfold client.nodeGhostOk at Hok
+  iunfold client.nodeGhostB at Hok
+  icases Hok with ⟨#Hreg, %pr, #Hpp, #Hi⟩
+  simp only [client.nodeVar]
+  wp_auto
+  simp only [sp.strW1_eval]
+  obtain ⟨S0, hS0⟩ : ∃ S0 : List w8, S0 = [] ++ sp.strW1 (W64 9) ++ sp.strW1 (W64 (sint.Z bl)) ++
+      sp.strW1 (W64 (sint.Z cb)) ++ sp.strW1 ids.len := ⟨_, rfl⟩
+  rw [← hS0]
+  ihave IH : iprop(∃ (n wv : w64),
+      "i" ∷ i_ptr ↦ n ∗ "w" ∷ w_ptr ↦ wv ∗
+      "s" ∷ s_ptr ↦ (S0 ++ sp.strW ((a.2.entries.take (sint.Z n).toNat).flatMap sp.repEntryW)) ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (a.2.entries.length : Int) ∧
+        ∀ e ∈ a.2.entries.take (sint.Z n).toNat, sp.EntryWf e⌝) $$ [i w s]
+  · iexists _, _
+    iframe
+    isplitl [s]
+    · simp [sp.strW]; iexact s
+    ipureintro; exact ⟨by word, by word, by simp⟩
+  wp_for IH
+  wp_if_destruct
+  · have hlt : sint.Z n < sint.Z ids.len := Hif
+    have Hlt : (sint.Z n).toNat < a.2.entries.length := by have := Hidl.1; word
+    obtain ⟨e, He⟩ : ∃ e, a.2.entries[(sint.Z n).toNat]? = some e :=
+      ⟨_, List.getElem?_eq_getElem Hlt⟩
+    ihave #Hent := (BigSepL.bigSepL_lookup (Φ := fun i e => iprop(∃ (c : state.Command)
+      (sd : swift.SDep), ⌜cmL[i]? = some c ∧ dpL[i]? = some sd⌝ ∗
+      swift.repEntryObj c sd e)) He) $$ Hents
+    icases Hent with ⟨%c, %sd, %hcsd, #He⟩
+    iunfold swift.repEntryObj at He
+    icases He with ⟨%vs, %hc, #Hvs, #Hsd⟩
+    subst hc
+    ihave %Hvsl := ownSlice_len $$ Hvs
+    ihave %Hsdl := ownSlice_len $$ Hsd
+    simp only [List.length_map] at Hsdl
+    have hb1 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z ids.len := ⟨Hn.1, hlt⟩
+    have hb2 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z ph.len := by
+      constructor <;> (have := Hphl.1; have := Hidl.1; word)
+    have hb3 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z cm.len := by
+      constructor <;> (have := Hcml.1; have := Hidl.1; have := Hqf.2.2.1; word)
+    have hb4 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z dp.len := by
+      constructor <;> (have := Hdpl.1; have := Hidl.1; have := Hqf.2.2.2; word)
+    have hid : (a.2.entries.map (fun e => ofCmdId e.id))[(sint.Z n).toNat]? = some (ofCmdId e.id) := by
+      rw [List.getElem?_map, He]; rfl
+    icases ownSlice_elem_acc (sint.Z n) (ofCmdId e.id) ids DFrac.discard _ Hn.1 hid $$ Hids
+      with ⟨#Hide, -⟩
+    iStructNamed Hide
+    icases ownSlice_elem_acc (V := state.Command) (sint.Z n) _ cm _ cmL Hn.1 hcsd.1 $$ Hcm
+      with ⟨#Hcme, -⟩
+    iStructNamed Hcme
+    icases ownSlice_elem_acc (V := swift.SDep) (sint.Z n) sd dp _ dpL Hn.1 hcsd.2 $$ Hdp
+      with ⟨#Hsde, -⟩
+    iStructNamed Hsde
+    have hph : (a.2.entries.map (·.phase))[(sint.Z n).toNat]? = some e.phase := by
+      rw [List.getElem?_map, He]; rfl
+    icases ownSlice_elem_acc (sint.Z n) e.phase ph DFrac.discard _ Hn.1 hph $$ Hph
+      with ⟨#Hphe, -⟩
+    iterate 8 (try simp only [hb1, hb2, hb3, hb4]; try wp_auto)
+    simp only [sp.strW1_eval]
+    obtain ⟨S1, hS1⟩ : ∃ S1 : List w8, S1 =
+        S0 ++ sp.strW ((a.2.entries.take (sint.Z n).toNat).flatMap sp.repEntryW) ++
+          sp.strW1 (W64 (uint.Z e.id.cl)) ++ sp.strW1 (W64 (uint.Z e.id.seq)) ++
+          sp.strW1 e.phase ++ sp.strW1 (W64 (uint.Z e.cmd.op)) ++ sp.strW1 e.cmd.key ++
+          sp.strW1 vs.len := ⟨_, rfl⟩
+    rw [← hS1]
+    ihave IH2 : iprop(∃ (j wv : w64),
+        "k" ∷ k_ptr ↦ j ∗ "w" ∷ w_ptr ↦ wv ∗
+        "s" ∷ s_ptr ↦ (S1 ++ sp.strW ((e.cmd.val.take (sint.Z j).toNat).map sp.w8w)) ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ (e.cmd.val.length : Int)⌝) $$ [k w s]
+    · iexists _, _
+      iframe
+      isplitl [s]
+      · simp [sp.strW]; iexact s
+      ipureintro; exact ⟨by word, by word⟩
+    wp_for IH2
+    iterate 2 (try simp only [hb3]; try wp_auto)
+    wp_if_destruct
+    · have hjl : sint.Z j < sint.Z vs.len := by
+        first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif) | simpa using Hif
+      have Hlt2 : (sint.Z j).toNat < e.cmd.val.length := by have := Hvsl.1; word
+      obtain ⟨y, Hy⟩ : ∃ y, e.cmd.val[(sint.Z j).toNat]? = some y :=
+        ⟨_, List.getElem?_eq_getElem Hlt2⟩
+      have hbj : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z vs.len := ⟨Hj.1, hjl⟩
+      icases ownSlice_elem_acc (sint.Z j) y vs DFrac.discard _ Hj.1 Hy $$ Hvs with ⟨#Hy, -⟩
+      iterate 4 (try simp only [hb1, hb2, hb3, hb4, hbj]; try wp_auto)
+      simp only [sp.strW1_eval]
+      wp_for_post
+      iframe
+      iexists _, _
+      iframe
+      isplitl [s]
+      · have Hsucc : (sint.Z (j + W64 1)).toNat = (sint.Z j).toNat + 1 := by word
+        iExactEq s
+        rw [Hsucc, List.take_add_one, Hy]
+        simp [sp.strW, swift.setWidth_w8w]
+      ipureintro; exact ⟨by word, by word⟩
+    have hjg : ¬ sint.Z j < sint.Z vs.len := by
+      first | exact Hif | exact (fun h => by simp [h] at Hif) | simpa using Hif
+    have hj : (sint.Z j).toNat = e.cmd.val.length := by have := Hvsl.1; word
+    have hvl : vs.len = W64 (e.cmd.val.length : Int) := by have := Hvsl.1; word
+    rw [hj, List.take_of_length_le (Nat.le_refl _)]
+    try rw [if_neg (by simp [hjg])]
+    iterate 4 (try simp only [hb1, hb2, hb3, hb4]; try wp_auto)
+    wp_pure
+    wp_pure
+    wp_auto
+    iterate 4 (try simp only [hb1, hb2, hb3, hb4]; try wp_auto)
+    simp only [sp.strW1_eval]
+    obtain ⟨S2, hS2⟩ : ∃ S2 : List w8, S2 =
+        S1 ++ sp.strW (e.cmd.val.map sp.w8w) ++ sp.strW1 sd.Dep'.len := ⟨_, rfl⟩
+    rw [← hS2]
+    ihave IH3 : iprop(∃ (j wv : w64),
+        "j" ∷ j_ptr ↦ j ∗ "w" ∷ w_ptr ↦ wv ∗
+        "s" ∷ s_ptr ↦ (S2 ++ sp.strW ((e.dep.take (sint.Z j).toNat).flatMap sp.idW)) ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ (e.dep.length : Int)⌝) $$ [j w s]
+    · iexists _, _
+      iframe
+      isplitl [s]
+      · simp [sp.strW]; iexact s
+      ipureintro; exact ⟨by word, by word⟩
+    wp_for IH3
+    iterate 2 (try simp only [hb4]; try wp_auto)
+    wp_if_destruct
+    · have hjl : sint.Z j < sint.Z sd.Dep'.len := by
+        first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif) | simpa using Hif
+      have Hlt3 : (sint.Z j).toNat < e.dep.length := by have := Hsdl.1; word
+      obtain ⟨y, Hy⟩ : ∃ y, e.dep[(sint.Z j).toNat]? = some y :=
+        ⟨_, List.getElem?_eq_getElem Hlt3⟩
+      have hy : (e.dep.map ofCmdId)[(sint.Z j).toNat]? = some (ofCmdId y) := by
+        rw [List.getElem?_map, Hy]; rfl
+      have hbj : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sd.Dep'.len := ⟨Hj.1, hjl⟩
+      icases ownSlice_elem_acc (sint.Z j) (ofCmdId y) sd.Dep' DFrac.discard _ Hj.1 hy $$ Hsd
+        with ⟨#Hye, -⟩
+      iStructNamed Hye
+      iterate 6 (try simp only [hb1, hb2, hb3, hb4, hbj]; try wp_auto)
+      simp only [sp.strW1_eval]
+      wp_for_post
+      iframe
+      iexists _, _
+      iframe
+      isplitl [s]
+      · have Hsucc : (sint.Z (j + W64 1)).toNat = (sint.Z j).toNat + 1 := by word
+        iExactEq s
+        rw [Hsucc, List.take_add_one, Hy]
+        simp [sp.strW, sp.idW, ofCmdId, sp.w32w]
+      ipureintro; exact ⟨by word, by word⟩
+    have hjg : ¬ sint.Z j < sint.Z sd.Dep'.len := by
+      first | exact Hif | exact (fun h => by simp [h] at Hif) | simpa using Hif
+    have hj3 : (sint.Z j).toNat = e.dep.length := by have := Hsdl.1; word
+    have hdl : sd.Dep'.len = W64 (e.dep.length : Int) := by have := Hsdl.1; word
+    rw [hj3, List.take_of_length_le (Nat.le_refl _)]
+    try rw [if_neg (by simp [hjg])]
+    iterate 3 (try wp_pure)
+    try wp_auto
+    wp_for_post
+    iframe
+    iexists _, _
+    iframe
+    have Hsucc : (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 := by word
+    isplitl [s]
+    · iExactEq s
+      rw [Hsucc, List.take_add_one, He, hS2, hS1]
+      simp [sp.strW, sp.repEntryW, sp.idW, sp.w32w, sp.cmdW, sp.wordsOf, sp.listW, sp.w8w, hvl, hdl]
+    ipureintro
+    refine ⟨by word, by word, ?_⟩
+    rw [Hsucc, List.take_add_one, He]
+    intro e' he'
+    rcases List.mem_append.mp he' with h | h
+    · exact Hn.2.2 e' h
+    · simp only [Option.toList_some, List.mem_singleton] at h
+      subst h
+      refine ⟨?_, ?_⟩
+      · show e'.cmd.val.length < 2 ^ 64; have := Hvsl.1; word
+      · have := Hsdl.1; word
+  · have hge : ¬ sint.Z n < sint.Z ids.len := by
+      first | exact Hif | exact (fun h => by simp [h] at Hif) | simpa using Hif
+    have hk : (sint.Z n).toNat = a.2.entries.length := by have := Hidl.1; word
+    have hl : ids.len = W64 (a.2.entries.length : Int) := by have := Hidl.1; word
+    have hfull : a.2.entries.take (sint.Z n).toNat = a.2.entries := by
+      rw [hk, List.take_of_length_le (Nat.le_refl _)]
+    have Hall := Hn.2.2
+    rw [hfull] at Hall
+    rw [hfull]
+    have hwf : sp.PEvWf (.report (sp.bal bl) a.2) :=
+      ⟨by have := swift.bal_lt bl; omega, by omega, by have := Hidl.1; word, Hall⟩
+    try rw [if_neg (by simp [hge])]
+    try wp_auto
+    wp_method_call
+    wp_auto
+    wp_method_call
+    wp_auto
+    wp_bind (ResolveProph _ _)
+    iapply (swift.wp_resolveStep γ k pr _ hwf Q _ _ ?hs)
+    case hs =>
+      have h : (((sint.Z bl).toNat : Nat) : Int) = sint.Z bl := Int.toNat_of_nonneg Hb
+      have hc : ((a.2.cbal : Nat) : Int) = sint.Z cb := Hqf.2.1.symm
+      rw [hS0]
+      simp [sp.encP, sp.natW, sp.bal, h, hc, sp.strW, sp.listW, hl]
+    iframe Hi Hupd
+    iintro HQ
+    wp_auto
+    iapply HΦ
+    iexact HQ
+
 
 end proof
 
