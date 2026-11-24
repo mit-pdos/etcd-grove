@@ -124,6 +124,7 @@ theorem serverBootBad [srv_sem : server.Assumptions]
   wp_call
   try wp_auto
   wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
+  · iframe #
   have hne : err ≠ interface.nil := fun h => Hd (Herr h)
   cases err with
   | nil => exact absurd rfl hne
@@ -168,6 +169,7 @@ theorem clientBootBad [cl_sem : client.Assumptions]
   try wp_func_lits
   try wp_auto
   wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
+  · iframe #
   have hne : err ≠ interface.nil := fun h => Hd (Herr h)
   cases err with
   | nil => exact absurd rfl hne
@@ -207,6 +209,7 @@ theorem nodeBootBad [cl_sem : client.Assumptions]
   wp_call
   wp_auto
   wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
+  · iframe #
   have hne : err ≠ interface.nil := fun h => Hd (Herr h)
   cases err with
   | nil => exact absurd rfl hne
