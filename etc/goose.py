@@ -505,6 +505,9 @@ PROJECTS = [
             "golang.org/x/crypto/bcrypt",
             "go.etcd.io/etcd/pkg/v3/contention",
             "go.etcd.io/etcd/pkg/v3/idutil",
+            # (prove-ps2-srvgoroutines, 2026-11-24, #42) `FDUsage`/`FDLimit` trusted (pkg/v3/runtime.toml):
+            # `monitorFileDescriptor`'s leaves
+            "go.etcd.io/etcd/pkg/v3/runtime",
             "go.etcd.io/etcd/pkg/v3/notify",
             "go.etcd.io/etcd/pkg/v3/pbutil",
             "go.etcd.io/etcd/pkg/v3/traceutil",

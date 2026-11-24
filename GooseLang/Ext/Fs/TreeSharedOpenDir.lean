@@ -19,11 +19,11 @@ namespace Fs
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The shared coherence with a directory fd set (added, or its read moved on). -/
-theorem treeCohS_setDfd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {df' : OsDirFd}
+theorem treeCohS_setDfd {st : OsState} {Γdf : GMap w64 (Ino × DirPhS)}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st Γdf Γc Γg) {fd : w64} {df' : OsDirFd}
     {x : Ino × DirPhS} (hino : x.1 = df'.ino) (hph : PhOkS (setDfd st fd df') x.1 x.2 df'.rd) :
-    TreeCohS (setDfd st fd df') s0 (<[fd := x]> Γdf) Γc Γg := by
-  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl, h.2.congr rfl rfl⟩), hc.valid, hc.s0le, fun fd' => ?_, fun fd' x' df hx hdf => ?_,
+    TreeCohS (setDfd st fd df') (<[fd := x]> Γdf) Γc Γg := by
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl, h.2.congr rfl rfl⟩), hc.valid, fun fd' => ?_, fun fd' x' df hx hdf => ?_,
     hc.calls, hc.callsLe, hc.gcalls, hc.gdisj,
     hc.cover⟩
   · show ((<[fd := x]> Γdf) !! fd').map (·.1) = ((<[fd := df']> st.proc.dfds) !! fd').map (·.ino)
@@ -58,12 +58,9 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
   iintro #Hinv #Hsi Hp Hk HΦ
   iapply wp_fs_stepM "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
-  unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
-  icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_callS_excl st k s0 p q $$ Hk Hm
-  unfold treeShared
-  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
+  icases (treeCtx_eq _ _).1 $$ Ht with ⟨Ht, Hcm⟩
+  unfold treeCtxT
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -133,7 +130,7 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
     have hs : FilesSame st (setDfd (st.metaEnd k') fd ⟨j, .idle⟩) := ⟨rfl, rfl, rfl, rfl, rfl⟩
     have hw' := fsTreeWf_setDfd (fsTreeWf_metaEnd hw k') (fd := fd) (df' := ⟨j, .idle⟩) hfdn
       (mem_of_lookup_dir hw hl)
-    have hc' : TreeCohS (setDfd (st.metaEnd k') fd ⟨j, .idle⟩) s1
+    have hc' : TreeCohS (setDfd (st.metaEnd k') fd ⟨j, .idle⟩)
         (<[fd := ((j, DirPhS.idle) : Ino × DirPhS)]> Γdf) (GMap.delete k' Γc) Γg :=
       treeCohS_setDfd (treeCohS_metaEnd hc k' hk) rfl trivial
     imod osWorld_filesSame (st := st) (st' := setDfd (st.metaEnd k') fd ⟨j, .idle⟩) hs Hr Hfr
@@ -143,16 +140,16 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-    · try unfold treeCtx
+    isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+    · iapply (treeCtx_eq _ _).2
       isplitr [Hcm]
       rotate_left
       · iapply commitRes_grow (gooseOsGS (L := L)) (st := st)
           (st' := setDfd (st.metaEnd k') fd ⟨j, .idle⟩) (commitGrows_of_eq rfl) $$ Hcm
-      iright
+      try unfold treeCtxT
       simp only [setDfd, OsState.metaEnd, OsState.setProc]
-      try unfold treeShared
-      iexists V0, s1, _, GMap.delete k' Γc, Γg
+      iexists _, GMap.delete k' Γc, Γg
+      try unfold callResS
       iframe
       ipureintro; exact ⟨hw', hc'⟩
     iapply wp_value'
@@ -172,16 +169,16 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-    · try unfold treeCtx
+    isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+    · iapply (treeCtx_eq _ _).2
       isplitr [Hcm]
       rotate_left
       · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st.metaEnd k')
           (commitGrows_of_eq rfl) $$ Hcm
-      iright
+      try unfold treeCtxT
       simp only [OsState.metaEnd]
-      try unfold treeShared
-      iexists V0, s1, Γdf, GMap.delete k' Γc, Γg
+      iexists Γdf, GMap.delete k' Γc, Γg
+      try unfold callResS
       iframe
       ipureintro; exact ⟨fsTreeWf_metaEnd hw k', treeCohS_metaEnd hc k' hk⟩
     iapply wp_value'

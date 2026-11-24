@@ -55,8 +55,8 @@ theorem valueOkP_next (x : w64) (h2 : 2 ≤ x.toNat) : valueOkP (x.toNat - 1 + 1
   rw [← w64_of_toNat x _ rfl]
 
 /-- No file: `Open` lays one out, at transaction 1 with no value, high water mark 4. -/
-theorem dbFile_absent (R : Roots) (V : Hist) (p : GoString) (h : lookupH R V p = none) :
-    ⊢ dbFile (GF := GF) R V p 1 none 4 := by
+theorem dbFile_absent (hn : NamesH) (b : GoString) (h : hn.cur !! b = none) :
+    ⊢ dbFile (GF := GF) hn b 1 none 4 := by
   unfold dbFile dbFresh
   ileft; ileft
   ipureintro

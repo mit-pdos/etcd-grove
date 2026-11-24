@@ -1,7 +1,8 @@
 /-
 What a region concludes of a crash, purely (`notes/wal-fsext-i2-design.md`, §4.1-4.2): from the
 consistent-cut theorem's slots (`closed_cut`) and claims whose histories are the log's
-(`namesOf`), `RegionCrashed`. Untrusted.
+(`namesOf`), `RegionCrashed`; for a sequential region (`RegionSeq`), a prefix of its entries
+(`regionCrashed_seq`). Untrusted.
 -/
 module
 
@@ -96,6 +97,68 @@ theorem regionCrashed_of_cut {V : Hist} {S : Nat → Prop} {m' : Tree} {n c : Na
     cases (List.filter _ (List.range V.2.length)).getLast? with
     | none => simp [namesOf, restrictN_lookup _ _ _ hb, entsOf_lookup]
     | some x => simp [restrictN_lookup _ _ _ hb, entsOf_lookup]
+
+/-! ## A sequential region's crash keeps a prefix -/
+
+/-- **A region whose calls are sequential**: each of its entries began after every earlier entry of
+the region took effect (a single thread's calls, each begun after the previous one's entry: the
+thread carries `osLogLb` from one call to the next). -/
+def RegionSeq (cl : List Claim) : Prop :=
+  ∀ c ∈ cl, ∀ c' ∈ cl, ∀ x e E y e' E', (x, e, E) ∈ c.2.2.ents → (y, e', E') ∈ c'.2.2.ents →
+    y < x → y < e.start
+
+/-- The least number with a property that some number has. -/
+theorem exists_least (P : Nat → Prop) : ∀ N n, n ≤ N → P n → ∃ m, P m ∧ ∀ k, k < m → ¬ P k
+  | 0, n, hn, hp => ⟨n, hp, fun k hk => absurd hk (by omega)⟩
+  | N + 1, n, hn, hp => by
+    by_cases h : ∃ k, k < n ∧ P k
+    · obtain ⟨k, hk, hpk⟩ := h
+      exact exists_least P N k (by omega) hpk
+    · exact ⟨n, hp, fun k hk hpk => h ⟨k, hk, hpk⟩⟩
+
+/-- **A sequential region's crash keeps a prefix of its entries** (`RegionCrashed`'s set, among the
+region's entries, is all those below some `t`), with every claimed entry below the committed bound
+`n`. -/
+theorem regionCrashed_seq {cl : List Claim} {n : Nat} {m' : Tree} (hs : RegionSeq cl)
+    (h : RegionCrashed cl n m') :
+    ∃ t, (∀ c ∈ cl, ∀ y e E, (y, e, E) ∈ c.2.2.ents → y < n → y < t) ∧
+      ∀ c ∈ cl, ∀ b, c.2.1.Mem b → m'.entry c.1 b = c.2.2.valAfter c.1 (· < t) b := by
+  obtain ⟨K, hcl, hn, hv⟩ := h
+  let idx : List Nat := cl.flatMap (fun c => c.2.2.ents.map (·.1))
+  have hmem : ∀ c ∈ cl, ∀ x e E, (x, e, E) ∈ c.2.2.ents → x ∈ idx := fun c hc x e E hx =>
+    List.mem_flatMap.2 ⟨c, hc, List.mem_map.2 ⟨(x, e, E), hx, rfl⟩⟩
+  have hdown : ∀ x ∈ idx, ∀ y ∈ idx, K x → y < x → K y := by
+    intro x hx y hy hKx hyx
+    obtain ⟨c, hc, hx'⟩ := List.mem_flatMap.1 hx
+    obtain ⟨⟨x0, e, E⟩, hxe, hx0⟩ := List.mem_map.1 hx'
+    obtain ⟨c', hc', hy'⟩ := List.mem_flatMap.1 hy
+    obtain ⟨⟨y0, e', E'⟩, hye, hy0⟩ := List.mem_map.1 hy'
+    simp only at hx0 hy0
+    subst hx0 hy0
+    exact hcl c hc c' hc' _ e E _ e' E' hxe hye hKx (hs c hc c' hc' _ e E _ e' E' hxe hye hyx)
+  obtain ⟨t, ht⟩ : ∃ t, ∀ x ∈ idx, (K x ↔ x < t) := by
+    by_cases hb : ∃ z, z ∈ idx ∧ ¬ K z
+    · obtain ⟨z0, hz0⟩ := hb
+      obtain ⟨z, ⟨hz1, hz2⟩, hmin⟩ := exists_least (fun z => z ∈ idx ∧ ¬ K z) z0 z0 (Nat.le_refl _) hz0
+      refine ⟨z, fun x hx => ⟨fun hK => ?_, fun hlt => ?_⟩⟩
+      · rcases Nat.lt_or_ge x z with hlt | hge
+        · exact hlt
+        · rcases Nat.eq_or_lt_of_le hge with heq | hlt
+          · exact absurd (heq ▸ hK) hz2
+          · exact absurd (hdown x hx _ hz1 hK hlt) hz2
+      · exact Classical.byContradiction fun hK => hmin x hlt ⟨hx, hK⟩
+    · refine ⟨idx.sum + 1, fun x hx => ⟨fun _ => ?_, fun _ => ?_⟩⟩
+      · have := le_sum_of_mem idx x hx
+        omega
+      · exact Classical.byContradiction fun hK => hb ⟨x, hx, hK⟩
+  refine ⟨t, fun c hc y e E hy hyn => (ht y (hmem c hc y e E hy)).1 (hn c hc y e E hy hyn),
+    fun c hc b hb => ?_⟩
+  rw [hv c hc b hb]
+  unfold NamesH.valAfter
+  have hf : ∀ xe ∈ c.2.2.ents, (K xe.1 ∧ xe.2.1.op.Writes c.1 b) ↔ (xe.1 < t ∧ xe.2.1.op.Writes c.1 b) :=
+    fun xe hxe => by rw [ht xe.1 (hmem c hc xe.1 xe.2.1 xe.2.2 hxe)]
+  congr 2
+  exact List.filter_congr (fun xe hxe => decide_eq_decide.2 (hf xe hxe))
 
 end Fs
 end Perennial

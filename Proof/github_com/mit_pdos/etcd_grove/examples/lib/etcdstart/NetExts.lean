@@ -101,12 +101,12 @@ theorem etcdNetExts_globalStart [G : GooseGlobalGS .hasLC GF] (g : ExtsGlobalSta
   sep_elim_right.trans (sep_elim_right.trans sep_elim_left)
 
 /-- **The start resources of the file extension** over `etcdNetExts` (`FsExts.lean`'s `etcdFs_start`):
-the invariant of the mapped cells, every file, and the tree's history. -/
+the invariant of the mapped cells, every file, and the shared view (`osShared`). -/
 theorem etcdNetFs_start [hG : HeapGS .hasLC GF] (σ : state) (h : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
     ⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
       Fs.osInv (L := hG.goose_localGS) ∗
       ([∗map] i ↦ f ∈ (extLocal Fs.fsExt σ.world).fs.files, Fs.osFileStart (L := hG.goose_localGS) i f) ∗
-      Fs.osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal Fs.fsExt σ.world).fs.roots
+      Fs.osShared (L := hG.goose_localGS) (extLocal Fs.fsExt σ.world).fs.roots
         ((extLocal Fs.fsExt σ.world).fs.treeDur, []) := by
   have Hl := etcdNetExts_localStart (GF := GF) (L := hG.goose_localGS) σ.world
   have hdisk : ∀ i f, (extLocal Fs.fsExt σ.world).fs.files !! i = some f →
@@ -119,12 +119,11 @@ theorem etcdNetFs_start [hG : HeapGS .hasLC GF] (σ : state) (h : Fs.FsInit (ext
   ihave Hfs := Fs.start_files (Fs.gooseOsGS (L := hG.goose_localGS)) hdisk $$ [Hb Hm]
   · iframe
   imod Fs.osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
+  imod Fs.osSwitchKit_open (L := hG.goose_localGS) _ _ ⊤ $$ Hd with Hsh
   imodintro
-  iframe Hinv
-  isplitl [Hfs]
-  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
-      (Fs.fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
-  · unfold Fs.osTree; iexact Hd
+  iframe Hinv Hsh
+  iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+    (Fs.fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
 
 /-- **The right to listen at each address of `As`** (distinct, valid: `Net.addrOk`), from the net
 extension's start resources (each address unset, `Net.addrs_start`: its pending set and listening
