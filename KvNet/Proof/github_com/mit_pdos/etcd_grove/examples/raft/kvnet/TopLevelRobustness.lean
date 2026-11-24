@@ -423,7 +423,7 @@ theorem raft_kvnet_robust :
   ihave #Hgl : kvGlobals γ (bootVoters (uint.nat cl.voters)) (splitAddrs addrs) $$ []
   · unfold kvGlobals
     iframe Hc Hp Ha Hsn Hinv Hrf Haddrs
-  have hcs : ∀ j (m : Expr × state), [(kvcheckProgram cl addrs, σc)][j]? = some m →
+  have hcs : ∀ (j : Nat) (m : Expr × state), [(kvcheckProgram cl addrs, σc)][j]? = some m →
       StableBootWp (GF := kvnetGF) m.1 m.2 (kvClient γ (splitAddrs addrs)) := by
     intro j m hm'
     match j, hm' with
