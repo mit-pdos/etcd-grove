@@ -38,23 +38,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `runtime/debug.SetMaxStack`'s default on 64-bit, over the 8-byte minimum frame), still any `n` below it;
   Go evidence beside `goose/model/runtime/callers_test.go` (a deep recursion's `Callers` with a buffer
   larger than its depth). A trusted-model change: for upamanyus's review.
-### `strings.Builder.Grow` has no spec (2026-11-24, phase 7 S5)
-
-- **Limitation.** Perennial translates `strings.Builder.Grow` and `grow` with their bodies but has no
-  spec of them at the pin (nor of `internal/bytealg.MakeNoZero`'s trusted model, which `grow` calls).
-  A general spec over `strings.ownBuilder l s` also needs the buffer's capacity `c` bounded
-  (`grow` allocates `MakeNoZero(2*c + n)`, which overflows `int` for a large `c`), and
-  `ownBuilder` does not say `c`.
-- **Who needs it.** net/url's `unescape` (`var t strings.Builder; t.Grow(len(s) - 2*n)`), which the
-  ServeMux's `PathUnescape` and `URL.EscapedPath` call (S5).
-- **Workaround.** `Spec/strings/Builder__Grow.lean` states `Grow(n)` on a zero Builder, `n ≥ 0`
-  (post `ownBuilder l []`), the case `unescape` needs; the Link takes it as a hypothesis `h_Grow`
-  (`Net/Proof/net/http/Results.lean`, `section url`). No axiom, no `sorry`.
-- **Proposed change.** In Perennial: a spec of `MakeNoZero` (its model: `make3` and the
-  `fillArbitrary` loop) and of `Builder.Grow`, either on a zero Builder as here or over an
-  `ownBuilder` that records the capacity (a bound `2*c + n < 2^63` as premise), with their proofs.
-- **Status.** Not proposed yet.
-
 ### `io.WriteString` names only (2026-11-24, phase 7 S5)
 
 - **Limitation.** Perennial's `io` translates `WriteString` as a name only (`Perennial/Code/io.toml`), so a
@@ -967,6 +950,8 @@ dispatching `update` (in place of `Update`, which calls it): mvcc's hasher is pr
   before `d`; `Sscanf` names-only). The WAL's `Link.lean` rests on `fmt.SprintfWalName.wp_proof` and
   `fmt.SscanfWalName.wp_proof` through the part's generated copies (`etc/gen-part-copies.py`: the
   same statements, not new axioms).
+  (2026-11-24, `prove-ps2-fmtstage1`) (1) done by real `fmt` stage 1 (perennial#671, `50596346c`):
+  `fmt.SprintfWalName` is a theorem from `fmt.wp_Sprintf_walName`. (2), (3) still open.
 
 ### `errors.Is` with a struct-valued target: `net.ErrClosed` (2026-11-14, branch `net-tcp`)
 
@@ -2235,6 +2220,26 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### `strings.Builder.Grow` has no spec (2026-11-24, phase 7 S5)
+
+- **Limitation.** Perennial translates `strings.Builder.Grow` and `grow` with their bodies but has no
+  spec of them at the pin (nor of `internal/bytealg.MakeNoZero`'s trusted model, which `grow` calls).
+  A general spec over `strings.ownBuilder l s` also needs the buffer's capacity `c` bounded
+  (`grow` allocates `MakeNoZero(2*c + n)`, which overflows `int` for a large `c`), and
+  `ownBuilder` does not say `c`.
+- **Who needs it.** net/url's `unescape` (`var t strings.Builder; t.Grow(len(s) - 2*n)`), which the
+  ServeMux's `PathUnescape` and `URL.EscapedPath` call (S5).
+- **Workaround.** `Spec/strings/Builder__Grow.lean` states `Grow(n)` on a zero Builder, `n ≥ 0`
+  (post `ownBuilder l []`), the case `unescape` needs; the Link takes it as a hypothesis `h_Grow`
+  (`Net/Proof/net/http/Results.lean`, `section url`). No axiom, no `sorry`.
+- **Proposed change.** In Perennial: a spec of `MakeNoZero` (its model: `make3` and the
+  `fillArbitrary` loop) and of `Builder.Grow`, either on a zero Builder as here or over an
+  `ownBuilder` that records the capacity (a bound `2*c + n < 2^63` as premise), with their proofs.
+- **Status.** Landed: Perennial `52d62e83c` (pin bump `af4fd74b00`) has `strings.Builder.Grow.spec` over
+  `ownBuilder l s` (premise `0 ≤ n ∧ len(s) + n < 2^61`) and its proof (`strings.Builder.wp_Grow`). The
+  workaround is gone (2026-11-24, phase 7 S5 batch 7): `unescape` takes Perennial's spec (`ownBuilder_zero`
+  for its zero Builder), `Spec/strings/Builder__Grow.lean` and the hypothesis `h_Grow` are deleted.
 
 ### Unary `+` (`GoUnOp GoPos`) has no semantics: `cmp.Compare` is stuck at `x > y` (2026-11-24, sortslice, claim #18)
 
@@ -4448,6 +4453,11 @@ as Go does, and their callers' proofs take `Spec/strings/Cut.lean`/`TrimLeft.lea
 hypotheses (`links_pending` in `Net/Proof/net/{http,rpc}/Results.lean`). Perennial's branch `strings-cut-lastindex`
 (`8ff6a1c79a`) translates their bodies (`bytealg`'s assembly as Go models); once it lands with proofs of these specs,
 the pending hypotheses are discharged.
+**Landed (2026-11-24, phase 7 S5 batch 7):** Perennial `52d62e83c` (pin bump `af4fd74b00`) proves `strings.Cut`
+(over `internal/stringslite.cut`) and `strings.TrimLeft` (an ASCII cutset; `strings.trimLeft`). The callers' proofs
+take Perennial's specs (`cut_single`/`trimLeft_single` in `Net/Proof/net/http/Defs.lean` restated over them), the
+Links pass `strings.wp_Cut`/`wp_TrimLeft`; `Spec/strings/{Cut,TrimLeft}.lean`, `Proof/strings/CutDefs.lean` and
+the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
 
 ## 2026-11-23: `runtime.Version` has no name (etcdserver's `init.0`, claim #39, branch `etcd-small-3`)
 
@@ -4468,6 +4478,20 @@ the pending hypotheses are discharged.
   `prom-registry` (#15) lands, on its `reg_steps`.
 - **Status.** Not filed.
 
+## 2026-11-24: real `fmt` stage 1's verified subset leaves verified call sites out (branch `prove-ps2-fmtstage1`, #9)
+
+- **Limitation.** Perennial's spec of the translated `fmt.Sprintf` (`50596346c`) covers literal text, `%%`,
+  `%d %v %x %0Nd %0Nx` of predeclared integers, `%v` of bool/nil, `%s %v %x` of strings and of `Error()`/
+  `String()` values, `[]byte`. Verified call sites outside it: `%p` (etcd `Client.dial`, bbolt `Options.String`),
+  `%t` (bbolt `Options.String`), `%.2X` (otel `propagation`'s init), `%q` (k8s `NewNotFound`, `NewAlreadyExists`,
+  `NewConflict`, `conditionsToAppliedErroredUnevaluated`, `field.ErrorType.String`; net/http
+  `modelReadMIMEHeader`), `%#v` (k8s `field.Error.ErrorBody`), a method-less named string `%v` (k8s
+  `Preconditions.Check`'s `types.UID`).
+- **Also missing.** Bridge lemmas from the trusted model's premise `fmt.argOk` (method-set facts and
+  `stringMethodSpec`) to `fmt.isArg … (.method _)`: written here (`Proof/fmt/SprintfPure.lean`:
+  `fmt.isArg_error`, `fmt.isArg_stringer`, `fmt.PureArgs`, `fmt.wp_Sprintf_pure`); general facts about
+  Perennial's definitions, to be proposed to Perennial.
+- **Status.** Reported on #9.
 ## 2026-11-24: no step rule for `i == nil` on a variable interface (bootstrap #34, `bootstrapSnapshot`)
 
 - **Limitation.** `InterfaceSemantics.go_eq_interface` steps `GoOp GoEquals (go.InterfaceType _)` to a

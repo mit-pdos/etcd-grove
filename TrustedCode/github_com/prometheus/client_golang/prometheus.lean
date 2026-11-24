@@ -1,7 +1,7 @@
 /-
 Trusted code for prometheus's client_golang v1.24.1 (`github.com/prometheus/client_golang/prometheus`;
 `Code/github_com/prometheus/client_golang/prometheus.toml`): the package's `init()`, the one trusted
-declaration of the package (Upamanyu's decision on mit-pdos/etcd-grove#15, 2026-11-22, route (b);
+declaration of the package (the decision on mit-pdos/etcd-grove#15, 2026-11-22, route (b);
 `notes/prom-registry.md`). The default registry itself is the real code, translated with its bodies:
 `NewRegistry`, `(*Registry).Register`, `(*Registry).MustRegister`, `Register`, `MustRegister` and the
 variables `defaultRegistry = NewRegistry()`, `DefaultRegisterer`, `DefaultGatherer`, which the package's

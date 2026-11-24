@@ -33,7 +33,8 @@ public import Net.Proof.net.rpc.Proto
 public import Proof.bufio.Defs
 public import Perennial.Proof.fmt
 public import Perennial.Proof.strconv
-public import Proof.strings.CutDefs
+public import Perennial.Proof.internal.stringslite.Base
+public import Perennial.Proof.strings.Base
 
 @[expose] public section
 
@@ -56,39 +57,34 @@ def cutByte (s : List w8) (c : w8) : List w8 × List w8 × Bool :=
 /-- See the file header. -/
 def trimLeftByte (s : List w8) (c : w8) : List w8 := s.dropWhile (· = c)
 
-theorem index_single_nil (c : w8) : EtcdGrove.strings.index [] [c] = none := by
-  simp [EtcdGrove.strings.index]
-
-theorem index_single_cons (x : w8) (s : List w8) (c : w8) :
-    EtcdGrove.strings.index (x :: s) [c] =
-      if x = c then some 0 else (EtcdGrove.strings.index s [c]).map (· + 1) := by
-  unfold EtcdGrove.strings.index
-  rw [List.length_cons, List.range_succ_eq_map, List.find?_cons]
-  by_cases h : x = c
-  · subst h; simp
-  · have h' : ¬ ([c] <+: x :: s) := by
-      rw [List.cons_prefix_cons]; exact fun h2 => h h2.1.symm
-    simp only [List.drop_zero, h', decide_false, h, if_false, List.find?_map]
-    rfl
-
 /-- `strings.Cut(s, string(c))` is `cutByte s c`. -/
-theorem cut_single (s : List w8) (c : w8) : EtcdGrove.strings.cut s [c] = cutByte s c := by
-  induction s with
-  | nil => simp [EtcdGrove.strings.cut, index_single_nil, cutByte]
-  | cons x s ih =>
-    unfold EtcdGrove.strings.cut at ih ⊢
-    unfold cutByte at ih ⊢
-    rw [index_single_cons, List.findIdx?_cons]
-    by_cases h : x = c
-    · simp [h]
-    · simp only [h, if_false, decide_false]
-      cases hi : EtcdGrove.strings.index s [c] <;> cases hf : s.findIdx? (· = c) <;>
-        simp_all
+theorem cut_single (s : List w8) (c : w8) : internal.stringslite.cut s [c] = cutByte s c := by
+  unfold internal.stringslite.cut cutByte
+  rcases internal.bytealg.index_cases s [c] with ⟨i, hi, hp, hmin⟩ | ⟨hi, hn⟩
+  · have hf : s.findIdx? (· = c) = some i := by
+      rw [List.findIdx?_eq_some_iff_getElem]
+      have hp' := (internal.bytealg.singleton_prefix_drop s c i).1 hp
+      obtain ⟨hlt, heq⟩ := List.getElem?_eq_some_iff.1 hp'
+      refine ⟨hlt, by simpa using heq, fun j hj => ?_⟩
+      have := hmin j hj
+      rw [internal.bytealg.singleton_prefix_drop, List.getElem?_eq_getElem (by omega)] at this
+      simpa using this
+    rw [hi, hf]; simp
+  · have hf : s.findIdx? (· = c) = none := by
+      rw [List.findIdx?_eq_none_iff]
+      intro x hx
+      simp only [decide_eq_false_iff_not]
+      intro hxc
+      obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hx
+      apply hn j
+      rw [internal.bytealg.singleton_prefix_drop, List.getElem?_eq_getElem hj]
+      simpa using hxc
+    rw [hi, hf]; simp
 
 /-- `strings.TrimLeft(s, string(c))` is `trimLeftByte s c`. -/
 theorem trimLeft_single (s : List w8) (c : w8) :
-    EtcdGrove.strings.trimLeft s [c] = trimLeftByte s c := by
-  unfold EtcdGrove.strings.trimLeft trimLeftByte
+    strings.trimLeft s [c] = trimLeftByte s c := by
+  unfold strings.trimLeft trimLeftByte
   congr 1
   funext b
   simp

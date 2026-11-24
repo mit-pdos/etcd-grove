@@ -1,7 +1,9 @@
 /-
 `arbDecision(depth)` (`authz.go`): a well-formed decision at most `depth` deep (built with the
-library's constructors and the union builder), for `depth < 2 ^ 63` (the builder takes children less
-than `2 ^ 63 - 1` deep, `ownBuilder`). Lean-first (no Rocq counterpart).
+library's constructors and the union builder), of at most `4 ^ depth` nodes (at most three children
+per union) and names of at most `authzNameMax` bytes (`arbName`'s), for `depth` within the union
+authorizer's bounds for its authorizers' decisions (`caaOk`: `ToDecision` joins their reasons,
+fmt stage 1). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -29,10 +31,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 
 /-- See the file header. -/
 abbrev arbDecision.spec : Prop :=
-  ∀ (depth : w64), uint.nat depth < 2 ^ 63 →
+  ∀ (depth : w64), uint.nat depth ≤ authzDepthMax → 4 ^ uint.nat depth ≤ authzSizeMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbDecision)) (Val #depth))
-  {{ (d : ConditionsAwareDecision), RET #d; isWFDecisionLe (uint.nat depth) d }}
+  {{ (d : ConditionsAwareDecision), RET #d;
+      isWFDecisionBnd (uint.nat depth) (4 ^ uint.nat depth) authzNameMax d }}
 
 end spec
 

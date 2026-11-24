@@ -1,6 +1,7 @@
 // Package authz runs Kubernetes' conditional authorization (KEP-5681; k8s.io/apiserver's
 // pkg/authorization/authorizer and pkg/authorization/union at github.com/luxas/kubernetes
-// c67a81026c8b, branch impl-conditional-authz-review) the way kube-apiserver runs it, over leaf
+// c67a81026c8b, branch impl-conditional-authz-review, with three %v of a slice spelled out:
+// github.com/upamanyus/kubernetes goose-lean-authz-fmt2) the way kube-apiserver runs it, over leaf
 // authorizers that behave arbitrarily: every choice a leaf makes is a math/rand Int63n(k), whose
 // spec (Spec/math/rand/Int63n.lean) says only that the result is in [0, k), so a theorem about
 // Main holds for every leaf behaviour, including leaves that lie in phase 2.

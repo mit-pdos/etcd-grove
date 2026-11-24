@@ -1,6 +1,7 @@
 /-
-The proof of `unescape.spec` (`Spec/net/url/unescape.lean`), over `strings.Builder.Grow`'s pending
-spec (`Spec/strings/Builder__Grow.lean`).
+The proof of `unescape.spec` (`Spec/net/url/unescape.lean`), over Perennial's `strings.Builder.Grow`,
+`WriteByte` and `String`. `len(s) + 1` is within `int` as a string is no longer than the address
+space (`wp_string_len_maxAddr`).
 -/
 module
 
@@ -8,7 +9,7 @@ public import Spec.net.url.unescape
 public import Spec.net.url.ishex
 public import Spec.net.url.unhex
 public import Spec.net.url.shouldEscape
-public import Spec.strings.Builder__Grow
+public import Perennial.Spec.strings.Builder__Grow
 public import Perennial.Spec.strings.Builder__WriteByte
 public import Perennial.Spec.strings.Builder__String
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
@@ -22,7 +23,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open github_com.mit_pdos.perennial.goose.model.strings (wp_string_len)
+open github_com.mit_pdos.perennial.goose.model.strings (wp_string_len wp_string_len_maxAddr)
 
 namespace net.url
 
@@ -267,11 +268,11 @@ set_option maxHeartbeats 1000000 in
 theorem unescape.wp_proof (wp_ishex : ishex.spec (GF := GF) (hG := hG))
     (wp_unhex : unhex.spec (GF := GF) (hG := hG))
     (wp_shouldEscape : shouldEscape.spec (GF := GF) (hG := hG))
-    (wp_Grow : EtcdGrove.strings.Builder.Grow.spec (GF := GF) (hG := hG))
+    (wp_Grow : _root_.Perennial.strings.Builder.Grow.spec (GF := GF) (hG := hG))
     (wp_WriteByte : _root_.Perennial.strings.Builder.WriteByte.spec (GF := GF) (hG := hG))
     (wp_String : _root_.Perennial.strings.Builder.String.spec (GF := GF) (hG := hG)) :
     unescape.spec (GF := GF) (hG := hG) := by
-  intro s mode hmode hlen
+  intro s mode hmode
   wp_start as #Hpkg
   wp_auto
   ihave HI : (∃ (i n : w64) (hp : Bool) (D : List w8), "i" ∷ i_ptr ↦ i ∗ "n" ∷ n_ptr ↦ n ∗
@@ -286,7 +287,9 @@ theorem unescape.wp_proof (wp_ishex : ishex.spec (GF := GF) (hG := hG))
     ipureintro
     refine ⟨by word, by word, by word, by word, rfl, rfl, by simp, fun _ _ => by simp⟩
   wp_for HI
-  wp_apply wp_string_len as %Hl
+  wp_apply wp_string_len_maxAddr as %HlM
+  have Hl : s.length < 2 ^ 63 := by unfold maxAddr at HlM; omega
+  have hlen : s.length + 1 < 2 ^ 63 := by unfold maxAddr at HlM; omega
   by_cases hlt : sint.Z i < sint.Z (W64 (s.length : Int))
   · simp only [hlt, _root_.decide_true, ↓reduceIte]
     have hi : sint.nat i < s.length := by word
@@ -487,8 +490,11 @@ theorem unescape.wp_proof (wp_ishex : ishex.spec (GF := GF) (hG := hG))
         with [unescapedPlusSign] as ⟨%ps, unescapedPlusSign, %Hps⟩
       · iexists _; iframe; ipureintro; rfl
       · iexists _; iframe; ipureintro; exact (ite_eq_right Hif).symm
-      wp_apply wp_string_len as %_
-      wp_apply wp_Grow t_ptr _ (by word) $$ [$t] as Ht
+      wp_apply wp_string_len_maxAddr as %HlM2
+      ihave t := strings.ownBuilder_zero t_ptr $$ t
+      wp_apply wp_Grow t_ptr [] _ $$ [$t] as Ht
+      · ipureintro; unfold maxAddr at HlM2; simp only [List.length_nil, Int.natCast_zero, Int.zero_add]
+        constructor <;> word
       ihave HJ : (∃ (j : w64) (T : List w8), "i" ∷ i_ptr ↦ j ∗
           "Ht" ∷ strings.ownBuilder t_ptr T ∗
           "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ s.length ∧

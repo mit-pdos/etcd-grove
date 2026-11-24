@@ -33,6 +33,9 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
   intro d b flag perm R j dq h q r qc Q hfl hcr htr hb hnd hq
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl hcr htr ⊢
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   ihave HSt : iprop((osAUnc (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q ∗
       osNames j (.only [b]) (DFrac.own q) h) ∨
@@ -81,7 +84,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
           wp_auto
           rw [decide_eq_false (show e ≠ W64 4 from he4)]
           wp_auto
-          wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+          wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
           iapply HΦ
           iframe
           dsimp only [crOut, crMeta]
@@ -118,7 +121,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          (repeat' isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -149,7 +152,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
           iright; iexists (x, s0, i); dsimp only [crMeta]; iframe
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
         wp_auto
-        wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+        wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
         iapply HΦ
         dsimp only [crMeta]
         iframe
@@ -177,7 +180,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          (repeat' isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -205,7 +208,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         wp_auto
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
         wp_auto
-        wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+        wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
         iapply HΦ
         iframe
         dsimp only [crOut, crMeta]
@@ -253,7 +256,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
       isplitr [off]
       · iexists inner_ptr
         iframe
-        isplitl [] <;> iassumption
+        (repeat' isplitl []) <;> iassumption
       · iexists inner_ptr
         iframe
         iassumption
@@ -272,7 +275,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         iright; iexists (x, sx, i); dsimp only [crMeta]; iframe
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
       wp_auto
-      wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+      wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
       iapply HΦ
       iframe
       iright
@@ -287,7 +290,7 @@ private abbrev os.OpenFile.tripleOldCreateS : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 →
   NameOk b → (∀ J, h.cur !! b ≠ some (.dir J)) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
@@ -307,7 +310,7 @@ private abbrev os.OpenFile.tripleNECreateS : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 →
   NameOk b → (∀ J, h.cur !! b ≠ some (.dir J)) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
@@ -320,15 +323,18 @@ private abbrev os.OpenFile.tripleNECreateS : Prop :=
 /-- `specCreateS` (without the witness) from `specCreateSnc`: an `osAU` is an `osAUnc`. -/
 private theorem os.OpenFile.wp_oldCreateS : os.OpenFile.tripleOldCreateS (GF := GF) (hG := hG) := by
   intro d b flag perm R j dq h q r qc Q hfl hcr htr hb hnd hq
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
   iapply os.OpenFile.wp_proofCreateSnc d b flag perm R j dq h q r qc Q hfl hcr htr hb hnd hq $$ [Hp Hperm Hn Hau] HΦ
-  iframe Hos Hsi Hp Hperm Hn
+  iframe Hpkg Hos Hsi Hp Hperm Hn
   iapply osAU_osAUnc $$ Hau
 
 private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF) (hG := hG) := by
   intro Sio _ _ d b flag perm R j dq h q r qc Q hS hfl hcr htr hb hnd hq
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl hcr htr ⊢
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   ihave Hau := osAU_osAUnc _ _ _ $$ Hau
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   ihave HSt : iprop((osAUnc (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q ∗
@@ -393,7 +399,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          (repeat' isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -442,7 +448,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          (repeat' isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -496,7 +502,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
       isplitr [off]
       · iexists inner_ptr
         iframe
-        isplitl [] <;> iassumption
+        (repeat' isplitl []) <;> iassumption
       · iexists inner_ptr
         iframe
         iassumption

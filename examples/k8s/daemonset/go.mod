@@ -76,8 +76,9 @@ require (
 replace (
 	k8s.io/api => k8s.io/api v0.0.0-20261020174351-067c983ccbc3
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20261021192051-3da7cab8aae0
-	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20261021173754-0b7d352f711c
-	k8s.io/apiserver => k8s.io/apiserver v0.0.0-20261021221356-9c4ec15b8038
+	// the fork upamanyus/kubernetes, branch goose-lean-fmt1 (real fmt stage 1, mit-pdos/etcd-grove#9)
+	k8s.io/apimachinery => github.com/upamanyus/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20261124053658-ef23adaea1b3
+	k8s.io/apiserver => github.com/upamanyus/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20261124053658-ef23adaea1b3
 	k8s.io/client-go => k8s.io/client-go v0.0.0-20261021054439-569675c57fa3
 	k8s.io/component-base => k8s.io/component-base v0.0.0-20261018214756-cd2c1afd246a
 	k8s.io/component-helpers => k8s.io/component-helpers v0.20.0-alpha.2.0.20261014064534-e0a714b31fcd
@@ -85,3 +86,4 @@ replace (
 	k8s.io/ktesting => k8s.io/ktesting v0.38.0-alpha.2.0.20261015021345-0c9393b43e6d
 	k8s.io/kubelet => k8s.io/kubelet v0.0.0-20261014232747-e715b5d84f6c
 )
+

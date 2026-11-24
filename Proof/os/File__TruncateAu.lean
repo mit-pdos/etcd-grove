@@ -135,7 +135,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
   intro f fd name dqf sz dq d m xs K P hfd0 hwr hsz hmaps hxs hP hPa
   unfold os.truncSup
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hb, HK, #Hsup⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hm, Hb, HK, #Hsup⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   try rw [os.file_ty_eq, os.File_ty_eq]
@@ -228,20 +228,20 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         ileft
         iframe
         ipureintro; rfl
       · have he0' : ¬ e = W64 0 := he
         rw [decide_eq_false he0']
         wp_auto
-        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         iright
         isplitr
         · ipureintro; exact ⟨fun h => (by cases h), hne he0'⟩
@@ -287,18 +287,18 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         ileft
         ipureintro; rfl
       · rw [decide_eq_false he0]
         wp_auto
-        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         iright
         ipureintro; exact ⟨fun h => (by cases h), hne he0⟩
 

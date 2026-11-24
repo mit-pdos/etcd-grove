@@ -646,7 +646,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                            "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
-                 "--raft": ["Perennial.Proof.time.Link"],
+                 "--raft": ["Perennial.Proof.time.Link", "Perennial.Proof.strings.Link"],
+                 # (fmt stage 1, 2026-11-24) Perennial's `strings.Join` (raft's `strings.Join`, `=` callee)
+                 "--raft-tla": ["Perennial.Proof.strings.Link"],
+                 "--raft-witness": ["Perennial.Proof.strings.Link"],
                  # (prove-ps2-rqb, 2026-11-22) Perennial's `math.Float64bits` (zap's `Float64`, `=` callee)
                  "--client": ["Perennial.Proof.math.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)

@@ -8,6 +8,7 @@ module
 
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewTimeoutError
 public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -38,8 +39,9 @@ theorem apierrors.NewTimeoutError.wp_proof :
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1) (by
-    exact _root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil))
+  wp_apply (fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"Timeout: %s"
+    [.lit go!"Timeout: ", .dir none _root_.Perennial.fmt.verb_s]
+    _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ .nil))
     $$ [$Hasl] as %s -
   (try wp_auto)
   irename «$r0» => Hp

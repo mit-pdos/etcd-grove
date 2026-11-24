@@ -3,9 +3,8 @@
 `lg` replaced by `zap.NewNop()` when nil, then `&Snapshotter{lg: lg, dir: dir, fsyncDir:
 fsyncSnapDir}`. The new snapshotter is one of `dir` (`isSnapshotter`), for a `dir` that is a member's
 snapshot directory (`config.snapDirOf dd`, as `isSnapshotter` records; `bootstrapSnapshot` passes
-`cfg.SnapDir()`). Claim #34, stage 4 (2026-11-23). Not proved yet: `isSnapshotter`'s
-`snapshotterRO` is opaque (the snapshotter's `fsyncDir` field, which `New` writes, is not named in
-it), a decision of the owner's.
+`cfg.SnapDir()`). Claim #34, stage 4 (2026-11-23). Proved, `Proof/.../snap/New.lean`, since
+`isSnapshotter`'s `snapshotterRO` names the `fsyncDir` field (the owner's option (a), 2026-11-23).
 -/
 module
 

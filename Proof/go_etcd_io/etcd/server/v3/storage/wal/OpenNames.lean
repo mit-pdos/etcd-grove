@@ -176,7 +176,7 @@ theorem walOpenNames_ok {X : List GoString} {hj : NamesH} {segs : List SegG} {ws
     (hout : WalNamesOut (.except X) hj ws) (hws : ws = segs.map (·.name)) :
     ∀ (m : Nat) (b : GoString) (i : Ino), (ws.drop k)[m]? = some b →
       ((segs.map (·.ino)).drop k)[m]? = some i →
-      (NameSet.except X).Mem b ∧ NameOk b ∧ b.length < 2 ^ 60 ∧ hj.cur !! b = some (.file i) := by
+      (NameSet.except X).Mem b ∧ NameOk b ∧ b.length ≤ 255 ∧ hj.cur !! b = some (.file i) := by
   intro m b i hb hi
   have hbm : b ∈ ws := List.mem_of_mem_drop (List.mem_of_getElem? hb)
   rw [hws, List.getElem?_drop, List.getElem?_map] at hb

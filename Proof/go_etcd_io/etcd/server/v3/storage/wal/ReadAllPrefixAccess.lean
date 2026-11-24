@@ -141,7 +141,7 @@ theorem walInvBody_takeProbe (M : WalMarshal) (U : WalUnmarshal) (hU : U.Ok M)
       walOutFrag (W := W) o ==∗ walInvBody (L := L) (W := W) walCodec M R jr r s ∗
         osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walTailsFrag (W := W) T Lk ∗
         ∃ g : SegG, ⌜g.name = name ∧ hj.cur !! name = some (.file g.ino) ∧ g.om.size = g.bs.length ∧
-          NameOk g.name ∧ g.name.length < 2 ^ 60 ∧ walNameP g.name = true ∧
+          NameOk g.name ∧ g.name.length ≤ 255 ∧ walNameP g.name = true ∧
           ProbeBelow walCodec U (uint.nat index) [segImg g] 0 0#32⌝ ∗
           walOutFrag (W := W) (o.addSeg g.ino) ∗ segRes (L := L) g := by
   apply walInvBody_probe
