@@ -1434,3 +1434,81 @@ written against `lean` `1bdd4e02f1`; this table checks each item at `5f464b7bf9`
   persistent agreement), so that a check at the program's start gives every later read's value; with it the
   axioms `verifyEnvOff` and `envVerifyOffTok` go, and so do `HEnv` and `HEnvTok`. A trusted change for the
   owner (an axiom restated), not done here.
+
+## 16. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`)
+
+The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces
+(each reviewed by a fresh `axiom`-skill agent; the reviews' verdicts below). Branch base: `etcd-safe-lit`
+(`c022542b8b`) merged with `dist-putgetk` (which carries `dist-putget-interim` up to `886b7e46f1`) and three of
+`dist-putget-interim`'s later commits cherry-picked (`395a24818f`, `e41f4752d2`, `39b0b45cf8`); its last one,
+`6c436a379d` (`putget_safe` at `Robust`'s thread bound), sits on a squash-merge of `lean` and conflicts with lit's
+thread-bound bridge: left for the integration branch. The tier check's three refusals are `putgetk/Start.lean`'s
+(unbuilt WIP on `dist-putgetk`), not this work's.
+
+### 16.1 N4 (I-3, I-4): the member's peer side
+
+**Vocabulary** (`Proof/.../etcd/dist/S5Interim.lean`, defs, no axiom): `httpPeerSvc` (opaque, a pair of
+`Net.Proto`s, as grpc's `grpcCliPI`/`grpcSrvPI`: no proof establishes either of any bytes), `httpAddrAt a :=
+addrProto a httpPeerSvc.1 httpPeerSvc.2`, **`http_addr_set` a theorem** (`addr_set_proto`), `s5Interim : S5Draft`
+and **`s5Holds : S5Holds GF`** (the D9 skeleton's and `putgetk`'s named hypothesis, discharged); `noProxyEnv`
+(the four proxy variables `osEnvIs k ""`); `peerHandlerOf h s` (opaque, per process).
+
+**Axioms** (each in its own Spec/Proof pair under `.../etcd/dist/`, docstring: what, why true, what retires it):
+- `NewServer_dist.wp_proof : NewServer.specG_dist on cmp` (I-3): `NewServer.specG` verbatim but for the network:
+  no `γn` binder (the post's `∃ γn` with `γn.N = srvNet γ ∧ γn.dir = dir`, as `putgetk`'s `StartMember_dist`),
+  `netHttpOk γn id` replaced by `httpAddrAt a` of every other peer's directory address, and `noProxyEnv` added.
+- `NewPeerHandler_dist.wp_proof` and `PeerServe_dist.wp_proof` (I-4): `etcdhttp.NewPeerHandler(lg, s)` on a
+  started member returns `peerHandlerOf h s`; `http.Serve(pl, h)` at `pa` (`httpAddrAt pa`, `netListenerOpen pl
+  pa`, `srvNetMember`, `isServerReqM`, the `httpProcSlots` of `srvServeRes`) is safe, post `True`. Two axioms because
+  `http.Server` is an axiomatized type here (its composite literal has no field model): the program now calls
+  `http.Serve(pl, h)`, which is `(&http.Server{Handler: h}).Serve(pl)`.
+- `os.Getenv.wp_proofEnv : os.Getenv.specEnv` (`Proof/os/GetenvEnv.lean`; vocabulary `Proof/os/EnvIs.lean`): the
+  value read is the process's for the run (`osEnvIs key v`, opaque, per process: it takes the `HeapGS`). Beside
+  `os.Getenv.spec`, not in place of it.
+
+**The proxy hole, closed in the program** (`examples/etcd/dist/server`): `MainLogger` returns at once if
+`HTTP_PROXY`, `http_proxy`, `HTTPS_PROXY` or `https_proxy` is nonempty (`proxyEnvSet`, `os.Getenv`), before any
+net/http use (net/http reads them once, `envProxyFunc`'s `sync.Once`); nothing in the process sets them. Go tests:
+`TestProxyEnvSet` (false with none set; true with each one; and non-vacuity: with none set
+`httpproxy.FromEnvironment` proxies no peer URL, with each one set it proxies the peer URL of its scheme) and
+`TestMainLoggerProxyRefused` (with `HTTP_PROXY` set `Main` returns before `NewServer`: no data directory).
+`os=`/`io/fs=` added to project `putget-dist`'s lean roots (this repository's `os`, as etcd's packages). Not
+Unsetenv: `os.Unsetenv` has no spec, and a model of it is a larger trusted change. Not the fork's `Proxy: nil`.
+
+**Also changed in the program**: the peer handler is served after `s.Start()` (etcd's embed does the same:
+`StartEtcd` starts the server, then `servePeers`): `/leases` waits on the server's apply wait, which `start` makes
+(a forwarded lease request reaching a member before its `Start` would call a nil `*timeList`; after a crash a peer
+may still forward to the restarted member as its old leader).
+
+### 16.2 N2 (I-1): the service table's unary entries
+
+**Not done: `etcdSvc` stays an axiom, and no `etcdSvc_unary` law is added.** The law of the plan (`etcdSvc γE mid
+m.path = some ⟨Req.wire, Rep.wire, fun md γs => ∀ ν, envAt γE ν -∗ ▷ etcdMethodSpec m (etcdEnvOf ν) md γs⟩`) needs
+`etcdEnvOf ν` (and the view's read names and cluster id) as *definitions* tied to the member's own names; over
+today's `EnvView` (`⟨st⟩` only) they could only be opaque, and a table whose specs are at names the member does not
+own would make `Serve_dist` (A3) claim a server meets specs it cannot meet (the client's deposit at other names
+than the server's), while giving the clients nothing to derive A4/A5 from. Defining them is #24's S2 etcd side (in
+flight with its owner): not duplicated here. What was checked (step 1, O1/O2):
+- **Heap**: every client-facing unary spec has a heap-free form over `GooseGlobalGS` and `GoLocalContext` since
+  2026-11-23 (KV: `etcdPutSpecW`, `etcdRangeSpecW`/`EW`, `etcdDeleteSpecW`, `etcdTxnSpecW`, `etcdCompactSpecW`;
+  auth-on `…OnW`/`…MW`; lease `etcdLeaseGrantSpec*W`, `etcdLeaseRevokeSpec*W`, `etcdLeaseTTLSpec*W`,
+  `etcdLeaseLeasesSpec*W`; auth `etcdAuthenticateSpecW`, `etcdUserAddSpecW`, ..., `etcdAuthEnableSpecW`). **The
+  auth-on forms take a parameter `T`, which the server's registrations instantiate as `srvTLSId s`**
+  (`srvCfgFieldAddr s "ClientCertAuthEnabled" ↦□ true`, `AuthnServedOn.lean`: a points-to on the member's heap): a
+  table entry must fix `T` heap-free (e.g. `False`, the configuration's `ClientCertAuthEnabled` being false,
+  `srvTLSId_false`), with the server converting.
+- **The view** (O1): the specs read `E.γs`, `E.Nx`, `E.Cp`, `E.authOn`, the whole `ReadNames` (`committedAtLeast`
+  reads `γr.committed`, `γr.raft`) and `cid`. `ReadNames.raft` holds `SrvRaft`, whose `rule` and `snapLoc : w64 →
+  Option GName` are functions: not countable, so not a `dghostVar` value as it stands.
+- **Restart** (step 5): `restartNames` (`InvRestart.lean`) keeps only `rd.raft`, `kvCongr` of `rd.kv` (with `st`),
+  `ids.issued` and `ids.pfx`; `ReadNames`' other fields (`committed`, `applied`, `cursor`, ...) are the
+  incarnation's. A view holding them would differ after a restart (a restarted member could not publish the same
+  one); `committedAtLeast γr` reads `γr.committed`, so the crash theorem needs the client-facing specs stated over
+  the cluster-level names only (`rd.raft`, `kvCongr`'s fields). Today's `EnvView` (`st`) is restart-stable
+  (`restartNames_st`).
+- A route found on the way, for #24's owner: the member's `ρ` and `E₀` are inputs of its boot (the start's share,
+  `memberBoot γ ctxs ρ E₀ …`), and `NewServer`'s `E` agrees with `E₀` (`envAgree`: `γs`, `Nx`, ...): a table
+  defined at the start over `E₀`/`ρ.rd` (no publication) may work once `E.Cp`'s agreement and the cluster id (a
+  pure function of the members' ids) are checked.
+
+Since no table content was added, A3's re-review (step 6) has nothing new to review.
