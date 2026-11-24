@@ -72,6 +72,22 @@ A property of a system is a `Robust` statement about a deployment with a program
 and panics. Linearizability of a store: a client on a machine of `stable` records its history and
 panics unless porcupine accepts it, as `Main` of kv, kvdurable and kvwitness does in one process.
 
+**An exit is a safe run, so a checker panics** (2026-11-24, the user's approval of Perennial's
+model of Go's process exit, on the condition that it is documented; `notes/decisions.md`, "Go's
+process exit stays angelic, and checkers panic"). `syscall.Exit` (so `os.Exit`, `log.Fatal`, zap's
+and klog's `Fatal`) is `AngelicExit` (Perennial `ca6df841b`, Perennial's and this repository's
+`TrustedCode/syscall.lean`): the exiting goroutine steps to itself forever, which is neither stuck
+nor a panic, and the machine's other goroutines keep running, where Go ends the process. So under
+`Robust` an exit of any status, 0 or 1, ends nothing and violates nothing: a program that reports a
+violation with `os.Exit(1)` or `log.Fatal` is checked by nothing, and its theorem says nothing about
+the property. Go's run of a machine that exits is, up to the exit, one of the model's executions,
+and after it is like a machine the scheduler stops picking (an execution `Robust` covers); the model
+also lets the other goroutines run on, which the proof must show safe too (more executions than Go:
+sound). `etc/exit-check.py` (in `etc/gates.sh` and CI) lists the exits in the own code (under
+`examples/`) of every program a `TopLevelDefs.lean` boots, type-checked by `etc/exitcheck`; each needs
+an entry in `etc/exit-allow.txt` with its reason (a usage error of a command line, before any check
+runs), so no check of a robustness theorem's program exits on a violation.
+
 ## Every closed example is an instance (2026-11-18)
 
 Each closed theorem of the examples has a restatement `…_robust` (the same hypotheses but the
@@ -98,7 +114,8 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
 | shape | bridge (`Robustness/Statement.lean`) | `Robust` form | examples |
 |---|---|---|---|
 | one process, `RealNsteps` | `Robust.of_single` (`distCrashNsteps_single`) | `Robust [] [(prog, σ)] g bound` | the etcd-server examples (`etcd/*`, `k8s/*`, `mvccfull`, `mvccrand`), raft's (`kv`, `kvdurable`, `kvreconf` and their `N` forms; `RaftNoAx/`'s copy of kvdurable; `RaftWitness/`'s kvwitness; `RaftTla/`'s tracecheck), lintest's six, `goose/prophkv` |
-| one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three), `osfs/bboltfs` |
+| one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three) |
+| one process with crashes, thread bound along it, `RealCrashNstepsBelow` (2026-11-24) | `Robust.of_single_crashing_below` (`Robustness/CrashBelow.lean`: `distCrashNstepsBelow_single_crashing`, then Perennial's `goose_crash_adequacy_below`) | `Robust [(boot, σ)] [] g threads bound` | `osfs/bboltfs` |
 | several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`Net/…/net/*`) |
 | several machines that never crash, `DistNsteps` (2026-11-19) | `robust_of_distBoot`, `robust_of_distProto` (`Net/Statement/DistBridge.lean`: `distNsteps_of_crash_nil`, then `goose_dist_adequacy`), under the deployment premise `DistDeploy plan hosts nodes g` (`Net/Statement/DistDeploy.lean`) | `DistDeploy … → Robust [] nodes g bound` | the network kits (`notes/dsverify-net-port-plan.md`, phases 4 and 6); `echo_dist_robust` (`Net/…/net/echo/RobustLinked.lean`), the non-vacuity check |
 
@@ -110,11 +127,10 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
   `2^48` at `2^28` threads (`mvccfull`, `mvccrand`, since 2026-11-23, #30: mvcc's own receipt
   bound, `ReceiptBoundLe GF (2 ^ 48)` of `mvcc.New`; from 2026-11-22 `2^38`, a convention the
   examples' specs passed along), `2^61 - 3` at `2^31` threads (tracecheck),
-  `2^30 - 1` (`bboltfs`), and any `bound` (a parameter) where the theorem had none (the TCP and
-  `osfs` examples, `prophkv`). `bboltfs`'s statement took a thread-bound hypothesis
-  (`RealCrashThreadsBelow … (2^30)`); its `Robust` form derives it from the step bound, and stays
-  so until crash adequacy along the execution exists (`notes/perennial-changes.md`, "The
-  distributed form": open). The plan to raise the etcd bounds further (`K` receipts per request id,
+  `2^63` at `2^30` threads (`bboltfs`, since 2026-11-24, #30 1b: crash adequacy along the
+  execution, Perennial's `goose_crash_adequacy_below`, perennial#690; before, `2^30 - 1`, the thread
+  bound derived from the step count), and any `bound` (a parameter) where the theorem had none (the
+  TCP and `osfs` examples, `prophkv`). The plan to raise the etcd bounds further (`K` receipts per request id,
   toward `K · 2^48`; the id suffix's wrap, `nonissues/etcd-request-id-suffix-wrap-dup-panic.md`, is
   the real ceiling): claim issue mit-pdos/etcd-grove#30.
 - **A hypothesis that mentioned the execution's length** (`Hprem`: the etcd examples' boot

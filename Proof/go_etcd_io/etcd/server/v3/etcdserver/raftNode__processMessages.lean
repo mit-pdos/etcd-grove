@@ -11,6 +11,8 @@ public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Duration
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Perennial.Proof.fmt
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -314,9 +316,9 @@ theorem raftNode.processMessages.wp_proof
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1)
-            (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 to)
-              _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hfmt $Hasl] as %str -
+          wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%x"
+            [.dir none _root_.Perennial.fmt.verb_x] _ _ _ (DFrac.own 1) (by fmt_encode) (by fmt_fits)
+            (.int _ _ _ _ (.uint64 to) .nil) $$ [$Hfmt $Hasl] as %str -
           wp_apply wp_String _ _ $$ [$Hzap] as %f0 -
           wp_apply wp_Duration _ _ $$ [$Hzap] as %f1 -
           wp_apply wp_Duration _ _ $$ [$Hzap] as %f2 -

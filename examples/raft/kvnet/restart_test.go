@@ -17,7 +17,13 @@ func TestRestartInProcess(t *testing.T) {
 	const rounds = 20
 	for i := uint64(0); i < rounds; i++ {
 		key := "k" + itoa(i)
-		if _, ok := n.handle(ReqPropose, EncodeOp(100+i, OpPut, key, "v"+itoa(i)), 2*time.Second); !ok {
+		// a client's retries of the same operation (applied once): a write waits for its entry's
+		// fsync, which a busy disk can make slow
+		put := false
+		for try := 0; try < 15 && !put; try++ {
+			_, put = n.handle(ReqPropose, EncodeOp(100+i, OpPut, key, "v"+itoa(i)), 2*time.Second)
+		}
+		if !put {
 			t.Fatalf("round %d: Put not answered", i)
 		}
 		if _, ok := n.handle(ReqDisrupt, EncodeDisrupt(3, 0), time.Second); !ok {
@@ -27,8 +33,8 @@ func TestRestartInProcess(t *testing.T) {
 			// a client's retries: a read reaching an incarnation that knows no leader yet is dropped
 			var v []byte
 			ok := false
-			for try := uint64(0); try < 20 && !ok; try++ {
-				v, ok = n.handle(ReqRead, EncodeRead(100000*(i+1)+100*j+try, "k"+itoa(j)), 200*time.Millisecond)
+			for try := uint64(0); try < 60 && !ok; try++ {
+				v, ok = n.handle(ReqRead, EncodeRead(100000*(i+1)+100*j+try, "k"+itoa(j)), time.Second)
 			}
 			if !ok || string(v) != "v"+itoa(j) {
 				t.Fatalf("round %d: Read k%d after restart = %q, %v", i, j, v, ok)

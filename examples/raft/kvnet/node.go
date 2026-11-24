@@ -144,14 +144,16 @@ func listen(addr string) net.Listener {
 // RunNode is a replica's process, as the top-level theorem runs it: replica id of the cluster
 // whose replicas' addresses are addrs (comma-separated, replica i at the i-th, ids from 1), its
 // durable file in the directory dir, the bootstrap configuration's voters 1..voters, and raft's
-// options. It panics if the cluster is not one the theorem's premises allow (ValidCluster) or id
-// is not one of its replicas; otherwise it never returns (Run).
+// options. It returns at once, doing nothing, if the cluster is not one it can run (ValidCluster),
+// id is not one of its replicas, or dir is too long (MaxDirLen): a configuration it cannot run is a
+// safe run, so the top-level theorem needs no premise that the configuration is valid. Otherwise it
+// never returns (Run).
 func RunNode(id uint64, addrs string, dir string, voters uint64, preVote, checkQuorum, stepDownOnRemoval bool,
 	maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs uint64) {
 	as := SplitAddrs(addrs)
 	if !ValidCluster(as, voters, maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs) ||
-		id < 1 || id > uint64(len(as)) {
-		panic("kvnet: not a valid cluster")
+		id < 1 || id > uint64(len(as)) || uint64(len(dir)) >= MaxDirLen {
+		return
 	}
 	m := make(map[uint64]string)
 	for i, a := range as {

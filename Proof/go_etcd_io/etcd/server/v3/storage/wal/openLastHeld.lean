@@ -42,6 +42,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_specHeld [os.file.Fiel
     (wp_Lock : go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.openLast.specHeld (GF := GF) (hG := hG) := by
   intro lg R dir j X hj segs gL qd dqn k fd hX hsn hino hnd hsort hnmf hgL hdl
+  have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hinv, #Hsi, Hpd, Hperm, Hj, Hl, #Hk⟩
   have hgLm : gL ∈ segs := List.mem_of_getLast? hgL
   try wp_auto
@@ -90,7 +91,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_specHeld [os.file.Fiel
   iintro %jsl ⟨Hjsl, -⟩
   try wp_auto
   obtain ⟨sq, ix, hgn⟩ := hnmf gL hgLm
-  have hjl : ([dir, gL.name].map List.length).sum + 2 < 2 ^ 62 := by
+  have hjl : ([dir, gL.name].map List.length).sum + 2 ≤ _root_.Perennial.strings.joinMax := by
+    unfold _root_.Perennial.strings.joinMax
     simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hgn, walFileName_length]
     omega
   wp_apply wp_Join _ _ _ hjl $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
@@ -104,7 +106,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_specHeld [os.file.Fiel
         (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide)
         hbok hbN hbi) (by decide)
     $$ [Hpd Hj Hperm] as %lf %err Hpost
-  · iframe; iframe #
+  · iframe; iframe #; iPkgInit
   ihave Hpost := fileutil.lockPost_of_W _ _ _ _ _ _ _ $$ Hpost
   icases fileutil.lockPost_held (X := Unit)
       (fun _ _ => iprop(osPathS (GF := GF) R dir (DFrac.own qd) j ∗ osNames j (.except X) dqn hj ∗

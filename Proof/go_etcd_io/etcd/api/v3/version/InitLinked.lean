@@ -146,10 +146,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       try wp_auto
-      wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _
-        (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)
-          (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)
-            _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hargs] as %str -
+      wp_apply (EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%d.%d"
+        [.dir none _root_.Perennial.fmt.verb_d, .lit go!".", .dir none _root_.Perennial.fmt.verb_d] _ _ _ _ (by fmt_encode) (by fmt_fits)
+        (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil))) $$ [$Hargs] as %str -
       try wp_auto
       isplitr
       · ipureintro; rfl

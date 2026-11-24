@@ -82,6 +82,9 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     mmapF.spec (GF := GF) (hG := hG) := by
   intro db f fd p dqf dqo dqd mf m sz x y z hmf hsz
   wp_start as ⟨#Hos, Hf, Hfo, Hfd, #Hmf, Hm, Hdr, Hd, Hsz⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   wp_auto
   wp_apply hFd f fd p.path dqo $$ [Hfo] as Hfo
   · rw [← fileOwn_eq]; iexact Hfo
@@ -151,7 +154,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
         have hS := hErr e2 h0
         simp only [errnoErr, h0, ↓reduceIte, interface.mkOk, fmtErrorOk] at hS
         have hS' := hS.trans (sep_elim_right (P := iprop(⌜_⌝)))
-        ihave #HeS := hS'
+        ihave #HeS := hS' $$ Hsys
         wp_apply wp_slice_literal
         isplitr
         · ipureintro; rfl
@@ -161,7 +164,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
           fmt_args_intro; simp only [fmt.argOkAt, fmt.argOk]
           isplitl
           · fmt_arg_method; iright; ileft; isplitr
-            · iapply HeS; iempintro
+            · iapply HeS
             · ipureintro; fmt_method_facts
           · itrivial
         try wp_auto
@@ -196,7 +199,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     iframe Hdr Hd Hsz
     have hS := hErr e he
     simp only [errnoErr, he, ↓reduceIte] at hS
-    ihave #HeS := hS
+    ihave #HeS := hS $$ Hsys
     isplitr
     · ipureintro
       refine ⟨by simp [interface.mkOk], ?_, hfs⟩

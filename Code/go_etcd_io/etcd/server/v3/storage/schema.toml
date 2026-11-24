@@ -13,7 +13,7 @@
 # `lessor.Recover`. (2026-11-19) the rest of `bucket.go`'s variables and `emptyStorageVersion`, so that
 # their initializers are translated (`etc/gen-init.py`), not trust-boundary axioms. (2026-11-19) `UnsafeDeleteLease` with
 # `leaseIDToBytes` (and `leasepb`).
-translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket", "NewAlarmBackend", "NewAuthBackend",
+translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "CreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket", "NewAlarmBackend", "NewAuthBackend",
   "NewMembershipBackend",
   "UnsafeCreateAuthRolesBucket", "revBytesLen", "authEnabled", "authDisabled",
   "Auth", "AuthUsers", "AuthRoles", "authBucketName", "authUsersBucketName", "authRolesBucketName",

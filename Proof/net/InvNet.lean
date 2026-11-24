@@ -14,8 +14,11 @@ token left:
   single-process closed theorem (removed at the net swap, restored 2026-11-23,
   `notes/single-process-restore.md`); nothing else produces it; `etcd_safe`'s deployment premise is to
   give it. The same for `httpProtoFree` below (whose docstring predates the restoration: program start
-  gives it again, with `addrClaim`, for the addresses `As`). Consumed by `net.Listen` (into `netListenerAt`),
-  so an address is listened on at most once in a run (`grpcAddrIs_agree`).
+  gives it again, with `addrClaim`, for the addresses `As`). Consumed by `net.Listen` (into `netListenerAt`)
+  and, from there, by `grpc.start` and `bridge.New` for good, so at most one server is started or
+  bridged at an address in a run (`grpcAddrIs_agree`). (Not one `Listen` per address: an address's
+  protocols, once set, let `listen_au` lend its listening token again, to a listener without the claim;
+  2026-11-24, `notes/axiom-review/norefusal-link.md`.)
 * `netAddrFree addr` := `addrClaim addr ∗ addrUnset addr`: the claim, and the address unset in the net
   extension's ghost state (`addrUnset`: its pending set, empty, `addr` a valid address, `addrOk`,
   `GooseLang/Ext/Net/Impl.lean`, and the right to listen at it, `netLisTok`, all from its start

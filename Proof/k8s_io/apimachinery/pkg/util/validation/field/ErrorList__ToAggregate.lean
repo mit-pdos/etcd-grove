@@ -11,6 +11,8 @@ public import Spec.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToAg
 public import Proof.k8s_io.apimachinery.pkg.util.validation.field.ErrorMethods
 public import Proof.k8s_io.apimachinery.pkg.util.sets.StringMethods
 public import Spec.k8s_io.apimachinery.pkg.util.errors.NewAggregate
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -87,8 +89,20 @@ theorem ErrorList.ToAggregate.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply wp_SprintfArgs _ _ _ (DFrac.own 1) $$ [$Hasl] as %msg -
-    · fmt_args_ok
+    have hF := go.method_set_is (t := go.GoType.PointerType Error.ty) go!"Format"
+    have hE := go.method_set_is (t := go.GoType.PointerType Error.ty) go!"Error"
+    simp (config := { decide := true }) only [go.methodSetLookup_cons, go.methodSetLookup_nil,
+      gooseReduceIteDecide] at hF hE
+    ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+    · iPkgInit
+    wp_apply (wp_SprintfArgs go!"%v" [.dir none _root_.Perennial.fmt.verb_v] _ _ [.method fun _ => True] (DFrac.own 1)
+        (by fmt_encode) (by fmt_fits)) $$ [$Hfmt $Hasl] as %msg -
+    · iapply BigSepL2.bigSepL2_cons.2
+      isplitl
+      · iapply (fmt.isArg_error ⟨go.GoType.PointerType Error.ty, #x⟩ hF
+          (by simpa [_root_.Perennial.fmt.noArgStringSig] using hE))
+        iexact HxS
+      · iapply BigSepL2.bigSepL2_nil.2; itrivial
     wp_apply (sets.String.wp_ptr_Has_of wp_Has errorMsgs_ptr (DFrac.own 1) m (DFrac.own 1) ms msg)
       $$ [$errorMsgs $Hm] as ⟨errorMsgs, Hm⟩
     wp_if_destruct

@@ -34,7 +34,7 @@ theorem datadir.ToMemberDir.wp_proof (wp_Join : filepath.Join.spec (GF := GF) (h
   · ipureintro; rfl
   iintro %sl ⟨Hsl, -⟩
   wp_auto
-  wp_apply wp_Join _ [d, go!"member"] _ (by simp; omega) $$ [$Hsl] as %r ⟨%hr, -⟩
+  wp_apply wp_Join _ [d, go!"member"] _ (by simp [_root_.Perennial.strings.joinMax]; omega) $$ [$Hsl] as %r ⟨%hr, -⟩
   subst hr
   iapply HΦ
   itrivial

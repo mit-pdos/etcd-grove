@@ -4,7 +4,8 @@ The proof of `Server.ServeHTTP` (`Net/Spec/net/rpc/Server__ServeHTTP.lean`): the
 read and nothing written; the head read gives the connection's names (`req_of_read`) and that the
 dialer wrote its handshake (`recvTok_keep_sentLb`), so the answer meets `respProto` (`hsAns_proto`);
 it is written by `Conn.Write` (`writeP`, `write_acc`), whole or a prefix (the error is not looked
-at), which is `rpcAccepted`; then `ServeConn`.
+at), which with the end's read deadline cleared by the hijack (or its reading dead) is
+`rpcAccepted`; then `ServeConn`.
 -/
 module
 
@@ -73,7 +74,8 @@ theorem Server.ServeHTTP.wp_proof (wp_Write : net.Conn.Write.spec (GF := GF) (hG
     (Val #()))
   iunfold net.http.hijackOk at Hhj
   iapply Hhj
-  iintro %t %la %ra' %bw #Hca Hsend Hrecv Hfresh HD
+  iintro %t %la %ra' %bw #Hca Hsend Hrecv Hfresh Hrdl HD
+  icases Hrdl with ⟨%b, Hrdl, Hdis⟩
   wp_auto
   -- the head read: the connection's names, and the dialer's handshake written
   icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ Hrecv with ⟨Hrecv, #Hpp⟩
@@ -94,7 +96,8 @@ theorem Server.ServeHTTP.wp_proof (wp_Write : net.Conn.Write.spec (GF := GF) (hG
       $$ [$Hca $Hsl $Hed $HwP $Hacc] as %nw0 %werr ⟨%w, %wres, HwP, Hsl, %Hw, -⟩
   obtain ⟨Hw, -⟩ := Hw
   iunfold writeP at HwP
-  wp_apply wp_ServeConn s γs C W a t cn la ra' $$ [$Hsrv $Hserves $Henv $Hset $Hca HwP Hrecv Hfresh Htok]
+  wp_apply wp_ServeConn s γs C W a t cn la ra' $$ [$Hsrv $Hserves $Henv $Hset $Hca HwP Hrecv Hfresh
+      Hrdl Hdis Htok]
     as Htok
   · isplitr
     · ipureintro; exact Hb
@@ -102,7 +105,11 @@ theorem Server.ServeHTTP.wp_proof (wp_Write : net.Conn.Write.spec (GF := GF) (hG
     · iunfold rpcAccepted
       iexists ([] ++ w)
       iframe HwP Hrecv Hfresh
-      ipureintro; rw [HhsA, List.nil_append]; exact Hw
+      isplitr
+      · ipureintro; rw [HhsA, List.nil_append]; exact Hw
+      icases Hdis with (%Hb | #Hdead)
+      · subst Hb; ileft; iexact Hrdl
+      · iright; iexact Hdead
     iexact Htok
   iapply HΦ; iframe Htok HD
 

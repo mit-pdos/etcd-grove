@@ -8,6 +8,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.tickToDur
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.time.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -42,24 +43,18 @@ theorem tickToDur.wp_proof : tickToDur.spec (GF := GF) (hG := hG) := by
   have hS := go.method_set_is (t := _root_.Perennial.time.Duration.ty) go!"String"
   have hC := go.method_set_is (t := _root_.Perennial.time.Duration.ty) go!"CanInterface"
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hE hF hS hC
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1)) $$ [$Pfmt $Hsl] as %s -
-  · iapply (_root_.Perennial.fmt.argsOk_intro (ds := [⟨W8 118, false⟩]) (by rfl))
-    unfold _root_.Perennial.fmt.argsOkAt _root_.Perennial.fmt.argsOkAt
+  wp_apply (_root_.Perennial.fmt.wp_Sprintf go!"%v" [.dir none _root_.Perennial.fmt.verb_v] _ _
+    [.method fun _ => True] (DFrac.own 1) (by fmt_encode) (by fmt_fits)) $$ [$Pfmt $Hsl] as %s -
+  · iapply BigSepL2.bigSepL2_cons.2
     isplitl
-    · unfold _root_.Perennial.fmt.argOkAt
-      iright; iright; ileft
-      isplitr
-      · ipureintro; refine ⟨by decide, rfl, fun h => by cases h⟩
-      unfold _root_.Perennial.fmt.argOk
-      iright; iright
-      isplitr
-      · unfold _root_.Perennial.fmt.stringMethodSpec
-        imodintro
-        iintro %Φ' HΦ'
-        wp_apply time.Duration.wp_String as %s' -
-        iapply HΦ'
-      · ipureintro; exact ⟨hF, hE, hS, hC⟩
-    · itrivial
+    · iapply (fmt.isArg_stringer ⟨_root_.Perennial.time.Duration.ty, _⟩ hF hE hS hC)
+      unfold _root_.Perennial.fmt.stringMethodSpec
+      imodintro
+      iintro %Φ' HΦ'
+      wp_apply time.Duration.wp_String as %s' -
+      iapply HΦ'
+    · iapply BigSepL2.bigSepL2_nil.2
+      itrivial
   (try wp_auto)
   iapply HΦ
   itrivial

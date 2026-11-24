@@ -48,7 +48,7 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     (wp_close : member.close.spec (GF := GF) (hG := hG))
     (wp_restart : member.restart.spec (GF := GF) (hG := hG)) :
     member.step.spec (GF := GF) (hG := hG) := by
-  intro W e γ m lg o qp hmn hf hpath
+  intro W e γ m lg o qp hmn hf hpath hpf
   wp_start as ⟨Hlive, #Hzap, Hlg, Hwd, Hpth, Hares⟩
   iunfold memLive at Hlive
   icases Hlive with ⟨%w, %v, %os, %c, %d, %t, %vo, %cm, %bs, %l, %tm, %M, %r, %rv, Hres, Ht, Hv, Hc, Hb,
@@ -260,7 +260,7 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact tCheckWf_synced hwf hl
       iframe #
-    wp_apply (wp_restart W e γ m lg null v' (tSynced o) c (some d) qp t vo cm bs l tm r rv1 hmn hf hpath
+    wp_apply (wp_restart W e γ m lg null v' (tSynced o) c (some d) qp t vo cm bs l tm r rv1 hmn hf hpath hpf
         hok.2.1 (fun d' hd' => by cases hd'; exact tMemOk_candOk hok hl) (tCheckWf_synced hwf hl))
       $$ [H5 Hperm Hpth Hares Htok Hlg Hwd H7 H8 H9 Ht Hv Hc Hb Hl Htm Hr Hrv Hrep H11 H12]
       as %ok Hpost
