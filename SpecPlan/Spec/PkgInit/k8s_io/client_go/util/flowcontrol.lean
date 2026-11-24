@@ -3,7 +3,7 @@ module
 
 public import GeneratedProof.k8s_io.client_go.util.flowcontrol
 public import SpecPlan.Spec.PkgInit.Base
-public import SpecPlan.Spec.PkgInit.math.rand
+public import Perennial.Proof.math.rand.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.utils.clock

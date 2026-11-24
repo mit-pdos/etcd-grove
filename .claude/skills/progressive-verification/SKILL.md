@@ -46,6 +46,6 @@ the function alone, is what most later revisions changed: in the plan's study of
    a `sorry`, reported as such: that is progressive, not a failure. A spec the proof shows wrong goes
    back to step 3 and to the reviewer.
 6. **Link and check**: add the function to its link list and regenerate `Link.lean`
-   (`etc/gen-link.py`); `lake build`, `etc/tcb-report.py --check`, the interfaces
-   (`etc/gen-interface.py`). CLAUDE.md's rules hold throughout: the layout, modules, package APIs,
+   (`etc/gen-link.py`); `lake build`, `etc/tcb-report.py --check`, the package imports
+   (`etc/api-check.py`). CLAUDE.md's rules hold throughout: the layout, modules, package APIs,
    `issues/` for a bug found in the Go code, no change to Perennial for one proof.

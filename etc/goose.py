@@ -1069,17 +1069,15 @@ PROJECTS = [
         name="putget-dist",
         # putget_safe's two programs (notes/putget-dist-plan.md): the member machine's
         # (`putget.Member`: etcdstart's StartServer and Serve) and the client machine's
-        # (`putget.Client`: Put, Get, check), and `env` (`ClearProxy`, which both call first), of
+        # (`putget.Client`: Put, Get, check), of
         # examples/etcd/dist (etcd_safe's directory, notes/etcd-dist-plan.md; its server and client
         # packages are stage D2's). A package of the examples' Go module (examples/go.mod), as putget.
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "dist"),
-        # `env` calls `os` (the main tree's translation, with `io/fs`, as project etcd's)
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
-                    "os=", "io/fs="],
-        packages=["./putget", "./env"],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+        packages=["./putget"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
     ),
     Project(
