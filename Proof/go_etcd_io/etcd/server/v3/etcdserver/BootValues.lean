@@ -152,15 +152,18 @@ def membersOk [GooseExts] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) 
     W64 0 ∉ ps U cfg.InitialClusterToken' ∧
     (memberOf U cfg.InitialClusterToken' cfg.Name').id ∈ ps U cfg.InitialClusterToken'
 
-/-- **The initial cluster's ids distinct, and not too many entries** (claim #34, stage 2,
+/-- **The initial cluster's ids distinct and not `0`, and not too many entries** (claim #34, stage 2,
 2026-11-25: `NewClusterFromURLsMap`'s premises, `bootstrapCluster.spec`'s). The ids: if two entries
 had one id, Go's `fmt.Errorf("member exists with identical ID %v", m)` formats the `*Member` by
 reflection, which the model does not cover (a SHA-1 collision of two distinct URL sets, or one URL set
 under two names, which `VerifyBootstrap`'s `CheckDuplicateURL` refuses); a fact of the configuration,
-checked by evaluation (`memberID` is computable). The size: `genID`'s `make([]byte, 8*len(ids))` and
+checked by evaluation (`memberID` is computable). None `0`: Go answers an id `0` with an error
+(`cannot use 0 as member id`); excluded so that `NewClusterFromURLsMap`'s loop never returns (a fact
+of the configuration too). The size: `genID`'s `make([]byte, 8*len(ids))` and
 `sort.Sort` need it. -/
 def initMapOk [GooseExts] (U : BootURLs) (token : GoString) : Prop :=
-  (U.initMap.domList.map (fun k => (memberOf U token k).id)).Nodup ∧ GMap.size U.initMap ≤ 2 ^ 58
+  (U.initMap.domList.map (fun k => (memberOf U token k).id)).Nodup ∧
+    W64 0 ∉ U.initMap.domList.map (fun k => (memberOf U token k).id) ∧ GMap.size U.initMap ≤ 2 ^ 58
 
 /-- **The cluster's id** (`genID()`). -/
 noncomputable def cid [GooseExts] (U : BootURLs) (token : GoString) : w64 :=

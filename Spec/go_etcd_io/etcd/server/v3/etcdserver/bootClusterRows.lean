@@ -37,7 +37,7 @@ property of its members (plan §7.1 I5, kept by `AddMember`, `UpdateAttributes` 
 `peerURLsOk` defined; the second needs those three methods translated and proved. -/
 abbrev bootClusterRows.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (c : Loc),
-  bootGo.membersOk cfg U → c ≠ null →
+  bootGo.membersOk cfg U →
   membership.isRaftCluster (GF := GF) c ∗
     membership.clusterCid c (bootGo.cid U cfg.InitialClusterToken') ∗
     membership.clusterMem c (bootGo.memMap U cfg.InitialClusterToken') ⊢

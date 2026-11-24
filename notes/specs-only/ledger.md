@@ -25,6 +25,22 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: bootstrappedCluster.Finalize -- the lock invariant's bound on the members needs the initial cluster's size
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrappedCluster__Finalize.lean`,
+  `bootstrappedCluster.Finalize.spec` (claim #34's stage-3 spec, stage 2 proves it); and the law
+  `Spec/.../etcdserver/bootClusterRows.lean` (`bootClusterRows.spec`, new this stage, a hypothesis of the proof).
+- **Defect.** Unprovable as stated: `Finalize` makes the cluster's lock (`membership.isRaftCluster`, the
+  post's `Hrc`), whose invariant `rcLockInv` carries `GMap.size ms ≤ 2^62`; nothing in the premises bounds
+  the initial cluster's members (`bootGo.membersOk` says they are distinct, not how many).
+- **Evidence.** `Proof/.../etcdserver/bootstrappedCluster__Finalize.lean`, the `rcLockInv_boot` step
+  (`membership.rcLockInv_boot`'s `hsz`).
+- **Proposed change.** `Finalize.spec` takes `bootGo.initMapOk U cfg.InitialClusterToken'` (at most `2^58`
+  entries, the premise `bootstrapCluster.spec` already takes since this stage); `bootstrap.wp_proof` passes
+  it. `bootClusterRows.spec` loses its `c ≠ null` premise (the proof has no fact giving it; the law is open,
+  not trust, and `clusterApplyRest` it gives states it).
+- **Decision.** Applied (claim #34 stage 2, branch `bootstrap-stage2/2026-11-25`).
+
 ## 2026-11-25: bootstrapCluster, bootstrap -- two premises the new cluster's construction needs
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapCluster.lean`, `bootstrapCluster.spec`, and
@@ -40,7 +56,8 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `cluster.go:81-95` (the `%v` of `m`); `Perennial/Proof/fmt/Args.lean`'s `argOk` (no reflection).
 - **Proposed change.** Both specs take `crypto.fips140.GodebugFips140Off` (the owner's decision on SHA-1, plan
   §7.7: an environment premise visible in the top-level statements) and `bootGo.initMapOk U token` (new,
-  `BootValues.lean`: the entries' `memberOf` ids distinct, at most `2^58` entries; a fact of the configuration,
+  `BootValues.lean`: the entries' `memberOf` ids distinct and not `0` (Go errors on `0`; excluded so that the
+  construction's loop has no return path), at most `2^58` entries; a fact of the configuration,
   decided by evaluation). `bootstrap.wp_proof` passes them on. The final stage's `bootPremise` bridge takes the
   two facts per example.
 - **Decision.** Applied (claim #34 stage 2, branch `bootstrap-stage2/2026-11-25`; the owner's SHA-1 decision

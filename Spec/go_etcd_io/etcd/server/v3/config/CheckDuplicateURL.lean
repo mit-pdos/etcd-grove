@@ -1,6 +1,6 @@
 /-
-`config.CheckDuplicateURL(urlsmap)` (`config.go:331-343`); claim #34, stage 2,
-2026-11-25: translated with its body). Lean-first.
+`config.CheckDuplicateURL(urlsmap)` (`config.go:331-343`) (claim #34, stage 2, 2026-11-25: translated with its body). Lean-first. The
+configuration's fields are read through `p`, read-only (`↦□`), as the other `ServerConfig` specs.
 -/
 module
 

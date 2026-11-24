@@ -1,6 +1,6 @@
 /-
-`(*config.ServerConfig).hasLocalMember()` (`config.go:241-246`); claim #34, stage 2,
-2026-11-25: translated with its body). Lean-first.
+`(*config.ServerConfig).hasLocalMember()` (`config.go:241-246`) (claim #34, stage 2, 2026-11-25: translated with its body). Lean-first. The
+configuration's fields are read through `p`, read-only (`↦□`), as the other `ServerConfig` specs.
 -/
 module
 
@@ -29,11 +29,12 @@ variable [sem : go.Semantics]
 /-- **`c.hasLocalMember()`**: an error, or the configuration's name an entry of the initial cluster's
 map (read-only). -/
 abbrev config.ServerConfig.hasLocalMember.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (m : GMap GoString GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config ∗ p ↦{dq} cfg ∗ cfg.InitialPeerURLsMap' ↦$□ m }}
+  ∀ (p : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (m : GMap GoString GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config ∗ structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Name" p ↦□ cfg.Name' ∗ structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialPeerURLsMap" p ↦□ cfg.InitialPeerURLsMap' ∗
+      cfg.InitialPeerURLsMap' ↦$□ m }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.config.ServerConfig.ty @!! go!"hasLocalMember")) (Val #()))
-  {{ (err : GoInterface), RET #err; p ↦{dq} cfg ∗
-      (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil ∧ (m.lookup cfg.Name').isSome⌝) }}
+  {{ (err : GoInterface), RET #err;
+      ⌜err ≠ GoInterface.nil ∨ err = GoInterface.nil ∧ (m.lookup cfg.Name').isSome⌝ }}
 
 end spec
 

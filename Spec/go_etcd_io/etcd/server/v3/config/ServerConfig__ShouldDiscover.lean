@@ -1,6 +1,6 @@
 /-
-`(*config.ServerConfig).ShouldDiscover()` (`config.go:311-313`); claim #34, stage 2,
-2026-11-25: translated with its body). Lean-first.
+`(*config.ServerConfig).ShouldDiscover()` (`config.go:311-313`) (claim #34, stage 2, 2026-11-25: translated with its body). Lean-first. The
+configuration's fields are read through `p`, read-only (`↦□`), as the other `ServerConfig` specs.
 -/
 module
 
@@ -28,10 +28,10 @@ variable [sem : go.Semantics]
 
 /-- **`c.ShouldDiscover()`**: whether the discovery configuration has endpoints. -/
 abbrev config.ServerConfig.ShouldDiscover.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config ∗ p ↦{dq} cfg }}
+  ∀ (p : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config ∗ structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DiscoveryCfg" p ↦□ cfg.DiscoveryCfg' }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.config.ServerConfig.ty @!! go!"ShouldDiscover")) (Val #()))
-  {{ RET #(decide (0 < sint.Z cfg.DiscoveryCfg'.ConfigSpec'.Endpoints'.len)); p ↦{dq} cfg }}
+  {{ (b : Bool), RET #b; ⌜b = true → cfg.DiscoveryCfg'.ConfigSpec'.Endpoints'.len ≠ W64 0⌝ }}
 
 end spec
 

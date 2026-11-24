@@ -889,6 +889,21 @@ EtcdServer__NewUberApplier: EtcdServer__KV apply_NewUberApplier
 bootstrappedBackend__Close: backend__Close
 bootstrappedStorage__Close: bootstrappedBackend__Close
 bootstrappedServer__Close: bootstrappedStorage__Close
+# (claim #34 stage 2, 2026-11-25) the new cluster's bootstrap (bootstrap.go), the membership package's
+# construction of it (cluster.go, member.go, cluster_opts.go) and the configuration's check
+# (config.go). Pending (`?`, hypotheses of the results that reach them): `advertiseMatchesCluster`
+# (over the untranslated `netutil`), `isMemberBootstrapped` (stage 4), and the cluster rows law
+# `bootClusterRows` (`Hmembers`, `Hisc`; plan §7.1 I5 and the names-only `SetVersion` and the like).
+membership_WithMaxLearners:
+membership_ClusterOptions__applyOpts:
+membership_newClusterOpts: membership_ClusterOptions__applyOpts
+membership_NewCluster: membership_newClusterOpts
+membership_NewClusterFromURLsMap: membership_NewCluster membership_NewMember membership_RaftCluster__genID
+config_ServerConfig__advertiseMatchesCluster: ?
+etcdserver_isMemberBootstrapped: ?
+etcdserver_bootClusterRows: ?
+etcdserver_bootstrapNewClusterNoWAL: config_ServerConfig__VerifyBootstrap membership_WithMaxLearners membership_NewClusterFromURLsMap membership_RaftCluster__MemberByName config_ServerConfig__BootstrapTimeoutEffective etcdserver_isMemberBootstrapped config_ServerConfig__ShouldDiscover types_ID__String fmt_Errorf
+etcdserver_bootstrapCluster: etcdserver_bootstrapNewClusterNoWAL
 # (restart S3, D2 (b), 2026-11-11) the restarted raft storage (bootstrap.go), with its body, over
 # raft's storage methods: the restart contract's `memStorRestarted` is its post
 bootstrappedWAL__MemoryStorage: =srvApi_wp_NewMemoryStorage MemoryStorage__ApplySnapshot =srvApi_wp_MemSetHardState =srvApi_wp_MemAppend

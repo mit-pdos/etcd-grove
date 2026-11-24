@@ -17,6 +17,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sync.Mutex` has no spec for an owned (unshared) mutex (2026-11-25, claim #34 stage 2)
+
+- **Limitation.** Perennial's `sync.Mutex.Lock`/`Unlock` specs take `isMutex m R`, a lock invariant allocated
+  for good (`init_Mutex`, an `inv`), so a mutex that a constructor locks before it shares the object cannot be
+  given its real lock invariant afterwards.
+- **Who needs it.** `membership.NewClusterFromURLsMap`'s `genID` (`MemberIDs`) and `bootstrapNewClusterNoWAL`'s
+  `MemberByName` lock the new cluster's mutex before `Finalize` makes `isRaftCluster` of it.
+- **Workaround.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/membership/OwnedMutex.lean`: `lock.lock`/
+  `lock.unlock` of an owned lock (the first compare-and-swap with the whole points-to), and from them
+  `internal.sync.Mutex.wp_{Lock,Unlock}_owned`, `sync.Mutex.wp_{Lock,Unlock}_owned` (zero value to
+  `sync.lockedMutex` and back) and `RaftCluster`'s promoted pair. Derived from the trusted code, no trust.
+- **Proposed change.** The same lemmas in Perennial's `Golang/Theory/Lock.lean` and `Proof/sync/`.
+- **Status.** Not proposed yet.
+
 ### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
 ### `runtime.callers` may fill its buffer every time: `zap.Stack` cannot be proved (2026-11-23, zap-z2, claim #40)
 

@@ -25,10 +25,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`NewMember(name, us, token, nil)`** of plain peer URLs `us` (read-only), the `fips140` GODEBUG
-setting off: a fresh member, owned, `memberOfURLs name us token`. -/
+setting off, at most `2^62` URLs (`sort.Strings`' bound): a fresh member, owned, `memberOfURLs name us token`. -/
 abbrev membership.NewMember.spec : Prop :=
   ∀ (name : GoString) (sl : GoSlice) (us : List _root_.Perennial.net.url.URL) (token : GoString),
-  crypto.fips140.GodebugFips140Off → (∀ u ∈ us, http.urlRootPlain u) →
+  crypto.fips140.GodebugFips140Off → (∀ u ∈ us, http.urlRootPlain u) → us.length ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ sl ↦*□ us }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMember)) (Val #name)) (Val #sl)) (Val #token))
       (Val #(null : Loc)))

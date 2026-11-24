@@ -254,7 +254,7 @@ theorem bootstrap.wp_proof
   · rw [hstob]; iexact Hbk
   wp_apply (hFin cfg U c sl bc sto bk bw d (fun _ => mvcc.api.mvccW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) N D (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-      (DFrac.own 1) Hbc.2.2 Hbc.1 hhw Hbe.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.2.1
+      (DFrac.own 1) Hbc.2.2 HiOk Hbc.1 hhw Hbe.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.2.1
       Hbe.2.2.2.2.2.2.2.2.2.2.2.2.2)
     $$ [Hc Hs Hbk Hbw Hnew Hwbt Hclg Hlid Hcid Hcbe Hmu Hver Hmem0 Hrm Hrmm Hdg Hdgv Hml Hvc]
     as %ferr ⟨Hc, Hs, Hbk, Hbw, Hnew, Hfin⟩
