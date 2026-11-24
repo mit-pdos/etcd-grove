@@ -124,6 +124,14 @@ def DurableIs (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
   S.config[n.val]! = cfg3.initConf ∧ S.confAt[n.val]! = 0 ∧
   v.delivered ++ v.ce <+: v.ps.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.ps.commit
 
+/-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
+its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
+(`conf1` keeps `confirmed[n]` then); the win and each proposal's store set it to `{T, last}`
+(`conf1`'s `stores` arm), and an accepting acknowledgement's `send` only raises its index at the
+same term. -/
+def LeaderConfOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
+  (S.confirmed[n.val]!).term = uint.Z v.ps.term ∧ (v.ps.log.length : Int) ≤ (S.confirmed[n.val]!).index
+
 /-- **C2, a leader's part**: it is in `leaders` at its term, `ledLog` at its term is its log; every
 `Match` it holds is backed by acknowledgements in `msgs`: at any index of its term within a voter's
 `Match` (what `cmt`'s `Acked` quorum needs, B 252; the node's own `Match` at its win, `reset`'s
@@ -201,6 +209,35 @@ def NodeOk (S : AntCheck.State) (net : List Msg) (n : Fin 3) (v : NodeView) : Pr
 
 /-! ## C3: the binding's own invariants -/
 
+/-- **C3, the acks' terms**: every ack fact from node `i` is at most `currentTerm[i]`. Acks are
+recorded only at the recorder's current term (`OnDisk`'s `t1`, B 407; a `send`'s `cm.term`, which
+it checks is `currentTerm[n]`, B 571-580), and terms only grow. With `HbCommitOk`'s derivation at a
+heartbeat's `send`, it makes a leader's ack fact from `j` at the leader's term be at `currentTerm[j]`
+(C3's ack conjunct then applies). -/
+def AckTermsOk (S : AntCheck.State) : Prop :=
+  ∀ n : Fin 3, ∀ a ∈ S.msgs, a.type = go!"ack" → a.src = nameOf (nodeId n) →
+    a.term ≤ S.currentTerm[n.val]!
+
+/-- **C3, the vote's term**: `voteTerm[i] ≤ currentTerm[i]` (`OnDisk` sets `voteTerm` to the new
+term `t1` only). So a term change that writes no vote leaves `Vote(n)` empty (`VoteOf`'s
+`vt = t`, B 99), what `ready`'s `S'.vote n = []` needs. -/
+def VoteTermOk (S : AntCheck.State) : Prop :=
+  ∀ n : Fin 3, S.voteTerm[n.val]! ≤ S.currentTerm[n.val]!
+
+/-- **C3, the confirmed records**: each `confirmed[j]` is at a term `j` has reached (`conf1` sets it at
+`t1`; an accepting ack's `send` at `currentTerm[n]`, B 571-575), and either empty, at a term
+`ledLog` has, or at a term every node has passed. At a win the leader's log enters `ledLog` at a
+term `T` that was missing (`inMemory`'s check), and this excludes any `j` already confirmed at `T` with a
+nonzero index (whose `confirmed[j]` would otherwise have to be a prefix of the new `ledLog[T]`,
+C3's confirmed conjunct). `GC` removes from `ledLog` only terms every node has passed (`StaleLed`:
+`Over`, `EffTerm ≤ currentTerm`, B 153, 709); a `ready` or a `send` confirms only at a term in
+`ledLog` (`Sendable`, B 117-126, or the leader's own term). -/
+def ConfirmedOk (S : AntCheck.State) : Prop :=
+  ∀ j : Fin 3,
+    ((S.confirmed[j.val]!).index = 0 ∨ S.ledLog.has (S.confirmed[j.val]!).term = true ∨
+      ∀ i : Fin 3, (S.confirmed[j.val]!).term < S.currentTerm[i.val]!) ∧
+    (S.confirmed[j.val]!).term ≤ S.currentTerm[j.val]!
+
 /-- **C3**: facts about `S` alone, kept by every step and by `GC` (§3.2): no violation; no queued
 write or read (default mode); an announced write never `made` (`undo`, B 349-359, only between a
 `ready` and the next `send`/`apply`); `termLen` within `chain`; each node's commit within `chain`
@@ -238,6 +275,19 @@ def BindingOk (S : AntCheck.State) : Prop :=
     { voter := nameOf (nodeId n), term := S.currentTerm[n.val]!, cand := S.vote n.val } ∈ S.votes)
 
 /-! ## C4: the network -/
+
+/-- **C4, a heartbeat's commit**: a heartbeat to `j` whose term `j` has not passed carries a commit
+within `j`'s confirmation at its term, or within `j`'s commit. `CommitBeyondConfirmed` (B 435) reads
+it when `j` commits on the heartbeat. `GC` can drop the leader's ack from `j` once `j` moves on
+(`Garbage`, B 696-706), so the fact is recorded with the message: `antSim_send` establishes it from
+`HeartbeatOk` (`commit ≤ Match[j]`), `LeaderPart`'s ack at `Match[j]`, `AckTermsOk` (that ack is at
+`currentTerm[j]`) and C3's ack conjunct; it is kept since `confirmed[j]` moves only to a later term
+or a larger index at its term (`ConfirmedOk`'s `term ≤ currentTerm[j]`) and commits only grow. -/
+def HbCommitOk (S : AntCheck.State) (net : List Msg) : Prop :=
+  ∀ m ∈ net, m.ty = .heartbeat → ∀ j : Fin 3, m.dst = nodeId j →
+    S.currentTerm[j.val]! ≤ uint.Z m.term →
+    ((S.confirmed[j.val]!).term = uint.Z m.term ∧ uint.Z m.commit ≤ (S.confirmed[j.val]!).index) ∨
+      uint.Z m.commit ≤ S.commitIndex[j.val]!
 
 /-- **C4**: every message sent (`net`: every `send` so far, delivered, dropped or in flight) is
 between two of the nodes, of a type in scope, of a term its sender has reached, and what the

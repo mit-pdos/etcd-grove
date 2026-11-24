@@ -195,13 +195,15 @@ abbrev antSim_quiet.stmt : Prop :=
 
 /-- **`ready`** (`drain`, B 439-447: `InMemory` then `OnDisk`): a `Ready` taken after an input or an
 `Advance`, whose write or role the harness reports (after the drain's `recv`, for `by = recv`), is
-taken; the node's view becomes the `Ready`'s (the drain phase). -/
+taken; the node's view becomes the `Ready`'s (the drain phase). The node's term is below `2^64 - 1`
+(a campaign's `s.term + 1` does not wrap; the harness has it from raft's term budget). -/
 abbrev antSim_ready.stmt : Prop :=
   ∀ (S : AntCheck.State) (V : Fin 3 → NodeView) (net : List Msg) (evs : List AntCheck.Event)
     (G : RaftFacts) (n : Fin 3) (ps₁ : PState) (rd : ReadyD),
     Prefix cfg3 evs S → AntSim S V net → RaftLaws G → GlobalOk S net G →
     Reach (nodeId n) net (V n) ps₁ → ReadyOutP (nodeId n) (V n) ps₁ rd → Reported (V n) rd →
     ((V n).byE = go!"recv" → (V n).told = true) → ReadyFacts G (nodeId n) ps₁ →
+    uint.Z (V n).ps.term + 1 < 2 ^ 64 →
     ∃ S', Prefix cfg3
         (evs ++ [evReady (nodeId n) (V n).byE rd.role rd.term rd.vote rd.commit rd.ents]) S' ∧
       AntSim S' (setV V n ((V n).afterReady ps₁ rd)) net ∧ GlobalOk S' net G
