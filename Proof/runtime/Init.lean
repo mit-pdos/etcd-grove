@@ -204,7 +204,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   -- buildVersion: its trusted initializer
-  wp_apply _root_.Perennial.runtime.wp_buildVersion_init as ⟨%bv, Hbv⟩
+  wp_apply _root_.Perennial.runtime.wp_buildVersion_init as Hbv
   wp_apply (_root_.Perennial.internal.runtime.atomic.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.internal.runtime.sys.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk cgo_yield.init (by mem_tac))
@@ -317,7 +317,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · ipureintro
     exact isPanic_intoVal _
   is_pkg_init_finish
-  iexists _
   iexact Hbv
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

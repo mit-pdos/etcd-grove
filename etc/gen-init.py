@@ -640,8 +640,9 @@ extension `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, whose fact 
 packages that read `GOOS`/`GOARCH` state them in their own facts from these axioms (bbolt's root package,
 `bboltRootInit`).''',
     # (pin bump 160fcf12a, 2026-11-23) Perennial's trusted model of `buildVersion`'s initialization
-    trusted={'buildVersion': ['wp_apply _root_.Perennial.runtime.wp_buildVersion_init as ⟨%bv, Hbv⟩']},
-    finish=['ipersist Hbv'] + FIN_PRE[:6] + ['iexists _', 'iexact Hbv'],
+    trusted={'buildVersion': ['wp_apply _root_.Perennial.runtime.wp_buildVersion_init as Hbv']},
+    # (Perennial 612f4641b) the model stores the fixed `buildVersionValue`
+    finish=['ipersist Hbv'] + FIN_PRE[:6] + ['iexact Hbv'],
     pre=['namespace runtime', '',
          '/-- **The trust boundary: the program runs on Linux.** `runtime.GOOS` is the constant',
          '`"linux"` (Go\'s `GOOS` of the build; goose translates `runtime` names-only, so it is an',

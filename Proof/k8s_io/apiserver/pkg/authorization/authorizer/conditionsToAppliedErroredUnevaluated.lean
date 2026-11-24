@@ -18,6 +18,8 @@ public import Proof.k8s_io.apimachinery.pkg.util.errors.ErrTreeOk
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.ForRangeB2
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.B2Lemmas
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -120,8 +122,12 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       (try wp_auto)
-      wp_apply EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ _ _ ?wf $$ [$Hargs] as %rs -
-      case wf => exact .cons_string _ _ (.cons_string _ _ .nil)
+      wp_apply _root_.Perennial.fmt.Sprintf_pure_of wp_Sprintf go!"condition %q %s" [.lit go!"condition ", .dir none _root_.Perennial.fmt.verb_q, .lit go!" ", .dir none _root_.Perennial.fmt.verb_s] _ _ _ _ (by fmt_encode)
+        ?fits ?pa $$ [$Hargs] as %rs -
+      case pa =>
+        (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+        exact .str _ _ _ (.str _ _ _ .nil)
+      case fits => fmt_fits
       wp_apply HgetDesc' as %dv -
       wp_apply _root_.Perennial.github_com.mit_pdos.perennial.goose.model.strings.wp_string_len dv
         as -
@@ -156,8 +162,9 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
         try (isplitr; (ipureintro; rfl))
         iintro %sla2 ⟨Hargs2, -⟩
         (try wp_auto)
-        wp_apply EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ _ _ ?wf2 $$ [$Hargs2] as %rs2 -
-        case wf2 => exact .cons_string _ _ .nil
+        wp_apply _root_.Perennial.fmt.Sprintf_pure_of wp_Sprintf go!" with description %q" [.lit go!" with description ", .dir none _root_.Perennial.fmt.verb_q] _ _ _ _ (by fmt_encode)
+          ?fits2 (.str _ _ _ .nil) $$ [$Hargs2] as %rs2 -
+        case fits2 => fmt_fits
         unfold iterBodyPost_b2
         iright
         isplitr

@@ -10,6 +10,8 @@ module
 public import Spec.k8s_io.apimachinery.pkg.util.validation.field.ErrorOk
 public import Spec.fmt.SprintfArgs
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -51,18 +53,25 @@ theorem ErrorType.string_stringMethodSpec
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_SprintfArgs _ _ [interface.mkOk go.string #t] (DFrac.own 1) $$ [$Hasl] as %str -
-  · fmt_args_ok
+  wp_apply (_root_.Perennial.fmt.Sprintf_pure_of wp_SprintfArgs go!"<unknown error %q>" [.lit go!"<unknown error ", .dir none _root_.Perennial.fmt.verb_q, .lit go!">"] _
+      [interface.mkOk go.string #t] _ (DFrac.own 1) (by fmt_encode) ?fits (.str _ _ _ .nil))
+    $$ [$Hinit $Hasl] as %str -
+  case fits => fmt_fits
   iapply HΦ
 
 /-- `ErrorType`'s method set: `String() string`, no `Format`, no `Error` (goose's
 `ErrorType.TypeAssumptions`). -/
 theorem ErrorType.methodSet_facts :
-    methodSet ErrorType.ty !! go!"Format" = none ∧ methodSet ErrorType.ty !! go!"Error" = none := by
+    methodSet ErrorType.ty !! go!"Format" = none ∧ methodSet ErrorType.ty !! go!"Error" = none ∧
+      methodSet ErrorType.ty !! go!"String" = some _root_.Perennial.fmt.noArgStringSig ∧
+      methodSet ErrorType.ty !! go!"CanInterface" = none := by
   have h1 := (go.MethodSetIs.method_set_is (t := ErrorType.ty) go!"Format")
   have h2 := (go.MethodSetIs.method_set_is (t := ErrorType.ty) go!"Error")
-  simp only [go.methodSetLookup] at h1 h2
-  exact ⟨by simpa using h1, by simpa using h2⟩
+  have h3 := (go.MethodSetIs.method_set_is (t := ErrorType.ty) go!"String")
+  have h4 := (go.MethodSetIs.method_set_is (t := ErrorType.ty) go!"CanInterface")
+  simp (config := { decide := true }) only [go.methodSetLookup, reduceIte] at h1 h2 h3 h4
+  exact ⟨by simpa using h1, by simpa using h2,
+    by simpa [_root_.Perennial.fmt.noArgStringSig] using h3, by simpa using h4⟩
 
 /-- The variable `omitValue` (a field-less struct): its points-to is its address's not being `nil`,
 `field`'s fact (`fieldInit`). -/
@@ -94,8 +103,9 @@ theorem Error.wp_ErrorBody
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   ihave #HTs := ErrorType.string_stringMethodSpec wp_SprintfArgs v.Type' $$ Hfmt
-  have Hms : methodSet ErrorType.ty !! go!"Format" = none ∧
-      methodSet ErrorType.ty !! go!"Error" = none := ErrorType.methodSet_facts
+  have Hms : methodSet ErrorType.ty !! go!"Format" = none ∧ methodSet ErrorType.ty !! go!"Error" = none ∧
+      methodSet ErrorType.ty !! go!"String" = some _root_.Perennial.fmt.noArgStringSig ∧
+      methodSet ErrorType.ty !! go!"CanInterface" = none := ErrorType.methodSet_facts
   have Hne : (go.string = OmitValueType.ty) = False := by
     simp only [eq_iff_iff, iff_false]; unfold OmitValueType.ty go.string
     intro hh; injection hh with h1; simp at h1
@@ -111,8 +121,16 @@ theorem Error.wp_ErrorBody
        isplitr
        · ipureintro; rfl
        iintro %asl ⟨Hasl, -⟩
-       wp_apply wp_SprintfArgs _ _ _ (DFrac.own 1) $$ [$Hasl] as %s1 -
-       · fmt_args_ok)
+       wp_apply (wp_SprintfArgs go!"%s: %q" [.dir none _root_.Perennial.fmt.verb_s, .lit go!": ", .dir none _root_.Perennial.fmt.verb_q] _ _
+           [.method fun _ => True, .str _] (DFrac.own 1) (by fmt_encode) (by fmt_fits))
+         $$ [$Hfmt $Hasl] as %s1 -
+       · iapply BigSepL2.bigSepL2_cons.2
+         isplitl
+         · iapply (fmt.isArg_stringer (GF := GF) ⟨ErrorType.ty, #v.Type'⟩ Hms.1 Hms.2.1 Hms.2.2.1 Hms.2.2.2)
+           iexact HTs
+         iapply BigSepL2.bigSepL2_cons.2
+         isplitr; · simp only [_root_.Perennial.fmt.isArg]; ipureintro; rfl
+         iapply BigSepL2.bigSepL2_nil.2; itrivial)
     | ((try simp only [method_unfold])
        (try wp_auto)
        iunfold _root_.Perennial.fmt.stringMethodSpec at HTs
@@ -124,8 +142,8 @@ theorem Error.wp_ErrorBody
       isplitr
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
-      wp_apply wp_SprintfArgs _ _ _ (DFrac.own 1) $$ [$Hasl] as %s2 -
-      · fmt_args_ok
+      wp_apply (_root_.Perennial.fmt.Sprintf_pure_of wp_SprintfArgs go!": %s" [.lit go!": ", .dir none _root_.Perennial.fmt.verb_s] _ _ _ (DFrac.own 1)
+          (by fmt_encode) (by fmt_fits) (.str _ _ _ .nil)) $$ [$Hfmt $Hasl] as %s2 -
       iapply HΦ; itrivial
 
 /-- **`(*Error).Error()` of an `errorOk` error returns some string**, needing nothing more (its
@@ -150,8 +168,14 @@ theorem Error.error_stringMethodSpec
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_SprintfArgs _ _ _ (DFrac.own 1) $$ [$Hasl] as %s1 -
-  · fmt_args_ok
+  ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+  · iPkgInit
+  wp_apply (_root_.Perennial.fmt.Sprintf_pure_of wp_SprintfArgs go!"%s: %s" [.dir none _root_.Perennial.fmt.verb_s, .lit go!": ", .dir none _root_.Perennial.fmt.verb_s] _ _ _ (DFrac.own 1)
+      (by fmt_encode) ?fits ?pa) $$ [$Hfmt $Hasl] as %s1 -
+  case pa =>
+    (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+    exact .str _ _ _ (.str _ _ _ .nil)
+  case fits => fmt_fits
   iapply HΦ
 
 end proof
