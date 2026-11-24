@@ -266,3 +266,28 @@ tree at TAG into the throwaway run (`VERIFY_RUN`, default `test1`), with the bui
 
 The log ends with `verified` or `NOT verified`. The comparator's tools must be built on the machine that
 verifies.
+
+### Analyzing a run
+
+Four scripts read a finished (or live, read-only) run: its transcripts (`home/.claude/projects`), the
+work tree's git history, `snapshots.git`, `meta.txt`, `load.log` and `verify-*.log`. Each takes runs
+by name (`$DSV_LAB/runs/RUN`) or by path (anything with a `/`), several side by side, and needs root
+(the transcripts are the container's). Times are active minutes from the run's first transcript
+line: a gap of 30 minutes with no transcript line anywhere (a usage limit, a stopped session) is a
+pause and does not count.
+
+```
+sudo DSV_LAB=$DSV_LAB etc/dsv/tokens.py [--json] RUN...   # tokens per run: main session, subagents, all
+                                                          #   (each API response once); --json adds active minutes and pauses
+sudo DSV_LAB=$DSV_LAB etc/dsv/backtrack.py [-v] RUN...    # from snapshots.git: spec rewrites (late: a dependent proof
+                                                          #   was finished), proof rewrites and regressions, invalidated
+                                                          #   proofs, cascades, churn; -v lists them
+sudo DSV_LAB=$DSV_LAB etc/dsv/parallel.py [-v] RUN...     # subagents running per minute (0 / 1 / 2-3 / 4+), the mean, and
+                                                          #   the main session's idle polling; -v each subagent's spans
+sudo DSV_LAB=$DSV_LAB etc/dsv/compare.py RUN...           # all of it side by side, with the git history's spec-first
+                                                          #   phases (review, freeze, specs before proofs) and the verdict
+```
+
+`compare.py` imports `tokens` and `backtrack`; their definitions (what counts as a response, a pause,
+a late rewrite, a cascade) are fixed, so that numbers stay comparable between runs. `compare.py`'s
+`skill tree` is read from `meta.txt`'s `skill:` line (`tree X`).

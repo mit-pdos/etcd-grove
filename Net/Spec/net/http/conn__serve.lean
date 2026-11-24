@@ -39,9 +39,9 @@ variable [π : NetProtoGS]
 abbrev conn.serve.spec : Prop :=
   ∀ (c s t : Loc) (cn : Nat) (a : GoString) (la ra : GoInterface) (P Q : Proto GF)
     (Z : Nat → IProp GF) (path : List w8) (ctx : GoInterfaceOk),
-  reqPath path → path.length ≤ 2 ^ 20 → ProtoPrefixClosed Q →
+  c ≠ null → reqPath path → path.length ≤ 2 ^ 20 → ProtoPrefixClosed Q →
   {{ httpEnv ∗ readEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.context ∗ srvConst s ∗ srvDflt s ∗
-      srvServe s ∗ wPools ∗ rPool ∗ (∃ tm : time.Time, globalAddr net.http.aLongTimeAgo ↦□ tm) ∗
+      srvServe s ∗ ctxKeys ∗ wPools ∗ rPool ∗ (∃ tm : time.Time, globalAddr net.http.aLongTimeAgo ↦□ tm) ∗
       context.ctxBg ctx ∗ connNew c s t ∗
       connAt t cn true a la ra ∗ sendTok (Gg := hG.goose_globalGS) cn true Q [] ∗
       recvTok (Gg := hG.goose_globalGS) cn true P [] ∗ connFresh (Gg := hG.goose_globalGS) cn true ∗
