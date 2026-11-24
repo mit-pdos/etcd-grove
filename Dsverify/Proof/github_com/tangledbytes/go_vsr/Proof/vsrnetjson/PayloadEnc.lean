@@ -26,6 +26,7 @@ set_option linter.unusedSimpArgs false
 set_option linter.unusedVariables false
 set_option linter.iris.style.nameCheck false
 set_option maxHeartbeats 2000000
+set_option maxRecDepth 20000
 
 namespace Perennial.github_com.tangledbytes.go_vsr.examples
 
@@ -76,7 +77,7 @@ theorem vsrnet.nestRun_logJV (e : Entry) (h : PlainStr e.op) (m : w64) (hm : m =
     models_lab.jsoncodec.nestRun 1 m false (VsrJson.ser (VsrJson.logJV e) ++ rest) =
       models_lab.jsoncodec.nestRun 1 2 false rest := by
   have hop : ∀ c ∈ e.op, JsonScan.plainEnc c := h
-  have hm2 : (if uint.Z ((1 : w64) + 1) > uint.Z m then (1 : w64) + 1 else m) = 2 := by
+  have hm2 : (if uint.Z ((1 : w64) + W64 1) > uint.Z m then (1 : w64) + W64 1 else m) = 2 := by
     rcases hm with rfl | rfl <;> decide
   simp only [VsrJson.ser, VsrJson.logJV, VsrJson.mkObj, VsrJson.serMs, VsrJson.serMsT, VsrJson.qn,
     List.cons_append, List.append_assoc, List.singleton_append, List.nil_append]
@@ -106,8 +107,7 @@ theorem vsrnet.nestRun_logs (es : List Entry) (h : ∀ e ∈ es, PlainStr e.op) 
     simp only [VsrJson.ser, VsrJson.logsJV, List.map_cons, VsrJson.mkArr, VsrJson.serVs,
       List.cons_append, List.append_assoc]
     simp (config := { decide := true }) only [models_lab.jsoncodec.nestRun, ↓reduceIte]
-    rw [show (if uint.Z (W64 0 + 1) > uint.Z (W64 0) then W64 0 + 1 else W64 0) = (1 : w64) by decide,
-      show (W64 0 + 1 : w64) = 1 by decide,
+    rw [show (W64 0 + W64 1 : w64) = 1 by decide,
       vsrnet.nestRun_logJV e (h e (by simp)) 1 (Or.inl rfl), vsrnet.nestRun_serVsT es (fun e he => h e (by simp [he]))]
     simp (config := { decide := true }) [models_lab.jsoncodec.nestRun]
 
@@ -168,6 +168,8 @@ theorem vsrnet.wp_jenc_logs (H : vsrnet.EncSpecs (GF := GF) (hG := hG)) (b : GoS
         pkg.log.ownLogs sl dq es }} := by
   wp_start as ⟨#Hset, Hl, Hb, Hcap⟩
   wp_auto
+  wp_method_call
+  wp_auto
   have henc : pkg.log.ownLogs (GF := GF) sl dq es ⊢
       (encoding.json.codecPart (vsrnet.jsonCodec (GF := GF))).enc
         (interface.mkOk (go.GoType.SliceType pkg.log.Log.ty) #sl)
@@ -194,7 +196,9 @@ theorem vsrnet.wp_jenc_logs (H : vsrnet.EncSpecs (GF := GF) (hG := hG)) (b : GoS
     vsrnet.cmpRun_logs es hes
   have hn := vsrnet.nestRun_logs es hes
   have hl : (pkg.log.encLogs es).getLast? ≠ some 92#8 := by
-    simp [pkg.log.encLogs, VsrJson.encLogs, VsrJson.ser, VsrJson.logsJV, List.getLast?_append]
+    simp only [pkg.log.encLogs, VsrJson.encLogs, VsrJson.ser, VsrJson.logsJV]
+    rw [List.getLast?_concat]
+    decide
   wp_apply (vsrnet.wp_jencValue H b bs raw (DFrac.own 1) (pkg.log.encLogs es) d hsc hc hl
     (by simp only [pkg.log.encLogs, VsrJson.encLogs] at *; omega)) $$ [$Hb $Hcap $Hraw]
     as %b' ⟨Hb, Hcap, Hraw⟩
@@ -692,6 +696,7 @@ theorem vsrnet.wp_jenc_NewState (H : vsrnet.EncSpecs (GF := GF) (hG := hG)) (b :
     show (W8 123 : w8) = 123#8 from rfl, show (W8 125 : w8) = 125#8 from rfl]
   iframe
 
+set_option maxHeartbeats 10000000 in
 theorem vsrnet.wp_jencAny_payload (H : vsrnet.EncSpecs (GF := GF) (hG := hG)) (b : GoSlice) (bs : List w8) (d : GoInterface) (m : Msg)
     (dp : w64) (hdp : uint.nat dp < 9000) (hm : PlainMsg m) :
     {{ (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.log ∗
@@ -709,7 +714,7 @@ theorem vsrnet.wp_jencAny_payload (H : vsrnet.EncSpecs (GF := GF) (hG := hG)) (b
     obtain ⟨rfl, h1, h2, h3⟩ := hx
     subst h1 h2 h3
     wp_auto
-    wp_apply (vsrnet.wp_jenc_Request H _ _ x dp hdp hm) $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap⟩
+    wp_apply (vsrnet.wp_jenc_Request H _ _ x dp (by omega) hm) $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap⟩
     try wp_auto
     iapply HΦ
     iframe
@@ -837,9 +842,6 @@ theorem vsrnet.wp_jenc_Event (H : vsrnet.EncSpecs (GF := GF) (hG := hG)) (b : Go
         b' ↦* (bs ++ VsrJson.ser (VsrJson.evJV m)) ∗ ownSliceCap w8 b' (DFrac.own 1) }} := by
   wp_start as ⟨#Hset, #Hpay, Hb, Hcap⟩
   wp_auto
-  wp_if_destruct
-  · exfalso; (try simp only [models_lab.jsoncodec.MaxDepth] at *); word
-  try wp_auto
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.byte))))
     (Val (LiteralValueV _)))
   iapply wp_slice_literal (V := w8) (t := go.byte) [W8 123]
