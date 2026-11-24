@@ -126,9 +126,7 @@ theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     -- cache's workload
     (cnw cnops : w64) (Hcnw0 : 0 ≤ sint.Z cnw) (Hcnw31 : sint.Z cnw < 2 ^ 31)
     (Hcnops : 0 ≤ sint.Z cnops) (Hcmul : sint.Z cnw * sint.Z cnops < 2 ^ 62)
-    -- the program's metric names, addresses, data directories and environment
-    (HNs : prometheus.namesUnclaimed
-      (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅) etcdNames)
+    -- the program's addresses, data directories and environment
     (HAs : addrsUnclaimed (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
       (etcdAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
@@ -177,7 +175,7 @@ theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     Hlen₂ Hbf₂ k₃ hk₃1 hk₃ ids₃ ps₃ ctxs₃ boot₃ Hlen₃ Hbf₃ Hap k₄ hk₄1 hk₄ ids₄ ps₄ ctxs₄ boot₄
     Hlen₄ Hbf₄ lid₁ lid₂ lid₃ psL ctxsL bootL HbfL k₅ hk₅3 hk₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId
     ctxsR bootR HbfR Haf Hbuq Hrf Hdbo Hlp Hlne clients ops Hc0 Hc31 Hops Hmul steps₁ Hsteps₁ nw
-    nops Hnw0 Hnw31 Hnops Hnmul steps₂ Hsteps₂ cnw cnops Hcnw0 Hcnw31 Hcnops Hcmul HNs HAs HDs HEnv
+    nops Hnw0 Hnw31 Hnops Hnmul steps₂ Hsteps₂ cnw cnops Hcnw0 Hcnw31 Hcnops Hcmul HAs HDs HEnv
     n Hprem₁ HpremP HpremCW HpremC HpremK Hprem₂ Hprem₃ Hprem₄ HpremL Hprem₅ HpremR σ g Hg Hfs HWal
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
