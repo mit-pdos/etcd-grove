@@ -24,6 +24,9 @@ public import Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
 public import Proof.go_etcd_io.raft.v3.RawNodeStart
 public import Proof.go_etcd_io.raft.v3.RawNode__ReadyAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReadyAbs
+public import Proof.go_etcd_io.raft.v3.RawNode__StepAbs
+public import Proof.go_etcd_io.raft.v3.RawNode__TickAbs
+public import Proof.go_etcd_io.raft.v3.RawNode__ProposeAbs
 import all Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
@@ -490,6 +493,36 @@ theorem RawNode.HasReady.wp_apiProof
     (RawNode.HasReady.wp_absProof wp_SoftState_equal wp_IsEmptyHardState wp_isHardStateEqual
       wp_raftLog_hasNextUnstableSnapshot wp_raftLog_hasNextUnstableEnts
       wp_raftLog_hasNextCommittedEnts wp_raft_softState wp_raft_hardState)
+
+/-- **`RawNode.Step`, over `rawNode`** (`RawNode.Step.wp_absProof`'s hypotheses). -/
+theorem RawNode.Step.wp_apiProof
+    (wp_IsResponseMsg : IsResponseMsg.spec (GF := GF) (hG := hG))
+    (wp_IsLocalMsg : IsLocalMsg.spec (GF := GF) (hG := hG))
+    (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
+    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
+    (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
+    RawNode.Step.apiSpec (GF := GF) (hG := hG) :=
+  RawNode.Step.apiSpec_of_abs
+    (RawNode.Step.wp_absProof wp_IsResponseMsg wp_IsLocalMsg wp_IsLocalMsgTarget wp_raft_Step
+      wp_GetType wp_GetFrom)
+
+/-- **`RawNode.Tick`, over `rawNode`** (`RawNode.Tick.wp_absProof`'s hypotheses). -/
+theorem RawNode.Tick.wp_apiProof
+    (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
+    (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG)) :
+    RawNode.Tick.apiSpec (GF := GF) (hG := hG) :=
+  RawNode.Tick.apiSpec_of_abs (RawNode.Tick.wp_absProof wp_tickElection wp_tickHeartbeat)
+
+/-- **`RawNode.Propose`, over `rawNode`** (`RawNode.Propose.wp_absProof`'s hypotheses). -/
+theorem RawNode.Propose.wp_apiProof
+    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
+    RawNode.Propose.apiSpec (GF := GF) (hG := hG) :=
+  RawNode.Propose.apiSpec_of_abs (RawNode.Propose.wp_absProof wp_raft_Step wp_MessageType_Enum)
+
+-- `RawNode.Advance.wp_apiProof` (`apiSpec_of_abs (RawNode.Advance.wp_absProof …)`) goes here once
+-- `RawNode__AdvanceAbs.lean` is committed (in progress, #33 S4).
 
 end specs
 

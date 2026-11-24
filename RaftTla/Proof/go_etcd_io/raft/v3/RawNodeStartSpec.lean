@@ -121,6 +121,69 @@ abbrev votersConfState (vs : List w64) : ConfStateM := ConfStateM.mk vs [] [] []
 
 end api
 
+section mint
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+
+open Iris.ProofMode
+
+/-- (#33 S4, 2026-11-24) **A proposal's raft resources, minted** (the antithesis harness's
+`AntHarness.propMint.law`, word for word): for the client's update of the committed client log by
+the proposal's entry, the entry's data certificate (`propData`) and its ticket (`entTk`). An empty
+proposal is a filler (its certificate is `none`, its ticket `emp`); otherwise its key is registered
+(`api_key_register`), the update turned into the proposal's (`api_propAu1_if`) and deposited
+(`prop_deposit`), the deposit giving the ticket. -/
+theorem rawNode_prop_mint (γ : Cluster) (N : Namespace) (data : List w8) (E : CoPset)
+    (HE : ↑N ⊆ E) :
+    ⊢ isCluster (GF := GF) γ N -∗
+      □?γ.dup (AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, W32 0, data⟩]), COMM True }>) ={E}=∗
+      propData γ.raftNames (propEntryM data) ∗ entTk γ.raftNames (propEntryM data) := by
+  unfold Cluster.dup ownCommittedOps
+  iintro #Hcl Hau
+  unfold isCluster ApiImpl.isClusterU
+  icases Hcl with ⟨-, #Hci, -⟩
+  ihave #Hci' := Hci
+  iunfold ApiImpl.clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -⟩
+  unfold Cluster.raftNames
+  by_cases Hne : data = []
+  · iclear Hau
+    subst Hne
+    have Hf : Filler (propEntryM ([] : List w8)).Type' (propEntryM ([] : List w8)).Data' :=
+      ⟨rfl, Or.inl rfl⟩
+    imodintro
+    isplitr
+    · unfold propData
+      iexists none
+      unfold propDataIs
+      ipureintro; exact ⟨Hf, CCDecodes_normal _⟩
+    · unfold entTk
+      rw [if_pos Hf]
+      iempintro
+  have Hnf : ¬ Filler (W32 0) data := fun h => Hne h.1
+  have HrE : ↑(raftN γ.raft) ⊆ E := by
+    intro p hp; unfold raftN at hp; rw [HNs] at hp; exact ApiImpl.raftN_sub N HE p hp
+  imod ApiImpl.api_key_register γ N E HE (entKey (W32 0) data) $$ Hci with #Hpi
+  ihave Hau1 := ApiImpl.api_propAu1_if γ N (W32 0) data Hnf HNs $$ Hinv Hau
+  have Htk : entTk (GF := GF) γ.raft (propEntryM data) = propTk γ.raft (entKey (W32 0) data) := by
+    have Hnf' : ¬ Filler (propEntryM data).Type' (propEntryM data).Data' := Hnf
+    unfold entTk; rw [if_neg Hnf']; rfl
+  rw [Htk]
+  ihave #Hdep := propIs_deposited $$ Hpi
+  imod prop_deposit γ.raft E (entKey (W32 0) data) _ HrE $$ Hcinv Hpi Hau1 with Htk
+  imodintro
+  iframe Htk
+  unfold propData
+  iexists some (entKey (W32 0) data)
+  unfold propDataIs
+  isplitr
+  · ipureintro; exact ⟨rfl, Hnf, CCDecodes_normal _⟩
+  iexact Hdep
+
+end mint
+
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
