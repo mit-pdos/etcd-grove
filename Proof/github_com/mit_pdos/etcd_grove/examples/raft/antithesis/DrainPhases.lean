@@ -128,11 +128,12 @@ def DrainIter.rs₂ (I : DrainIter) : RNState :=
 
 /-- **An iteration's pure facts**: at the loop head the record against the view (`RsView`), nothing
 committed unreported, the `Ready`'s fields (`ReadyOut`, no snapshot), its queue the outbox's
-self-addressed messages, the boundary at the log's end; the drain's `by` one of the harness's. -/
+self-addressed messages, the boundary at the log's end; the drain's `by` one of the harness's; the
+state's numbers within the checker's bound (`StateNums`: the `apply` report's). -/
 def DrainIter.Ok (id : w64) (I : DrainIter) : Prop :=
   RsView I.rs I.v ∧ I.v.ce = [] ∧ ReadyOut id I.rs I.ps₁ I.h I.es I.ce I.ms I.ss none ∧
   I.qs ≡ₚ I.ps₁.outbox.filter (fun m => decide (m.dst = id)) ∧ I.ip = I.ps₁.log.length ∧
-  ByOk I.v.byE
+  ByOk I.v.byE ∧ AntSim.StateNums (2 ^ 61) I.ps₁
 
 end pure
 
@@ -160,11 +161,11 @@ def drainMid (cp np bp rdp c n : Loc) (γ : AntNames) (j : Fin 3) (I : DrainIter
       vv.byE = I.v.byE ∧ I.Ok (AntSim.nodeId j)⌝)
 
 /-- A `Ready` message's facts (`q`, read `m`): its reading, to another node, a voter, of the drain's
-shape (`ReadyMsgShape`), its numbers within the bound if not a proposal, its term within the
-ceiling. -/
+shape (`ReadyMsgShape`), its numbers within the bound (a forwarded proposal's too: its `send`
+report reads them), its term within the ceiling. -/
 def DrainMsgOk (id : w64) (tc : w64) (q : QMsg) (m : Msg) : Prop :=
   absMsgOf q.st = some m ∧ q.st.msg.To' ≠ id ∧ AntSim.ReadyMsgShape id m ∧
-  (m.ty ≠ .propose → AntSim.MsgNums (2 ^ 61) m) ∧ (∃ j : Fin 3, m.dst = AntSim.nodeId j) ∧
+  AntSim.MsgNums (2 ^ 61) m ∧ (∃ j : Fin 3, m.dst = AntSim.nodeId j) ∧
   uint.Z q.st.msg.Term' ≤ uint.Z tc
 
 /-- **The `Ready`'s messages** (`RawNode.Ready.form`'s post, after `Henter`): the slice, each
