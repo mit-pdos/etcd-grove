@@ -185,6 +185,9 @@ Off `premise-witness/2026-11-24` `b3ead60186` (lean `366ab8486d`), untrusted and
   `craq_remote_robust` and `gryff_remote_robust` (dsverify) with no witness: both added to the baseline as
   `pending` (their library hypothesis bundles `rs`/`H` are data binders that would have to be built or
   left out; their deployment part is witnessable as counter's). Baseline: 15 lines.
+  lean's `wal-safe-review` dropped `etcd_wal_safe`'s `Hopen`, `hf`, `hpaths`, `hfit` (checked in Go now):
+  the WalTester witness shrank to match. VM build of the merged tree (PremiseSat, FsStart,
+  WalAreasInitSat, all 28 TopLevelWitness modules): exit 0, 5565 jobs, no `sorry` (`b7.log`).
 - Pitfall: `omega` ignores atoms of type `Ino` (an abbrev of `Nat`): state arithmetic lemmas over `Nat`.
 - Pitfall: `Option.noConfusion h` no longer elaborates to `False` here (its type is `_ ≍ _ → …`):
   use `absurd h (by simp)`. `decide` refuses goals with free variables (the intro'd instances inside
