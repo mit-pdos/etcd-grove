@@ -189,25 +189,24 @@ abbrev log.Logs.MarshalJSON.spec : Prop :=
   {{ (b : GoSlice), RET (PairV #b #(interface.nil : GoInterface)); log.ownLogs sl dq es ∗
       b ↦* log.encLogs es ∗ ownSliceCap w8 b (DFrac.own 1) }}
 
-/-- `l.UnmarshalJSON(data)` (`l` a `*Logs`), on the codec's encoding of some entries `es` (their
-ids in `uint64`, their operations plain; codec-1, D5): `*l` becomes a fresh slice holding them
-(with its capacity), no error. The codec's facts it uses are premises (`hval`:
-`vsrnet.encLogs_valid`, `hdec`: `vsrnet.dec_logs`, at the kit's codec and scanner; codec-5,
-D5). -/
+/-- `l.UnmarshalJSON(data)` (`l` a `*Logs`; `json.Unmarshal(data, &logs)`, then `*l = logs`), on
+the encoding of some entries `es`, valid by `F`, with the registered codec's route at contract `J`
+(`codecRoute J F`: `Unmarshal` of a `*[]log.Log` goes to the codec) and `J`'s deposit for a nil
+`*[]Log` (`hdec`; for the kit: `decP`'s `[]Log` case at `codecPart vsrnet.jsonCodec`): `*l`
+becomes a fresh slice holding them (with its capacity), no error. Proved in
+`Proof/log/LogsJson.lean` over the main tree's `Unmarshal.spec` (round 9; it replaces the lab's
+form, whose `kitCodecOk F` premise was never discharged). -/
 abbrev log.Logs.UnmarshalJSON.spec : Prop :=
-  ∀ (F : List w8 → Bool → w64 × w64) (l : Loc) (sl0 : GoSlice) (data : GoSlice) (dq : DFrac)
-    (es : List VsrModel.Entry),
+  ∀ (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 → Bool → w64 × w64) (l : Loc)
+    (sl0 : GoSlice) (data : GoSlice) (dq : DFrac) (es : List VsrModel.Entry),
   models_lab.jsoncodec.jsonValid F (log.encLogs es) →
-  (∀ (p : Loc) (sl1 : GoSlice), sl1 = slice.nil →
-    (p ↦ sl1 : IProp GF) ⊢
-    models_lab.jsoncodec.JsonCodec.dec (log.encLogs es)
+  (∀ p : Loc, (p ↦ (slice.nil : GoSlice) : IProp GF) ⊢
+    J.dec (log.encLogs es)
       (interface.mkOk (go.GoType.PointerType (go.GoType.SliceType log.Log.ty)) #p)
       (fun ok => iprop(⌜ok = true⌝ ∗ ∃ sl : GoSlice, p ↦ sl ∗
         log.ownLogs sl (DFrac.own 1) es ∗ ownSliceCap log.Log sl (DFrac.own 1)))) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.log ∗
-      encoding.json.codecSet (GF := GF) ∗ encoding.json.kitCodecOk F ∗
-      l ↦ sl0 ∗ data ↦*{dq} log.encLogs es ∗
-      ⌜∀ e ∈ es, e.cid < 2 ^ 64 ∧ e.req < 2 ^ 64 ∧ VsrModel.PlainStr e.op⌝ }}
+      encoding.json.codecRoute J F ∗ l ↦ sl0 ∗ data ↦*{dq} log.encLogs es }}
     (App (Val (l @!! go.GoType.PointerType log.Logs.ty @!! go!"UnmarshalJSON")) (Val #data))
   {{ RET #(interface.nil : GoInterface); ∃ sl : GoSlice, l ↦ sl ∗
       log.ownLogs sl (DFrac.own 1) es ∗ ownSliceCap log.Log sl (DFrac.own 1) ∗
