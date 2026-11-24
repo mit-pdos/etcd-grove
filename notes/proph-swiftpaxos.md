@@ -185,3 +185,29 @@ must be empty. Builds: `/shared/tmp/fklean1-check.sh /shared/etcd-grove-prophswi
 - Next: GhostSteps/GhostSteps2 rewrite (`swift.resolveUpd`, `swift.wp_resolveStep` taking the string `s` and
   `hs : s = strW (encP e)`, then `wp_resolveX` per helper); then boot (client and swift init orders changed:
   `GlobalAlloc nodeProph` first, primitive's init moved, `init.0` = NewProph + store).
+
+### 2026-11-24 ~02:10Z
+- **Proved** (each checked on fk-lean1): swift `wp_resolveStep` (a replica's resolution from a site's
+  `swift.resolveUpd`, the string `s` with `hs : s = strW (encP e)` left as a pure goal: `iapply (... ?hs)`,
+  `case hs => simp [...]`), `wp_resolveAccept/NewBallot/TakeSync/Commit/Handle/Preaccept` (GhostSteps.lean),
+  `wp_resolveComputeSync` (GhostSteps2.lean). Recipe: `wp_start`, unfold `nodeGhostOk`/`nodeGhostB`,
+  `simp only [client.nodeVar]`, `wp_auto`, `simp only [sp.strW1_eval]`, name the prefix `S0` (`obtain`), the
+  loop invariant `s_ptr ↦ S0 ++ strW (prefix of the words)`, then at the exit `wp_method_call; wp_auto;
+  wp_method_call; wp_auto; wp_bind (ResolveProph _ _)`. A slice element's fields (`dep[j].ClientId`): the
+  slice persistent, `ownSlice_elem_acc` + `iStructNamed`, `wp_auto`, `simp only [bounds]`, `wp_auto`.
+  `wp_resolvePreaccept` now takes `dsl ↦*□ D` (its site passed `DFrac.discard`).
+- **`swift.wp_resolveReport`: stated, proof `sorry` (TODO)** — the one remaining proof of the resolvers:
+  the old `wp_ghostReport`'s loop (git show HEAD~8:…/GhostSteps2.lean) over the entries, building the string;
+  inner loops over a command's value bytes and the entry's dependencies; fields of `ids[i]`, `cm[i]`, `dp[i]`
+  as in Preaccept.
+- The swift sites and step lemmas at the mask build (HandleProposalProof, NewLeaderProof, NewLeaderAckNs,
+  HandleSyncProof, FastAck, AcksHandler, FillAckN, HandleProposeProof, HandleSyncEntry, NewLeaderDesc: exit 0).
+- Boot edited (BootLinked: client's `nodeProph` alloc, primitive's init after replica.defs, `init.0`'s
+  `NewProph`; swift's `nodeProph` alloc, primitive's init after cmap, `NewProph` in the initializers' loop;
+  `bootRes` gains `client.prophFresh swift.nodeProph`; ServeDefs/ServeProof: replicas claim
+  `client.freshOf (rep (i-1))`; ClientMachine converts `ghostFresh` to `freshOf (cl c)`; TopLevelRobustness's
+  `bootRes_client`/`bootRes_server` proofs). Building TopLevelRobustness: see below.
+- The probe `Dsverify/Scratch/ProphProbe.lean` is dropped; tier-check ok (227 known); proph_patch and
+  prophcheck ok; goose --check ok; gen-init/copy-part need `PERENNIAL_DIR=/shared/perennial-resolve-any`.
+- The statement: `git diff $(git merge-base HEAD origin/lean) HEAD -- Dsverify/Spec/.../swiftnet/TopLevelRobustness.lean`
+  is empty (against today's origin/lean only the docstring differs: lean moved on, gods-verified).
