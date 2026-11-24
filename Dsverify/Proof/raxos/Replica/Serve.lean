@@ -268,15 +268,15 @@ theorem wp_serve (γ : QNames) (k : Nat) (r gc : Loc) :
   · isplitr
     · ipureintro; exact recLis_listenOk k Hk
     iapply listen_lis_au $$ Hlp
-  icases Hres with (⟨%Herr, %l, #Hli, Hl, Hon⟩ | ⟨%x, -, Herr⟩)
+  icases Hres with (⟨%Herr, %l, #Hli, Hl, Hon⟩ | ⟨%x, %ex, -, Herr, -⟩)
   · subst Herr
     wp_auto
     wp_apply gh.Serve s γs (world γ) (recAddr k) (recLis k) _ li l
       $$ [$Hsrv $Hown $Hli $Hl $Hon $Hlp $Hw] as %e -
     wp_for_post
     iframe
-  · ihave %Hne := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
-    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+  · ihave %Hne := net.opErr_netErr _ _ _ _ _ $$ Herr
+    obtain ⟨pe, rfl⟩ := Hne
     wp_auto
     wp_apply time.wp_Sleep
     wp_for_post

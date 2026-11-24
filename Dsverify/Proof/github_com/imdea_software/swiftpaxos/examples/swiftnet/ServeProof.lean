@@ -474,10 +474,10 @@ theorem serve.wp_proof (D : SwNetDeps (hG := hG)) (γ : SwiftNames netDistGF) (i
         · ipureintro; exact Hlok
         iapply RpcHttpAddr.rpcLisP_lis
         iexact Hrl
-      icases Hl with (⟨%He, %l, #Hli, Hnl, #Hon⟩ | ⟨%x, -, #Hre⟩)
+      icases Hl with (⟨%He, %l, #Hli, Hnl, #Hon⟩ | ⟨%x, %ex, -, #Hre, -⟩)
       rotate_left
-      · ihave %Hne := net.resErr_netErr $$ Hre
-        have hne := net.netErr_ne_nil (Hne.2 (by simp))
+      · ihave %Hne := net.opErr_netErr _ _ _ _ _ $$ Hre
+        have hne := net.netErr_ne_nil Hne
         rcases lerr with ei | _
         · wp_auto
           wp_for

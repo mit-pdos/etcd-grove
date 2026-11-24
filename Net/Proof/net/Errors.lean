@@ -1,8 +1,8 @@
 /-
 The trusted models' error and address helpers (`Net/TrustedCode/net.lean`: `model.opError`,
-`model.kindErr`, `model.sysErr`, `model.anyTCPAddr`), as WP lemmas the proofs of `net`'s specs use:
+`model.kindErr`, `model.sysErr`, `model.epollErr`, `model.anyTCPAddr`), as WP lemmas the proofs of `net`'s specs use:
 each gives the error's or the address's predicate of `Base.lean` (`opErr`, `kindErr`, `sysErr`,
-`netAddr`). And `(*OpError).Error()` (`OpError.Error.impl`): a message of Go's form, its
+`epollErr`, `netAddr`). And `(*OpError).Error()` (`OpError.Error.impl`): a message of Go's form, its
 operation, then `": "` (`opErrMsg`, `wp_OpError_Error`).
 -/
 module
@@ -102,6 +102,25 @@ theorem wp_kindErr (k : NetErr) (ed : Option GoInterface) (name : GoString)
     iapply HΦ
     unfold kindErr
     iexact He
+
+/-- The bare `Errno` of a failed poller registration (`model.epollErr`): `ENOMEM` or `ENOSPC`. -/
+theorem wp_epollErr (Φ : val → IProp GF) :
+    (∀ e, ⌜epollErr e⌝ -∗ Φ #e) -∗
+    WP (App (Val model.epollErr) (Val #())) {{ Φ }} := by
+  iintro HΦ
+  unfold model.epollErr
+  rw [Errno_ty_eq]
+  (try wp_auto)
+  wp_bind (ExternalOp _ _ _)
+  iapply wp_net_AnyBool
+  iintro %b
+  cases b
+  · wp_auto
+    iapply HΦ
+    ipureintro; exact .inr rfl
+  · wp_auto
+    iapply HΦ
+    ipureintro; exact .inl rfl
 
 theorem wp_anyTCPAddr (Φ : val → IProp GF) :
     (∀ x, netAddr (GF := GF) x -∗ Φ #x) -∗

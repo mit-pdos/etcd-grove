@@ -214,7 +214,7 @@ theorem net.Listen.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps G
     · ipureintro; exact Hok
     iapply listen_lis_au la P Q $$ Hlp
   iintro !> %lv %er Hres
-  icases Hres with (⟨%Her, %l, #Hli, Hnl, #Hon⟩ | ⟨%x, -, #Herr⟩)
+  icases Hres with (⟨%Her, %l, #Hli, Hnl, #Hon⟩ | ⟨%x, %ex, -, #Herr, -⟩)
   · subst Her
     imod lisInv_alloc ⊤ _ l la true $$ Hnl with #Hinv
     imodintro
@@ -228,8 +228,8 @@ theorem net.Listen.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps G
     unfold net.ownListener
     iexists x
     iframe Hat Hon Hinv
-  · ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
-    obtain ⟨pe, rfl⟩ := Hn.2 (by simp)
+  · ihave %Hn := net.opErr_netErr _ _ _ _ _ $$ Herr
+    obtain ⟨pe, rfl⟩ := Hn
     imodintro
     iapply HΦ
     iright
@@ -254,7 +254,7 @@ theorem net.Listen.labProofU [github_com.imdea_software.swiftpaxos.SwiftNetDeps 
     · ipureintro; exact hok
     iexact Hu
   iintro !> %lv %er Hres
-  icases Hres with (⟨%Her, %l, #Hli, Hnl, #Hon⟩ | ⟨%x, -, #Herr⟩)
+  icases Hres with (⟨%Her, %l, #Hli, Hnl, #Hon⟩ | ⟨%x, %ex, -, #Herr, -⟩)
   · subst Her
     imod lisInv_alloc ⊤ _ l la true $$ Hnl with #Hinv
     imodintro
@@ -268,8 +268,8 @@ theorem net.Listen.labProofU [github_com.imdea_software.swiftpaxos.SwiftNetDeps 
     unfold net.ownListener
     iexists x
     iframe Hat Hon Hinv
-  · ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
-    obtain ⟨pe, rfl⟩ := Hn.2 (by simp)
+  · ihave %Hn := net.opErr_netErr _ _ _ _ _ $$ Herr
+    obtain ⟨pe, rfl⟩ := Hn
     imodintro
     iapply HΦ
     iright

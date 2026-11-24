@@ -61,9 +61,11 @@ strings); `Timeout()` and `Temporary()` are `false` for
 `errNetClosing` (its methods), `true` for `*DeadlineExceededError` and `*timeoutError` (theirs),
 and arbitrary otherwise: an `Errno`'s are `true` for `ETIMEDOUT`, `EAGAIN` (and `Temporary` for
 `EINTR`, `EMFILE`, `ENFILE`, and in `Accept` `ECONNRESET`, `ECONNABORTED`: `isConnError`), which a
-`sys` error may be (`syscall_unix.go`, `net.go`). The bare `Errno` that `Accept` and `Dial` return
-when registering a new socket with the poller fails (`ENOMEM`, `ENOSPC` of `epoll_ctl`) is not
-modeled (D12).
+`sys` error may be (`syscall_unix.go`, `net.go`). When registering a new socket with the poller
+fails (`ENOMEM`, `ENOSPC` of `epoll_ctl(2)`), Go returns that `syscall.Errno` bare, not wrapped in an
+`*os.SyscallError` (`fd.init()`'s error, `internal/poll/fd_poll_runtime.go`'s `pollDesc.init`):
+`Listen`'s model returns it too (`model.epollErr`, D6: `listenStream`, `sock_posix.go`); `Accept`'s
+and `Dial`'s do not (D12).
 
 **Faithfulness.** Each model is the Go function with its system calls replaced by the extension's
 operations (`Impl.lean` says why each operation's outcomes are those of Linux). Go's `Read` loops
@@ -282,6 +284,19 @@ or `l.ok()` fails: `net.go`, `tcpsock.go`; `TestZeroValues`). -/
 noncomputable def model.einval : val :=
   λ: <>, Convert model.Errno go.error #(W64 22)
 
+/-- `syscall.ENOMEM` (`Errno(0xc)`) or `syscall.ENOSPC` (`Errno(0x1c)`, `zerrors_linux_amd64.go`) as
+an `error`, bare, the kernel's choice: what Go returns when registering a new socket with the poller
+fails (D6, D12). `pollDesc.init` (`internal/poll/fd_poll_runtime.go`) returns
+`errnoErr(syscall.Errno(errno))` of `runtime_pollOpen`, whose `errno` is `epoll_ctl(2)`'s
+(`EPOLL_CTL_ADD`, `runtime/netpoll_epoll.go`'s `netpollopen`), and `errnoErr` leaves these two as
+they are (`errno_unix.go`). On a socket just made, `epoll_ctl` fails only `ENOSPC` (the user's
+`fs.epoll.max_user_watches` reached) or `ENOMEM` (an allocation failed): Linux's `do_epoll_ctl`
+and `ep_insert` (`fs/eventpoll.c`); its other errors are for an fd that is bad, already registered,
+an epoll fd, or not pollable (`TestListenEpollErrno`). -/
+noncomputable def model.epollErr : val :=
+  λ: <>, if: ExternalOp Net.netExt.name "AnyBool" #() then Convert model.Errno go.error #(W64 12)
+    else Convert model.Errno go.error #(W64 28)
+
 /-- The `Err` of a failure of the kind with code `code` (`Net.NetErr.code`), `name` the system
 call's for a `sys` failure. -/
 noncomputable def model.kindErr : val :=
@@ -341,8 +356,11 @@ the zero `ListenConfig`, which for `"tcp"` resolves the address, then `socket(2)
 (`SO_REUSEADDR`), `bind(2)` and `listen(2)`: the extension's `Listen` of the address (a panic unless
 it is valid, `addrOk`, or a wildcard of D21, `listenOk`). A
 `*TCPListener` with a new address and the network (`"tcp"` or `"tcp4"`, D23) as a `Listener`; an
-error is `&OpError{Op: "listen", Net: network, Addr: <the resolved address>, ...}` with a nil
-`Listener`. -/
+error is `&OpError{Op: "listen", Net: network, Addr: <the resolved address>, Err: e}` with a nil
+`Listener`, `e` the system call's error (an `*os.SyscallError`, the failing call's name arbitrary:
+`"socket"`, `"setsockopt"`, `"bind"`, `"listen"`) or a bare `ENOMEM`/`ENOSPC` (`model.epollErr`):
+`listenStream` (`sock_posix.go`) returns `fd.init()`'s error unwrapped, the poller's registration
+of the listening socket (D6). -/
 noncomputable def Listen.impl : val :=
   λ: "network" "address",
     if: model.netOk "network" then
@@ -355,7 +373,8 @@ noncomputable def Listen.impl : val :=
         (Convert (go.PointerType model.TCPListener) model.Listener "l", #GoInterface.nil)
       else (GoZeroVal model.Listener #(), model.opError #(go!"listen") "network" #GoInterface.nil
         (model.anyTCPAddr #())
-        (model.kindErr (Snd "r") (ExternalOp Net.netExt.name "AnyString" #())))
+        (if: ExternalOp Net.netExt.name "AnyBool" #() then model.epollErr #()
+         else model.kindErr (Snd "r") (ExternalOp Net.netExt.name "AnyString" #())))
     else Panic "net: Listen of a network but tcp and tcp4 not modelled"
 
 /-- `Dial(network, address string) (Conn, error)` (`dial.go`): `Dialer.Dial` with the zero

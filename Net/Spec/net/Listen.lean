@@ -10,8 +10,9 @@ in an invariant; a proof that only one node's invariant holds them shows that no
 listens at those addresses), through `Listen.impl` (`Net/TrustedCode/net.lean`): the extension's
 `Listen`. A new open listener `l` at `a`, as a `Listener` (`isListener`, the node's
 `netLis l a true`, and `netLisOn l a`, persistent, which `Accept` and `Close` need), or the
-`*OpError{Op: "listen", Source: nil, Addr: x}`, `x` a `*TCPAddr`, whose `Err` is an
-`*os.SyscallError` (`resErr`, D14). Proved in `Net/Proof/net/Listen.lean`. Its instance at a valid
+`*OpError{Op: "listen", Source: nil, Addr: x}` (`opErr`), `x` a `*TCPAddr`, whose `Err` is an
+`*os.SyscallError` (`sysErr`, D14) or a bare `syscall.Errno`, `ENOMEM` or `ENOSPC` (`epollErr`, D6:
+Go returns the poller registration's error unwrapped). Proved in `Net/Proof/net/Listen.lean`. Its instance at a valid
 address, with `a`'s token and `netLisAt`, is `Listen.spec_addrOk` (`Net/Proof/net/AtAddr.lean`).
 
 The network `nw` is `"tcp"` or `"tcp4"` (`tcpNet`, D23): the same on the valid IPv4
@@ -47,7 +48,8 @@ abbrev Listen.spec : Prop :=
   {{ (li : GoInterface) (err : GoInterface), RET (PairV #li #err);
       (⌜err = interface.nil⌝ ∗ ∃ l, isListener li l ∗ netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
         netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l a) ∨
-      (∃ x, netAddr x ∗ resErr (some .sys) go!"listen" interface.nil x none (fun _ => True) err) }}
+      (∃ x e, netAddr x ∗ opErr go!"listen" interface.nil x e err ∗
+        (sysErr (fun _ => True) e ∨ ⌜epollErr e⌝)) }}
 
 end spec
 

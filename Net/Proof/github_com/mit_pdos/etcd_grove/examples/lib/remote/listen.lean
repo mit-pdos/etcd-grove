@@ -2,7 +2,7 @@
 The proof of `listen` (`Net/Spec/.../lib/remote/listen.lean`): `net.Listen` at `a` (its update
 `listen_au`, and `a`'s validity `addrTok_ok`, from `a`'s protocols `svcAddr`), retried after a
 `time.Sleep` while it fails; the loop's invariant: the last `Listen`'s results, a listener or an
-error (non-nil, `net.resErr_netErr`).
+error (non-nil, `net.opErr_netErr`).
 -/
 module
 
@@ -53,13 +53,13 @@ theorem listen.wp_proof
       $$ [l err HL]
   · iexists li, err
     iframe l err
-    icases HL with (⟨%He, Hl⟩ | ⟨%x, -, #HE⟩)
+    icases HL with (⟨%He, Hl⟩ | ⟨%x, %ex, -, #HE, -⟩)
     · ileft
       iframe Hl
       ipureintro; exact He
     · iright
-      icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+      icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe, rfl⟩ := Hne
       iexists pe
       ipureintro; rfl
   wp_for HI
@@ -84,13 +84,13 @@ theorem listen.wp_proof
     iframe
     iexists li', err'
     iframe Hl Herr
-    icases HL with (⟨%He', Hli⟩ | ⟨%x, -, #HE⟩)
+    icases HL with (⟨%He', Hli⟩ | ⟨%x, %ex, -, #HE, -⟩)
     · ileft
       iframe Hli
       ipureintro; exact He'
     · iright
-      icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-      obtain ⟨pe', rfl⟩ := Hne.2 (by simp)
+      icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe', rfl⟩ := Hne
       iexists pe'
       ipureintro; rfl
 

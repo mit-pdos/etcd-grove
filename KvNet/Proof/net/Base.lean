@@ -157,6 +157,12 @@ instance sysErr_persistent (nm : GoString → Prop) (e : GoInterface) :
     Persistent (sysErr (GF := GF) nm e) := by
   unfold sysErr; infer_instance
 
+/-- `e` is the bare `syscall.Errno` (as an `error`, not in an `*os.SyscallError`) of a failed
+registration of a new socket with the poller (D6, D12; `model.epollErr`): `ENOMEM` (12) or `ENOSPC`
+(28) of `epoll_ctl(2)`. A failed `Listen`'s `Err` may be one. -/
+def epollErr (e : GoInterface) : Prop :=
+  e = interface.mkOk syscall.Errno.ty #(W64 12) ∨ e = interface.mkOk syscall.Errno.ty #(W64 28)
+
 /-- `e` is the `Err` of a failure of kind `k`: `poll.ErrNetClosing` (`closed`), the value of
 `poll.ErrDeadlineExceeded` (`timeout`; `ed`, for an operation that may time out, else no timeout),
 an `*os.SyscallError` (`sys`, named as `nm` allows). -/

@@ -1047,3 +1047,79 @@ listener; a crash of the listener and its restart (pending connections kept); IP
 addresses, hostnames and non-canonical ports (not valid: a panic the proofs rule out); TIME_WAIT
 on restart; self-connect and this machine's `ip_local_port_range` (32768-60999); `Accept`'s order;
 D16's abandoned dials; the D22 rows; the initial states.
+
+## v3.6 (2026-11-24): `Listen`'s bare `Errno`
+
+**The finding** (another session, checked against Go 1.27.3): `net.Listen` can fail with an
+`*OpError` whose `Err` is a bare `syscall.Errno`, which v3.5's model (`Listen.impl`: always
+`model.kindErr` of `sys`, an `*os.SyscallError`) and `Listen.spec` (`resErr (some .sys)`) excluded.
+Go's path: `listenStream` (`net/sock_posix.go:170`) does `if err = fd.init(); err != nil { return
+err }`, unwrapped, where `setsockopt` (`sockopt_linux.go:28`), `bind` (`:165`) and `listen` (`:168`)
+are wrapped by `os.NewSyscallError`; `fd.init` is `poll.FD.Init` -> `pollDesc.init`
+(`internal/poll/fd_poll_runtime.go:38`), `errnoErr(syscall.Errno(errno))` of `runtime_pollOpen`,
+whose errno is `epoll_ctl(EPOLL_CTL_ADD)`'s (`runtime/netpoll_epoll.go:64`, `netpollopen`). The
+`*OpError` wrapping is `ListenConfig.Listen`'s (`dial.go:903`). D12 listed this outcome as not
+modeled only "in `Accept` or `Dial`", so its exclusion at `Listen` was undocumented. A program that
+panics when `Listen`'s `Err` is not an `*os.SyscallError` had a no-panic proof from `Listen.spec`'s
+`sysErr` (a refutation in the sense of this file's opening, when the kernel gives the error).
+
+**The change** (branch `net-listen-errno`; trusted: `Net/TrustedCode/net.lean`'s `Listen.impl` and
+the new `model.epollErr`, `Impl.lean`'s header, D6, D12): after the extension's `Listen` fails (a
+`sys` step, which leaves the node's listeners unchanged), the model chooses (`AnyBool`) the old
+`Err` or `model.epollErr`, a bare `Errno` `ENOMEM` (12) or `ENOSPC` (28), again by `AnyBool`.
+`Listen.spec`'s failure is now `∃ x e, netAddr x ∗ opErr "listen" nil x e err ∗ (sysErr _ e ∨
+⌜epollErr e⌝)` (the form of `DialTimeout.spec`), `epollErr` in `Net/Proof/net/Base.lean`.
+Evidence: `examples/net/semantics/listen_epoll_test.go`, `TestListenEpollErrno`, measured (Go 1.27.3,
+Linux 7.0.0-1014-aws): a child process fails `epoll_ctl(EPOLL_CTL_ADD)` with `ENOSPC`, then
+`ENOMEM`, by an unprivileged seccomp filter installed after the poller's initialization, and
+`net.Listen("tcp", "127.0.0.1:0")` returns `*net.OpError{Op: "listen", Net: "tcp", Addr:
+*net.TCPAddr, Err: syscall.Errno(28 | 12)}`, no `*os.SyscallError` in the chain, a nil listener, and
+no socket left open. The kernel's own errnos are documented, not measured (lowering
+`fs.epoll.max_user_watches` needs root and is system-wide: not done).
+
+**Review** (by the author, as a fresh reader, with the `axiom` skill's checks):
+
+* *No behaviour removed.* Every v3.5 execution of `Listen.impl` is a v3.6 execution with one more
+  step (`AnyBool` returning `false`) before the same `AnyString`, `AnyErrno`, allocations and
+  `anyTCPAddr`: the same result, the same heap. The extension's relations (`ListenStep`, D6) are
+  unchanged, so no step of any other operation changes. The `Robust` statements count steps under a
+  bound they quantify over; one more step per failed `Listen` excludes no execution of a theorem.
+* *No new way to prove `False`.* No axiom, no premise and no ghost update is added: `model.epollErr`
+  is a closed expression whose steps (`AnyBool`, two `Convert`s of constants) always reduce, and
+  `epollErr` is a pure predicate of a value, constructible (`wp_epollErr`). `Listen.spec` only got
+  weaker (a disjunct in a failure post), and `Listen.wp_proof` is proved (`Net/Proof/net/Listen.lean`,
+  both branches). No law of a sealed predicate mentions `Listen`'s `Err`.
+* *Is the errno set too narrow?* The model claims a failed registration gives only `ENOMEM` or
+  `ENOSPC`. Linux `do_epoll_ctl`/`ep_insert` (`fs/eventpoll.c`) for `EPOLL_CTL_ADD` of a socket just
+  made by `socket(2)`: `EFAULT` (Go passes a stack event), `EBADF` (the fd and the epoll fd are
+  open: only another goroutine's raw `syscall.Close` of a guessed fd could close them, which no
+  modeled program does), `EPERM` (sockets implement `poll`), `EINVAL`/`ELOOP` (the target is no
+  epoll fd; Go's epoll fd is in no other epoll set, so no full loop check), `EEXIST` (a new file is
+  in no set), `EINTR` (`mutex_lock_killable`: only under a fatal signal, the process then dies before
+  `Listen` returns): none applies; `ENOSPC` (`max_user_watches`) and `ENOMEM` (the epitem, the
+  wait-queue entry, the file's epitems head) do. `errnoErr` maps only `EAGAIN`, `EINVAL`, `ENOENT`
+  (to equal `Errno` values), so the two reach `Listen` as they are. No LSM hook is on this path in the
+  target configuration (Linux 7.0, default config); a seccomp filter of the deployment's own (as the
+  test's) is outside it. Accepted as documented.
+* *Is the state right?* Go closes the socket after the failure (`socket`'s `fd.Close()`,
+  `sock_posix.go`), measured (no socket left), as the `sys` step leaves the node's listeners. MPTCP
+  first (`listenMPTCP`): its failure, this one included, falls back to plain TCP, whose result Go
+  returns: success (a transient `ENOMEM`), which D6 allows, or a failure of the same shapes. Between
+  `listen(2)` and the close, a peer's `Dial` may complete a handshake and then be reset: a `Dial`
+  success and a later cut, which D7, D8 and D1 allow.
+* *The other consumers of the error.* `OpError.Timeout`/`Temporary` of a bare `Errno` (Go:
+  `Errno.Timeout()`, false for both errnos) are `model.errFlag`'s `AnyBool` (arbitrary: more);
+  `Unwrap` returns `Err` whatever it is; `Error()` is arbitrary strings. Every caller of `Listen.spec`
+  used only that a failure's `err` is a non-nil `*OpError` (`opErr_netErr`), which still holds.
+
+**Remaining (not changed here; recommended).** The same unwrapped `fd.init()` error reaches
+`Accept` (`netFD.accept`, `fd_unix.go`: `if err = netfd.init(); err != nil { netfd.Close(); return
+nil, err }`, then `&OpError{Op: "accept", ...}`) and `Dial` (`netFD.connect`, `fd_unix.go`: `if err := fd.pfd.Init(fd.net, true); err != nil {
+return nil, err }`, after `connect(2)`). D12 lists them as not modeled, so they are documented gaps, but gaps of
+the same kind: `Listener.Accept.spec` and `Dial.spec` promise `kindErr`'s `*os.SyscallError` for a
+`sys` failure, so a program panicking on a bare `Errno` from them would have a proof while Go, out of
+epoll watches, panics. The fix is this one's, at `TCPListener.Accept.impl`, `Dial.impl` and
+`DialTimeout.impl`, with `epollErr` in their specs.
+
+**Verdict:** the change is sound (only adds executions; nothing new to derive `False` from); the
+`Accept`/`Dial` instances of the same gap remain, documented in D12.

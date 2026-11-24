@@ -103,7 +103,7 @@ theorem waitForConnections_of [hp : hyp.PrintlnHyp GF]
   · isplitr
     · ipureintro; exact proxyLis_listenOk k Hk
     iapply listen_lis_au $$ Hpp
-  icases Hres with (⟨%Herr, %l, #Hli, Hl, #Hon⟩ | ⟨%x, -, #Herr⟩)
+  icases Hres with (⟨%Herr, %l, #Hli, Hl, #Hon⟩ | ⟨%x, %ex, -, #Herr, -⟩)
   · subst Herr
     imod net_claim γ k pr rm $$ Hninv Htok with Hown
     iunfold netOwn at Hown
@@ -268,8 +268,8 @@ theorem waitForConnections_of [hp : hyp.PrintlnHyp GF]
       iexists _, _
       iframe
       ipureintro; exact Hxs
-  · ihave %Hne := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
-    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+  · ihave %Hne := net.opErr_netErr _ _ _ _ _ $$ Herr
+    obtain ⟨pe, rfl⟩ := Hne
     wp_auto
     wp_apply time.wp_Sleep
     wp_for_post

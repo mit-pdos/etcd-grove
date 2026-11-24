@@ -8,9 +8,9 @@ example measured on Linux in `examples/net/semantics/` (its `doc.go` indexes the
 relations allow or exclude what the Go example shows; `notes/net-tcp.md` gives the reasons
 (`notes/net-tcp-v3-plan.md` for v3, D14-D21; `notes/dsverify-net-port-plan.md`, phase 2, for v3.3,
 D23-D25; `notes/net-tcp.md`, v3.4, for the network without a plan; `notes/net-sticky-read.md`
-for v3.5).
+for v3.5; `notes/axiom-review/tcp-semantics.md`, 2026-11-24, for v3.6).
 
-**Version v3.5** (2026-11-23). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
+**Version v3.6** (2026-11-24). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
 v2 (observable state only: the unread bytes and a status), v2.1 (a failing `Write` may write
 nothing; id 0 names nothing; the deployment, D13), v3 (Go's error values and D14-D21), v3.1 (a
 `Write` is Go's loop of steps, D2/D15: v3's one-step `Write` could time out only with a deadline set
@@ -22,7 +22,10 @@ v3.4 (no plan and no hosts: any machine may listen at any valid address, D6, D13
 adds behaviours, each starting from a step that was a panic: `notes/net-tcp.md`, v3.4), v3.5 (a
 `sys` read error only once nothing is unread, D1: before it a read could fail `ECONNRESET` and a
 later read return bytes, which Linux never does; it only removes behaviours, those in which a `sys`
-read error came with a byte unread: `notes/net-sticky-read.md`).
+read error came with a byte unread: `notes/net-sticky-read.md`), v3.6 (a failed `Listen`'s `Err`
+may be a bare `ENOMEM` or `ENOSPC`, D6, D12: Go returns the poller registration's `Errno`
+unwrapped, which v3.5's model, always an `*os.SyscallError`, excluded; it only adds behaviours,
+each a failing `Listen` whose `Err` is one of the two `Errno`s instead of a `*os.SyscallError`).
 
 **State: only what a program can observe.** The global state (`NetGlobal`) is the connections.
 A connection (`NetConn`) has the address it was dialed to, whether it has been accepted, two ends
@@ -119,6 +122,12 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
   (`listenOk`: `addrOk`, D20, or a wildcard with a valid port, D21). A new open listener at `a`; or
   a `sys` failure (`EADDRINUSE`; `EADDRNOTAVAIL`, an address that is not this machine's), which is
   the only outcome if this node (a process: its `NetLocal`) already has an open listener at `a`.
+  A failure's `Err` (the trusted `Listen.impl`, `Net/TrustedCode/net.lean`) is an `*os.SyscallError`
+  (`socket`, `setsockopt`, `bind`, `listen`) or, v3.6, a bare `syscall.Errno`, `ENOMEM` or `ENOSPC`
+  (`model.epollErr`), either at the model's choice: Go's `listenStream` (`net/sock_posix.go`)
+  returns `fd.init()`'s error unwrapped, `epoll_ctl(2)`'s registration of the listening socket
+  failing (the user's `fs.epoll.max_user_watches` reached, or an allocation), after which Go closes
+  the socket: no listener, as the `sys` step leaves it (`TestListenEpollErrno`).
   Any node may listen at any valid address: the model does not know which machine owns an address (v3.4; the soundness
   argument is `notes/net-tcp.md`'s: a `Listen` the kernel refuses is a failure the model allows,
   and a connection the kernel delivers reaches a listener at its address on its owner, which the
@@ -176,7 +185,9 @@ goroutines blocked on one socket can panic in Go where the model says it cannot.
 
 **What is not modeled** (D12). Memory exhaustion in the kernel (`ENOMEM`/`ENOBUFS`: a failure of a
 live connection that is not a cut, and the bare `Errno` of a failed `epoll_ctl` registration in
-`Accept` or `Dial`), as the file extensions' allocation failures. Addresses are the valid strings
+`Accept` or `Dial`), as the file extensions' allocation failures. (`Listen`'s bare `Errno` of a
+failed registration, `ENOMEM` or `ENOSPC`, is modeled since v3.6, D6: until then this list did not
+name `Listen`, and its model excluded the outcome without saying so.) Addresses are the valid strings
 (D20) and the wildcards of D21, compared as strings; `Listen` or `Dial` of any other string panics
 (D22).
 Port `0`, TLS, UDP, Unix sockets, the deadlines' values, the keepalive probes' timing (D24: their

@@ -747,10 +747,10 @@ theorem awaitConf.wp_proof (D : KitNetDeps (GF := GF)) : awaitConf.spec (GF := G
         ∃ i, ⌜err = interface.ok i⌝) : IProp GF) $$ [l err Hres]
   · iexists lv, err
     iframe
-    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, %ex, -, #HE, -⟩)
     · ileft; iframe %He; iexists l; unfold ownListener; iframe Hl Hlis Hla
-    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+    · icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe, rfl⟩ := Hne
       iright; iexists _; ipureintro; rfl
   wp_for HI
   icases Hres with (⟨%Heq, %l, Hl⟩ | ⟨%i, %Hne⟩)
@@ -898,10 +898,10 @@ theorem awaitConf.wp_proof (D : KitNetDeps (GF := GF)) : awaitConf.spec (GF := G
     iframe
     iexists lv', err'
     iframe
-    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, %ex, -, #HE, -⟩)
     · ileft; iframe %He; iexists l; unfold ownListener; iframe Hl Hlis Hla
-    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne'
-      obtain ⟨pe, rfl⟩ := Hne'.2 (by simp)
+    · icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne'
+      obtain ⟨pe, rfl⟩ := Hne'
       iright; iexists _; ipureintro; rfl
 
 set_option goose.wp.extras true in

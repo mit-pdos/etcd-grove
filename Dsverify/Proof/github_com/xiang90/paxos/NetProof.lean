@@ -791,7 +791,7 @@ theorem tcpNode.serve.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG
   · wp_apply wp_Listen go!"tcp" net.tcpNet_tcp a as %lv %err Hres
     · iframe %Hok
       iapply listen_au $$ Hp
-    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, %ex, -, #HE, -⟩)
     · subst He
       wp_auto
       wp_apply wp_fork $$ [Hlis]
@@ -801,8 +801,8 @@ theorem tcpNode.serve.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG
       wp_for_post
       iapply HΦ
       itrivial
-    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+    · icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe, rfl⟩ := Hne
       wp_auto
       wp_apply time.wp_Sleep
       wp_for_post

@@ -36,7 +36,7 @@ theorem listen.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
   try wp_auto
   wp_for
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp a $$ [] as %li %err
-    (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
+    (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, %ex, -, #Herr, -⟩)
   · iframe %Hok
     iapply listen_au a P Q $$ Ha
   · subst Herr
@@ -46,8 +46,8 @@ theorem listen.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
     iapply HΦ
     iexists l
     iframe Hli Hlis Hla
-  · icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
-    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+  · icases net.opErr_netErr _ _ _ _ _ $$ Herr with %Hne
+    obtain ⟨pe, rfl⟩ := Hne
     try wp_auto
     wp_apply time.wp_Sleep
     try wp_auto

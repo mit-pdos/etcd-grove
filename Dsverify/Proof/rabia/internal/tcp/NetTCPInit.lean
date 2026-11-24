@@ -54,10 +54,10 @@ theorem NetTCPInit.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) 
       IProp GF) $$ [listener err Hres]
   · iexists lv, err
     iframe
-    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, %ex, -, #HE, -⟩)
     · ileft; iframe %He; iexists l; unfold ownListener; iframe Hl Hlis Hla
-    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+    · icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe, rfl⟩ := Hne
       iright; iexists _; ipureintro; rfl
   wp_for HI
   icases Hres with (⟨%He, %l, Hl⟩ | ⟨%i, %Heq⟩)
@@ -134,10 +134,10 @@ theorem NetTCPInit.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) 
     iframe
     iexists lv', err'
     iframe
-    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, %ex, -, #HE, -⟩)
     · ileft; iframe %He; iexists l; unfold ownListener; iframe Hl Hlis Hla
-    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+    · icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe, rfl⟩ := Hne
       iright; iexists _; ipureintro; rfl
 
 end proof

@@ -1,6 +1,7 @@
 /-
 The proof of `Net/Spec/net/Listen.lean`: `Listen.impl`'s extension `Listen`
-(`Net.wp_net_Listen`), then a new `*TCPListener` holding the listener's id, as a `Listener`.
+(`Net.wp_net_Listen`), then a new `*TCPListener` holding the listener's id, as a `Listener`; or
+the `*OpError` whose `Err` the model chooses (`AnyBool`): the kind's or a bare `Errno`.
 -/
 module
 
@@ -34,25 +35,42 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
   wp_bind (ExternalOp _ _ _)
   iapply wp_net_Listen a $$ %Hla Htok
   isplit
-  · -- a failure
+  · -- a failure: its `Err` an `*os.SyscallError` or a bare `Errno` (the model's choice)
     rw [Listener_ty_eq]
     wp_auto
     wp_bind (ExternalOp _ _ _)
-    iapply wp_net_AnyString
-    iintro %nm
-    wp_apply wp_kindErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
-    (try wp_auto)
-    wp_apply wp_anyTCPAddr as %x #Hx
-    (try wp_auto)
-    wp_apply wp_opError $$ %hnw as %err #Herr
-    (try wp_auto)
-    iapply HΦ
-    iright
-    iexists x
-    iframe Hx
-    unfold resErr
-    iexists e
-    iframe Herr He
+    iapply wp_net_AnyBool
+    iintro %b
+    cases b
+    · wp_auto
+      wp_bind (ExternalOp _ _ _)
+      iapply wp_net_AnyString
+      iintro %nm
+      wp_apply wp_kindErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_anyTCPAddr as %x #Hx
+      (try wp_auto)
+      wp_apply wp_opError $$ %hnw as %err #Herr
+      (try wp_auto)
+      iapply HΦ
+      iright
+      iexists x, e
+      iframe Hx Herr
+      ileft
+      iexact He
+    · wp_auto
+      wp_apply wp_epollErr as %e %He
+      (try wp_auto)
+      wp_apply wp_anyTCPAddr as %x #Hx
+      (try wp_auto)
+      wp_apply wp_opError $$ %hnw as %err #Herr
+      (try wp_auto)
+      iapply HΦ
+      iright
+      iexists x, e
+      iframe Hx Herr
+      iright
+      ipureintro; exact He
   · -- a new listener
     iintro %lid %hl0 Hl #Hlat
     wp_auto

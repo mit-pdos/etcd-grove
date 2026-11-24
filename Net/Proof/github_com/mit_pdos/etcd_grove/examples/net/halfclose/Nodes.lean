@@ -397,7 +397,7 @@ theorem wp_Serve
   icases hcInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HhcInv⟩
   (try wp_auto)
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp srvAddr $$ []
-    as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%xa, #Hxa, HE⟩)
+    as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%xa, %exa, #Hxa, HE, -⟩)
   · iframe %Hplan
     iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
@@ -431,8 +431,8 @@ theorem wp_Serve
       wp_for_post
       iframe
   · -- not listening: return
-    icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+    icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+    obtain ⟨pe, rfl⟩ := Hne
     wp_auto
     iapply HΦ
     itrivial

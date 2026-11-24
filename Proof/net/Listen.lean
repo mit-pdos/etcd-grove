@@ -60,7 +60,7 @@ theorem net.Listen.wp_proof
       itrivial
   iintro !> %li %err Hpost
   iapply HΦ
-  icases Hpost with (⟨%Herr, %l, Hli, Hlis, Hat⟩ | ⟨%x, -, Hres⟩)
+  icases Hpost with (⟨%Herr, %l, Hli, Hlis, Hat⟩ | ⟨%x, %e, -, Hop, -⟩)
   · ileft
     isplitr; · ipureintro; exact Herr
     iunfold netListenerAt
@@ -79,8 +79,6 @@ theorem net.Listen.wp_proof
       ileft
       iexact Hinv
   · iright
-    iunfold _root_.Perennial.net.resErr at Hres
-    icases Hres with ⟨%e, Hop, -⟩
     iunfold _root_.Perennial.net.opErr at Hop
     icases Hop with ⟨%pe, %nw, ⟨%Herr, -⟩, -⟩
     ipureintro

@@ -99,11 +99,11 @@ theorem replica.Replica.waitForPeerConnections.spec_holds (hSC : replica.Replica
         netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l (L.getD id [])))) $$ [l err Hres]
   · iexists lv, err
     iframe
-    icases Hres with (⟨%He, %l, #Hl, Hnl, #Hla⟩ | ⟨%x, -, #HE⟩)
+    icases Hres with (⟨%He, %l, #Hl, Hnl, #Hla⟩ | ⟨%x, %ex, -, #HE, -⟩)
     · iright; isplitr; · ipureintro; exact He
       iexists l; iframe; iframe #
-    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+    · icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe, rfl⟩ := Hne
       ileft; ipureintro; simp
   wp_for HI
   icases Hres with (%He | ⟨%He, %l, #Hl, Hnl, #Hla⟩)
@@ -140,11 +140,11 @@ theorem replica.Replica.waitForPeerConnections.spec_holds (hSC : replica.Replica
     iframe
     iexists lv2, err2
     iframe
-    icases Hres with (⟨%He, %l, #Hl, Hnl, #Hla⟩ | ⟨%x, -, #HE⟩)
+    icases Hres with (⟨%He, %l, #Hl, Hnl, #Hla⟩ | ⟨%x, %ex, -, #HE, -⟩)
     · iright; isplitr; · ipureintro; exact He
       iexists l; iframe; iframe #
-    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+    · icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe, rfl⟩ := Hne
       ileft; ipureintro; simp
   subst He
   ihave #Hl' := Hl

@@ -153,10 +153,10 @@ theorem serveReplica.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     · ipureintro; exact rpcAddrOf_listenOk k hk
     iapply RpcHttpAddr.rpcLisP_lis
     iexact Hlis
-  icases Hl with (⟨%He, %l, Hli, Hnl, #Hon⟩ | ⟨%x, -, #Hre⟩)
+  icases Hl with (⟨%He, %l, Hli, Hnl, #Hon⟩ | ⟨%x, %ex, -, #Hre, -⟩)
   rotate_left
-  · ihave %Hne := net.resErr_netErr $$ Hre
-    have hne := net.netErr_ne_nil (Hne.2 (by simp))
+  · ihave %Hne := net.opErr_netErr _ _ _ _ _ $$ Hre
+    have hne := net.netErr_ne_nil Hne
     rcases err with ei | _
     · wp_auto
       iapply HΦ; itrivial

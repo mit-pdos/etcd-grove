@@ -244,11 +244,11 @@ theorem wp_newClient (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
           ⌜err' ≠ interface.nil⌝) : IProp GF) $$ [l err Hres]
     · iexists li, err
       iframe l err
-      icases Hres with (H | ⟨%x, -, #Herr⟩)
+      icases Hres with (H | ⟨%x, %ex, -, #Herr, -⟩)
       · ileft; iexact H
       · iright
-        ihave %Hne := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
-        obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+        ihave %Hne := net.opErr_netErr _ _ _ _ _ $$ Herr
+        obtain ⟨pe, rfl⟩ := Hne
         ipureintro; simp
     wp_for HLs
     icases Hl with (⟨%He, %lv, #Hli, Hl, #Hla⟩ | %Hne)
@@ -336,11 +336,11 @@ theorem wp_newClient (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
         iframe
         iexists li2, err2
         iframe
-        icases Hres2 with (H | ⟨%x, -, #Herr⟩)
+        icases Hres2 with (H | ⟨%x, %ex, -, #Herr, -⟩)
         · ileft; iexact H
         · iright
-          ihave %Hne := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
-          obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+          ihave %Hne := net.opErr_netErr _ _ _ _ _ $$ Herr
+          obtain ⟨pe, rfl⟩ := Hne
           ipureintro; simp
       · exact absurd rfl Hne
 

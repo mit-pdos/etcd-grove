@@ -42,7 +42,8 @@ abbrev Listen.specAddrOk : Prop :=
   {{ (li : GoInterface) (err : GoInterface), RET (PairV #li #err);
       (⌜err = interface.nil⌝ ∗ ∃ l, isListener li l ∗ netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
         netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l a) ∨
-      (∃ x, netAddr x ∗ resErr (some .sys) go!"listen" interface.nil x none (fun _ => True) err) }}
+      (∃ x e, netAddr x ∗ opErr go!"listen" interface.nil x e err ∗
+        (sysErr (fun _ => True) e ∨ ⌜epollErr e⌝)) }}
 
 /-- `Listener.Accept.spec` at a valid address `a`: one update over the listener's state and `a`'s
 pending set, for both outcomes. -/
@@ -76,7 +77,7 @@ theorem Listen.spec_addrOk (h : Listen.spec (GF := GF) (hG := hG)) :
       iapply (lisToks_addrOk _ Hok).1 $$ Ht
   inext
   iintro %li %err H
-  icases H with (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, #Hx, #Herr⟩)
+  icases H with (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, %e, #Hx, #Herr, #He⟩)
   · iapply HΦ
     ileft
     isplitr
@@ -86,8 +87,8 @@ theorem Listen.spec_addrOk (h : Listen.spec (GF := GF) (hG := hG)) :
     iapply netLisOn_at _ l Hok $$ Hla
   · iapply HΦ
     iright
-    iexists x
-    iframe Hx Herr
+    iexists x, e
+    iframe Hx Herr He
 
 theorem Listener.Accept.spec_addrOk (h : Listener.Accept.spec (GF := GF) (hG := hG)) :
     Listener.Accept.specAddrOk (GF := GF) (hG := hG) := by

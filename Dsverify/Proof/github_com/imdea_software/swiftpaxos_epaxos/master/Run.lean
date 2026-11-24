@@ -182,10 +182,10 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
   · isplitr
     · ipureintro; decide
     iapply RpcHttpAddr.rpcLisP_lis; iexact Hlis
-  icases Hres with (⟨%He, %l, #Hli, Hnl, #Hlon⟩ | ⟨%xa, -, #HE⟩)
+  icases Hres with (⟨%He, %l, #Hli, Hnl, #Hlon⟩ | ⟨%xa, %exa, -, #HE, -⟩)
   rotate_left
-  · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+  · icases net.opErr_netErr _ _ _ _ _ $$ HE with %Hne
+    obtain ⟨pe, rfl⟩ := Hne
     wp_auto
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any))))
       (Val (LiteralValueV _)))
