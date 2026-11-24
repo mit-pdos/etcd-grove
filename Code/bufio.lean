@@ -223,6 +223,38 @@ noncomputable def Reader.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
+/-- Reset discards any buffered data, resets all state, and switches
+    the buffered reader to read from r.
+    Calling Reset on the zero value of [Reader] initializes the internal buffer
+    to the default size.
+    Calling b.Reset(b) (that is, resetting a [Reader] to itself) does nothing.
+
+    go: bufio.go:74:18 -/
+noncomputable def Reader.Reset.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "r"
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Reader.ty)))) (Var "b"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))) (Var "$a0")) (Var "$a1")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val defaultBufSize)))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Reader.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.io.Reader.ty))) (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType Reader.ty) _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r")))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #()))))
+
 /-- go: bufio.go:87:18 -/
 noncomputable def Reader.reset.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
@@ -352,6 +384,107 @@ noncomputable def Reader.readErr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- Peek returns the next n bytes without advancing the reader. The bytes stop
+    being valid at the next read call. If necessary, Peek will read more bytes
+    into the buffer in order to make n bytes available. If Peek returns fewer
+    than n bytes, it also returns an error explaining why the read is short.
+    The error is [ErrBufferFull] if n is larger than b's buffer size.
+
+    Calling Peek prevents a [Reader.UnreadByte] or [Reader.UnreadRune] call from succeeding
+    until the next read operation.
+
+    go: bufio.go:143:18 -/
+noncomputable def Reader.Peek.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Reader.ty)))) (Var "b"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))))))
+  (Let "avail" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "avail")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "avail"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"readErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrBufferFull))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "avail") (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b")))))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrBufferFull))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"w"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b")))))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef Reader.ty go!"err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (Val #false)))) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"fill"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))) (Val #())))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Reader.ty go!"lastRuneSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Reader.ty go!"lastByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (Var "b"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrNegativeCount))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- Read reads data into p.
     It returns the number of bytes read into p.
@@ -1006,6 +1139,45 @@ noncomputable def Writer.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
+/-- Reset discards any unflushed buffered data, clears any error, and
+    resets b to write its output to w.
+    Calling Reset on the zero value of [Writer] initializes the internal buffer
+    to the default size.
+    Calling w.Reset(w) (that is, resetting a [Writer] to itself) does nothing.
+
+    go: bufio.go:619:18 -/
+noncomputable def Writer.Reset.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "w"
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Writer.ty)))) (Var "b"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.Writer.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Writer.ty go!"wr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (Var "b"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Writer.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (Var "b"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (StructFieldRef Writer.ty go!"err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (Var "b"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Writer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (Var "b")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val defaultBufSize)))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef Writer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (Var "b"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.io.Writer.ty))) (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType Writer.ty) _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (Var "b"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w")))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #()))))
+
 /-- Flush writes any buffered data to the underlying [io.Writer].
 
     go: bufio.go:635:18 -/
@@ -1585,10 +1757,12 @@ class Reader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   method_set : go.MethodSetIs Reader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Reader.ty) [(go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   ptr_Buffered_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Buffered" Reader.Buffered.impl
+  ptr_Peek_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Peek" Reader.Peek.impl
   ptr_Read_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Read" Reader.Read.impl
   ptr_ReadByte_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"ReadByte" Reader.ReadByte.impl
   ptr_ReadSlice_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"ReadSlice" Reader.ReadSlice.impl
   ptr_ReadString_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"ReadString" Reader.ReadString.impl
+  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Reset" Reader.Reset.impl
   ptr_Size_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"Size" Reader.Size.impl
   ptr_collectFragments_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"collectFragments" Reader.collectFragments.impl
   ptr_fill_unfold : MethodUnfold (go.GoType.PointerType Reader.ty) go!"fill" Reader.fill.impl
@@ -1614,10 +1788,12 @@ attribute [instance] Reader.TypeAssumptions.type_repr
   Reader.TypeAssumptions.method_set
   Reader.TypeAssumptions.ptr_method_set
   Reader.TypeAssumptions.ptr_Buffered_unfold
+  Reader.TypeAssumptions.ptr_Peek_unfold
   Reader.TypeAssumptions.ptr_Read_unfold
   Reader.TypeAssumptions.ptr_ReadByte_unfold
   Reader.TypeAssumptions.ptr_ReadSlice_unfold
   Reader.TypeAssumptions.ptr_ReadString_unfold
+  Reader.TypeAssumptions.ptr_Reset_unfold
   Reader.TypeAssumptions.ptr_Size_unfold
   Reader.TypeAssumptions.ptr_collectFragments_unfold
   Reader.TypeAssumptions.ptr_fill_unfold
@@ -1666,6 +1842,7 @@ class Writer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_Available_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Available" Writer.Available.impl
   ptr_Buffered_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Buffered" Writer.Buffered.impl
   ptr_Flush_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Flush" Writer.Flush.impl
+  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Reset" Writer.Reset.impl
   ptr_Size_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Size" Writer.Size.impl
   ptr_Write_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"Write" Writer.Write.impl
   ptr_WriteByte_unfold : MethodUnfold (go.GoType.PointerType Writer.ty) go!"WriteByte" Writer.WriteByte.impl
@@ -1686,6 +1863,7 @@ attribute [instance] Writer.TypeAssumptions.type_repr
   Writer.TypeAssumptions.ptr_Available_unfold
   Writer.TypeAssumptions.ptr_Buffered_unfold
   Writer.TypeAssumptions.ptr_Flush_unfold
+  Writer.TypeAssumptions.ptr_Reset_unfold
   Writer.TypeAssumptions.ptr_Size_unfold
   Writer.TypeAssumptions.ptr_Write_unfold
   Writer.TypeAssumptions.ptr_WriteByte_unfold

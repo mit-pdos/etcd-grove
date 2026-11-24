@@ -5,6 +5,7 @@ calling `function`.
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.github_com.prometheus.client_golang.prometheus.RegInv
 
 @[expose] public section
 
@@ -39,8 +40,8 @@ abbrev prometheus.NewGaugeFunc.spec : Prop :=
   {{ (True : IProp GF) }}
     (App (App (Val (@! github_com.prometheus.client_golang.prometheus.NewGaugeFunc)) (Val #o)) (Val #f))
   {{ (g : GoInterfaceOk), RET #(GoInterface.ok g);
-      ⌜prometheus.nameOk (prometheus.fqName ns sub name) →
-        prometheus.collectorName g (prometheus.fqName ns sub name)⌝ }}
+      (⌜prometheus.nameOk (prometheus.fqName ns sub name)⌝ →
+        prometheus.collectorName g (prometheus.fqName ns sub name)) }}
 
 end spec
 

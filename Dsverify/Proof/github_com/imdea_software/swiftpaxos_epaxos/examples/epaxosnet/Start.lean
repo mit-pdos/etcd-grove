@@ -7,7 +7,8 @@ addresses `127.0.0.1:8502..8506`) and the master's wildcard listener unset (`lis
 abstract key-value state's ghost variable, both halves; the fired outputs' map; the role registry
 `roleInv` with the escrows' names; the registry of the registration exchange; the peer streams'
 and the replicas' framework state; the protocol invariant `epInv`), the net/rpc world `W`
-(`RpcHttpAddr.httpW ⟨rpcSS γ, γw⟩`: served over HTTP at every address, `W.SS = rpcSS γ`, its
+(`RpcHttpAddr.httpW W₀`, `W₀ = { SS := rpcSS γ, reg := γw, hs, hsAns }` with HTTP's
+handshake, as models-rpc-http's start builds it: served over HTTP at every address, `W.SS = rpcSS γ`, its
 connection registry `regInv W`), set the replica addresses' protocols
 (`repDialP`/`repAccP`, `addrs_set_proto`) and the rpc listeners' (`RpcHttpAddr.rpcLisP_set` at
 `":7501"` and at each `rpcAddrOf k`, an exact listener: `addrUnset_lisUnset`), and hand out each
@@ -223,7 +224,8 @@ def repProtos (γ : EpNames) : IProp GF :=
   [∗list] a ∈ replicaAddrs, addrProto a (repDialP γ a) (repAccP γ a)
 
 /-- **The ghost start** (over the global ghost state only): from the registry and the replicas'
-peer addresses unset, the names `γ`, the raw rpc world `W₀ = ⟨rpcSS γ, γw⟩` with its services
+peer addresses unset, the names `γ`, the rpc world `W₀ = { SS := rpcSS γ, reg := γw, hs := fun _ => connectReq defaultRPCPath,
+hsAns := fun _ => connectAns }` (models-rpc-http's fields; dsv-gryff's start) with its services
 (`rpcSS γ`) and the connection registry of the kit's world `RA.httpW W₀` (`W₀` served over HTTP
 at every address; its registry is `W₀`'s, `httpW_reg`), the master's right to fix the node list, every replica node's token, the
 registration exchange's invariant (each replica id with its start resources), `clientInvs γ`
@@ -248,7 +250,9 @@ theorem ep_ghost_start [RA : RpcHttpAddr GF] :
   imod registry_alloc (GF := GF) with ⟨%mn, %ids, Hrg⟩
   imod sys_alloc (GF := GF) with ⟨%pn, Hsys⟩
   let γ : EpNames := ⟨γkv, γf, γr, γe, mn, ⟨ids, sent, deliv, dials, cw, rp⟩, pn⟩
-  let W₀ : net.rpc.RpcWorld GF := ⟨rpcSS γ, γw⟩
+  let W₀ : net.rpc.RpcWorld GF :=
+    { SS := rpcSS γ, reg := γw, hs := fun _ => net.rpc.connectReq net.rpc.defaultRPCPath,
+      hsAns := fun _ => net.rpc.connectAns }
   let W : net.rpc.RpcWorld GF := RA.httpW W₀
   ihave Hnet := Hnet $$ %γ
     %(⟨rfl, rfl, rfl⟩ : γ.rep.sent = sent ∧ γ.rep.deliv = deliv ∧ γ.rep.dials = dials)

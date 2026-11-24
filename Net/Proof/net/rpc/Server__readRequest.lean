@@ -50,7 +50,7 @@ theorem rdr_adv (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) 
     (ps : List (List w8)) (h pl : List w8) (hps : ps.length = 2 * k)
     (hb : ∀ q ∈ ps, q.length < 2 ^ 63) (hh : h.length < 2 ^ 63) (hpl : pl.length < 2 ^ 63) :
     recvTok (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-        (framesOf (ps ++ [h]) ++ frameOf pl) ∗
+        (W.hs a ++ framesOf (ps ++ [h]) ++ frameOf pl) ∗
       isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ ghostVar γ.ctr (1 : Qp).half (k + 1) ⊢
     ∃ (ps' : List (List w8)) (k' : Nat), readerSt W a cn ps' k' ∗ ⌜ps'.length = 2 * k'⌝ := by
   iintro ⟨Hrecv, #Hrpc, Hctr⟩
@@ -58,7 +58,7 @@ theorem rdr_adv (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) 
   isplitl
   · iunfold readerSt
     rw [show ps ++ [h, pl] = (ps ++ [h]) ++ [pl] by simp, framesOf_append (ps ++ [h]) [pl],
-      framesOf_cons, framesOf_nil, List.append_nil]
+      framesOf_cons, framesOf_nil, List.append_nil, ← List.append_assoc]
     iframe Hrecv
     isplitr
     · ipureintro
@@ -110,9 +110,9 @@ theorem Server.readRequest.wp_proof
   have hh : (reqHdr (W64 k) r.sm).length < 2 ^ 63 := by
     rw [reqHdr_length]; unfold reqOk at Hrok; omega
   ihave HrL : recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-      (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ []) $$ [Hrecv]
+      (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ []) $$ [Hrecv]
   · rw [List.append_nil]; iapply recvTok_L $$ Hrecv
-  ihave #Hacc := rd_acc_srv W a cn (framesOf (ps ++ [reqHdr (W64 k) r.sm]))
+  ihave #Hacc := rd_acc_srv W a cn (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]))
   icases Hcase with (⟨%He, %S, %m, %rcvr, HS, #HerrOk, #Hrcvr, #Hmt⟩ | ⟨%He, #HeNE, Hcont⟩)
   rotate_left
   · -- an error with the request taken: its body discarded
@@ -121,11 +121,11 @@ theorem Server.readRequest.wp_proof
     | ok e =>
     wp_auto_lc 1
     ihave #Hg0 := guard_true (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-      (reqProto (Gg := hG.goose_globalGS) W a) (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
+      (reqProto (Gg := hG.goose_globalGS) W a) (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
     wp_apply +noauto wp_ReadRequestBody sc t cn true a la ra interface.nil interface.nil C iprop(True)
         (fun _ => iprop(True)) (fun _ _ => iprop(True))
         (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-          (reqProto (Gg := hG.goose_globalGS) W a) (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
+          (reqProto (Gg := hG.goose_globalGS) W a) (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
         eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $HrL $Hg0 $Hrerr $Hacc]
       as %err1 (⟨⟨%Hc, -⟩, -⟩ | ⟨-, %got, HP, Hres⟩)
     · iunfold bodyDecG; itrivial
@@ -202,7 +202,7 @@ theorem Server.readRequest.wp_proof
   wp_apply +noauto wp_ReadRequestBody sc t cn true a la ra (interface.ok av) interface.nil C
       (C.dec r.body (interface.ok av) (Θ r.body)) (fun pl => iprop(⌜pl = r.body⌝)) Θ
       (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-        (reqProto (Gg := hG.goose_globalGS) W a) (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
+        (reqProto (Gg := hG.goose_globalGS) W a) (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
       eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hdec3 $Hdc0 $HrL $Hguard
         $Hrerr $Hacc]
     as %err1 (⟨⟨%Hc, -⟩, -⟩ | ⟨-, %got, HP, Hres⟩)
@@ -248,10 +248,10 @@ theorem Server.readRequest.wp_proof
     iapply HerrOk' $$ %m %r.body %Φc %msg %hmsg HS
   subst Hgot
   have hpl : pl.length < 2 ^ 63 := by unfold maxFrameN at Hpl; omega
-  have hfr : framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ frameOf pl =
-      framesOf (ps ++ [reqHdr (W64 k) r.sm] ++ [pl]) := by
+  have hfr : W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ frameOf pl =
+      W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm] ++ [pl]) := by
     rw [framesOf_append (ps ++ [reqHdr (W64 k) r.sm]) [pl], framesOf_cons, framesOf_nil,
-      List.append_nil]
+      List.append_nil, List.append_assoc]
   icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrT with ⟨HrT, #Hpp⟩
   rw [hfr]
   ihave %Hbody := req_body W a cn γ L r ps k _ pl HLr Hps Hb hh hpl $$ [$Hrpc $Hlb $Hpp]
