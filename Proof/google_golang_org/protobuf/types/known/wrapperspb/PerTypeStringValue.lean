@@ -46,31 +46,38 @@ variable [pkg_wr : google_golang_org.protobuf.types.known.wrapperspb.Assumptions
 an empty `Value` (proto3: a field at its zero value is not encoded). -/
 def stringValueWireLen (s : GoString) : Nat := s.length + 11
 
-/-- **The longest `Value` a sender's message holds**, `2 ^ 41` bytes (below grpc's reply bound
-`grpcReplyMax = 2 ^ 48` with the encoding's slack: what lets a server that sends `StringValue`s
-meet the replies' size bound without the workload premise). -/
-def stringValueMax : Nat := 2 ^ 41
+/-- **The longest `Value` a sender's reply or stream message holds**, below `2 ^ 30` bytes: its
+encoding is then below `grpcMsgMax` (`2 ^ 32`), what lets a server that sends `StringValue`s meet
+the replies' size bound without the workload premise (`grpcRepliesBounded`). -/
+def stringValueMax : Nat := 2 ^ 30
+
+/-- **The longest `Value` a unary request holds**, below `2 ^ 29` bytes: a handler answering a request
+with a slightly longer value (the driver's `Echo`: `v + "#1"`) stays below `stringValueMax`. -/
+def stringValueReqMax : Nat := 2 ^ 29
 
 /-- **The store of a `StringValue`**: its `Value` (the literal leaves the other fields zero). -/
 def stringValueTree (s : GoString) : VTree :=
   .strct wrapperspb.StringValue.ty [(go!"Value", go.string)] [.leaf #s]
 
-/-- **A sender's `*wrapperspb.StringValue`** holding `s`: its `Value`, below `stringValueMax`, and no
+/-- **A sender's `*wrapperspb.StringValue`** holding `s`: its `Value`, below the bound `b`, and no
 unknown fields. -/
-def stringValueSend (l : Loc) (s : GoString) : IProp GF :=
+def stringValueSendB (b : Nat) (l : Loc) (s : GoString) : IProp GF :=
   iprop(∃ v : wrapperspb.StringValue, l ↦ v ∗
-    ⌜v.Value' = s ∧ v.unknownFields' = slice.nil ∧ s.length < stringValueMax⌝)
+    ⌜v.Value' = s ∧ v.unknownFields' = slice.nil ∧ s.length < b⌝)
 
-/-- **A `*wrapperspb.StringValue` as a unary method's request** (a trusted wire model): its `Value`;
-received, not `null` (the generated handler decodes into its own `new(Msg)`), its `Value`
-read-only and shorter than `2 ^ 32` (a request's encoding is below `grpcMsgMax`). -/
+/-- A sender's reply or stream message (below `stringValueMax`). -/
+abbrev stringValueSend : Loc → GoString → IProp GF := stringValueSendB stringValueMax
+
+/-- **A `*wrapperspb.StringValue` as a unary method's request** (a trusted wire model): its `Value`,
+below `stringValueReqMax`; received, not `null` (the generated handler decodes into its own
+`new(Msg)`), its `Value` read-only, below `stringValueReqMax`. -/
 def pbStringValue : ProtoMsg GF where
   ty := wrapperspb.StringValue.ty
   M := GoString
   tree := stringValueTree
-  send := stringValueSend
+  send := stringValueSendB stringValueReqMax
   wireLen := stringValueWireLen
-  recv r s := iprop(⌜r ≠ null⌝ ∗ ⌜s.length < 2 ^ 32⌝ ∗
+  recv r s := iprop(⌜r ≠ null⌝ ∗ ⌜s.length < stringValueReqMax⌝ ∗
     structFieldRef wrapperspb.StringValue go!"Value" r ↦□ s)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val wrapperspb.StringValue))
@@ -101,8 +108,8 @@ def pbStringValueRT : ProtoMsgT GF :=
   { pbStringValueR with }
 
 /-- A sender's message is not `null`. -/
-theorem stringValueSend_null (m : GoString) : stringValueSend (GF := GF) null m ⊢ False := by
-  unfold stringValueSend
+theorem stringValueSend_null (b : Nat) (m : GoString) : stringValueSendB (GF := GF) b null m ⊢ False := by
+  unfold stringValueSendB
   iintro ⟨%v, Hp, -⟩
   ihave %H := typedPointsto_not_null $$ Hp
   exact absurd rfl H
@@ -113,11 +120,13 @@ theorem pbStringValueT_reqSat : (pbStringValueT (GF := GF)).ReqSat := by
       (inferInstance : IntoValTyped wrapperspb.StringValue wrapperspb.StringValue.ty), fun l => .rfl⟩,
     ⟨wrapperspb.StringValue, inferInstance, inferInstance,
       (inferInstance : IntoValTyped wrapperspb.StringValue wrapperspb.StringValue.ty), fun l => .rfl⟩,
-    stringValueSend_null, ?_⟩
+    stringValueSend_null _, ?_⟩
   intro ls l m
   change GoString at m
   simp only [pbStringValueT, pbStringValue, stringValueWireLen]
   iintro ⟨Hs, %Hw, Hl⟩
+  unfold stringValueSendB
+  icases Hs with ⟨%v0, Hv0, %Hv0⟩
   iapply wp_fupd
   iapply (storeInto_wp_typed (V := wrapperspb.StringValue)
     (ty := wrapperspb.StringValue.ty) l (zero_val wrapperspb.StringValue))
@@ -136,12 +145,13 @@ theorem pbStringValueT_reqSat : (pbStringValueT (GF := GF)).ReqSat := by
   icases Hl with ⟨-, HN, -, -, -⟩
   imod (typedPointsto_dfractional (GF := GF) _ m).dfractional_persist _ $$ HN with #HN
   imodintro
-  iframe Hs
+  isplitl [Hv0]
+  · iexists v0; iframe Hv0; ipureintro; exact Hv0
   isplitr
   · isplitr
     · ipureintro; exact Hnn
     isplitr
-    · ipureintro; simp only [grpcMsgMax] at Hw; omega
+    · ipureintro; exact Hv0.2.2
     iframe HN
   · ipureintro; trivial
 
@@ -156,12 +166,12 @@ theorem pbStringValueRT_repSat : (pbStringValueRT (GF := GF)).RepSat := by
       (inferInstance : IntoValTyped wrapperspb.StringValue wrapperspb.StringValue.ty), fun l => .rfl⟩,
     ⟨wrapperspb.StringValue, inferInstance, inferInstance,
       (inferInstance : IntoValTyped wrapperspb.StringValue wrapperspb.StringValue.ty), fun l => .rfl⟩,
-    stringValueSend_null, ?_⟩
+    stringValueSend_null _, ?_⟩
   intro ls l m
   change GoString at m
   simp only [pbStringValueRT, pbStringValueR]
   iintro ⟨Hs, ⟨%x0, Hl⟩⟩
-  unfold stringValueSend
+  unfold stringValueSend stringValueSendB
   icases Hs with ⟨%v0, Hv0, %Hv0⟩
   iapply wp_fupd
   iapply (storeInto_wp_typed (V := wrapperspb.StringValue)
@@ -212,7 +222,7 @@ theorem pbStringValueST_store (ls l : Loc) (m : GoString) :
       WP (storeInto wrapperspb.StringValue.ty l (stringValueTree m))
         {{ _v, stringValueSend ls m ∗ stringValueSend l m }} := by
   iintro ⟨Hs, ⟨%x0, Hl⟩⟩
-  unfold stringValueSend
+  unfold stringValueSend stringValueSendB
   icases Hs with ⟨%v0, Hv0, %Hv0⟩
   iapply wp_fupd
   iapply (storeInto_wp_typed (V := wrapperspb.StringValue)
@@ -237,7 +247,7 @@ theorem pbStringValueST_store (ls l : Loc) (m : GoString) :
 theorem pbStringValueST_reqSat : (pbStringValueST (GF := GF)).ReqSat := by
   refine ⟨⟨wrapperspb.StringValue, inferInstance, inferInstance,
       (inferInstance : IntoValTyped wrapperspb.StringValue wrapperspb.StringValue.ty), fun l => .rfl⟩,
-    stringValueSend_null, ?_⟩
+    stringValueSend_null _, ?_⟩
   intro ls l m
   change GoString at m
   refine .trans ?_ (pbStringValueST_store ls l m)
@@ -249,7 +259,7 @@ theorem pbStringValueST_reqSat : (pbStringValueST (GF := GF)).ReqSat := by
 theorem pbStringValueST_repSat : (pbStringValueST (GF := GF)).RepSat := by
   refine ⟨⟨wrapperspb.StringValue, inferInstance, inferInstance,
       (inferInstance : IntoValTyped wrapperspb.StringValue wrapperspb.StringValue.ty), fun l => .rfl⟩,
-    stringValueSend_null, ?_⟩
+    stringValueSend_null _, ?_⟩
   intro ls l m
   exact pbStringValueST_store ls l m
 
