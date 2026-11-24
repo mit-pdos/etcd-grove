@@ -3678,6 +3678,7 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
   iframe Htok Hst
   iframe H1 H2 H3 H4 H5 Hsat
   iintro !> %a #Ha
+  try dsimp only
   imod Htab $$ %a Ha with ⟨Hss, #G1, #G2, #G3, #G4, #G5, -⟩
   imodintro
   iframe Hss; iframe #

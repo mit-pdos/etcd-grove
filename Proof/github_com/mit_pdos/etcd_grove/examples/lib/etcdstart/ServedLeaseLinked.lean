@@ -172,12 +172,10 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         (by cases Wo <;> simp)
         Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, -, -, -, -, -, -, -, #Hsat, #Htab⟩
     · iframe; iframe #
-      isplitl []
-      · iintro !>
-        imodintro
-        iunfold idCred
-        ipureintro; exact Hrb
-      iexact Hwr
+      iintro !>
+      imodintro
+      iunfold idCred
+      ipureintro; exact Hrb
     -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
     ihave #Htab' : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys
         (Wo.toList.map (fun W => v3rpc.watchMethod pw R W)) ={⊤}=∗
@@ -252,12 +250,10 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         (by cases Wo <;> simp)
         Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, -, -, -, -, -, -, -, #Hsat, #Htab⟩
     · iframe; iframe #
-      isplitl []
-      · iintro !>
-        imodintro
-        iunfold idCred
-        ipureintro; exact Hrb
-      iexact Hwr
+      iintro !>
+      imodintro
+      iunfold idCred
+      ipureintro; exact Hrb
     -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
     ihave #Htab' : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys
         (Wo.toList.map (fun W => v3rpc.watchMethod pw R W)) ={⊤}=∗
@@ -335,12 +331,10 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         (by cases Wo <;> simp)
         Hrf Hnd hρ HL) $$ [Hgsn Hleft] with ⟨Hserv, -, -, -, -, -, -, -, #Hsat, #Htab⟩
     · iframe; iframe #
-      isplitl []
-      · iintro !>
-        imodintro
-        iunfold idCred
-        ipureintro; exact Hrb
-      iexact Hwr
+      iintro !>
+      imodintro
+      iunfold idCred
+      ipureintro; exact Hrb
     -- (phase 7's switch, SW1) the registrations at every address serving the table, then at `addr`
     ihave #Htab' : iprop(□ ∀ a, grpcServerAt a [il, im, iu] regs etcdTys
         (Wo.toList.map (fun W => v3rpc.watchMethod pw R W)) ={⊤}=∗

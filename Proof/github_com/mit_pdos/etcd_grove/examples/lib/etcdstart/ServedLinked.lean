@@ -72,6 +72,7 @@ theorem kv_served_tbl (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iexists _, _, _, _
   iframe Hsat
   iintro !> %a #Ha
+  try dsimp only
   imod Htab $$ %a Ha with ⟨-, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   imodintro
   iunfold etcdKVAt

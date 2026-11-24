@@ -75,12 +75,10 @@ theorem kvWatch_served_tbl (Hp : mvcc.api.persistent.law (GF := GF))
       Hrf Hnd hρ HL) $$ [Hgsn Hleft]
       with ⟨Hserv, -, -, -, -, -, -, #Hsat, #Htab⟩
   · iframe; iframe #
-    isplitl []
-    · iintro !>
-      imodintro
-      iunfold idCred
-      ipureintro; exact Hrb
-    iexact Hwr
+    iintro !>
+    imodintro
+    iunfold idCred
+    ipureintro; exact Hrb
   ihave #Hwl := client.srvWLaws_of_ok (srvWOf R.E γr false) R.wsl v3rpc.wsN $$ HWok
   imodintro
   isplitl [Hserv]
@@ -89,6 +87,7 @@ theorem kvWatch_served_tbl (Hp : mvcc.api.persistent.law (GF := GF))
   iexists _, _, _, _
   iframe Hsat
   iintro !> %a #Ha
+  try dsimp only
   imod Htab $$ %a Ha with ⟨#Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   ihave #Hst := BigSepL.bigSepL_singleton.1 $$ Hss
   try simp only [v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
