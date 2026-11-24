@@ -802,14 +802,13 @@ def txnBuilderSpec (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp 
           B { b with model := { b.model with elseOps := b.model.elseOps ++ ops },
                      celse := true } }}) ∗
     (□ ∀ (b : TxnBuild) (lo : w64),
-      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ txnSizeOk b.model⌝ }}
+      {{ levelTok 0 ∗ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResultTok pfx lo b.model resp err }}) ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCommitResultTok pfx lo b.model resp err) }}) ∗
     (□ ∀ (b : TxnBuild),
-      {{ B b ∗ ⌜txnSizeOk b.model⌝ }}
+      {{ levelTok 0 ∗ B b ∗ ⌜txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnAnyResult resp err) }}))
 
 instance txnBuilderSpec_persistent (t : GoInterfaceOk) (pfx : GoString)
     (B : TxnBuild → IProp GF) : Persistent (txnBuilderSpec t pfx B) := by
@@ -871,14 +870,13 @@ def txnBuilderSpecX (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp
           B { b with model := { b.model with elseOps := b.model.elseOps ++ ops },
                      celse := true } }}) ∗
     (□ ∀ (b : TxnBuild) (lo : w64),
-      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets ∧ txnSizeOk b.model⌝ }}
+      {{ levelTok 0 ∗ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets ∧ txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResultTok pfx lo b.model resp err }}) ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCommitResultTok pfx lo b.model resp err) }}) ∗
     (□ ∀ (b : TxnBuild),
-      {{ B b ∗ ⌜b.model.exactGets ∧ txnSizeOk b.model⌝ }}
+      {{ levelTok 0 ∗ B b ∗ ⌜b.model.exactGets ∧ txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnAnyResult resp err) }}))
 
 instance txnBuilderSpecX_persistent (t : GoInterfaceOk) (pfx : GoString)
     (B : TxnBuild → IProp GF) : Persistent (txnBuilderSpecX t pfx B) := by
@@ -958,10 +956,9 @@ def readTxnBuilderSpec (t : GoInterfaceOk) (pfx : GoString)
         (App (Val #(methods t.ty go!"Then" t.v)) (Val #sl))
       {{ RET #(GoInterface.ok t); B (some os) }}) ∗
     (□ ∀ (os : List OpFull) (lo : w64),
-      {{ B (some os) ∗ etcdReached lo ∗ ⌜txnSizeOk (readTxn os)⌝ }}
+      {{ levelTok 0 ∗ B (some os) ∗ etcdReached lo ∗ ⌜txnSizeOk (readTxn os)⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          readTxnResult pfx lo os resp err }}))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (readTxnResult pfx lo os resp err) }}))
 
 instance readTxnBuilderSpec_persistent (t : GoInterfaceOk) (pfx : GoString)
     (B : Option (List OpFull) → IProp GF) : Persistent (readTxnBuilderSpec t pfx B) := by
@@ -1012,15 +1009,14 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdDeleteKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
-    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
+    {{ levelTok 0 ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
         etcdReached lo ∗
         ⌜¬ opDeletePanics key gs ∧
           KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd ∧
           opSizeOk (opDeleteModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        deleteResult pfx lo (opDeleteModel key gs) err }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (deleteResult pfx lo (opDeleteModel key gs) err) }})
 
 instance isEtcdDeleteKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdDeleteKV (GF := GF) kv pfx) := by
@@ -1112,14 +1108,13 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
       (lo : w64),
-    {{ optsAtRes sl gs R ∗ R ∗ etcdReached lo ∗
+    {{ levelTok 0 ∗ optsAtRes sl gs R ∗ R ∗ etcdReached lo ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact ∧
           (opGetModel key gs).base.serializable = false ∧ opSizeOk (opGetModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
         (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        R ∗ kvGetResultR pfx lo (opGetModel key gs) resp err ∗
-        getRespMore pfx (opGetModel key gs) resp err }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (R ∗ kvGetResultR pfx lo (opGetModel key gs) resp err ∗
+        getRespMore pfx (opGetModel key gs) resp err) }})
 
 instance isEtcdKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKVTodo (GF := GF) kv pfx) := by
@@ -1155,10 +1150,9 @@ encoded-size bound at grpc's send side"). -/
 def txnCommitErrTodo (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) :
     IProp GF :=
   iprop(□ ∀ (b : TxnBuild) (lo : w64),
-    {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets ∧ txnSizeOk b.model⌝ }}
+    {{ levelTok 0 ∗ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets ∧ txnSizeOk b.model⌝ }}
       (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        txnCommitResultTok pfx lo b.model resp err ∗ (⌜err = GoInterface.nil⌝ ∨ clientErrIs err) }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCommitResultTok pfx lo b.model resp err ∗ (⌜err = GoInterface.nil⌝ ∨ clientErrIs err)) }})
 
 instance txnCommitErrTodo_persistent (t : GoInterfaceOk) (pfx : GoString)
     (B : TxnBuild → IProp GF) : Persistent (txnCommitErrTodo t pfx B) := by
@@ -1186,15 +1180,14 @@ is of a single key.) The request fits a gRPC message (`opSizeOk` of the delete; 
 encoded-size bound at grpc's send side"). -/
 def isEtcdDeleteKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
-    {{ optsAt sl gs ∗ etcdReached lo ∗
+    {{ levelTok 0 ∗ optsAt sl gs ∗ etcdReached lo ∗
         ⌜¬ opDeletePanics key gs ∧
           KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd ∧
           (opDeleteModel key gs).base.rangeEnd ≠ [W8 0] ∧ (opDeleteModel key gs).t = W64 3 ∧
           opSizeOk (opDeleteModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
         (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        deleteResult pfx lo (opDeleteModel key gs) err }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (deleteResult pfx lo (opDeleteModel key gs) err) }})
 
 instance isEtcdDeleteKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdDeleteKVTodo (GF := GF) kv pfx) := by
@@ -1208,12 +1201,12 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdPutKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp)
       (lo : w64),
-    {{ optsAt sl gs ∗ etcdReached lo ∗
+    {{ levelTok 0 ∗ optsAt sl gs ∗ etcdReached lo ∗
         ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
           op.Under pfx ∧ (opPutModel key val gs).t = W64 2 ∧ opSizeOk (opPutModel key val gs)⌝ }}
       (App (App (App (App (Val #(methods kv.ty go!"Put" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
         (Val #key)) (Val #val)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putResult pfx lo op err }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (putResult pfx lo op err) }})
 
 instance isEtcdPutKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdPutKVTodo (GF := GF) kv pfx) := by

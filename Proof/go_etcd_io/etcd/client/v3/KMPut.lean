@@ -239,11 +239,10 @@ def kmPutRestTodo (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : GoString) : 
       op.Under pfx ∧ (opPutModel key val gs).t = W64 2 ∧
       ((putWireOf (opPutModel key val gs)).leaseID ≠ W64 0 ∨
         txn.needsPrev (putWireOf (opPutModel key val gs)) = true)⌝ -∗
-    {{ optsAt sl gs ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
+    {{ levelTok 0 ∗ optsAt sl gs ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
       (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
         (Val #(GoInterface.ok todoCtxVal))) (Val #key)) (Val #val)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        putResult (EM := etcdModelOfKV γ) pfx lo op err }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (putResult (EM := etcdModelOfKV γ) pfx lo op err) }})
 
 instance kmPutRestTodo_persistent (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : GoString) :
     Persistent (kmPutRestTodo (GF := GF) api γ pfx) := by

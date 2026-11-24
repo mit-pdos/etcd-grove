@@ -498,15 +498,14 @@ def kmTxnUncoveredTodo (api : Loc) (γ : KMNames) [KMWritable γ] : IProp GF :=
       (cd : context.ContextDesc (IProp GF)) (b : TxnBuild),
     ⌜TxnModel.plain b.model ∧ b.model.exactGets ∧ ¬ kmCovered b.model⌝ -∗ txnKvIs tp api -∗
     ((□ ∀ (lo : w64) (pfx : GoString), ⌜b.model.Under pfx⌝ -∗
-      {{ txnObjAt tp addr ci cd b ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
+      {{ levelTok 0 ∗ txnObjAt tp addr ci cd b ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResultTok (EM := etcdModelOfKV γ) pfx lo b.model resp err ∗
-          (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }}) ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCommitResultTok (EM := etcdModelOfKV γ) pfx lo b.model resp err ∗
+          (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝)) }}) ∗
      (⌜txn.txnReadonly (txnWireOf b.model) = false⌝ -∗
-      {{ txnObjAt tp addr ci cd b }}
+      {{ levelTok 0 ∗ txnObjAt tp addr ci cd b }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }})))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnAnyResult resp err) }})))
 
 instance kmTxnUncoveredTodo_persistent (api : Loc) (γ : KMNames) [KMWritable γ] :
     Persistent (kmTxnUncoveredTodo (GF := GF) api γ) := by

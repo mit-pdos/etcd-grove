@@ -288,12 +288,11 @@ def kvLeasedPutTodo (api : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF
     ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
       op.Under pfx ∧ (opPutModel key val gs).t = W64 2 ∧
       (putWireOf (opPutModel key val gs)).leaseID ≠ W64 0⌝ -∗
-    {{ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
+    {{ levelTok 0 ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
       (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        putResult (EM := v3rpc.etcdModelOfServer E γr false) pfx lo op err }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (putResult (EM := v3rpc.etcdModelOfServer E γr false) pfx lo op err) }})
 
 instance kvLeasedPutTodo_persistent (api : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (kvLeasedPutTodo api E γr) := by

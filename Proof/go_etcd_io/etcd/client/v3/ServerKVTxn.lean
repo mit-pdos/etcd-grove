@@ -938,14 +938,13 @@ def kvLeasedCommitTodo (E : apply.AEnv GF) (_γw γr : ReadNames) (_cid _mid : w
     ⌜TxnModel.plain b.model ∧ b.model.exactGets ∧ txn.txnReadonly (txnWireOf b.model) = false ∧
       ¬ TxnModel.leaseFree b.model⌝ -∗
     ((□ ∀ (lo : w64) (pfx : GoString), ⌜b.model.Under pfx⌝ -∗
-      {{ txnObjAt tp addr ci cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
+      {{ levelTok 0 ∗ txnObjAt tp addr ci cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResultTok (EM := v3rpc.etcdModelOfServer E γr false) pfx lo b.model resp err ∗
-          (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }}) ∗
-     {{ txnObjAt tp addr ci cd b }}
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCommitResultTok (EM := v3rpc.etcdModelOfServer E γr false) pfx lo b.model resp err ∗
+          (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝)) }}) ∗
+     {{ levelTok 0 ∗ txnObjAt tp addr ci cd b }}
        (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
+     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnAnyResult resp err) }}))
 
 instance kvLeasedCommitTodo_persistent (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64)
     (addr : List GoString) : Persistent (kvLeasedCommitTodo E γw γr cid mid addr) := by
