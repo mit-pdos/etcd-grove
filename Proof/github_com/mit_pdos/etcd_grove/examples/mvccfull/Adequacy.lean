@@ -202,7 +202,7 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf) $$ [Hown Hregs] as ⟨-, #Hpkg⟩
   · iframe Hown Hregs
-  wp_apply (mvccfull.wp_MainAt r) $$ [Hroot Htok] as -
+  wp_apply (mvccfull.wp_MainAt r) $$ [Hroot Htok]
   · iframe Hroot Htok Hvoff
   (try wp_auto)
   ipureintro

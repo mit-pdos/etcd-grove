@@ -195,7 +195,7 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccrand.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ [Hown Hregs] as ⟨-, #Hpkg⟩
   · iframe Hown Hregs
-  wp_apply (mvccrand.wp_MainAt Hsort' r) $$ [Hroot Htok] as -
+  wp_apply (mvccrand.wp_MainAt Hsort' r) $$ [Hroot Htok]
   · iframe Hroot Htok Hvoff
   (try wp_auto)
   ipureintro
