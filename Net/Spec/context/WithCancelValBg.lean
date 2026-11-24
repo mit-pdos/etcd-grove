@@ -12,17 +12,22 @@ calls `c.propagateCancel(parent, c)`, which sets `c.Context = parent` and return
 `*cancelCtx` (`isCancelCtxCtx`) with no deadline (`Deadline()` reaches `Background()`'s through the
 chain), done only by its cancel function, which needs nothing (`cancelSpec … True`: `c.cancel(true,
 Canceled, nil)`, whose `removeChild(parent, c)` returns at `parentCancelCtx`'s `Done() == nil`). The
-post states less than Go does (nothing of `Value` on other keys).
+post states less than Go does (nothing of `Value` on other keys). `Values := ∅` claims nothing: no
+context predicate reads a descriptor's `Values` (`isContext` specifies `Value` only at
+`&cancelCtxKey`); it is sound only while that stays true.
 
-Evidence (go1.27.3, `GOTOOLCHAIN=go1.27.3 go test -v ./...` in
-`/shared/tmp/ps2/s5d/gotest/ctxhyp`): `TestWithCancelValBg` (chains of 0 to 8 `*valueCtx`s over
-`Background()`, keys net/http's context keys, strings, ints, pointers, `struct{}{}`: the chain's
-`Done()` is `nil`; the result is a `*context.cancelCtx` whose `Context` is the chain; no goroutine
-started; `Deadline()` is `(time.Time{}, false)`; `Done()` open and `Err()` nil until cancel; a child
-`WithCancel` of it registers without a goroutine and is canceled with it; cancel twice is fine; then
-`Done()` closed, the same channel, `Err()` is `Canceled`; the chain unchanged and not done),
-`TestNetHTTPChain` (`conn.serve`'s own chain: `WithCancel(WithValue(WithValue(Background(),
-ServerContextKey, s), LocalAddrContextKey, la))`).
+Evidence (go1.27.3, `examples/stdlib/ctxhyp/`, `GOTOOLCHAIN=go1.27.3 go test -race ./stdlib/ctxhyp/` in
+`examples/`): `TestWithCancelValBg` (chains of 0 to 8 `*valueCtx`s over `Background()`, keys net/http's
+context keys, strings, ints, pointers, `struct{}{}`: the chain's `Done()` is `nil`; the result is a
+`*context.cancelCtx` whose `Context` is the chain; no goroutine started; `Deadline()` is
+`(time.Time{}, false)`; `Done()` open and `Err()` nil until cancel; a child `WithCancel` of it registers
+without a goroutine and is canceled with it; cancel twice is fine; then `Done()` closed, the same
+channel, `Err()` is `Canceled`; the chain unchanged and not done), `TestNetHTTPChain` (`conn.serve`'s
+own chain: `WithCancel(WithValue(WithValue(Background(), ServerContextKey, s), LocalAddrContextKey,
+la))`); the adversarial review's (`notes/axiom-review/context-interim-hypotheses.md`: sound, no
+counterexample) `TestWithCancelChainConcurrent` (under `-race`: concurrent cancel, `Done`, `Err`,
+`Deadline`, `Cause`; children `WithCancel`, `WithTimeout`, `AfterFunc`), `TestWithCancelChainSequential`,
+`TestDeepChain` (depth 100000).
 
 **Why a hypothesis.** Perennial's `WithCancel` specs take a parent that satisfies `isParentCtx`
 (`Background()`, `TODO()` or an `isContext`); a `*valueCtx` chain over `Background()` is none of them

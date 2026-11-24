@@ -8,20 +8,26 @@ any `val` (`nil` included): Go's checks pass (`parent != nil`, `key != nil` as a
 `reflectlite.TypeOf(key).Comparable()`, true of every pointer type), and it returns
 `&valueCtx{parent, key, val}` as a `Context`: a fresh `*valueCtx` `q` whose three fields hold
 `parent`, `key` and `val`. The fields are read-only from then on (`↦□`): the `context` package writes
-a `valueCtx`'s fields nowhere and builds one only in `WithValue`, and they are unexported.
+a `valueCtx`'s fields nowhere and builds one only in `WithValue`; `key` and `val` are unexported;
+`Context` is an exported embedded field that only reflection can reach from outside `context`
+(`reflect.ValueOf(ctx).Elem().Field(0).Set`), and every write needs full ownership of the field,
+which `↦□` excludes (`notes/perennial-changes.md`: a `reflect.Value.Field`/`Set` spec must require it).
 
 Not covered (each panics in Go, and no caller passes it): a nil `parent`, a nil `key`, a key of a
 non-comparable dynamic type (and the spec says nothing of other comparable key types, which nothing
 here needs).
 
-Evidence (go1.27.3, `GOTOOLCHAIN=go1.27.3 go test -v ./...` in
-`/shared/tmp/ps2/s5d/gotest/ctxhyp`): `TestWithValuePtrKey` (net/http's `ServerContextKey` and
-`LocalAddrContextKey`, pointers to `int`, slices, maps, funcs, structs, nil pointers; parents
-`Background()`, `TODO()`, a `*cancelCtx`, a `*valueCtx`; values `nil`, ints, strings, pointers,
-slices: the result's dynamic type is `*context.valueCtx`, its fields `Context`, `key`, `val` are the
-arguments, and two calls give distinct pointers), `TestWithValueExcluded` (the three panics),
-`TestValueCtxFieldsNeverWritten` (a type-checked scan of the package's sources: no assignment to, or
-address taken of, a `valueCtx` field; one `valueCtx` literal, `WithValue`'s), `TestNetHTTPChain`.
+Evidence (go1.27.3, `examples/stdlib/ctxhyp/`, `GOTOOLCHAIN=go1.27.3 go test -race ./stdlib/ctxhyp/` in
+`examples/`): `TestWithValuePtrKey` (net/http's `ServerContextKey` and `LocalAddrContextKey`, pointers
+to `int`, slices, maps, funcs, structs, nil pointers; parents `Background()`, `TODO()`, a `*cancelCtx`,
+a `*valueCtx`; values `nil`, ints, strings, pointers, slices: the result's dynamic type is
+`*context.valueCtx`, its fields `Context`, `key`, `val` are the arguments, and two calls give distinct
+pointers), `TestWithValueExcluded` (the three panics), `TestValueCtxFieldsNeverWritten` (a type-checked
+scan of the package's sources: no assignment to, or address taken of, a `valueCtx` field; one
+`valueCtx` literal, `WithValue`'s), `TestNetHTTPChain`; the adversarial review's
+(`notes/axiom-review/context-interim-hypotheses.md`: sound, no counterexample)
+`TestWithValueOddPointerKeys`, `TestZeroSizeKeyAlias`, and `TestReflectWritesEmbeddedContext` (the
+reflective write of `Context` from outside `context`: `key`/`val` not settable, `Context` settable).
 
 **Why a hypothesis.** Perennial translates `WithValue` names-only (`context.toml`:
 `"!WithValue"`, for its `reflectlite.TypeOf(key).Comparable()`), so its body is not in the model.

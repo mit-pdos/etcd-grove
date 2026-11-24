@@ -93,10 +93,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `*valueCtx` with its three fields, read-only) and `context.WithCancel.specValBg`
   (`Net/Spec/context/WithCancelValBg.lean`: `WithCancel` of `Background()` or a `*valueCtx` chain over it,
   `context.ctxBg` in `Net/Proof/context/CtxBg.lean`, gives what `wp_WithCancel_Background` gives with
-  `PDone' := True`). Go evidence (go1.27.3): `/shared/tmp/ps2/s5d/gotest/ctxhyp` (`TestWithValuePtrKey`,
+  `PDone' := True`). Go evidence (go1.27.3): `examples/stdlib/ctxhyp/` (`TestWithValuePtrKey`,
   `TestWithValueExcluded`, `TestValueCtxFieldsNeverWritten`, `TestWithCancelValBg`, `TestNetHTTPChain`).
   Retired by: `WithValue`'s body over Perennial's `internal/reflectlite` model (reflection S0.5, Perennial branch
   `reflect-s05`); `isParentCtx` widened to `ctxBg` chains (then `specValBg` is a corollary of `wp_WithCancel_gen`).
+  Adversarial review (`axiom` skill, 2026-11-24): both sound, no counterexample
+  (`notes/axiom-review/context-interim-hypotheses.md`); evidence moved to `examples/stdlib/ctxhyp/`.
+  **Constraint on `reflect-s05` (and any later `reflect` spec):** a `*valueCtx`'s embedded `Context` field is
+  exported, so Go's reflection can write it from outside `context` (`Elem().Field(0).Set`,
+  `TestReflectWritesEmbeddedContext`). `specPtr`'s `↦□` on it is sound only because every write needs full
+  ownership: a future `reflect.Value.Field`/`FieldByName`/`Set` spec must require ownership of the struct (not
+  just `reflElem`) and must never apply to memory a `↦□` covers.
 - **Proposed change.** (1) `NewCond.spec`'s post with `⌜c ≠ null⌝` (the proof has it). (2) `WithValue`
   translated with its body (its `reflectlite.TypeOf(key).Comparable()` check modelled) and a spec giving
   `isContext` of a value context over `isContext` or `Background()`; `isParentCtx` widened to a `*valueCtx`
