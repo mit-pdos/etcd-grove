@@ -1398,9 +1398,9 @@ instance isChanAny_persistent (γ : ChanNames) (ch : Loc) :
 def isEtcdLease (l : GoInterfaceOk) : IProp GF :=
   iprop(
     (□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ttl : w64),
-      {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
+      {{ levelTok 0 ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
         (App (App (Val #(methods l.ty go!"Grant" l.v)) (Val #(GoInterface.ok ctx))) (Val #ttl))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
           ⌜err ≠ GoInterface.nil⌝ ∨
           (⌜err = GoInterface.nil⌝ ∗ ∃ (id : w64) (hdr : Loc) (r : w64),
             structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ID" resp ↦□ id ∗
@@ -1408,7 +1408,7 @@ def isEtcdLease (l : GoInterfaceOk) : IProp GF :=
             structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp
               ↦□ hdr ∗ ⌜hdr ≠ null⌝ ∗
             structFieldRef etcdserverpb.ResponseHeader go!"Revision" hdr ↦□ r ∗
-            etcdReached r) }}) ∗
+            etcdReached r)) }}) ∗
     (□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (id : w64),
       {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
         (App (App (Val #(methods l.ty go!"KeepAlive" l.v)) (Val #(GoInterface.ok ctx))) (Val #id))
@@ -1416,14 +1416,14 @@ def isEtcdLease (l : GoInterfaceOk) : IProp GF :=
           ⌜err ≠ GoInterface.nil⌝ ∨
           (⌜err = GoInterface.nil⌝ ∗ ∃ γ : ChanNames, isChanAny γ ch) }}) ∗
     (□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (id : w64),
-      {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
+      {{ levelTok 0 ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
         (App (App (Val #(methods l.ty go!"Revoke" l.v)) (Val #(GoInterface.ok ctx))) (Val #id))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
           ⌜err ≠ GoInterface.nil⌝ ∨
           (⌜err = GoInterface.nil⌝ ∗ ∃ (hdr : Loc) (r : w64),
             structFieldRef etcdserverpb.LeaseRevokeResponse go!"Header" resp ↦□ hdr ∗
             ⌜hdr ≠ null⌝ ∗ structFieldRef etcdserverpb.ResponseHeader go!"Revision" hdr ↦□ r ∗
-            etcdReached r) }}))
+            etcdReached r)) }}))
 
 instance isEtcdLease_persistent (l : GoInterfaceOk) : Persistent (isEtcdLease (GF := GF) l) := by
   unfold isEtcdLease; infer_instance
