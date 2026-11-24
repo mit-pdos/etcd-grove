@@ -94,6 +94,13 @@ abbrev rawNode_logTerms.law : Prop :=
   ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
     ⌜∀ e ∈ ps.log, uint.Z e.Term' ≤ uint.Z ps.term⌝ ∗ rawNode γ rn id rs ps qs ip
 
+/-- (#33 S4, drain) The last hard state handed out (`prevHardSt`'s record) at a term at most the
+node's (`PhsOk`'s `HsLe`: terms never decrease). -/
+abbrev rawNode_phsTerm.law : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
+    ⌜uint.Z rs.phs.Term' ≤ uint.Z ps.term⌝ ∗ rawNode γ rn id rs ps qs ip
+
 /-- The harness's configuration (the scope's part a client sees; 2026-11-24, either mode, until then
 the static mode only): the node one of the names' voters, the cluster untraced, and in the dynamic
 mode the node's configuration simple over the names' voters. -/

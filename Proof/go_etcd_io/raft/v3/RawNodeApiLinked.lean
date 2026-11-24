@@ -129,6 +129,16 @@ theorem rawNode_scope : rawNode_scope.law (GF := GF) := by
   obtain ⟨H1, H2, H3⟩ := Hcin rfl
   exact ⟨H1, H3, fun h => ⟨H2 h, (Hscope rfl).1 h⟩⟩
 
+theorem rawNode_phsTerm : rawNode_phsTerm.law (GF := GF) := by
+  intro γ rn id rs ps qs ip
+  refine entails_wand (persistent_entails_right ?_)
+  unfold rawNode ownRawNodeAt
+  iintro H
+  iNamed H
+  ipureintro
+  subst Hps
+  exact Hphs.1.1
+
 theorem rawNode_logRecs : rawNode_logRecs.law (GF := GF) := by
   intro γ rn id rs ps qs ip
   refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)

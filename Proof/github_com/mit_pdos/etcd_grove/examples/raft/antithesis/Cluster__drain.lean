@@ -9,7 +9,8 @@ the `ready` report and the write if the hard state, the entries or the role chan
 `drainAdvance.stmt`. Each of the iteration's `if`s is proved under `wp_bind` and `wp_wand` with a
 postcondition both arms meet, so the rest of the iteration is proved once. Two interim premises wait
 for raft's laws: `readyMsgsOk.law` (a `Ready`'s messages are read and go to voters) and
-`rawNode_phsTerm.law` (the last hard state handed out is at most the node's term).
+`rawNode_phsTerm.law` (the last hard state handed out is at most the node's term; now raft's,
+`RawNodeApi.lean`).
 -/
 module
 
@@ -93,15 +94,6 @@ theorem evReady_numsOk {id : w64} {b : AntCheck.Str} {r : Role} {ps : PState} {v
 theorem evReady_weight (id : w64) (b : AntCheck.Str) (r : Role) (t vo c : w64) (es : List EntryM) :
     (AntSim.evReady id b r t vo c es).weight = es.length + 2 := by
   simp [AntSim.evReady, AntCheck.Event.weight, AntCheck.Event.size, AntSim.logOf]
-
-/-- **(interim) The last hard state handed out is at most the node's term** (raft's `prevHardSt`:
-terms never decrease); the `ready` report's `term + 1` does not wrap (`antSim_ready.stmt`'s premise).
-Until raft states it as a law of `RawNodeApi.lean`. -/
-abbrev rawNode_phsTerm.law [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors}
-    [HeapGS HasLC.hasLC GF] [StorageModel GF] [go.Semantics] : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    ⌜uint.Z rs.phs.Term' ≤ uint.Z ps.term⌝ ∗ rawNode γ rn id rs ps qs ip
 
 /-- **(interim) A `Ready`'s messages are read and go to voters**: `drainReady_pure`'s `habs` and
 `hvot`, until raft's `Ready` post states them (`mtypeOf ≠ none`, `To' ∈ γ.reCfg`: the raft helper's
