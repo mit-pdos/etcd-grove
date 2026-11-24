@@ -300,7 +300,7 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → PState 
       "#Hdk" ∷ dlvKeysAt rs.sn rs.delivered.length
         ((dlvAfter rs.delivered ce L).drop rs.delivered.length) ∗
       -- (#33 S3c) the queue `Advance` steps, and the `Ready` against the protocol state
-      "%Hout" ∷ ⌜S → qs' = ps.outbox.filter (fun m => decide (m.dst = id)) ∧
+      "%Hout" ∷ ⌜S → qs' ≡ₚ ps.outbox.filter (fun m => decide (m.dst = id)) ∧
         ReadyOut id γ.reCfg rs ps h es ce ms ss L ∧
         -- (decision 3) the entries from the in-progress boundary on; the boundary to the end
         (∀ e0 ∈ es.head?, uint.nat e0.Index' = ip + 1) ∧ ip' = ps.log.length⌝ }}

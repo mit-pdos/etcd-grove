@@ -1,0 +1,239 @@
+-- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/Protocol/InputEnd.lean` (etc/copy-part.py; rerun it, do not edit).
+/-
+Lean-first (#33 S3c step 2, `notes/antithesis-rawnode-design.md` §2.2). **The per-input end
+relations**: what one input does to a node's protocol state `PState`, as raft's code paths are, in
+static mode with pre-vote and check-quorum off. They are raft's step function at the protocol level,
+the content of `StepEnd` (`LemmasStepGates.lean`, the exact per-path end state over `NState`)
+restated on `PState`; `InputEndLift.lean` lifts `StepEnd` to them through `toPState`. Pure: imports
+only Protocol modules.
+
+Their right-hand sides are `StepC`'s (`Protocol/StepC.lean`) rule by rule, but unlike `StepC*` they
+admit no other composition: a term change only by the preamble (`PreEnd`) or a campaign
+(`TickEnd`), messages only queued at the state after the preamble, a broadcast only of `MsgApp`s
+(`AppSendOk`: `ReplOk` without its `SnapOk` disjunct, which the lifting lemmas exclude by a
+hypothesis, `NoSnapSent`, until the snapshot exclusion of the design's §2.5 is settled).
+
+Differences from the design's sketch (§2.2), each because the sketch's form is not what raft's
+code or `StepEnd` says:
+* a granted vote answers at the request's term `m.term` (Go's `Term: m.Term`, `vrespMsgOf`), not
+  the node's: the two agree after the preamble, not for a term-0 request (`RecvEnd`'s first arm);
+* `HandleEnd`'s undecided vote response says `¬ JLost` but not `¬ JQuorum` (`poll`'s spec pins the
+  loss, `CandVoteRespResultC`, not the win);
+* leader sends are `AppSendOk` (`AppOk` and `AppCommitEq`: Go's `Commit: r.raftLog.committed`, which
+  `ReplSends` gives too), not `AppOk` alone;
+* `WinEnd` takes no configuration (the quorum is `HandleEnd`'s); the commit test is `PCommitOk`
+  (`StepC.commit`'s premises, `CommitOkC` of `raft__maybeCommit`'s spec);
+* `ProposeEnd` takes the proposal message, not its entries: a forward is the message re-addressed
+  (`StepC.propForward`), and a leader appends the conf-change loop's batch (`PropRepl`);
+* `TickEnd`'s campaign has some request context `cl` (`HupGuard`'s; `[]` for a `MsgHup` in Go, which
+  `hup`'s spec does not say).
+-/
+module
+
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.Protocol.StepC
+
+@[expose] public section
+
+set_option autoImplicit false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open GMap go_etcd_io.raft.v3
+
+section input_end
+variable [GooseExts]
+
+/-- What a leader's broadcast queues at `s` (`maybeSendAppend`'s `MsgApp`): `AppOk`, and the
+commit index exactly the leader's (`AppCommitEq`, Go's `Commit: r.raftLog.committed`). `ReplOk`
+without its `MsgSnap` disjunct. -/
+def AppSendOk (id : w64) (s : PState) (m : Msg) : Prop := AppOk id s m ∧ AppCommitEq s m
+
+/-- A step from `s` to `s'` queued no `MsgSnap`: whatever it appended to the outbox. The lifting
+lemmas take it of the step (the design's §2.5: the RawNode layer discharges it at a node whose
+storage is never compacted). -/
+def NoSnapSent (s s' : PState) : Prop :=
+  ∀ ms : List Msg, s'.outbox = s.outbox ++ ms → ∀ x ∈ ms, x.ty ≠ .snap
+
+/-- `AppSendOk` reads only the term, the log and the commit index. -/
+theorem AppSendOk.proper {id : w64} {s s' : PState} {m : Msg} (Ht : s'.term = s.term)
+    (Hb : s'.base = s.base) (Hl : s'.log = s.log) (Hc : s'.commit = s.commit)
+    (H : AppSendOk id s m) : AppSendOk id s' m := by
+  unfold AppSendOk AppOk AppCommitEq at *
+  rw [Ht, Hb, Hl, Hc]; exact H
+
+/-- `ReplOk` of a message that is no `MsgSnap` is `AppOk`. -/
+theorem ReplOk.app {id : w64} {s : PState} {m : Msg} (H : ReplOk id s m) (Hn : m.ty ≠ .snap) :
+    AppOk id s m :=
+  H.elim (fun h => h) fun h => absurd h.1 Hn
+
+/-- `NoSnapSent` reads only the outbox before the step. -/
+theorem NoSnapSent.of_outbox {s s1 s' : PState} (Ho : s1.outbox = s.outbox)
+    (H : NoSnapSent s s') : NoSnapSent s1 s' :=
+  fun ms h => H ms (Ho ▸ h)
+
+/-- **`Step`'s term preamble** (`raft.go:1063-1090`, `Step`'s `m.Term > r.Term` arm): a message of a
+higher term makes the node a follower at that term (`becomeFollower(m.Term, lead)`, the sender
+its leader for a leader's message: `MsgApp`, `MsgHeartbeat`, `MsgSnap`); one of the node's term
+leaves it as it is. (A lower term is `RecvEnd`'s second arm.) -/
+def PreEnd (s : PState) (m : Msg) (s1 : PState) : Prop :=
+  (uint.Z s.term < uint.Z m.term ∧
+    s1 = pbecomeFollower s m.term (if fromLeader m.ty then m.src else W64 0)) ∨
+  (m.term = s.term ∧ s1 = s)
+
+/-- **`handleAppendEntries`** (`raft.go:1792-1826`) at `s`, the node having adopted the sender as
+leader (`padoptLeader`): exactly one of `StepC.appStale` (`m.Index < committed`: the reply carries
+`committed`), `StepC.appAccept` (`maybeAppend`'s log, `commitTo(min(m.Commit, lastnewi))`, the
+reply carries `lastnewi`) and `StepC.appReject` (the log does not match at `(m.LogTerm, m.Index)`:
+the rejection with `findConflictByTerm`'s hint), as `HandleAppResult` states them. -/
+def AppEnd (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop :=
+  (uint.Z m.index < uint.Z s.commit ∧
+    s' = psendMsgs s [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []]) ∨
+  (uint.Z s.commit ≤ uint.Z m.index ∧
+    ∃ (lastnewi : w64) (es' : List EntryM),
+      plogMaybeAppend s.base s.log (entryID.mk m.logterm m.index) m.entries
+        = some (lastnewi, es') ∧
+      s' = psendMsgs
+        { s with
+            log := es',
+            commit := plogCommitTo s.commit
+                        (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
+        [Msg.mk .appResp id m.src s.term false lastnewi (W64 0) (W64 0) (W64 0) []]) ∨
+  (uint.Z s.commit ≤ uint.Z m.index ∧
+    ¬ PlogMatches s.base s.log (entryID.mk m.logterm m.index) ∧
+    ∃ (hint hintterm : w64),
+      RejHintOk s.base s.log m.index m.logterm hint ∧ uint.Z hintterm ≤ uint.Z m.logterm ∧
+      s' = psendMsgs s [Msg.mk .appResp id m.src s.term true m.index hintterm (W64 0) hint []])
+
+/-- **A candidate's win** (`stepCandidate`'s `poll` won, `becomeLeader`, `bcastAppend`;
+`raft.go:1680-1690`): the `Match` values `reset` left (`LeaderMatchOk`), the empty entry of the
+term appended (`pwinState`), the self-acknowledgement queued (`pselfAck`), then the broadcast's
+`MsgApp`s judged at the won state (`AppSendOk`). `StepC.win`'s right-hand side. -/
+def WinEnd (id : w64) (s s' : PState) : Prop :=
+  ∃ (mt : GMap w64 w64) (ms : List Msg), LeaderMatchOk id s mt ∧
+    (∀ x ∈ ms, AppSendOk id (pwinState id s mt) x) ∧
+    s' = psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)
+
+/-- **`maybeCommit`'s commit** to `n` at the configuration `c` (`raft.go:740-749`): past the commit
+index, inside the log, at an entry of the leader's term, acknowledged by a joint quorum
+(`ackedBy`). `StepC.commit`'s premises; `CommitOkC` of `raft__maybeCommit`'s spec. -/
+def PCommitOk (c : CfgM) (s : PState) (n : w64) : Prop :=
+  uint.Z s.commit < uint.Z n ∧ uint.Z n ≤ plogLastIndexZ s.base s.log ∧
+  plogTermAt s.base s.log n = some s.term ∧ JQuorum c (ackedBy s n)
+
+/-- **A leader's appends at `s`** (`sendAppend`, `bcastAppend`, `maybeSendAppend`): `MsgApp`s
+judged at `s` (`AppSendOk`). `StepC.sendApps` without snapshots. -/
+def SendsEnd (id : w64) (s s' : PState) : Prop :=
+  ∃ ms : List Msg, (∀ x ∈ ms, AppSendOk id s x) ∧ s' = psendMsgs s ms
+
+/-- **`stepLeader`'s `MsgAppResp`** (`raft.go:1371-1565`) at `s`, the leader at the message's term:
+an unknown sender (no `Progress`) changes nothing; a rejection keeps `Match` and may probe
+(`SendsEnd`); an acknowledgement raises the sender's `Match` to `max Match m.Index`
+(`MaybeUpdate`, `StepC.appResp`), then possibly commits (`PCommitOk` at the raised `Match` map,
+`StepC.commit`), then appends (`SendsEnd` at the state after the commit). -/
+def AppRespEnd (c : CfgM) (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop :=
+  (s.matched !! m.src = none ∧ s' = s) ∨
+  (m.reject = true ∧ s.matched !! m.src ≠ none ∧ SendsEnd id s s') ∨
+  (m.reject = false ∧ ∃ (x n : w64), s.matched !! m.src = some x ∧
+    (n = s.commit ∨
+      PCommitOk c { s with matched :=
+        <[m.src := if uint.Z x < uint.Z m.index then m.index else x]> s.matched } n) ∧
+    SendsEnd id { s with
+      matched := <[m.src := if uint.Z x < uint.Z m.index then m.index else x]> s.matched,
+      commit := n } s')
+
+/-- **A proposal** (`MsgProp`, term `0`: `RawNode.Propose`'s or a forwarded one) at `s`: a leader
+(`stepLeader`, `raft.go:1294-1340`) drops it (a transfer in progress, or `appendEntry` refusing the
+batch) or appends the conf-change loop's batch (`PropRepl`) stamped at its term and index
+(`StepC.propose`), queues the self-acknowledgement and broadcasts (`AppSendOk`); a follower with a
+leader forwards it to the leader re-addressed, its term left `0` (`stepFollower`,
+`StepC.propForward`); otherwise (a candidate, a follower with no leader) it is dropped. -/
+def ProposeEnd (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop :=
+  if s.role = .leader then
+    s' = s ∨
+    ∃ (es : List EntryM) (ms : List Msg), PropRepl m.entries es ∧
+      (∀ x ∈ ms, AppSendOk id (pappend s (es.mapIdx (stamp s.term (plastIndex s)))) x) ∧
+      s' = psendMsgs (pappend s (es.mapIdx (stamp s.term (plastIndex s))))
+        ([pselfAck id (pappend s (es.mapIdx (stamp s.term (plastIndex s))))] ++ ms)
+  else if s.role = .follower ∧ s.lead ≠ W64 0 then
+    s' = psendMsgs s [Msg.mkV .propose id s.lead (W64 0) m.reject m.index m.logterm m.commit
+                        m.rejecthint m.entries [] m.ctx]
+  else s' = s
+
+/-- **`Step`'s type switch and the role's step function** at `s` (the state after the preamble):
+a vote request answered (`Step`'s `MsgVote` arm, `raft.go:1167-1213`: granted when `canVote` and
+the candidate's log is up to date, the vote recorded, the answer at the request's term; rejected
+at the node's term); then by role (`stepFollower`, `stepCandidate`, `stepLeader`): a vote
+response tallied by a candidate (`poll`: pending, won `WinEnd`, or lost back to a follower with no
+leader); a `MsgApp` or `MsgHeartbeat` at a non-leader adopting the sender as leader then
+`handleAppendEntries` (`AppEnd`) or `handleHeartbeat` (`commitTo(m.Commit)`, the response echoing
+the context); a leader's `MsgAppResp` (`AppRespEnd`) and `MsgHeartbeatResp` (`sendAppend` to the
+sender, `SendsEnd`; the read-index path is outside the scope); a proposal (`ProposeEnd`). A leader
+ignores `MsgApp`/`MsgHeartbeat` of its term, a non-leader the responses to a leader, a
+non-candidate the vote responses. Other types (outside the harness's inputs): some `StepC`
+derivation. -/
+def HandleEnd (c : CfgM) (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop :=
+  match m.ty with
+  | .vote =>
+    (PCanVote s m.src ∧ plogUpToDate s.base s.log (entryID.mk m.logterm m.index) = true ∧
+      s' = psendMsgs { s with vote := m.src } [Msg.plain .voteResp id m.src m.term false]) ∨
+    (¬ (PCanVote s m.src ∧ plogUpToDate s.base s.log (entryID.mk m.logterm m.index) = true) ∧
+      s' = psendMsgs s [Msg.plain .voteResp id m.src s.term true])
+  | .voteResp =>
+    if s.role = .candidate then
+      (¬ JLost c (recordVote s.votes m.src (!m.reject)) ∧
+        s' = { s with votes := recordVote s.votes m.src (!m.reject) }) ∨
+      (JQuorum c (granted (recordVote s.votes m.src (!m.reject))) ∧
+        WinEnd id { s with votes := recordVote s.votes m.src (!m.reject) } s') ∨
+      (JLost c (recordVote s.votes m.src (!m.reject)) ∧
+        s' = pbecomeFollower { s with votes := recordVote s.votes m.src (!m.reject) } s.term
+               (W64 0))
+    else s' = s
+  | .app => if s.role = .leader then s' = s else AppEnd id (padoptLeader s m.src) m s'
+  | .heartbeat =>
+    if s.role = .leader then s' = s
+    else s' = psendMsgs { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
+                [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }]
+  | .appResp => if s.role = .leader then AppRespEnd c id s m s' else s' = s
+  | .heartbeatResp => if s.role = .leader then SendsEnd id s s' else s' = s
+  | .propose => ProposeEnd id s m s'
+  | _ => ∃ (B : Int) (r : List Msg), StepC c id B s r s'
+
+/-- **The end state of `raft.Step` on a message `m`** (static mode, pre-vote and check-quorum off;
+`raft.go:1060-1260`), as the code's paths are: a local message (term `0`: a forwarded or local
+`MsgProp`; `send` stamps no term on it) goes to the type switch with no preamble; a stale one
+(`m.Term < r.Term`) is ignored (no answer with check-quorum and pre-vote off); otherwise the
+preamble (`PreEnd`), then the type switch (`HandleEnd`). -/
+def RecvEnd (c : CfgM) (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop :=
+  (m.term = W64 0 ∧ HandleEnd c id s m s') ∨
+  (m.term ≠ W64 0 ∧ uint.Z m.term < uint.Z s.term ∧ s' = s) ∨
+  (m.term ≠ W64 0 ∧ ∃ s1, PreEnd s m s1 ∧ HandleEnd c id s1 m s')
+
+/-- **A tick's step** (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`; `raft.go:820-870`):
+nothing; a campaign (`hup`, `campaign(campaignElection)`: a non-leader voter becomes a candidate
+at the next term voting for itself, queues its own vote and a request to every other voter, with
+its last entry id: `StepC.campaign`); or a leader's heartbeats (`bcastHeartbeat`,
+`HeartbeatOk`: `Commit: min(Match, committed)`). -/
+def TickEnd (c : CfgM) (id : w64) (s s' : PState) : Prop :=
+  s' = s ∨
+  (s.role ≠ .leader ∧ id ∈ c.voters ∧
+    ∃ (peers : List w64) (cl : List w8), peers ≡ₚ elements (c.voters \ {[id]}) ∧
+      s' = psendMsgs (pbecomeCandidate id s)
+        ([Msg.plain .voteResp id id (s.term + W64 1) false] ++
+         peers.map (fun d => pvoteReq id d (s.term + W64 1) (plogLast s.base s.log) cl))) ∨
+  (s.role = .leader ∧ ∃ ms : List Msg, (∀ x ∈ ms, HeartbeatOk id s x) ∧ s' = psendMsgs s ms)
+
+/-- **`Advance`** (`rawnode.go:480-500`): the queued self-addressed messages `qs` (a leader's
+self-acknowledgement, a candidate's self-vote) stepped in order (`RecvEnd`); the storage
+acknowledgements leave `PState` as it is (`AckEnd`). -/
+inductive AdvanceEnd (c : CfgM) (id : w64) : PState → List Msg → PState → Prop
+  | nil (s : PState) : AdvanceEnd c id s [] s
+  | cons (s s1 s' : PState) (q : Msg) (qs : List Msg) :
+      RecvEnd c id s q s1 → AdvanceEnd c id s1 qs s' → AdvanceEnd c id s (q :: qs) s'
+
+end input_end
+
+end EtcdGrove
+end Perennial
