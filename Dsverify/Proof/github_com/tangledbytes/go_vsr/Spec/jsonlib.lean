@@ -51,11 +51,8 @@ def kitPkg : GoString := go!"github.com/tangledbytes/go-vsr/examples/vsrnet"
 def kitFn [GooseExts] [GoSemanticsFunctions] (name : GoString) : GoFunc :=
   functions (kitPkg ++ go!"." ++ name) []
 
-section dispatch
+section routes
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : encoding.json.Assumptions]
 
 /-- `Marshal(v)` goes to the registered codec: `v`'s dynamic type has neither
 `JSONModelMarshalPtr` nor `JSONModelMarshal` (`marshalAny`). -/
@@ -72,8 +69,17 @@ def unmarshalsByCodec (ptr : GoInterface) : Prop :=
   | .ok ii => go.typeSetContains ii.ty encoding.json.modelUnmarshaler.ty = false
   | .nil => True
 
+end routes
+
+section dispatch
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : encoding.json.Assumptions]
+
 /-- The registered codec's share of the contract `J`: `J` at the values the dispatch sends to the
 codec (see the file header). -/
+@[instance_reducible]
 def codecPart (J : models_lab.jsoncodec.JsonCodec GF) : models_lab.jsoncodec.JsonCodec GF where
   enc v Ψ := iprop(⌜marshalsByCodec v⌝ ∗ J.enc v Ψ)
   dec bs ptr Ψ := iprop(⌜unmarshalsByCodec ptr⌝ ∗ J.dec bs ptr Ψ)
