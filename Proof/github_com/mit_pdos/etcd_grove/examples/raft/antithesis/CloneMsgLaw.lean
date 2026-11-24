@@ -42,7 +42,7 @@ theorem cloneMsg_law_of (wp_Clone : proto.ClonePb.spec (GF := GF) (hG := hG)) :
     pbMessageC_C, pbMessageC_marshals] at wpC
   ihave #Hro := msgPtsCC_msgRoC l c hr $$ Hl
   wp_apply wpC $$ [] as %l' ⟨%c', Hl', %Heqv⟩
-  · first | iexact Hro | (isplitl []; iexact Hpkg; iexact Hro)
+  · iexact Hro
   have hm : MsgMarshals c.model := by
     simp only [MsgMarshals, MsgC.model, hr, List.map_nil]
   rw [Heqv.2.2 hm]
