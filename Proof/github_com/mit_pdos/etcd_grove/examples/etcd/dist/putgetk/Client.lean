@@ -32,13 +32,12 @@ theorem Client.wp_proof
     (wp_Client : etcd_putget_dist.Client.spec (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro _ _ _ _ _ ep γE mid Hat
-  wp_start as ⟨#Hpkg, Hsh⟩
+  wp_start as Hsh
   ihave #Hpg : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget $$ []
   · iPkgInit
   wp_auto
   wp_apply wp_AddrOK as %b %Hb
-  · iframe #
   cases b with
   | false =>
     wp_auto
