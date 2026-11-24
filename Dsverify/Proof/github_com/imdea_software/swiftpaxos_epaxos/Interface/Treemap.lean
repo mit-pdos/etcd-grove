@@ -3,9 +3,10 @@
 and for `SCAN`: `Select`, `Iterator`, `Iterator.Next`, `Iterator.Value`), over `state.Key` keys and
 `state.Value` values (notes/dsv-epaxos.md, "Hypotheses").
 
-The hypothesis is the shared treemap spec set, `github_com.emirpasic.gods.maps.treemap.Hyps`
+The source is the shared treemap spec set, `github_com.emirpasic.gods.maps.treemap.Hyps`
 (`Dsverify/Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean`: generic in the comparator and
-the stored values, the swiftpaxos kit states the same specs). The class `StateTreemap GF` here is
+the stored values, the swiftpaxos kit uses the same specs), proved of gods' own code
+(`treemap.hyps_true`, notes/gods-verified.md; until then a premise of the statement). The class `StateTreemap GF` here is
 its specialization to `state` (every theorem that uses the treemap takes it as an instance), derived
 from it by `StateTreemap.ofGods` with `enc = keyIface`, `cmpOk KeyComparator keyIface`
 (`state.keyComparator_cmpOk`, wire/State/KeyComparator.lean) and the stored values `valIface sl`:

@@ -32,12 +32,12 @@ real backend `d`, whose table has the membership's buckets) and the backend cons
 the data `D` with a write-back token (`bootstrapBackend`'s): the constructor's post over `D` with the
 membership's buckets created (`bootGo.withMemBkts D`, whatever the result: the error comes after
 `SetBackend`, and `bootstrap`'s error path closes the backend), and either an error or the cluster's
-rows of `bootOk` (`bootClusterDone`: `Hcl Hrc Hcid Hclg Hvcn Hmembers Hclok Hcvm Hisc HclBe Hmem`). The
+rows of `bootOk` (`bootClusterDone`: `Hcl Hrc Hcid Hclg Hvcn Hmembers Hisc HclBe Hmem`). The
 records are read and given back.
 
-The cluster's lock invariant is today's `membership.isRaftCluster`. Stage 1's I2 (plan §7.1) widens it
-with the version slot, which `clusterBuilt`'s `version ↦ nil` gives (`membership.rcLockInv_boot`), and
-its I3 turns `Hclok`, `Hcvm` and `Hisc` into lemmas of `Hrc`: then they leave `bootClusterDone`.
+The cluster's lock invariant is `membership.isRaftCluster`, which stage 1 (`ea2dc2dcf2`, plan §7.1
+I2) widened with the version slot, given by `clusterBuilt`'s `version ↦ nil`. Its I3 made `Hclok` and
+`Hcvm` lemmas of `Hrc`, and `Hisc` the rest of the apply contract (`clusterApplyRest`).
 
 Why it is true of Go: `!s.wal.haveWAL` (`:513`), so `SetID(c.nodeID, c.cl.ID())` (`cluster.go:241-245`)
 writes `localID` (this member, in the members map: `membersOk`) and `cid` (unchanged, `bootGo.cid`)

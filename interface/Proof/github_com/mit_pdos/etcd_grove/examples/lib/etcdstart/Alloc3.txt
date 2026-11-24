@@ -4,26 +4,27 @@
 
 theorem etcdstart.memberBoot_of [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ps : List w64) (ctxs
-    : List (List w8)) (reg issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 →
+    : List (List w8)) (reg issued cnt wn fs gen : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 →
     GName → IProp GF) (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev x : GName)
     (Hx : x = γs.slog) (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
-    (Hc0 : γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[],
-    []]) (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (lm : lease.Mode) (hrun : lease.runCfg
-    lm lm) (Hklg : γk.lm = lm) (hpfx : lm = lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈
-    γk.gps) (hpo : kvPfxOk γk) (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts γs.slog) (Hns :
-    ¬clusterNoSnap γ.cl) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0 := W64 0 } -∗ idClusterInv
-    issued cnt wn fs srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗ srvPropMint { raft := γ, pre := [],
-    ai0 := W64 0 } γk.ids -∗ srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0 } issued -∗ kvInv {
-    raft := γ, pre := [], ai0 := W64 0 } γk -∗ ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([], none) ∗
-    idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗ (nodeBoot γ.cl srvClusterN ps ctxs id ∗
-    raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗
-    ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) -∗ ghostMapAuth reg 1 ∅ -∗
-    srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 ∅ -∗ ghostMapAuth rev 1 ∅ ==∗ ∃ ρ,
-    ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
-    kvSame ρ.rd.kv γk⌝ ∗ etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot :=
-    γ.boot, reg := reg, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props,
-    fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ
-    (etcdstart.env₀ γm γs rev (srvApi.kvNx ρ.rd false) cmp) Φs id cmp lm
+    (Hgen : γk.ids.gen = gen) (Hc0 : γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain false false
+    false) (Hlog : γk.log0 = [[], []]) (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (lm :
+    lease.Mode) (hrun : lease.runCfg lm lm) (Hklg : γk.lm = lm) (hpfx : lm = lease.Mode.revocable →
+    idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk) (HΦ : Φs (idPfxOf (W16 (uint.Z id))) =
+    srvFloorFacts γs.slog) (Hns : ¬clusterNoSnap γ.cl) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0
+    := W64 0 } -∗ idClusterInv issued cnt wn fs gen srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗
+    srvPropMint { raft := γ, pre := [], ai0 := W64 0 } γk.ids -∗ srvRdCtxInv { raft := γ, pre := [],
+    ai0 := W64 0 } issued -∗ kvInv { raft := γ, pre := [], ai0 := W64 0 } γk -∗ ((idPfxOf (W16
+    (uint.Z id)), 0) ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗ (nodeBoot
+    γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗ ∃ γd,
+    ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)
+    -∗ ghostMapAuth reg 1 ∅ -∗ srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 ∅ -∗
+    ghostMapAuth rev 1 ∅ -∗ idPfxInv gen (idPfxOf (W16 (uint.Z id))) ==∗ ∃ ρ, ⌜ρ.rd.kv.st = γk.st ∧
+    ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗
+    etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg,
+    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired,
+    rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ (etcdstart.env₀ γm γs rev
+    (srvApi.kvNx ρ.rd false) cmp) Φs id cmp lm
 
 theorem etcdstart.id_ne (id₁ id₂ id₃ : w64) (Hlow : (List.map (fun id => uint.Z id % 2 ^ 16) [id₁,
     id₂, id₃]).Nodup) (Hlow0 : ∀ (id : w64), id ∈ [id₁, id₂, id₃] → uint.Z id % 2 ^ 16 ≠ 0) : id₁ ≠

@@ -329,7 +329,7 @@ theorem bootstrap.wp_proof
   · iexact Hraft
   isplitl [Hvcn HclBe Hmem]
   · iunfold bootClusterDone
-    iframe Hvcn HclBe Hmem Hcl Hrc Hcid Hclg Hmembers Hclok Hcvm Hisc
+    iframe Hvcn HclBe Hmem Hcl Hrc Hcid Hclg Hmembers Hisc
   isplitl [Hthr Happ Hown Hlate Hpath]
   · iunfold bootBackendRows
     iframe Hthr Happ Hown Hlate Hpath HisCI Hcons Hbh Hmeta HmetaSnap HhkAt Hbfile

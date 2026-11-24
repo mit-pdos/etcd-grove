@@ -7,6 +7,8 @@ that a proof over the model imports only it (mit-pdos/etcd-grove#24: the kits us
 module
 
 public import GeneratedProof.encoding.json
+public import Perennial.Proof.io.Base
+public import Perennial.Proof.sync.Base
 
 @[expose] public section
 

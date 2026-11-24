@@ -52,7 +52,7 @@ The states:
   `HD`, the rest buckets empty, `HmEmpty`), and one write-back token for `Finalize`;
 - `bootstrapCluster`: `Hbc`, `Hid`, the remotes nil (`Hrms Hrmsi Hrms0`) and `clusterBuilt`;
 - `bootstrapStorage`: `Hsto`, `Hbw`, `Hwal`;
-- `Finalize`: `bootClusterDone` (`Hcl Hrc Hcid Hclg Hvcn Hmembers Hclok Hcvm Hisc HclBe Hmem`) and
+- `Finalize`: `bootClusterDone` (`Hcl Hrc Hcid Hclg Hvcn Hmembers Hisc HclBe Hmem`) and
   `Hnew` at `bootGo.withMemBkts D`: `SetBackend`'s `MustCreateBackendBuckets` creates the three
   membership buckets (one session, one write-back), so `HDr`'s membership part holds of the data
   after it, not before;
@@ -215,10 +215,10 @@ def clusterBuilt (c : Loc) (U : BootURLs) (cfg : go_etcd_io.etcd.server.v3.confi
     membership.rcVersionChangedAddr c ↦ (null : Loc))
 
 /-- **The cluster `c` after `Finalize`, as `bootOk` names it** (`bootstrap.go:512-527`): its rows
-`Hcl Hrc Hcid Hclg Hvcn Hmembers Hclok Hcvm Hisc HclBe Hmem`, at the cluster's id `bootGo.cid`, the peers
+`Hcl Hrc Hcid Hclg Hvcn Hmembers Hisc HclBe Hmem`, at the cluster's id `bootGo.cid`, the peers
 `bootGo.ps`, the directory `bootGo.dir` and the members `bootGo.memMap`, on the backend at `be`.
-`Hclok`, `Hcvm` and `Hisc` are here until stage 1 (plan §7.1, I3) makes them lemmas of `Hrc`; then
-they leave. -/
+(Stage 1, `ea2dc2dcf2`: `Hclok` and `Hcvm` left `bootOk`, lemmas of `Hrc`; `Hisc` is the rest of the
+cluster's apply contract, `clusterApplyRest`.) -/
 def bootClusterDone (U : BootURLs) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c be : Loc) :
     IProp GF :=
   iprop("#Hcl" ∷ rnClusterOk c ∗ "#Hrc" ∷ membership.isRaftCluster c ∗
@@ -227,10 +227,7 @@ def bootClusterDone (U : BootURLs) (cfg : go_etcd_io.etcd.server.v3.config.Serve
     "Hvcn" ∷ (∃ v : Loc, membership.rcVersionChangedAddr c ↦ v) ∗
     "#Hmembers" ∷ srvMembersDir c (bootGo.ps U cfg.InitialClusterToken')
       (bootGo.dir U cfg.InitialClusterToken') ∗
-    "#Hclok" ∷ lease.clusterOk (interface.mkOk (go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) #c) ∗
-    "#Hcvm" ∷ (∃ γcv : GName, clusterVersionMono c γcv) ∗
-    "#Hisc" ∷ clusterApplyOk c ∗
+    "#Hisc" ∷ clusterApplyRest c ∗
     "HclBe" ∷ clusterBeOn c be ∗
     "Hmem" ∷ membership.clusterMem c (bootGo.memMap U cfg.InitialClusterToken'))
 
@@ -422,7 +419,7 @@ theorem bootOk_of_parts (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U
   rw [hmem]
   iunfold srvMembersDir at Hmembers
   iframe Hb Hsto Hbk Hbw Hbc Hbv Hwal Hss Hsdo Hsfree Hc Hlok Hreg Hrauth Hmlock Hlog0 Hend Hsnone
-    Hfresh Hpeers Hctx Hcl Hrc Hcid Hclg Hvcn Hrms Hmembers Hclok Hcvm Hisc HclBe Hmem HisCI
+    Hfresh Hpeers Hctx Hcl Hrc Hcid Hclg Hvcn Hrms Hmembers Hisc HclBe Hmem HisCI
     Hcons Hbh Hthr Happ Hown Hmeta HmetaSnap HhkAt Hnew Hlate Hpath Hbfile Hsmeta
   obtain ⟨hcfg, hhb, hlg, hcid⟩ := Hraft
   isplitr
