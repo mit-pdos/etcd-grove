@@ -73,8 +73,10 @@ variable [encoding.json.Assumptions]
 
 /-- **Premise** (#24 J3; the lab's theorem `codec_ok`, for the registered codec's share): the kit's
 registered codec (`examples/vsrnet/json_gen.go`'s `jsonMarshal`, `jsonUnmarshal`, jsongen's for
-the unnamed roots `[]log.Log` and the frame struct) meets `codecPart vsrnet.jsonCodec`, and
-`jsoncodec.Scan` computes `scanF`.
+the unnamed roots `[]log.Log` and the frame struct) meets `codecPart vsrnet.jsonCodec`
+(`marshalOk`, `unmarshalOk`). The third part of the main tree's `codecOkWith`, `scanOk scanF scanFn`
+(`jsoncodec.Scan` computes `scanF`), is proved (`Net/Proof/models_lab/jsoncodec/ScanOk.lean`,
+linked in `examples/vsrnet/Link.lean`), so no longer part of this premise.
 
 True of the code: `codecPart` keeps only the values the dispatch sends to the codec, whose types
 have no `JSONModel*` method. Of `encP`'s cases that leaves the `[]log.Log` (the `*events.Event`
@@ -83,12 +85,11 @@ case has `JSONModelMarshalPtr`), of `decP`'s the `*[]log.Log` (`*vsrwire.Frame` 
 as encoding/json does, which is `log.encLogs es` (jsongen's generated test `json_gen_test.go`
 compares the codec with real encoding/json; `encLogs` is the lab's proved encoding of the same
 values), and `jsonUnmarshal` decodes `encLogs es` (ids below `2^64`, plain operations) into a
-nil `*[]log.Log` as a fresh slice of `es`. `scanOk scanF scanFn`: `models.lab/jsoncodec.Scan` is
-the lab's scanner, whose Lean function `JsonScan.scanF` the lab proved it computes
-(`Proof/jsoncodec/Scan*.lean`, ported). -/
+nil `*[]log.Log` as a fresh slice of `es`. -/
 def vsrnet.registeredCodecOk : Prop :=
-  ⊢ encoding.json.codecOkWith (jc := encoding.json.codecPart (vsrnet.jsonCodec (GF := GF)))
-      vsrnet.scanF (encoding.json.kitFn go!"jsonMarshal") (encoding.json.kitFn go!"jsonUnmarshal")
+  ⊢ (letI := encoding.json.codecPart (vsrnet.jsonCodec (GF := GF))
+     iprop(models_lab.jsoncodec.marshalOk (encoding.json.kitFn go!"jsonMarshal") ∗
+       models_lab.jsoncodec.unmarshalOk vsrnet.scanF (encoding.json.kitFn go!"jsonUnmarshal")))
 
 /-- **Premise** (#24 J3): the substantive part of the main tree's `typeCodecOk vsrnet.jsonCodec
 scanF T` for the kit's types (`encoding.json.kitTypes`), one field per method/type pair where the

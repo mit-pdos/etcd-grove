@@ -12,7 +12,7 @@ payload and a `*[]log.Log`. So:
   `DoViewChange`'s generated methods call its `MarshalJSON`/`UnmarshalJSON` directly);
 * `typeCodecOk_of_unmarshal`, `typeCodecOk_event`, and `codecOk_of`: the kit's JSON facts
   (`vsrnet.codecOk`) from the premises `registeredCodecOk` and `TypeCodecs` (which state only the
-  substantive parts).
+  substantive parts) and the scanner's proved `scanOk`.
 -/
 module
 
@@ -192,12 +192,15 @@ theorem vsrnet.typeCodecOk_event
 /-- **The kit's JSON facts, from the two premises** (`vsrnet.registeredCodecOk`,
 `vsrnet.TypeCodecs`) and the vacuous parts above. -/
 theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
+    (hs : ⊢ models_lab.jsoncodec.scanOk (GF := GF) vsrnet.scanF models_lab.jsoncodec.scanFn)
     (ht : vsrnet.TypeCodecs (GF := GF)) : vsrnet.codecOk (GF := GF) := by
   unfold vsrnet.codecOk encoding.json.kitCodecOk
   unfold vsrnet.registeredCodecOk at hc
-  ihave #Hc := hc
+  ihave #⟨Hm, Hu⟩ := hc
+  ihave #Hs := hs
   isplitr
-  · iexact Hc
+  · unfold encoding.json.codecOkWith
+    iframe
   imodintro
   iintro %T %hT
   simp only [encoding.json.kitTypes, List.mem_cons, List.not_mem_nil, or_false] at hT

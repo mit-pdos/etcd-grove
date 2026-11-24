@@ -24,7 +24,8 @@ tree's `Unmarshal.spec` (`Unmarshal.wp`) and `SetCodec.spec` (`SetCodec.wp`), an
     (`events.rstream` over `DecoderRep`). The main tree has no `NewDecoder`/`Decode` spec yet.
   - `codec`: `vsrnet.registeredCodecOk` (`Spec/json.lean`): the kit's registered codec
     (`jsonMarshal`, `jsonUnmarshal`, jsongen's, for the unnamed roots) meets
-    `codecPart vsrnet.jsonCodec`, and `jsoncodec.Scan` computes `scanF` (`codecOkWith`).
+    `codecPart vsrnet.jsonCodec` (`marshalOk`, `unmarshalOk`; the scanner's part of
+    `codecOkWith`, `scanOk`, is proved: `Net/Proof/models_lab/jsoncodec/ScanOk.lean`).
   - `types`: `vsrnet.TypeCodecs` (`Spec/json.lean`): the kit's named types' own `JSONModel*`
     methods (jsongen's same-package mode) meet `vsrnet.jsonCodec` where it gives a deposit (13
     fields: `*Event`'s `JSONModelMarshalPtr`, the 11 payloads' and `Frame`'s
@@ -75,9 +76,11 @@ structure JsonHyps : Prop where
   types : examples.vsrnet.TypeCodecs (GF := GF) (hG := hG)
 
 /-- The kit's JSON facts (`vsrnet.codecOk`: what the proofs take), from the premises. -/
-theorem JsonHyps.codecOk (j : JsonHyps (GF := GF) (hG := hG)) :
+theorem JsonHyps.codecOk (j : JsonHyps (GF := GF) (hG := hG))
+    (hs : ⊢ models_lab.jsoncodec.scanOk (GF := GF) examples.vsrnet.scanF
+      models_lab.jsoncodec.scanFn) :
     examples.vsrnet.codecOk (GF := GF) (hG := hG) :=
-  examples.vsrnet.codecOk_of j.codec j.types
+  examples.vsrnet.codecOk_of j.codec hs j.types
 
 end hyps
 
