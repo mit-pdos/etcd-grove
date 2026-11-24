@@ -167,7 +167,7 @@ set_option linter.unusedVariables false
 namespace Perennial.EtcdGrove.kvudpLink
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open Net go_etcd_io.raft.v3 Perennial.EtcdGrove.raft_kvnet Perennial.EtcdGrove.raft_kvcheck
+open Net go_etcd_io.raft.v3 Perennial.EtcdGrove.raft_kvnet
 open Udp
 
 attribute [local instance] raft_kvnet.kdStorageModel

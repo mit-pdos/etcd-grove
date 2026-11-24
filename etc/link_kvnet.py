@@ -451,7 +451,7 @@ set_option linter.unusedVariables false
 
 namespace {NS}
 
-{OPENS + ("open Udp\n" if udp else "")}
+{OPENS.replace(" Perennial.EtcdGrove.raft_kvcheck", "") + "open Udp\n" if udp else OPENS}
 attribute [local instance] raft_kvnet.kdStorageModel
 """)
     out.append("section links\n" + sec)
