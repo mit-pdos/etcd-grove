@@ -1,8 +1,9 @@
 # The traces (trace.go) with bodies (unit P1b, 2026-10-14: `ownTrace`, `notes/decisions.md`,
 # "Traces on the request path"): the constructors, the context's trace (`Get`, `EnsureTrace`),
-# the methods the request path calls and the long-trace loggers; the formatting (`logInfo`,
-# `LogWithStepThreshold`, `writeFields`, `Field.format`: fmt of `any` values, `math/rand`) and
-# `Init` (otel) are names only. (otel-tracing, 2026-11-23) `Tracer`'s initializer is translated (the
+# the methods the request path calls and the long-trace loggers; `Init` (otel) is names only.
+# (traceutil-log, 2026-11-23) The formatting with bodies: `logInfo`, `LogWithStepThreshold`,
+# `writeFields`, `Field.format` (over Perennial's `fmt`, `strings.Builder`, `time`; `math/rand`'s
+# `Int31` names-only in Perennial, a trust-boundary spec here). (otel-tracing, 2026-11-23) `Tracer`'s initializer is translated (the
 # no-op tracer, `noop.NewTracerProvider().Tracer(instrumentationScope)`: until then the trust-boundary
 # axiom `Tracer_init`).
 translate = ["!*", "TODO", "Trace", "step", "Field", "TraceKey", "StartTimeKey",
@@ -10,8 +11,9 @@ translate = ["!*", "TODO", "Trace", "step", "Field", "TraceKey", "StartTimeKey",
   "Trace.IsEmpty", "Trace.GetStartTime", "Trace.SetStartTime", "Trace.InsertStep",
   "Trace.StartSubTrace", "Trace.StopSubTrace", "Trace.Step", "Trace.StepWithFunction",
   "Trace.AddField", "Trace.updateFieldIfExist", "Trace.disableStep", "Trace.enableStep",
-  "Trace.LogIfLong", "Trace.LogAllStepsIfLong", "Tracer", "instrumentationScope"]
-imports = ["!*", "context", "time", "go.uber.org/zap", "go.opentelemetry.io/otel/trace",
+  "Trace.LogIfLong", "Trace.LogAllStepsIfLong", "Tracer", "instrumentationScope",
+  "Trace.LogWithStepThreshold", "Trace.logInfo", "writeFields", "Field.format"]
+imports = ["!*", "context", "time", "fmt", "math/rand", "strings", "go.uber.org/zap", "go.opentelemetry.io/otel/trace",
   "go.opentelemetry.io/otel/trace/noop"]
 
 # translate the definitions of all type declarations goose supports

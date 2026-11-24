@@ -3,9 +3,12 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_opentelemetry_io.otel.trace.noop
 public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.math.rand
+public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.pkg.v3.traceutil

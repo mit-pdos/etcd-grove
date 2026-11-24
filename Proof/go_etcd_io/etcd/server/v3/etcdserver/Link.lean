@@ -516,6 +516,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWrit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__pick
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__unreachable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.waitSchedule
+public import Proof.math.rand.Int31
 public import Proof.golang_org.x.time.rate.Every
 public import Proof.golang_org.x.time.rate.Limit__durationFromTokens
 public import Proof.golang_org.x.time.rate.Limit__tokensFromDuration
@@ -613,6 +614,7 @@ public import Proof.time.Time__After
 public import Proof.time.Time__IsZero
 public import Proof.go_opentelemetry_io.otel.trace.WithAttributes
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Field__format
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__GetStartTime
@@ -621,9 +623,11 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__IsEmpty
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogIfLong
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogWithStepThreshold
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__SetStartTime
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__logInfo
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.writeFields
 public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.IsClosedConnError
 public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.NewTimeoutTransport
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDFromString
@@ -683,6 +687,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Trigger
 public import Proof.go_uber_org.zap.Bool
 public import Proof.go_uber_org.zap.ByteString
+public import Proof.go_uber_org.zap.Int32
 public import Proof.go_uber_org.zap.Logger__Check
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
@@ -874,9 +879,37 @@ theorem traceutil.Trace.wp_InsertStep :
     traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG) :=
   traceutil.Trace.InsertStep.wp_proof
 
+theorem traceutil.Field.wp_format :
+    traceutil.Field.format.spec (GF := GF) (hG := hG) :=
+  traceutil.Field.format.wp_proof
+
+theorem traceutil.wp_writeFields :
+    traceutil.writeFields.spec (GF := GF) (hG := hG) :=
+  traceutil.writeFields.wp_proof traceutil.Field.wp_format
+
+theorem rand.wp_Int31 :
+    rand.Int31.spec (GF := GF) (hG := hG) :=
+  rand.Int31.wp_proof
+
+theorem zap.wp_Int32 :
+    zap.Int32.spec (GF := GF) (hG := hG) :=
+  zap.Int32.wp_proof
+
+theorem zap.wp_Time :
+    zap.Time.spec (GF := GF) (hG := hG) :=
+  zap.Time.wp_proof
+
+theorem zap.wp_Strings :
+    zap.Strings.spec (GF := GF) (hG := hG) :=
+  zap.Strings.wp_proof
+
+theorem traceutil.Trace.wp_logInfo :
+    traceutil.Trace.logInfo.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.logInfo.wp_proof traceutil.wp_writeFields rand.wp_Int31 zap.wp_Int32 zap.wp_String zap.wp_Duration zap.wp_Time zap.wp_Strings zap.wp_Int'
+
 theorem traceutil.Trace.wp_LogWithStepThreshold :
     traceutil.Trace.LogWithStepThreshold.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.LogWithStepThreshold.wp_proof
+  traceutil.Trace.LogWithStepThreshold.wp_proof traceutil.Trace.wp_logInfo zap.Logger.wp_Info
 
 theorem traceutil.Trace.wp_LogIfLong :
     traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG) :=
@@ -941,10 +974,6 @@ theorem lease.Lease.wp_Keys :
 theorem membership.RaftCluster.wp_ID :
     membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.ID.wp_proof
-
-theorem zap.wp_Time :
-    zap.Time.spec (GF := GF) (hG := hG) :=
-  zap.Time.wp_proof
 
 theorem zap.Logger.wp_Debug :
     zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
@@ -1133,10 +1162,6 @@ theorem proto.wp_MarshalPb :
 theorem pbutil.wp_MustMarshalMessage :
     pbutil.MustMarshalMessage.spec (GF := GF) (hG := hG) :=
   pbutil.MustMarshalMessage.wp_proof proto.wp_MarshalPb
-
-theorem zap.wp_Strings :
-    zap.Strings.spec (GF := GF) (hG := hG) :=
-  zap.Strings.wp_proof
 
 theorem RangeRequest.wp_GetKey :
     RangeRequest.GetKey.spec (GF := GF) (hG := hG) :=

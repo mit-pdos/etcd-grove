@@ -584,7 +584,8 @@ EtcdServer__start: EtcdServer__Logger zap_Logger__Info zap_String zap_Uint64 wai
 EtcdServer__Start: EtcdServer__start EtcdServer__GoAttach EtcdServer__Logger EtcdServer__adjustTicks EtcdServer__publishV3 config_ServerConfig__ReqTimeout EtcdServer__purgeFile monitorFileDescriptor EtcdServer__monitorClusterVersions EtcdServer__monitorStorageVersion read_Read__LinearizableReadLoop EtcdServer__monitorKVHash EtcdServer__monitorCompactHash EtcdServer__monitorDowngrade
 #
 # Unit P1b (2026-10-14): the request path's leaf functions proved (traceutil, the cluster's
-# members, the transport queries; `time.Time.IsZero` and `LogWithStepThreshold` are axioms).
+# members, the transport queries; `time.Time.IsZero` is an axiom; `LogWithStepThreshold` was one until
+# traceutil-log, 2026-11-23).
 Member__Clone:
 # (prove-srvloops, 2026-11-21) the leader lookup of the server's `waitLeader`
 membership_RaftCluster__Member: Member__Clone
@@ -599,7 +600,12 @@ traceutil_TODO:
 traceutil_Trace__IsEmpty:
 traceutil_newTrace:
 traceutil_Trace__updateFieldIfExist:
-traceutil_Trace__LogWithStepThreshold:
+traceutil_Field__format:
+traceutil_writeFields: traceutil_Field__format
+zap_Int32:
+rand_Int31:
+traceutil_Trace__logInfo: traceutil_writeFields rand_Int31 zap_Int32 zap_String zap_Duration zap_Time zap_Strings zap_Int
+traceutil_Trace__LogWithStepThreshold: traceutil_Trace__logInfo zap_Logger__Info
 #
 # Unit P2 (2026-10-14): the auth store's request side (server/v3/auth, proved over `auth.authInv`,
 # InvAuth.lean); adt's bytes-affine intervals are linked in adt's Link.lean (`@`). The trust
