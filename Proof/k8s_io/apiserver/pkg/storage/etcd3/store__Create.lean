@@ -115,9 +115,12 @@ theorem store.Create.wp_proof
   wp_apply wp_String as %kv0 -
   wp_apply wp_String as %kv1 -
   (try wp_auto)
+  ihave %Hobjp := c.S.objAt_ptr obj o rv $$ Hobj
   wp_apply wp_getTypeName obj $$ [] as %tn -
   · iframe #
-    ipureintro; exact Hobjn
+    ipureintro
+    obtain ⟨p, -, hp⟩ := Hobjp
+    exact hp ▸ reflectM.notRType_ptr _ _
   wp_apply wp_String as %kvt -
   (try wp_auto)
   wp_apply wp_String as %kv2 -

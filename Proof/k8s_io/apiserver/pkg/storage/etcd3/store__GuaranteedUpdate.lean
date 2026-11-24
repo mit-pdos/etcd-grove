@@ -412,7 +412,6 @@ theorem store.GuaranteedUpdate.wp_proof
   have hpfx : c.pfx <+: c.pathPrefix ++ k := prepareKeyM_prefix _ _ _ _ _ hk
   ihave %Hptr := c.S.objAt_ptr dest o0 rv0 $$ Hout
   obtain ⟨p, hp, rfl⟩ := Hptr
-  ihave %Hdn := c.S.objAt_ne_nil _ o0 rv0 $$ Hout
   wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
@@ -432,7 +431,7 @@ theorem store.GuaranteedUpdate.wp_proof
   (try wp_auto)
   wp_apply wp_getTypeName _ $$ [] as %tn -
   · iframe #
-    ipureintro; exact Hdn
+    ipureintro; exact reflectM.notRType_ptr _ _
   wp_apply wp_String as %kvt -
   (try wp_auto)
   wp_apply wp_String as %kv2 -

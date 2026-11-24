@@ -133,7 +133,10 @@ theorem newStore.wp_proof
     iintro %Φ' HΦ'
     wp_apply wp_newObj as %o Ho
     iapply HΦ'
-    iapply objAtD_ne_nil $$ Ho
+    ihave %Hp := objAtD_ptr _ _ _ $$ Ho
+    obtain ⟨p, -, rfl⟩ := Hp
+    ipureintro
+    exact reflectM.notRType_ptr _ _
   icases Hnew with ⟨%Herr, %mt, %lt, #Hstore, #Hw⟩
   subst Herr
   wp_auto

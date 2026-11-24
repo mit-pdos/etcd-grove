@@ -14,7 +14,9 @@ OperationLatencyTracker__Record:
 HasSuffix:
 strings_Contains:
 RecordEtcdRequest:
-TypeOf:
+# reflect.TypeOf: proved over Perennial's model (reflect S0), from the names-only rtype.String
+reflect_rtype__String:
+TypeOf: reflect_rtype__String
 v2_V:
 Verbose__Infof:
 # the trust boundary: reflect's reasoning principles (Proof/reflect/Values.lean) and apimachinery's

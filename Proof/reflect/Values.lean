@@ -54,6 +54,15 @@ abbrev reflPtr (w : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : 
 abbrev reflType (rt : _root_.Perennial.reflect.Type') (T : go.GoType) : Prop :=
   _root_.Perennial.reflect.reflType rt T
 
+/-- `x` is a non-nil interface whose dynamic type is not the model's `reflect.rtype`: the values
+`reflect.TypeOf` of the model is defined at (it is stuck on the values of reflect's own `Type`). -/
+def notRType (x : GoInterface) : Prop :=
+  ∃ (t : go.GoType) (v : val), x = interface.mkOk t v ∧ t ≠ _root_.Perennial.reflect.rtype.ty
+
+/-- A pointer is not an `rtype`. -/
+theorem notRType_ptr (T : go.GoType) (v : val) : notRType (interface.mkOk (go.PointerType T) v) :=
+  ⟨_, v, rfl, by simp [_root_.Perennial.reflect.rtype.ty]⟩
+
 /-- A kind is below 27. -/
 theorem kindOf_lt {u : go.GoType} {k : Nat} (h : go.kindOf u = some k) : k < 27 := by
   unfold go.kindOf at h

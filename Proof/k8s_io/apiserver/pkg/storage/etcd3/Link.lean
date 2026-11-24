@@ -154,6 +154,7 @@ public import Proof.reflect.Value__Kind
 public import Proof.reflect.Value__Len
 public import Proof.reflect.Value__Set
 public import Proof.reflect.Value__Type
+public import Proof.reflect.rtype__String
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.refreshOnError
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Code
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.shouldStream
@@ -333,9 +334,13 @@ theorem status.Status.wp_Code :
     EtcdGrove.status.Status.Code.spec (GF := GF) (hG := hG) :=
   EtcdGrove.status.Status.Code.wp_proof
 
+theorem reflect.rtype.wp_String :
+    EtcdGrove.reflect.rtype.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.rtype.String.wp_proof
+
 theorem reflect.wp_TypeOf :
     EtcdGrove.reflect.TypeOf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.reflect.TypeOf.wp_proof
+  EtcdGrove.reflect.TypeOf.wp_proof reflect.rtype.wp_String
 
 theorem v3.WatchResponse.wp_IsProgressNotify :
     EtcdGrove.WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG) :=

@@ -167,7 +167,7 @@ non-nil pointer to a struct of the Go type `objTy` (what `conversion.EnforcePtr`
 `NewFunc()` gives for a typed resource), not `runtime.Unstructured` (D30b: one Go type per store),
 and `reflect.New(objTy)` makes the zero object (`newObj`), as the store makes the objects it
 decodes into. -/
-structure ObjSpec (GF : BundledGFunctors) (Obj : Type) extends ObjCodec Obj where
+structure ObjSpec (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] (Obj : Type) extends ObjCodec Obj where
   objAt : GoInterface → Obj → GoString → IProp GF
   /-- an object is not the `nil` interface -/
   objAt_ne_nil : ∀ x o rv, objAt x o rv ⊢ ⌜x ≠ GoInterface.nil⌝
@@ -180,7 +180,7 @@ structure ObjSpec (GF : BundledGFunctors) (Obj : Type) extends ObjCodec Obj wher
   kind of a type is only defined for the types it knows, a struct type among them) -/
   objTy_kind : ∃ k : Nat, go.kindOf (underlying objTy) = some k
   /-- `reflect.New(objTy)`'s allocation is the zero object -/
-  newObj : ∀ p : Loc, reflectM.reflNew objTy p ⊢
+  newObj : ∀ p : Loc, reflectM.reflNew (GF := GF) objTy p ⊢
     |==> objAt (interface.mkOk (go.GoType.PointerType objTy) #p) zero []
   /-- the errors the codec's `Encode` may return -/
   encErr : GoInterface → Prop

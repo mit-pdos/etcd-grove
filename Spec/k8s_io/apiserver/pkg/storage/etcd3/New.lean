@@ -64,7 +64,7 @@ abbrev New.spec : Prop :=
       ([∗list] x ∈ ms, client.kvRegsAt x) ∗
       (∃ cx : GoInterface, structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ cx) ∗
       contractOk S codec vi ti di ∗
-      □ (∀ Φ : val → IProp GF, ▷ (∀ x : GoInterface, ⌜x ≠ GoInterface.nil⌝ -∗ Φ #x) -∗
+      □ (∀ Φ : val → IProp GF, ▷ (∀ x : GoInterface, ⌜reflectM.notRType x⌝ -∗ Φ #x) -∗
         WP (App (Val #nf) (Val #())) {{ Φ }}) }}
     (App (App (App (App (App (App (App (App (App (App (App (App (App
       (Val (@! k8s_io.apiserver.pkg.storage.etcd3.New)) (Val #kc)) (Val #cmp)) (Val #codec))

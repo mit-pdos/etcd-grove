@@ -64,7 +64,7 @@ variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable {Obj : Type} [DecidableEq Obj]
 
 /-- **A store's configuration** (see the file header). -/
-structure StoreCfg (GF : BundledGFunctors) (Obj : Type) where
+structure StoreCfg (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] (Obj : Type) where
   S : ObjSpec GF Obj
   codec : GoInterface
   vi : GoInterfaceOk
