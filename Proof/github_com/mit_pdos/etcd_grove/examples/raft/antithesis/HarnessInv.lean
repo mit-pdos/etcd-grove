@@ -224,16 +224,19 @@ instance sentLb_persistent (γ : AntNames) (net : List Msg) :
   unfold sentLb; infer_instance
 
 /-- **Raft's global facts `G`, as persistent ghost facts** (`AntSim.RaftFacts`' reading,
-`notes/antithesis-rawnode-design.md` §3.4): each leader's witness, each vote, each log's records,
-each campaign log, the committed log, each commit recorded in a term. -/
+`notes/antithesis-rawnode-design.md` §3.4): each leader's witness, each vote, each log's records
+(its indices its positions), each campaign log with its leader's witness, the committed log, each
+commit recorded in a term (the log it was recorded at, with its records: `commitIn_camp`'s
+premises). -/
 def raftFactsOwn (γ : RaftNames) (G : AntSim.RaftFacts) : IProp GF :=
   iprop(([∗list] p ∈ G.leaders, isLeader γ p.1 p.2) ∗
     ([∗list] v ∈ G.votes, isVote γ v.1 v.2.1 v.2.2) ∗
-    ([∗list] l ∈ G.logs, logRecs γ base0 l) ∗
-    ([∗list] p ∈ G.camps, ∃ c : w64, isCamp γ c p.1 p.2) ∗
+    ([∗list] l ∈ G.logs, logRecs γ base0 l ∗ ⌜AntSim.LogIdx l⌝) ∗
+    ([∗list] p ∈ G.camps, ∃ c : w64, isLeader γ c p.1 ∗ isCamp γ c p.1 p.2) ∗
     isCommitted γ G.committed ∗
     ([∗list] x ∈ G.commits, ∃ F : List EntryM,
-      commitIn γ F (W64 (x.2 : Int)) x.1 ∗ ⌜F.take x.2 = G.committed.take x.2⌝))
+      commitIn γ F (W64 (x.2 : Int)) x.1 ∗ logRecs γ base0 F ∗
+      ⌜PlogWf base0 F ∧ x.2 ≤ F.length ∧ (x.2 : Int) < 2 ^ 64 ∧ F.take x.2 <+: G.committed⌝))
 
 instance raftFactsOwn_persistent (γ : RaftNames) (G : AntSim.RaftFacts) :
     Persistent (raftFactsOwn (GF := GF) γ G) := by
