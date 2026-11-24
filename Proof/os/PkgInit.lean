@@ -20,7 +20,7 @@ public import Perennial.Proof.time.Base
 public import Perennial.Proof.sync.atomic.Base
 public import Perennial.Proof.runtime.Base
 public import Proof.internal.filepathlite.PkgInit
-public import Proof.internal.gomodel.Base
+public import Perennial.Proof.internal.gomodel.Base
 public import Perennial.Proof.internal.oserror.Base
 public import Perennial.Proof.internal.testlog.Base
 public import Spec.fmt.ErrorOk

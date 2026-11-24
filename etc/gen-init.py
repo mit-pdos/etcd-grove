@@ -237,11 +237,9 @@ def register(cfg, p, regs):
 
 
 # Perennial packages without Perennial's `wp_initialize'` (names-only there): generated here.
-PERENNIAL_HERE = {'math.rand', 'runtime', 'internal.runtime.atomic', 'internal.runtime.sys',
-                  # (Go model overlays, perennial#692; LOCAL until Perennial proves it) the overlay-added
-                  # internal/gomodel of the standard-library models, imported by their packages
-                  # (Proof/internal/gomodel/Base.lean)
-                  'internal.gomodel'}
+PERENNIAL_HERE = {'math.rand', 'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
+# (Go model overlays, 2026-11-24) the overlay-added `internal/gomodel` of the standard-library models
+# is Perennial's at the pin (`Perennial.Proof.internal.gomodel.Link`: its `isPkgInit`, `wp_initialize'`).
 # The `IsPkgInit` instances of `PERENNIAL_HERE` packages that are Perennial's (2026-11-03: `runtime`
 # and its imports, which bbolt imports and whose `wp_initialize'` Perennial does not prove).
 PERENNIAL_INST = {'runtime': 'Perennial.Proof.runtime.Base',
@@ -5732,9 +5730,9 @@ NET_PROGRAMS.update({f'github_com.mit_pdos.etcd_grove.examples.lib.remote.counte
 # The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
 # translations and `IsPkgInit` instances are the main tree's, their `Init.lean` copies in the part.
 NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix',
-            'internal.filepathlite',
-            # (Go model overlays S5) the models' internal/gomodel, which syscall's and os's import
-            'internal.gomodel']
+            'internal.filepathlite']
+# ((Go model overlays S5) the models' internal/gomodel, which syscall's and os's import, is Perennial's:
+# no `Init.lean` of its own, here or in the part.)
 # (2026-11-22) and the main tree's packages `examples/lib/remote` imports: lintest's driver and
 # porcupine (their `Init.lean` import the main tree's `PkgInitExt`, which the part's replaces).
 NET_MAIN += ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',

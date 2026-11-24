@@ -7,7 +7,7 @@ read-only (an outside fd, `osOutFd`, or an error), and `Sync`/`Close` of such an
 module
 
 public import Proof.os.IgnoringEINTR
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 public import Proof.os.NsS
 public import Proof.os.PathKindS
 public import Proof.os.PathParent
@@ -72,7 +72,7 @@ theorem os.model.wp_stat_aboveS (op p : GoString) (R : Roots) (hp : RootsAbove R
   wp_stub os.fsPathKind.impl
   wp_apply wp_osPathKindAboveS R p hp CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi
   try wp_auto
-  wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
+  wp_apply internal.gomodel.wp_ChooseUint64 as %x -
   by_cases hx : x = W64 0
   · subst hx
     try wp_auto
@@ -80,25 +80,25 @@ theorem os.model.wp_stat_aboveS (op p : GoString) (R : Roots) (hp : RootsAbove R
     try wp_auto
     wp_apply os.model.wp_base as %nm _
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %sz -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %sz -
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %y -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %y -
     by_cases hy : y = W64 0
     · subst hy
       try wp_auto
-      wp_apply internal.gomodel.ChooseUint64.wp_local as %z -
+      wp_apply internal.gomodel.wp_ChooseUint64 as %z -
       try wp_auto
       iapply HΦ $$ %_ %_
       itrivial
     · rw [decide_eq_false hy]
       try wp_auto
-      wp_apply internal.gomodel.ChooseUint64.wp_local as %z -
+      wp_apply internal.gomodel.wp_ChooseUint64 as %z -
       try wp_auto
       iapply HΦ $$ %_ %_
       itrivial
   · rw [decide_eq_false hx]
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %m -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %m -
     try wp_auto
     unfold os.model.pathError
     by_cases hm : m = W64 0

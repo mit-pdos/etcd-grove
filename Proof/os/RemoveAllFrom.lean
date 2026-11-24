@@ -7,7 +7,7 @@ Lean-first; untrusted.
 -/
 module
 
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 public import Proof.os.RemoveAllDir
 
 @[expose] public section
@@ -231,7 +231,7 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
           wp_stub os.fsDirClose.impl
           wp_apply wp_osDirCloseS fd J _ CoPset.subseteq_top $$ Hos Hfd as %ec
           rm_restore hsubk
-          wp_apply internal.gomodel.ChooseUint64.wp_local as %y -
+          wp_apply internal.gomodel.wp_ChooseUint64 as %y -
           by_cases hy : y = W64 0
           · subst hy
             try wp_auto

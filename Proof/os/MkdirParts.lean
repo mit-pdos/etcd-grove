@@ -14,7 +14,7 @@ public import Proof.os.ErrorOk
 public import Proof.os.SharedExt
 public import Proof.os.PathKindS
 public import Proof.os.IgnoringEINTR
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 
 @[expose] public section
 
@@ -140,7 +140,7 @@ theorem os.Mkdir.wp_notTree (R : Roots) (p : GoString) (perm : w32)
     try wp_auto
     rw [decide_eq_false hk1]
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %x _
+    wp_apply internal.gomodel.wp_ChooseUint64 as %x _
     try wp_auto
     have hpost : ∀ y : w64, y ≠ 0 → (interface.mkOk syscall.Errno.ty #y : GoInterface) = errnoErr y := by
       intro y hy; unfold errnoErr; rw [if_neg hy]

@@ -6,7 +6,7 @@ Specs of `os`'s trusted models of the file offset (`TrustedCode/os.lean`'s `Seek
 module
 
 public import Proof.os.ForLoeb
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 public import Proof.os.Base
 public import Spec.os.File__WriteAt
 public import GooseLang.Ext.Fs.Specs
@@ -266,7 +266,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     iexists inner; iframe; iassumption
   | ok ie =>
     try wp_auto
-    wp_apply internal.gomodel.ChooseUint64.wp_local as %x -
+    wp_apply internal.gomodel.wp_ChooseUint64 as %x -
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]

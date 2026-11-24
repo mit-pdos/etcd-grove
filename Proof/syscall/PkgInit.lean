@@ -12,7 +12,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.errors.Base
 public import Perennial.Proof.internal.oserror.Base
-public import Proof.internal.gomodel.Base
+public import Perennial.Proof.internal.gomodel.Base
 public import Perennial.Proof.internal.strconv.Base
 
 @[expose] public section

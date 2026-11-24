@@ -22,7 +22,7 @@ public import Perennial.Proof.sync.Base
 public import Perennial.Proof.sync.atomic.Base
 public import Proof.hash.PkgInit
 public import Perennial.Proof.internal.byteorder.Base
-public import Proof.internal.gomodel.Base
+public import Perennial.Proof.internal.gomodel.Base
 
 @[expose] public section
 

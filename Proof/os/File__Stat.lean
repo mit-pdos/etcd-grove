@@ -4,7 +4,7 @@ needs `fileStat.FieldAssumptions` (`TrustedCode/os.lean`).
 -/
 module
 
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 public import Proof.os.ModelMode
 public import Proof.os.ForLoeb
 public import Proof.os.ErrorOk
