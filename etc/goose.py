@@ -1765,6 +1765,9 @@ PROJECTS = [
             "k8s.io/klog/v2/internal/severity",
             # (klog-printf, 2026-11-23) types only: the `*buffer.Buffer` klog's printf path formats into
             "k8s.io/klog/v2/internal/buffer",
+            # (klog-infos, 2026-11-23) types only, `FormatKVs` trusted: klog's structured path
+            # formats its key/value pairs with it
+            "k8s.io/klog/v2/internal/serialize",
             # (logr: the target of klog's alias `Logger`, notes/k8s-clientgo-goose.md)
             "github.com/go-logr/logr",
             "k8s.io/utils/clock",

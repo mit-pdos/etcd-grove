@@ -165,7 +165,6 @@ axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.Background.wp_proof
-axiom klog.Verbose.InfoS.wp_proof
 axiom kmetrics.HistogramVec.WithContext.wp_proof
 axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid

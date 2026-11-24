@@ -27,7 +27,7 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem newBlockLogger.wp_proof : newBlockLogger.spec (GF := GF) (hG := hG) := by
-  intro iv th msg ot gr ck
+  intro iv th msg ot gr ck hmsg
   wp_start as #Hck
   iapply wp_fupd
   wp_auto
@@ -54,6 +54,8 @@ theorem newBlockLogger.wp_proof : newBlockLogger.spec (GF := GF) (hG := hG) := b
   imodintro
   iexists iv, th, msg, ot, gr, ck
   iframe #
+  isplitr
+  · ipureintro; exact hmsg
   iunfold clockNowOk
   iexact Hck
 

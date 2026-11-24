@@ -30,6 +30,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 abbrev newBlockLogger.spec : Prop :=
   ∀ (iv th : time.Duration) (msg ot : GoString)
     (gr : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (ck : GoInterfaceOk),
+  (msg.length : Int) ≤ maxAddr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ clockNowOk ck }}
     (App (App (App (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.newBlockLogger))
       (Val #iv)) (Val #th)) (Val #msg)) (Val #ot)) (Val #gr)) (Val #(GoInterface.ok ck)))

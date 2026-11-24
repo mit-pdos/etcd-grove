@@ -23,6 +23,16 @@ loggingT__output:
 loggingT__printfDepth: loggingT__header loggingT__output
 loggingT__printf: loggingT__printfDepth
 Verbose__Infof: loggingT__printf
+# (klog-infos, 2026-11-23, #25) klog's structured path, translated over Perennial's strconv and fmt;
+# the buffer pool over Perennial's sync.Pool; the serializer proved over its trusted model
+# (TrustedCode/k8s_io/klog/v2/internal/serialize.lean)
+buffer_GetBuffer:
+buffer_PutBuffer:
+serialize_FormatKVs:
+loggingT__printWithInfos: loggingT__output
+loggingT__printDepth: loggingT__header loggingT__printWithInfos
+loggingT__printS: buffer_GetBuffer buffer_PutBuffer serialize_FormatKVs loggingT__printDepth
+loggingT__infoS: loggingT__printS
 # the trust boundary: reflect's reasoning principles (Proof/reflect/Values.lean) and apimachinery's
 # conversion.EnforcePtr, which uses them
 reflect_New:
@@ -208,7 +218,7 @@ store__GetList: reflect_KindCompare store__prepareKey store__pagedChunks store__
 # pointer `String`, klog's restricted `Warningf`, T5-g `Verbose.InfoS`, E1 `Status.Code`, AsLeafTy)
 Jitter:
 v2_Warningf: loggingT__printf
-Verbose__InfoS:
+Verbose__InfoS: loggingT__infoS
 time_Duration__Seconds:
 RecordEtcdEvent:
 RecordEtcdBookmark:

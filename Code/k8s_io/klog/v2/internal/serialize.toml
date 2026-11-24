@@ -1,0 +1,14 @@
+# Types only (klog-infos, 2026-11-23, etcd-grove#25): klog's structured path (`loggingT.printS`,
+# Code/k8s_io/klog/v2.toml) formats its key/value pairs with `FormatKVs`, which is trusted: a model
+# in TrustedCode/k8s_io/klog/v2/internal/serialize.lean (stuck on a key or value other than a
+# `string`, an `int`, a `time.Duration` or a `schema.GroupResource`; it appends arbitrary bytes),
+# whose docstring says why it is faithful. Go's serializer formats an `int` value through
+# `encoding/json`'s reflection (`formatAny`, `formatAsJSON`), which this repository's
+# `encoding/json` model gives only over a codec the program registers, and other values through
+# `log/slog`, `logr` and arbitrary methods; nothing else of the package is translated.
+translate = ["!*"]
+imports = ["!*", "bytes"]
+trusted = ["FormatKVs"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

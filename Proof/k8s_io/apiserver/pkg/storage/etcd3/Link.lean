@@ -85,6 +85,8 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.areInitialEventsRequired
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.String
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.blockLogger__recordWait
+public import Proof.k8s_io.klog.v2.internal.buffer.GetBuffer
+public import Proof.k8s_io.klog.v2.internal.buffer.PutBuffer
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Deadline
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
@@ -126,7 +128,11 @@ public import Proof.k8s_io.apimachinery.pkg.labels.Set__Get
 public import Proof.k8s_io.apimachinery.pkg.labels.Set__Has
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.logWatchChannelErr
 public import Proof.k8s_io.klog.v2.loggingT__header
+public import Proof.k8s_io.klog.v2.loggingT__infoS
 public import Proof.k8s_io.klog.v2.loggingT__output
+public import Proof.k8s_io.klog.v2.loggingT__printDepth
+public import Proof.k8s_io.klog.v2.loggingT__printS
+public import Proof.k8s_io.klog.v2.loggingT__printWithInfos
 public import Proof.k8s_io.klog.v2.loggingT__printf
 public import Proof.k8s_io.klog.v2.loggingT__printfDepth
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Accessor
@@ -160,6 +166,7 @@ public import Proof.reflect.Value__Set
 public import Proof.reflect.Value__Type
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.refreshOnError
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Code
+public import Proof.k8s_io.klog.v2.internal.serialize.FormatKVs
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.shouldStream
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Create
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Delete
@@ -710,9 +717,37 @@ theorem storage.wp_ValidateListOptions :
     EtcdGrove.storage.ValidateListOptions.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.ValidateListOptions.wp_proof
 
+theorem klog.buffer.wp_GetBuffer :
+    EtcdGrove.klog.buffer.GetBuffer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.buffer.GetBuffer.wp_proof
+
+theorem klog.buffer.wp_PutBuffer :
+    EtcdGrove.klog.buffer.PutBuffer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.buffer.PutBuffer.wp_proof
+
+theorem klog.serialize.wp_FormatKVs :
+    EtcdGrove.klog.serialize.FormatKVs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.serialize.FormatKVs.wp_proof
+
+theorem klog.loggingT.wp_printWithInfos :
+    EtcdGrove.klog.loggingT.printWithInfos.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.loggingT.printWithInfos.wp_proof klog.loggingT.wp_output
+
+theorem klog.loggingT.wp_printDepth :
+    EtcdGrove.klog.loggingT.printDepth.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.loggingT.printDepth.wp_proof klog.loggingT.wp_header klog.loggingT.wp_printWithInfos
+
+theorem klog.loggingT.wp_printS :
+    EtcdGrove.klog.loggingT.printS.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.loggingT.printS.wp_proof klog.buffer.wp_GetBuffer klog.buffer.wp_PutBuffer klog.serialize.wp_FormatKVs klog.loggingT.wp_printDepth
+
+theorem klog.loggingT.wp_infoS :
+    EtcdGrove.klog.loggingT.infoS.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.loggingT.infoS.wp_proof klog.loggingT.wp_printS
+
 theorem klog.Verbose.wp_InfoS :
     EtcdGrove.klog.Verbose.InfoS.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.klog.Verbose.InfoS.wp_proof
+  EtcdGrove.klog.Verbose.InfoS.wp_proof klog.loggingT.wp_infoS
 
 theorem flowcontrol.wp_initializationSignalFrom :
     EtcdGrove.flowcontrol.initializationSignalFrom.spec (GF := GF) (hG := hG) :=

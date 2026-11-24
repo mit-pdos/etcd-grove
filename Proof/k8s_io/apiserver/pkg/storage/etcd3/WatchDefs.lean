@@ -1058,6 +1058,7 @@ def blockLoggerOk (l : Loc) : IProp GF :=
   iprop(□ ∃ (iv th : w64) (msg ot : GoString)
       (gr : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (ck : GoInterfaceOk),
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"interval" l ↦□ iv ∗
+    ⌜(msg.length : Int) ≤ maxAddr⌝ ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"threshold" l ↦□ th ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"msg" l ↦□ msg ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"objectType" l ↦□ ot ∗

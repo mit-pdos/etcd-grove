@@ -39,6 +39,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
 public import Proof.k8s_io.apiserver.pkg.util.feature.Gate
 public import Perennial.Proof.context.Base
 public import Proof.math.rand.Base
+public import Perennial.Proof.sync.PoolDefs
 
 @[expose] public section
 
@@ -199,12 +200,47 @@ instance k8s_io_klog_v2_internal_severity_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.klog.v2.internal.severity :=
   build_get_is_pkg_init_wf
 
--- (klog-printf, 2026-11-23) klog's `internal/buffer`: types only (the `*Buffer` klog formats into)
+/-- **A klog `*buffer.Buffer` at `l`, owned whole** (klog-infos, 2026-11-23): its embedded
+`bytes.Buffer`, holding `bs`, and its `Tmp` array (what `GetBuffer` returns and `PutBuffer` takes). -/
+def klogOwnBuffer (l : Loc) (bs : List w8) : IProp GF :=
+  iprop(_root_.Perennial.bytes.ownBuffer
+      (structFieldRef k8s_io.klog.v2.internal.buffer.Buffer go!"Buffer" l) bs ∗
+    ∃ t : GoArray w8 64, structFieldRef k8s_io.klog.v2.internal.buffer.Buffer go!"Tmp" l ↦ t)
+
+/-- **What klog's buffer pool holds** (klog-infos, 2026-11-23): `*buffer.Buffer`s owned whole. -/
+def klogPoolElem (x : GoAny) : IProp GF :=
+  iprop(∃ (l : Loc) (bs : List w8),
+    ⌜x = interface.mkOk (go.GoType.PointerType k8s_io.klog.v2.internal.buffer.Buffer.ty) #l⌝ ∗
+    klogOwnBuffer l bs)
+
+/-- **klog's `internal/buffer` fact** (klog-infos, 2026-11-23; until then `True`, the package
+translated types only): its pool `buffers` is a `sync.Pool` with a `New` (not `nil`: it allocates a
+`Buffer`, `buffer.go:44-48`) needing nothing, of `*Buffer`s owned whole (`klogPoolElem`). What
+`GetBuffer` and `PutBuffer` use; the initializer stores the composite literal and nothing writes
+`buffers` again. -/
+def klogBufferInit : IProp GF :=
+  iprop(∃ f : GoFunc, ⌜f ≠ func.nil⌝ ∗
+    _root_.Perennial.sync.isPool (globalAddr k8s_io.klog.v2.internal.buffer.buffers) f iprop(True)
+      klogPoolElem)
+
+instance klogBufferInit_persistent : Persistent (klogBufferInit (GF := GF)) := by
+  unfold klogBufferInit; infer_instance
+
+-- (klog-printf, 2026-11-23) klog's `internal/buffer`: types only (the `*Buffer` klog formats into);
+-- (klog-infos, 2026-11-23) with its pool, `klogBufferInit`
 instance k8s_io_klog_v2_internal_buffer_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.klog.v2.internal.buffer :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init klogBufferInit
 instance k8s_io_klog_v2_internal_buffer_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.klog.v2.internal.buffer :=
+  build_get_is_pkg_init_wf
+
+-- (klog-infos, 2026-11-23) klog's `internal/serialize`: types only, its `FormatKVs` trusted
+instance k8s_io_klog_v2_internal_serialize_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.klog.v2.internal.serialize :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_klog_v2_internal_serialize_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.klog.v2.internal.serialize :=
   build_get_is_pkg_init_wf
 
 /-- The address of the field `f` of `logging.settings` (klog's global `loggingT`, which embeds

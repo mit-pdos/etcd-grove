@@ -11,10 +11,18 @@
 # `bytes.Buffer`; klog's output side is trusted (`loggingT.header`, `loggingT.output`: models in
 # TrustedCode/k8s_io/klog/v2.lean), and its buffer package translated types only
 # (Code/k8s_io/klog/v2/internal/buffer.toml).
+# (klog-infos, 2026-11-23, etcd-grove#25) with bodies also the structured path of `Verbose.InfoS`:
+# `loggingT.infoS`, `loggingT.printS`, `loggingT.printDepth`, `loggingT.printWithInfos`, over
+# Perennial's `strconv.AppendQuote` and `fmt.Fprint`, klog's buffer pool (`buffer.GetBuffer`,
+# `PutBuffer`, translated: Code/k8s_io/klog/v2/internal/buffer.toml) and its key/value serializer
+# (`serialize.FormatKVs`, trusted: Code/k8s_io/klog/v2/internal/serialize.toml).
 translate = ["!*", "V", "VDepth", "newVerbose", "Level.get", "logging",
-  "Errorf", "Warningf", "Verbose.Infof", "loggingT.printf", "loggingT.printfDepth"]
+  "Errorf", "Warningf", "Verbose.Infof", "loggingT.printf", "loggingT.printfDepth",
+  "Verbose.InfoS", "loggingT.infoS", "loggingT.printS", "loggingT.printDepth",
+  "loggingT.printWithInfos"]
 imports = ["!*", "github.com/go-logr/logr", "sync", "sync/atomic", "io", "time", "runtime",
-  "k8s.io/klog/v2/internal/severity", "fmt", "k8s.io/klog/v2/internal/buffer"]
+  "k8s.io/klog/v2/internal/severity", "fmt", "k8s.io/klog/v2/internal/buffer", "strconv",
+  "k8s.io/klog/v2/internal/serialize"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

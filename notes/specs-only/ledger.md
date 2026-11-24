@@ -25,6 +25,31 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: `klog.Verbose.InfoS.spec` -- needs the `Verbose`'s logger `nil`, as `Infof` (klog-infos, #25)
+
+- **Spec.** `Spec/k8s_io/klog/v2/Verbose__InfoS.lean`, `klog.Verbose.InfoS.spec` (no SpecPlan
+  counterpart); its key/value predicate `klog.infoSArgOk` moves, unchanged, to
+  `Spec/k8s_io/klog/v2/KVArgs.lean`.
+- **Defect.** It took any `v : Verbose`, too strong once proved: an enabled `v` whose `logger` is not
+  `nil` makes `infoS` (`klog.go:822-831`) call `logger.WithCallDepth(depth+2).Info(...)`, the installed
+  logger's code (names-only, `logr`), which no spec covers.
+- **Evidence.** The proof of `Verbose.InfoS` over its translated body (klog v2.140.0,
+  `klog.go:1496-1500`, `infoS`): with `v.logger ≠ nil` the call is to a names-only method.
+  `klog.V.spec`'s post gives `v.logger' = null` (ledger entry below), from klog's fact
+  (`klogInit`: `logging.logger ↦□ nil`; `SetLogger*` are names-only, so a program that installs a
+  logger has no spec).
+  A second defect, found by Perennial's proof of `strconv.AppendQuote` (which `printS` calls on the
+  message): `appendQuotedWith`'s `make([]byte, len(buf), len(buf)+1+len(s)+1)` overflows, and
+  `makeslice` panics, for a string near `2^63`, which Perennial's string values (unbounded) allow;
+  Perennial's spec takes `s.length ≤ maxAddr`.
+- **Proposed change.** `Verbose.InfoS.spec`: the Lean premises `v.logger' = null`, as
+  `Verbose.Infof.spec`, and `msg.length ≤ maxAddr`. Its one caller, `blockLogger.recordWait`, passes
+  `V`'s post on and takes the bound from `blockLoggerOk`, which now holds it of the logger's `msg`;
+  `newBlockLogger.spec` takes it as a premise, which `createWatchChan` discharges for its two literal
+  messages.
+- **Decision.** Accepted (klog-infos, 2026-11-23): the premise `Infof` took, which the only source of
+  `Verbose`s meets; no trusted contract changes.
+
 ## 2026-11-23: `klog.Verbose.Infof.spec` -- needs the `Verbose`'s logger `nil`; `klog.V.spec` gives it (klog-printf, #25)
 
 - **Spec.** `Spec/k8s_io/klog/v2/Verbose__Infof.lean`, `klog.Verbose.Infof.spec`, and

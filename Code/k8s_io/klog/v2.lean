@@ -6,9 +6,11 @@ public import Perennial.Code.fmt
 public import Perennial.Code.time
 public import Perennial.Code.io
 public import Perennial.Code.runtime
+public import Perennial.Code.strconv
 public import Perennial.Code.sync
 public import Perennial.Code.sync.atomic
 public import Code.k8s_io.klog.v2.internal.buffer
+public import Code.k8s_io.klog.v2.internal.serialize
 public import Code.k8s_io.klog.v2.internal.severity
 public import Perennial.Golang.Defn
 public import TrustedCode.k8s_io.klog.v2
@@ -465,6 +467,125 @@ noncomputable def Level.get.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Level.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad Level.ty))) (Var "$res0"))))))
 
+/-- go: klog.go:733:20 -/
+noncomputable def loggingT.printDepth.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "l"
+  (Lam "s"
+  (Lam "logger"
+  (Lam "filter"
+  (Lam "depth"
+  (Lam "args"
+  (Seq (App (Val exceptionDo)
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType loggingT.ty)))) (Var "l"))
+  (Let "args" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "args"))
+  (Let "depth" (App (Val (GoInstruction (GoAlloc go.int))) (Var "depth"))
+  (Let "filter" (App (Val (GoInstruction (GoAlloc LogFilter.ty))) (Var "filter"))
+  (Let "logger" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType logWriter.ty)))) (Var "logger"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "depth"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType loggingT.ty) go!"header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType loggingT.ty)))) (Var "l"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "line" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "file" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "buf"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "file"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "line"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty))) (Var "s"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType logWriter.ty)))) (Var "logger"))
+  (Let "$a5" (App (Val (GoInstruction (GoLoad LogFilter.ty))) (Var "filter"))
+  (Let "$a6" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "depth")) (Val #(W64 1))))
+  (Let "$a7" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "args"))
+  (App (App (App (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType loggingT.ty) go!"printWithInfos"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType loggingT.ty)))) (Var "l"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "line") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "file") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Pair (Var "buf") (Var "$r0")))))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (Val #false))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "args"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprint []))) (Val #())) (Var "$a0")))
+  (App (Val doExecute)
+  (Var "$r0")))
+  (App (Val doExecute)
+  (Val #())))))))))))
+  (Val #()))))))))
+
+/-- go: klog.go:742:20 -/
+noncomputable def loggingT.printWithInfos.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "l"
+  (Lam "buf"
+  (Lam "file"
+  (Lam "line"
+  (Lam "s"
+  (Lam "logger"
+  (Lam "filter"
+  (Lam "depth"
+  (Lam "args"
+  (Seq (App (Val exceptionDo)
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType loggingT.ty)))) (Var "l"))
+  (Let "args" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "args"))
+  (Let "depth" (App (Val (GoInstruction (GoAlloc go.int))) (Var "depth"))
+  (Let "filter" (App (Val (GoInstruction (GoAlloc LogFilter.ty))) (Var "filter"))
+  (Let "logger" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType logWriter.ty)))) (Var "logger"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty))) (Var "s"))
+  (Let "line" (App (Val (GoInstruction (GoAlloc go.int))) (Var "line"))
+  (Let "file" (App (Val (GoInstruction (GoAlloc go.string))) (Var "file"))
+  (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "buf"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType logWriter.ty)))) (Var "logger"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "buf"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (Var "depth"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad go.string))) (Var "file"))
+  (Let "$a5" (App (Val (GoInstruction (GoLoad go.int))) (Var "line"))
+  (Let "$a6" (Val #false)
+  (App (App (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType loggingT.ty) go!"output"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType loggingT.ty)))) (Var "l"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty) go!"Len"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "buf"))) (Val #())) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty) go!"Bytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "buf"))) (Val #())) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty) go!"Len"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "buf"))) (Val #())) (Val #(W64 1))))))) (Val #(W8 10)))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W8 10))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty) go!"WriteByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "buf"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty) _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "buf")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "args"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprint []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals LogFilter.ty))) (Pair (App (Val (GoInstruction (GoLoad LogFilter.ty))) (Var "filter")) (App (Val (GoInstruction (Convert go.untypedNil LogFilter.ty))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "args"))
+  (App (App (Val (GoInstruction (MethodResolve LogFilter.ty go!"Filter"))) (App (Val (GoInstruction (GoLoad LogFilter.ty))) (Var "filter"))) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Pair (Var "args") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType logWriter.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType logWriter.ty)))) (Var "logger")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType logWriter.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))))) (App (Val (GoInstruction (StructFieldRef logWriter.ty go!"writeKlogBuffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType logWriter.ty)))) (Var "logger")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))))) (Val UntypedNil)))) (Val #false)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.klog.v2.internal.buffer.GetBuffer []))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Pair (Var "buf") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "buf"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.klog.v2.internal.buffer.PutBuffer []))) (Val #())) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #()))))))))))))))
+  (Val #())))))))))))
+
 /-- go: klog.go:760:20 -/
 noncomputable def loggingT.printf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
@@ -587,6 +708,129 @@ noncomputable def loggingT.printfDepth.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))))))))))
   (Val #())))))))))
+
+/-- if logger is specified, will call logger.Info, otherwise output with logging module.
+
+    go: klog.go:822:20 -/
+noncomputable def loggingT.infoS.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "l"
+  (Lam "logger"
+  (Lam "filter"
+  (Lam "depth"
+  (Lam "msg"
+  (Lam "keysAndValues"
+  (Seq (App (Val exceptionDo)
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType loggingT.ty)))) (Var "l"))
+  (Let "keysAndValues" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "keysAndValues"))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
+  (Let "depth" (App (Val (GoInstruction (GoAlloc go.int))) (Var "depth"))
+  (Let "filter" (App (Val (GoInstruction (GoAlloc LogFilter.ty))) (Var "filter"))
+  (Let "logger" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType logWriter.ty)))) (Var "logger"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (Let "$a1" (Val #(W32 0))
+  (Let "$a2" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "depth")) (Val #(W64 1))))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "keysAndValues"))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType loggingT.ty) go!"printS"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType loggingT.ty)))) (Var "l"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType logWriter.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType logWriter.ty)))) (Var "logger")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType logWriter.ty)))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "keysAndValues"))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.go_logr.logr.Logger.ty go!"Info"))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "depth")) (Val #(W64 2))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType logWriter.ty) go!"WithCallDepth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType logWriter.ty)))) (Var "logger"))) (Var "$a0")))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals LogFilter.ty))) (Pair (App (Val (GoInstruction (GoLoad LogFilter.ty))) (Var "filter")) (App (Val (GoInstruction (Convert go.untypedNil LogFilter.ty))) (Val UntypedNil))))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "keysAndValues"))
+  (App (App (App (Val (GoInstruction (MethodResolve LogFilter.ty go!"FilterS"))) (App (Val (GoInstruction (GoLoad LogFilter.ty))) (Var "filter"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Pair (Var "keysAndValues") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "msg") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #())))))))))))
+  (Val #()))))))))
+
+/-- printS is called from infoS and errorS if logger is not specified.
+    set log severity by s
+
+    go: klog.go:835:20 -/
+noncomputable def loggingT.printS.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "l"
+  (Lam "err"
+  (Lam "s"
+  (Lam "depth"
+  (Lam "msg"
+  (Lam "keysAndValues"
+  (Seq (App (Val exceptionDo)
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType loggingT.ty)))) (Var "l"))
+  (Let "keysAndValues" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "keysAndValues"))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
+  (Let "depth" (App (Val (GoInstruction (GoAlloc go.int))) (Var "depth"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty))) (Var "s"))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 0))) (Val #(W64 1024)))
+  (Let "qMsg" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "qMsg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.AppendQuote []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.klog.v2.internal.buffer.GetBuffer []))) (Val #())) (Val #()))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "errKV" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.klog.v2.internal.buffer.PutBuffer []))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType logWriter.ty)))) (Val UntypedNil))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil LogFilter.ty))) (Val UntypedNil))
+  (Let "$a3" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "depth")) (Val #(W64 1))))
+  (Let "$a4" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty go!"Buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "b"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType loggingT.ty) go!"printDepth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType loggingT.ty)))) (Var "l"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty go!"Buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "b")))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "errKV"))
+  (Let "$sl1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "keysAndValues"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.SliceType (go.GoType.InterfaceType [])))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.SliceType (go.GoType.InterfaceType [])) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.SliceType (go.GoType.InterfaceType [])) (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.klog.v2.internal.serialize.FormatKVs []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$v0" (Val #(go!"err"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.error (Var "$v1")))]))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Pair (Var "errKV") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "qMsg"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Var "b"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)))) (Pair (Var "b") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "qMsg") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "qMsg") (Var "$r0"))))))))))))))
+  (Val #()))))))))
 
 /-- go: klog.go:1371:6 -/
 noncomputable def newVerbose.impl [GooseExts] [GoGlobalContext] : val :=
@@ -785,6 +1029,30 @@ noncomputable def Verbose.Infof.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Val #())))))
 
+/-- InfoS is equivalent to the global InfoS function, guarded by the value of v.
+    See the documentation of V for usage.
+
+    go: klog.go:1496:18 -/
+noncomputable def Verbose.InfoS.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Lam "msg"
+  (Lam "keysAndValues"
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc Verbose.ty))) (Var "v"))
+  (Let "keysAndValues" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "keysAndValues"))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Verbose.ty go!"enabled"))) (Var "v")))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType logWriter.ty)))) (App (Val (GoInstruction (StructFieldRef Verbose.ty go!"logger"))) (Var "v")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad LogFilter.ty))) (App (Val (GoInstruction (StructFieldRef settings.ty go!"filter"))) (App (Val (GoInstruction (StructFieldRef loggingT.ty go!"settings"))) (App (Val (GoInstruction (GlobalVarAddr logging))) (Val #())))))
+  (Let "$a2" (Val #(W64 0))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.InterfaceType []))))) (Var "keysAndValues"))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType loggingT.ty) go!"infoS"))) (App (Val (GoInstruction (GlobalVarAddr logging))) (Val #()))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #())))))
+
 /-- Warningf logs to the WARNING and INFO logs.
     Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
 
@@ -916,12 +1184,14 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"k8s.io/klog/v2._@klogr_slog.go:101", "An interface check: `&klogger{}` converted to `logr.SlogSink`. No call, no panic, no effect.", "var _ logr.SlogSink = &klogger{}"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.klog.v2 where
-  pkgImportedPkgs := [pkg_id.github_com.go_logr.logr, pkg_id.fmt, pkg_id.time, pkg_id.io, pkg_id.runtime, pkg_id.sync, pkg_id.sync.atomic, pkg_id.k8s_io.klog.v2.internal.buffer, pkg_id.k8s_io.klog.v2.internal.severity]
+  pkgImportedPkgs := [pkg_id.github_com.go_logr.logr, pkg_id.fmt, pkg_id.time, pkg_id.io, pkg_id.runtime, pkg_id.strconv, pkg_id.sync, pkg_id.sync.atomic, pkg_id.k8s_io.klog.v2.internal.buffer, pkg_id.k8s_io.klog.v2.internal.serialize, pkg_id.k8s_io.klog.v2.internal.severity]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.klog.v2)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -948,11 +1218,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.runtime.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.strconv.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.atomic.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.klog.v2.internal.buffer.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.k8s_io.klog.v2.internal.serialize.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.klog.v2.internal.severity.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1619,7 +1893,11 @@ class loggingT.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   method_set : go.MethodSetIs loggingT.ty [(go!"k8s.io/klog/v2.deepCopy", (some (go.signature.Signature [] false [settings.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType loggingT.ty) [(go!"k8s.io/klog/v2.createFiles", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty] false [go.error]))), (go!"k8s.io/klog/v2.deepCopy", (some (go.signature.Signature [] false [settings.ty]))), (go!"k8s.io/klog/v2.errorS", (some (go.signature.Signature [go.error, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.exit", (some (go.signature.Signature [go.error] false []))), (go!"k8s.io/klog/v2.flushAll", (some (go.signature.Signature [] false [fileArray.ty]))), (go!"k8s.io/klog/v2.formatHeader", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, go.string, go.int, _root_.Perennial.time.Time.ty] false [(go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty)]))), (go!"k8s.io/klog/v2.header", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty), go.string, go.int]))), (go!"k8s.io/klog/v2.infoS", (some (go.signature.Signature [(go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.lockAndFlushAll", (some (go.signature.Signature [] false []))), (go!"k8s.io/klog/v2.output", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), (go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty), go.int, go.string, go.int, go.bool] false []))), (go!"k8s.io/klog/v2.print", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printDepth", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printS", (some (go.signature.Signature [go.error, _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printWithFileLine", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.string, go.int, go.bool, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printWithInfos", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.klog.v2.internal.buffer.Buffer.ty), go.string, go.int, _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printf", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printfDepth", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.println", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.printlnDepth", (some (go.signature.Signature [_root_.Perennial.k8s_io.klog.v2.internal.severity.Severity.ty, (go.GoType.PointerType logWriter.ty), LogFilter.ty, go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"k8s.io/klog/v2.setV", (some (go.signature.Signature [go.uintptr] false [Level.ty]))), (go!"k8s.io/klog/v2.setVState", (some (go.signature.Signature [Level.ty, (go.GoType.SliceType modulePat.ty), go.bool] false []))), (go!"k8s.io/klog/v2.syncAll", (some (go.signature.Signature [fileArray.ty] false [])))]
   ptr_header_unfold : MethodUnfold (go.GoType.PointerType loggingT.ty) go!"header" loggingT.header.impl
+  ptr_infoS_unfold : MethodUnfold (go.GoType.PointerType loggingT.ty) go!"infoS" loggingT.infoS.impl
   ptr_output_unfold : MethodUnfold (go.GoType.PointerType loggingT.ty) go!"output" loggingT.output.impl
+  ptr_printDepth_unfold : MethodUnfold (go.GoType.PointerType loggingT.ty) go!"printDepth" loggingT.printDepth.impl
+  ptr_printS_unfold : MethodUnfold (go.GoType.PointerType loggingT.ty) go!"printS" loggingT.printS.impl
+  ptr_printWithInfos_unfold : MethodUnfold (go.GoType.PointerType loggingT.ty) go!"printWithInfos" loggingT.printWithInfos.impl
   ptr_printf_unfold : MethodUnfold (go.GoType.PointerType loggingT.ty) go!"printf" loggingT.printf.impl
   ptr_printfDepth_unfold : MethodUnfold (go.GoType.PointerType loggingT.ty) go!"printfDepth" loggingT.printfDepth.impl
 
@@ -1638,7 +1916,11 @@ attribute [instance] loggingT.TypeAssumptions.type_repr
   loggingT.TypeAssumptions.method_set
   loggingT.TypeAssumptions.ptr_method_set
   loggingT.TypeAssumptions.ptr_header_unfold
+  loggingT.TypeAssumptions.ptr_infoS_unfold
   loggingT.TypeAssumptions.ptr_output_unfold
+  loggingT.TypeAssumptions.ptr_printDepth_unfold
+  loggingT.TypeAssumptions.ptr_printS_unfold
+  loggingT.TypeAssumptions.ptr_printWithInfos_unfold
   loggingT.TypeAssumptions.ptr_printf_unfold
   loggingT.TypeAssumptions.ptr_printfDepth_unfold
 
@@ -1805,7 +2087,10 @@ class Verbose.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_logger : ∀ (x : Verbose) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Verbose.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : Verbose)))
   method_set : go.MethodSetIs Verbose.ty [(go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"ErrorS", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoS", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoSDepth", (some (go.signature.Signature [go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfofDepth", (some (go.signature.Signature [go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfolnDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Verbose.ty) [(go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"Error", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"ErrorS", (some (go.signature.Signature [go.error, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoS", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfoSDepth", (some (go.signature.Signature [go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfofDepth", (some (go.signature.Signature [go.int, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"InfolnDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
+  InfoS_unfold : MethodUnfold Verbose.ty go!"InfoS" Verbose.InfoS.impl
   Infof_unfold : MethodUnfold Verbose.ty go!"Infof" Verbose.Infof.impl
+  ptr_InfoS_unfold : MethodUnfold (go.GoType.PointerType Verbose.ty) go!"InfoS" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Verbose.ty go!"InfoS"))) (App (Val (GoInstruction (GoLoad Verbose.ty))) (Var "$r"))))
   ptr_Infof_unfold : MethodUnfold (go.GoType.PointerType Verbose.ty) go!"Infof" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Verbose.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Verbose.ty))) (Var "$r"))))
 
@@ -1817,7 +2102,9 @@ attribute [instance] Verbose.TypeAssumptions.type_repr
   Verbose.TypeAssumptions.set_logger
   Verbose.TypeAssumptions.method_set
   Verbose.TypeAssumptions.ptr_method_set
+  Verbose.TypeAssumptions.InfoS_unfold
   Verbose.TypeAssumptions.Infof_unfold
+  Verbose.TypeAssumptions.ptr_InfoS_unfold
   Verbose.TypeAssumptions.ptr_Infof_unfold
 
 structure klogger [GooseExts] where
@@ -1910,9 +2197,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
+  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_buffer_Assumption : _root_.Perennial.k8s_io.klog.v2.internal.buffer.Assumptions
+  import_serialize_Assumption : _root_.Perennial.k8s_io.klog.v2.internal.serialize.Assumptions
   import_severity_Assumption : _root_.Perennial.k8s_io.klog.v2.internal.severity.Assumptions
 
 attribute [instance] Assumptions.LoggerOption_instance
@@ -1951,9 +2240,11 @@ attribute [instance] Assumptions.LoggerOption_instance
   Assumptions.import_time_Assumption
   Assumptions.import_io_Assumption
   Assumptions.import_runtime_Assumption
+  Assumptions.import_strconv_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_buffer_Assumption
+  Assumptions.import_serialize_Assumption
   Assumptions.import_severity_Assumption
 
 end k8s_io.klog.v2

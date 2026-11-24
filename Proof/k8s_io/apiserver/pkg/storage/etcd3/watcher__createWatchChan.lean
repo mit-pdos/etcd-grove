@@ -100,11 +100,11 @@ theorem watcher.createWatchChan.wp_proof
       cd sel false (kInScope kp recur) m Q chI chR γcI γcR $$ HcI HoI HcR HoR HprocEx
       with ⟨%inc, %res, %raws, %evs, %procd, %alive, #Hinc, #Hrc, Hps, Hproc, Hcons⟩
     (try wp_auto)
-    wp_apply (wp_newBlockLogger _ _ _ _ _ _) $$ [] as %lgI #HlgI
+    wp_apply (wp_newBlockLogger _ _ _ _ _ _ (by simp [maxAddr])) $$ [] as %lgI #HlgI
     · iframe #
     (try wp_auto)
     iapply wp_fupd
-    wp_apply (wp_newBlockLogger _ _ _ _ _ _) $$ [] as %lgR #HlgR
+    wp_apply (wp_newBlockLogger _ _ _ _ _ _ (by simp [maxAddr])) $$ [] as %lgR #HlgR
     · iframe #
     (try wp_auto)
     ipersist watcher
@@ -168,11 +168,11 @@ theorem watcher.createWatchChan.wp_proof
       cd sel true (kInScope kp recur) m Q chI chR γcI γcR $$ HcI HoI HcR HoR HprocEx
       with ⟨%inc, %res, %raws, %evs, %procd, %alive, #Hinc, #Hrc, Hps, Hproc, Hcons⟩
     (try wp_auto)
-    wp_apply (wp_newBlockLogger _ _ _ _ _ _) $$ [] as %lgI #HlgI
+    wp_apply (wp_newBlockLogger _ _ _ _ _ _ (by simp [maxAddr])) $$ [] as %lgI #HlgI
     · iframe #
     (try wp_auto)
     iapply wp_fupd
-    wp_apply (wp_newBlockLogger _ _ _ _ _ _) $$ [] as %lgR #HlgR
+    wp_apply (wp_newBlockLogger _ _ _ _ _ _ (by simp [maxAddr])) $$ [] as %lgR #HlgR
     · iframe #
     (try wp_auto)
     ipersist watcher

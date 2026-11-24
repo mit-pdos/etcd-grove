@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.bytes
+public import Perennial.Code.sync
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -28,11 +29,55 @@ attribute [irreducible] Buffer.ty
 
 opaque digits [GooseExts] [GoGlobalContext] : val
 
+noncomputable def buffers [GooseExts] [GoGlobalContext] : GoString :=
+  go!"k8s.io/klog/v2/internal/buffer.buffers"
+
 noncomputable def GetBuffer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2/internal/buffer.GetBuffer"
 
 noncomputable def PutBuffer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2/internal/buffer.PutBuffer"
+
+/-- GetBuffer returns a new, ready-to-use buffer.
+
+    go: buffer.go:52:6 -/
+noncomputable def GetBuffer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Buffer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Buffer.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType Buffer.ty)))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Pool.ty) go!"Get"))) (App (Val (GoInstruction (GlobalVarAddr buffers))) (Val #()))) (Val #())))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Buffer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Buffer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Buffer.ty)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Buffer.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Buffer.ty) go!"Reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Buffer.ty)))) (Var "b"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Buffer.ty)))) (Pair (Var "b") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Buffer.ty)))) (Var "$res0")))))
+
+/-- PutBuffer returns a buffer to the free list.
+
+    go: buffer.go:59:6 -/
+noncomputable def PutBuffer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Buffer.ty)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Buffer.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Buffer.ty)))) (Var "b")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Pool.ty) go!"Put"))) (App (Val (GoInstruction (GlobalVarAddr buffers))) (Val #()))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Buffer.ty) go!"Len"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Buffer.ty)))) (Var "b"))) (Val #())) (Val #(W64 256)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
 
 /-- The package variables goose does not translate (the `skip` entries of the package's
 goose config): no Lean name, allocation or initialization step, so no translated code names
@@ -42,16 +87,13 @@ panic, and has no effect beyond the variable), for the reason given.
 - `Pid` (`var // Pid is inserted into log headers. Can be overridden for tests. Pid = os.Getpid()`): Its initializer calls, besides literals of constants and other variables' values: `os.Getpid` reads
 the process id. So it terminates, cannot panic and has no effect beyond its variable.
 - `Time` (`var // Time, if set, will be used instead of the actual current time. Time *time.Time`): No initializer: a nil `*time.Time`. Nothing to run.
-- `buffers` (`var buffers = sync.Pool{ New: func() interface{} { return new(Buffer) }, }`): A literal: a `sync.Pool` composite literal holding a function value (built, not called), with no
-call. It terminates, cannot panic and has no effect beyond its variable.
 -/
 noncomputable def skipped' : List go.SkippedVar := [
   ⟨"k8s.io/klog/v2/internal/buffer.Pid", "Its initializer calls, besides literals of constants and other variables' values: `os.Getpid` reads\nthe process id. So it terminates, cannot panic and has no effect beyond its variable.", "var // Pid is inserted into log headers. Can be overridden for tests. Pid = os.Getpid()"⟩,
-  ⟨"k8s.io/klog/v2/internal/buffer.Time", "No initializer: a nil `*time.Time`. Nothing to run.", "var // Time, if set, will be used instead of the actual current time. Time *time.Time"⟩,
-  ⟨"k8s.io/klog/v2/internal/buffer.buffers", "A literal: a `sync.Pool` composite literal holding a function value (built, not called), with no\ncall. It terminates, cannot panic and has no effect beyond its variable.", "var buffers = sync.Pool{ New: func() interface{} { return new(Buffer) }, }"⟩]
+  ⟨"k8s.io/klog/v2/internal/buffer.Time", "No initializer: a nil `*time.Time`. Nothing to run.", "var // Time, if set, will be used instead of the actual current time. Time *time.Time"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.klog.v2.internal.buffer where
-  pkgImportedPkgs := [pkg_id.bytes]
+  pkgImportedPkgs := [pkg_id.bytes, pkg_id.sync]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -59,8 +101,28 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.klog.v2.internal.buffer)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Buffer.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoAlloc Buffer.ty))) (App (Val (GoInstruction (GoZeroVal Buffer.ty))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.bytes.initialize') (Val #())))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.sync.Pool.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"New")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.InterfaceType [])])) (Var "$v0")))])))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.sync.Pool.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr buffers))) (Val #())) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.bytes.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc buffers _root_.Perennial.sync.Pool.ty)) (Val #()))))))))
 
 structure Buffer [GooseExts] where
   mk ::
@@ -97,6 +159,8 @@ class Buffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) go!"Bytes"))) (App (Val (GoInstruction (StructFieldRef Buffer.ty go!"Buffer"))) (Var "$r"))))
   ptr_Len_unfold : MethodUnfold (go.GoType.PointerType Buffer.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldRef Buffer.ty go!"Buffer"))) (Var "$r"))))
+  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType Buffer.ty) go!"Reset" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) go!"Reset"))) (App (Val (GoInstruction (StructFieldRef Buffer.ty go!"Buffer"))) (Var "$r"))))
   ptr_Write_unfold : MethodUnfold (go.GoType.PointerType Buffer.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldRef Buffer.ty go!"Buffer"))) (Var "$r"))))
   ptr_WriteByte_unfold : MethodUnfold (go.GoType.PointerType Buffer.ty) go!"WriteByte" (LamV "$r"
@@ -112,15 +176,22 @@ attribute [instance] Buffer.TypeAssumptions.type_repr
   Buffer.TypeAssumptions.ptr_method_set
   Buffer.TypeAssumptions.ptr_Bytes_unfold
   Buffer.TypeAssumptions.ptr_Len_unfold
+  Buffer.TypeAssumptions.ptr_Reset_unfold
   Buffer.TypeAssumptions.ptr_Write_unfold
   Buffer.TypeAssumptions.ptr_WriteByte_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Buffer_instance : Buffer.TypeAssumptions
+  GetBuffer_unfold : FuncUnfold GetBuffer [] GetBuffer.impl
+  PutBuffer_unfold : FuncUnfold PutBuffer [] PutBuffer.impl
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
+  import_sync_Assumption : _root_.Perennial.sync.Assumptions
 
 attribute [instance] Assumptions.Buffer_instance
+  Assumptions.GetBuffer_unfold
+  Assumptions.PutBuffer_unfold
   Assumptions.import_bytes_Assumption
+  Assumptions.import_sync_Assumption
 
 end k8s_io.klog.v2.internal.buffer
 

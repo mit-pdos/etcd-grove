@@ -4,6 +4,7 @@ module
 public import GeneratedProof.k8s_io.klog.v2.internal.buffer
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.bytes.Base
+public import Perennial.Proof.sync.Base
 
 @[expose] public section
 noncomputable section

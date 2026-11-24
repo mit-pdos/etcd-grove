@@ -37,7 +37,7 @@ theorem blockLogger.recordWait.wp_proof
     blockLogger.recordWait.spec (GF := GF) (hG := hG) := by
   intro l d
   unfold blockLoggerOk
-  wp_start as ⟨%iv, %th, %msg, %ot, %gr, %ck, #Hiv, #Hth, #Hmsg, #Hot, #Hgr, #Hck, #Hnow, #Hmu⟩
+  wp_start as ⟨%iv, %th, %msg, %ot, %gr, %ck, #Hiv, %hmsg, #Hth, #Hmsg, #Hot, #Hgr, #Hck, #Hnow, #Hmu⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   (try wp_auto)
@@ -74,9 +74,9 @@ theorem blockLogger.recordWait.wp_proof
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
       (try wp_auto)
-      wp_apply wp_V as %v -
+      wp_apply wp_V as %v %hv
       (try wp_auto)
-      wp_apply wp_InfoS v msg _ _ _ ?_ $$ [$Hsl] as -
+      wp_apply wp_InfoS v msg _ _ _ hv hmsg ?_ $$ [$Hsl] as -
       · intro x hx
         rw [show sint.nat (W64 (0 + 1)) = 1 by rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl, show sint.nat (W64 (0 + 1 + 1 + 1)) = 3 by rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1)) = 4 by rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1)) = 5 by rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1)) = 6 by rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 7 by rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 8 by rfl, show sint.nat (W64 (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) = 9 by rfl] at hx
         simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil,

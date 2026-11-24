@@ -36,7 +36,6 @@ axiom grpcConn_persistent
 axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
-axiom klog.Verbose.InfoS.wp_proof
 axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
 axiom metrics.RecordEtcdBookmark.wp_proof

@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.bytes
+public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.k8s_io.klog.v2.internal.buffer
 

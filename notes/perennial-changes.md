@@ -82,7 +82,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   models of `loggingT.header` and `loggingT.output` only (the pool needed no model: the `header` model
   allocates a fresh buffer, and the translated path reaches `GetBuffer`/`PutBuffer` only with a
   logger); it builds only once etcd-grove's pin includes `e6b47abfd`. `fmt.Fprint` and
-  `strconv.AppendQuote` (for `Verbose.InfoS`): not proposed yet.
+  `strconv.AppendQuote` (for `Verbose.InfoS`) landed in Perennial `08164dd00` (fmt-fprint: `Fprint`
+  over the fmt model, operands' `String()`/`Error()` lent a resource, `fmt.printArgOk`,
+  `fmt.printArgOk_bytesBuffer`; `bytes.Buffer.wp_Reset`) and `4074d4ac7` (strconv-quote: `Quote`,
+  `AppendQuote` translated with `IsPrint` and its tables, specs with `s.length ≤ maxAddr`;
+  `unicode/utf8`'s `DecodeRuneInString`, `AppendRune`, `ValidRune`). klog-infos (2026-11-23) proves
+  `Verbose.InfoS` over them; it builds only once the pin includes `4074d4ac7`.
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
