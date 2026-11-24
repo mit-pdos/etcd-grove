@@ -377,7 +377,12 @@ PROJECTS = [
         # modernize analyzer's errorsastype rewrite across the modules, and by hand where `As` is the
         # first operand of an `&&` (fileutil's preallocExtend/preallocFixed, isSafeRetryImmutableRPC),
         # so that those proofs use Perennial's proved `AsType` spec instead of its `errors.As` axiom.
-        rev="edc800c6f26223e2da34f874c0dad3e1b3c668b7",
+        # Then (real fmt stage 1, 2026-11-24, mit-pdos/etcd-grove#9) c81d63037 (branch
+        # `goose-lean-fmt1`, on edc800c6f): `Election.Campaign`, `Mutex.tryAcquire` and
+        # `store.restore` convert a method-less named lease ID to `int64` before `fmt.Sprintf`
+        # formats it (`%x`, `%016x`): byte-identical output, through `fmtInteger` (Perennial's verified
+        # subset) instead of `printValue`.
+        rev="c81d630374d563d4aa099e9632e7113642c29825",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
