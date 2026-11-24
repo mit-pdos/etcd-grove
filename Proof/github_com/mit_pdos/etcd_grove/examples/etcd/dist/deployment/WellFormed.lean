@@ -555,7 +555,26 @@ theorem deployment.WellFormed.wp_proof
                 wp_apply (wp_load_slice_index v.Workloads' (sint.Z (W64 (j : Int))) (d.workloads.map Workload.val) DFrac.discard ww.val h0) $$ [] as -
                 · iframe #; ipureintro; rw [hsj, List.getElem?_map, hww]; rfl
                 wp_apply hAuth
-                skip
+                have htake : d.workloads.take (j + 1) = d.workloads.take j ++ [ww] := by
+                  rw [List.take_add_one, hww]; rfl
+                rcases hal : kindAlone ww.kind with _ | _ <;> rcases hau : d.cfg.auth with _ | _ <;>
+                  (try simp only [ServerCfg.val, hau]) <;> (try wp_auto)
+                all_goals (repeat' wp_if_destruct)
+                all_goals first | err_exit | skip
+                all_goals (
+                  wp_for_post
+                  iframe
+                  iexists (j + 1), _
+                  rw [hw]
+                  iframe
+                  ipureintro
+                  refine ⟨by omega, fun w hw' => ?_⟩
+                  rw [htake, List.mem_append, List.mem_singleton] at hw'
+                  rcases hw' with hw' | rfl
+                  · have h := Hf2 w hw'
+                    first | exact h | (simp only [hau] at h; exact h) | simpa [hau] using h
+                  clear hNameOk hNames hBounds hString hAddr hNodeCount hIds hCompat hAuth hErrorf
+                  refine ⟨fun h => ?_, fun h => ?_, fun h => ?_⟩ <;> simp_all)
               · skip)
       · rw [decide_eq_false hnl]
         (try simp only [Bool.not_false])
