@@ -39,7 +39,7 @@ theorem EtcdServer.restoreAlarms.wp_proof
   ihave #Hapkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
   · iPkgInit
-  wp_apply hAB lg _ $$ [] as %ab ⟨%abl, %Hab, #Habl, #Habb⟩
+  wp_apply hAB lg _ $$ [] as %ab ⟨%abl, %Hab, #Habl, #Habb, -⟩
   wp_apply hAS lg ab abl d W Pk qo S r hS hhas $$ [Ho Hwb Hpl Htk Hrb]
     as %a %err ⟨⟨%Herr, %Hann⟩, Ho, Hpl, Htk, Hrb, #Has, Hon, #Hap⟩
   · iframe #; iframe Ho Hwb Hpl Htk Hrb; ipureintro; exact ⟨Hlgnn, Hab, Hal⟩

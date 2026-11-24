@@ -25,7 +25,8 @@ variable [sem : go.Semantics]
 
 /-- `NewAlarmBackend(lg, be)` returns an `AlarmBackend`: a fresh `*alarmBackend` wrapping `be`
 (its fields `lg`, `be`, persistent: no method writes them). (Unit N1, 2026-10-17: the result is the
-interface value Go returns; N4c, 2026-10-17: the pointer and its fields named, from the body.) -/
+interface value Go returns; N4c, 2026-10-17: the pointer and its fields named, from the body; prove-ps2-v3alarm, 2026-11-24: the pointer not nil, a fresh allocation, which
+`restore`'s `ForceCommit`, a value method, needs to load `*l`.) -/
 abbrev schema.NewAlarmBackend.spec : Prop :=
   ∀ (lg : Loc) (be : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema }}
@@ -34,7 +35,8 @@ abbrev schema.NewAlarmBackend.spec : Prop :=
   {{ (ab : GoInterface), RET #ab; ∃ l : Loc,
       ⌜ab = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.ty) #l⌝ ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"lg" l ↦□ lg ∗
-      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l ↦□ be }}
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l ↦□ be ∗
+      ⌜l ≠ null⌝ }}
 
 end spec
 

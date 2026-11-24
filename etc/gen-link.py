@@ -718,7 +718,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (wal-item3, 2026-11-21) `NewStorage`'s contract proved over the WAL
                               # (`rnNewStorageOk_law_holds`, under `os`'s field assumptions; not yet
                               # passed to `newRaftNode`: imported so the trust-base report sees it)
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked"]}
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked",
+                              # (#24 J2, 2026-11-23) the encoding/json model's `Marshal` and
+                              # jsoncodec's encoders, which membership's JSON proofs take (`=` callees)
+                              "Proof.encoding.json.Results", "Net.Proof.models_lab.jsoncodec.Linked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
 for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
@@ -875,6 +878,10 @@ EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
                                "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
+# (prom-registry, route (b), 2026-11-22) prometheus's `Register` is proved over the real registry's
+# `(*Registry).Register` (`=` callee of v3rpc's `prometheus_Register`)
+EXTRA_IMPORTS.setdefault("--v3rpc", []).append(
+    "Proof.github_com.prometheus.client_golang.prometheus.Registry__Register")
 # The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
 # whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the
 # compactor's channel context needs (`chanCtx_ok`; k8s etcd3 7c-2 part 2, S7)

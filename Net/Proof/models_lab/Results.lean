@@ -2,7 +2,8 @@
 The results of `models.lab`'s codec helpers (`models/`, project models; phase 5 item 1 of
 notes/dsverify-net-port-plan.md), restated, with `#print axioms` of each (none beyond Lean's):
 
-* `jsoncodec`: `IsSpace`, `AppendRaw`, `AppendBool`, `(*Error).Error`, and its package
+* `jsoncodec`: `IsSpace`, `AppendRaw`, `AppendBool`, `AppendString` (with `appendEscapedASCII`,
+  `htmlByte`, `seqLen`, `seqLenOf`), `AppendUint`, `(*Error).Error`, and its package
   initialization; `Error_errAny` (a kept `*jsoncodec.Error` is some error);
 * `pbcodec`: `(*Error).Error`, its package initialization, and `Error_errAny`.
 
@@ -16,9 +17,8 @@ public import Net.Proof.models_lab.pbcodec.Codec
 public import Net.Proof.models_lab.pbcodec.Init
 public import Net.Proof.models_lab.jsoncodec.Codec
 public import Net.Proof.models_lab.jsoncodec.Init
+public import Net.Proof.models_lab.jsoncodec.Linked
 public import Net.Proof.models_lab.jsoncodec.IsSpace
-public import Net.Proof.models_lab.jsoncodec.AppendRaw
-public import Net.Proof.models_lab.jsoncodec.AppendBool
 public import Net.Proof.models_lab.jsoncodec.Error__Error
 public import Net.Proof.models_lab.pbcodec.Error__Error
 
@@ -43,14 +43,6 @@ variable [sem : go.Semantics]
 theorem jsoncodec.IsSpace.wp [jsoncodec.Assumptions] :
     jsoncodec.IsSpace.spec (GF := GF) (hG := hG) :=
   jsoncodec.IsSpace.wp_proof
-
-theorem jsoncodec.AppendRaw.wp [jsoncodec.Assumptions] :
-    jsoncodec.AppendRaw.spec (GF := GF) (hG := hG) :=
-  jsoncodec.AppendRaw.wp_proof
-
-theorem jsoncodec.AppendBool.wp [jsoncodec.Assumptions] :
-    jsoncodec.AppendBool.spec (GF := GF) (hG := hG) :=
-  jsoncodec.AppendBool.wp_proof
 
 theorem jsoncodec.Error.Error.wp [jsoncodec.Assumptions] :
     jsoncodec.Error.Error.spec (GF := GF) (hG := hG) :=
@@ -79,6 +71,12 @@ end Perennial
 
 #print axioms Perennial.models_lab.jsoncodec.IsSpace.wp
 #print axioms Perennial.models_lab.jsoncodec.AppendRaw.wp
+#print axioms Perennial.models_lab.jsoncodec.htmlByte.wp
+#print axioms Perennial.models_lab.jsoncodec.appendEscapedASCII.wp
+#print axioms Perennial.models_lab.jsoncodec.seqLenOf.wp
+#print axioms Perennial.models_lab.jsoncodec.seqLen.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendString.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendUint.wp
 #print axioms Perennial.models_lab.jsoncodec.AppendBool.wp
 #print axioms Perennial.models_lab.jsoncodec.Error.Error.wp
 #print axioms Perennial.models_lab.jsoncodec.Error_errAny'
