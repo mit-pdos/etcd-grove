@@ -17,6 +17,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `io.WriteString` names only (2026-11-24, phase 7 S5)
+
+- **Limitation.** Perennial's `io` translates `WriteString` as a name only (`Perennial/Code/io.toml`), so a
+  proof of code that calls it is stuck there.
+- **Who needs it.** `net/http/internal`'s chunked writer (`chunkedWriter.Write`, `Close`;
+  `Net/Proof/net/http/internal/`), which the Transport writes chunked request bodies through (S5's client
+  half); next, the server's `chunkWriter` and the Transport's head writer (`bufio.Writer.WriteString`).
+- **Workaround.** `Spec/io/WriteString.lean` states Go's behavior (the `StringWriter` assertion, else
+  `Write` of the string's bytes) and the Links take it as a hypothesis (`Net/Proof/net/http/Results.lean`,
+  `section chunked`). No axiom, no `sorry`.
+- **Proposed change.** Translate `io.WriteString` with its body in Perennial, with this spec and its proof
+  (seven lines of Go; the `[]byte(s)` conversion's slice).
+- **Status.** Not proposed yet.
+
 ### `net/url.ParseRequestURI` unreachable over bodies: `strings.Cut`/`ToLower`/`Index`/`Count` names only (2026-11-23, models-rpc-http)
 
 - **Limitation.** Go's `url.parse(rawURL, true)` calls `strings.ToLower` (always, on the scheme), `strings.Cut(rest,
