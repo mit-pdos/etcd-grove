@@ -74,7 +74,7 @@ local macro "bad_finish" hne:ident : tactic => `(tactic|
     | (ipureintro; rfl)
     | (wp_if_destruct <;> try (exfalso; exact $hne (by simpa using Hif)))
     | (wp_func_call; wp_call)
-    | fail_if_no_progress wp_auto))
+    | wp_auto))
 
 /-- `ContextReadErrs` at a ghost state over the local context `lctx`. -/
 abbrev CtxErrsAt [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
@@ -116,13 +116,13 @@ theorem serverBootBad [srv_sem : server.Assumptions]
   -- `MainDeployment(d, i)`
   wp_func_call
   wp_call
-  wp_auto
+  try wp_auto
   wp_apply zap.NewNop.wp_proof as %lg -
   wp_auto
   -- `MainDeploymentLogger(d, i, lg)`
   wp_func_call
   wp_call
-  wp_auto
+  try wp_auto
   wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
   · iframe #
   have hne : err ≠ interface.nil := fun h => Hd (Herr h)
@@ -159,11 +159,12 @@ theorem clientBootBad [cl_sem : client.Assumptions]
   -- `Orchestrator(d, j)`
   wp_func_call
   wp_call
-  wp_auto
+  try wp_auto
   -- `MainDeployment(d, j, func() {})`
   wp_func_call
   wp_call
-  wp_auto
+  try wp_func_lits
+  try wp_auto
   wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
   · iframe #
   have hne : err ≠ interface.nil := fun h => Hd (Herr h)
