@@ -20,6 +20,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Init
 public import Proof.github_com.mit_pdos.gokv.trusted_proph.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

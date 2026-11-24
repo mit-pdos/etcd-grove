@@ -16,7 +16,8 @@ public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.In
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Init
 public import KvNet.Proof.github_com.mit_pdos.gokv.trusted_proph.Init
 public import KvNet.Proof.go_etcd_io.raft.v3.Init
-public import KvNet.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
+public import KvNet.Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

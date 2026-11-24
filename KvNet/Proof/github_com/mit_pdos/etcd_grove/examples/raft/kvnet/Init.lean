@@ -18,7 +18,8 @@ public import KvNet.Proof.github_com.anishathalye.porcupine.Init
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Init
 public import KvNet.Proof.go_etcd_io.raft.v3.Init
 public import KvNet.Proof.net.Init
-public import KvNet.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
+public import KvNet.Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

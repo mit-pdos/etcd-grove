@@ -51,10 +51,9 @@ PKGS = ['gopkg_in.yaml_v2', 'github_com.go_redis.redis.v8', 'io.ioutil', 'encodi
     [f'{QP}.examples.quepaxanet.cmd.{n}' for n in QP_NODES]
 PROGRAMS = {f'{QP}.examples.quepaxanet.cmd.{n}':
             f'Proof/{QP}/examples/quepaxanet/cmd/{n}/PkgTable.lean' for n in QP_NODES}
-# the main tree's packages they import beside `NET_MAIN`'s (their `Init.lean` are made here, in the
-# part, as `NET_MAIN`'s in `Net/`: the main tree's import the main tree's `PkgInitExt`, and
-# protobuf's facts live in modules that import the main tree's `net`; their facts here:
-# `Dsverify/Proof/google_golang_org/protobuf/Base.lean`)
+# the main tree's packages they import beside `NET_MAIN`'s (their `Init.lean` the main tree's where
+# it generates the same, etc/gen-init.py's `shared_inits` (L1, 2026-11-24: all but `proto`'s, which
+# the main tree takes from raft's); protobuf's facts: `Proof/google_golang_org/protobuf/PkgInit.lean`)
 MAIN = ['bufio', 'google_golang_org.protobuf.proto',
         'google_golang_org.protobuf.reflect.protoreflect',
         'google_golang_org.protobuf.runtime.protoimpl', 'google_golang_org.protobuf.internal.impl',

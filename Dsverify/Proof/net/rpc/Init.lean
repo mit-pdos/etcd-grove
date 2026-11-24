@@ -11,7 +11,7 @@ prove `net.rpc.wp_initialize'` (a generated `Init.lean` without axioms) and repl
 module
 
 public import Net.GeneratedProof.net.rpc
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.net.http.Init
 public import Dsverify.Proof.go.token.Base
 public import Perennial.Proof.log.Base

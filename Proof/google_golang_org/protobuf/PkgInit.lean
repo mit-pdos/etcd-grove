@@ -1,8 +1,11 @@
 /-
-The package facts of protobuf-go's packages QuePaxa's generated messages import (`True`, names only;
-notes/dsv-quepaxa.md): the main tree's (`Proof/go_etcd_io/etcd/cache/v3/Base.lean`,
-`Proof/go_etcd_io/raft/v3/Base.lean`) live in modules that import the main tree's `net`, which the
-part's `Net/` replaces.
+The package facts of protobuf-go's packages this repository translates names only (`internal/pragma`,
+`internal/impl`, `runtime/protoimpl`, `reflect/protoreflect`, `proto`): `True`. Raft v3.7's `raftpb` is
+protobuf-go v2 (its messages hold `protoimpl`'s state; `raft` and `raftpb` call `proto.Clone`/`Marshal`/
+`Unmarshal`/`Size`/`Equal`), etcd's generated messages import them, and so do `Dsverify/`'s QuePaxa
+messages. Shared by every tree that imports them (L1, 2026-11-24: until then declared in raft's and
+etcd cache's `Base.lean`, and again in `Dsverify/`; `KvNet/` keeps a copy of its own, its
+`Proof/google_golang_org/protobuf/PkgInit.lean`).
 -/
 module
 

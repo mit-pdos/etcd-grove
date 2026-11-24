@@ -18,7 +18,7 @@ public import Perennial.Proof.internal.oserror.Link
 public import Perennial.Proof.sync.Link
 public import Proof.syscall.Models
 public import Perennial.Proof.sync.Link
-public import RaftWitness.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

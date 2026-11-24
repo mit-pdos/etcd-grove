@@ -11,12 +11,12 @@ prove `net.http.wp_initialize'` (a generated `Init.lean` without axioms) and rep
 module
 
 public import Net.GeneratedProof.net.http
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Net.Proof.net.Base
 public import Proof.bufio.PkgInit
 public import Proof.net.url.PkgInit
-public import Dsverify.Proof.path.Base
-public import Dsverify.Proof.crypto.tls.Base
+public import Proof.path.PkgInit
+public import Proof.crypto.tls.PkgInit
 public import Dsverify.Proof.net.textproto.Base
 public import Dsverify.Proof.mime.multipart.Base
 public import Dsverify.Proof.net.http.internal.ascii.Base

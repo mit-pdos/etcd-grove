@@ -14,7 +14,7 @@ public import Dsverify.Proof.github_com.emirpasic.gods.containers.Init
 public import Dsverify.Proof.github_com.emirpasic.gods.maps.Init
 public import Dsverify.Proof.github_com.emirpasic.gods.trees.redblacktree.Init
 public import Dsverify.Proof.github_com.emirpasic.gods.utils.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

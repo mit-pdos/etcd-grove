@@ -5,8 +5,8 @@ module
 
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.hook
 public import Dsverify.Proof.os.signal.Init
-public import Net.Proof.os.Init
-public import Net.Proof.syscall.Init
+public import Proof.os.Init
+public import Proof.syscall.Init
 
 @[expose] public section
 

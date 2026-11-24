@@ -42388,3 +42388,25 @@ QuePaxa's exits on a failed `grpc.Dial` or debug-dump file (environment failures
 Not done: a whole-program analysis (an exit in a dependency, or a wrapper that decides by itself whose
 callers' conditions matter, is not followed); the gate is a review aid for the checks' own code, which
 is where a vacuous check would be written.
+
+## One `PkgInitExt` for every tree; a part imports the main tree's `Init.lean` when it is the same (2026-11-24 · L1 · branch `lib-pkginit`)
+
+**Problem.** `ExternalInit` (the premise of `initLb_of_spec`, which the generated initializers use for every package
+whose `wp_initialize'` is not generated here) was a closed inductive listing the main tree's packages, raft's,
+protobuf `proto`'s and the B-tree's among them, so `Proof/runtime/PkgInitExt.lean` imported raft's translation. A
+part that does not import raft (`Net/`) needed a copy without them, `Dsverify/` a guard-free variant
+(`PkgInitDsv`) for packages the copy did not list, and every package initializer that imported it was copied into
+the part, differing only in that import (11 in `Net/`, 9 more in `Dsverify/`); the parts likewise declared again
+the `True` facts of packages whose main-tree fact sat in an etcd module (`container/heap` in lease's `Base`,
+protobuf's in raft's and cache's).
+
+**Choice.** `ExternalInit` is an open registration: a fieldless `structure` in `Prop`, each external initializer a
+theorem `ExternalInit.<pkg> : ExternalInit pkg_id.<pkg> <pkg>.initialize' := ⟨⟩`. The shared module registers
+Perennial's packages (all trees'); a tree registers the others in a module of its own importing it (the main tree's
+`PkgInitExtRaft`, copied over their raft by the raft parts; `Dsverify/`'s `PkgInitDsv`), and a generated file
+imports that module only when it names one. The guard was already unused by the proof; it stays as documentation, and
+`initLb_of_spec`'s statement text is unchanged (rejected: dropping the premise, which changes every call site and
+loses the record of what is taken from elsewhere). `etc/gen-init.py`'s `shared_inits` then drops a part's generated
+`Init.lean` when, its imports resolved, it is the main tree's text at the same path: one file per Go package, found
+mechanically rather than listed. A `True` fact two trees need moves to `Proof/<pkg>/PkgInit.lean` (as `hash`'s,
+`os`'s), out of the etcd modules that declared it.

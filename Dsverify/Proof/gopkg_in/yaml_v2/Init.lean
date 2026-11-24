@@ -10,7 +10,7 @@ translation or model lands.
 module
 
 public import Dsverify.Proof.gopkg_in.yaml_v2.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

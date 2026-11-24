@@ -1,6 +1,7 @@
 /-
-The package fact of `container.heap` for the part `Dsverify/`: `True` (as the main tree's, which declares it in
-etcd's packages; notes/dsv-rabia.md).
+The package fact of `container/heap` (names only in this repository's translation): `True`. Shared by
+every tree that imports the package (the lease's proofs, `Dsverify/`'s Rabia; L1, 2026-11-24: until then
+declared in `Proof/go_etcd_io/etcd/server/v3/lease/Base.lean`, and again in `Dsverify/`).
 -/
 module
 
