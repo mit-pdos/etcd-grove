@@ -643,5 +643,14 @@ def BlankZero (ty : go.GoType) (blank : Loc → IProp GF) : Prop :=
 
 end wps
 
+/-! ## The wire encoding (phase 7 S2, O7) -/
+
+/-- **`bs` is a wire encoding of the `*ty` message stored as `t`** (opaque, no law; phase 7 S2, O7):
+protobuf-go v1.36's `proto.Marshal` (grpc's codec) of a `*ty` that `storeInto ty l t` wrote may return
+`bs`, and `proto.Unmarshal(bs)` into a zero `*ty` writes what `storeInto ty l t` writes. Trusted text
+(`notes/audit.md`); nothing in S2's interface uses it (the protocols that do, `grpcCliP`/`grpcSrvP`,
+are a library no address uses until S2 proves the transport). -/
+opaque protoEncodes [GooseExts] (ty : go.GoType) (t : VTree) (bs : List w8) : Prop
+
 end EtcdGrove
 end Perennial
