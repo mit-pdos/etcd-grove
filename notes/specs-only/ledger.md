@@ -5545,3 +5545,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
+
+## 2026-11-24: `mvcc.hashStorageOk` carries `hashMu`'s guard over the stored hashes (sortslice, claim #18)
+
+- **Spec.** `mvcc.hashStorageOk h` (`Proof/.../storage/mvcc/HashDefs.lean`), the persistent premise of
+  `hashStorage.Store.spec` and post of `NewHashStorage.spec`: besides the logger, now
+  `sync.isRWMutexGuard h.hashMu (mvcc.hashesR h)`, where `hashesR h q` is the `hashes` field at `q`, the
+  slice's elements and capacity at `q`, and at most `hashStorageMaxSize` (10) elements.
+- **Defect.** `Store`'s spec (an axiom until now) stated no ownership of `hashes`: it could not be proved
+  (it appends and sorts in place under `hashMu`), only assumed.
+- **Evidence.** `NewHashStorage` (the one producer; `NewStore` passes its result on, `InvStore` keeps it
+  persistently, `CommitApi` uses it abstractly) is re-proved: it allocates the struct, makes the lock over
+  the empty slice (`sync.init_RWMutex`, the reader slots dropped: nothing verified reads `hashes` under the
+  read lock), and returns the guard. `Store` is proved over it (fork `a336e97f9`'s `slices.SortFunc`).
+  No caller re-proved: the predicate is used only through its name.
+- **Proposed change.** As above (the approved exception: a persistent ownership premise every caller
+  discharges). `Hashes`/`HashByRev`, when verified, will need the reader slots `NewHashStorage` drops
+  (`SpecPlan`'s `hashStorageFresh`).
+- **Decision.** Applied (branch `prove-ps2-sortslice/2026-11-23`), waiting with `Store` on the `GoPos` rule
+  (`notes/perennial-changes.md`).

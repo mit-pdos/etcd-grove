@@ -28,6 +28,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedComp
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.encoding.binary.bigEndian__Uint64
+public import Proof.cmp.Compare
 public import Proof.hash.crc32.MakeTable
 public import Proof.hash.crc32.New
 public import Proof.hash.crc32.digest__Sum32
@@ -482,9 +483,13 @@ theorem go_humanize.wp_Bytes :
     go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
   go_humanize.Bytes.wp_proof
 
+theorem cmp.wp_Compare :
+    cmp.Compare.spec (GF := GF) (hG := hG) :=
+  cmp.Compare.wp_proof
+
 theorem mvcc.hashStorage.wp_Store :
     mvcc.hashStorage.Store.spec (GF := GF) (hG := hG) :=
-  mvcc.hashStorage.Store.wp_proof
+  mvcc.hashStorage.Store.wp_proof zap.wp_Uint32 zap.wp_Int64 zap.Logger.wp_Info cmp.wp_Compare
 
 theorem traceutil.Trace.wp_Step :
     traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=

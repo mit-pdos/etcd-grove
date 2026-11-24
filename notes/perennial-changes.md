@@ -17,28 +17,40 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### `sort.Slice` is names-only: `mvcc.hashStorage.Store` stays an axiom (2026-11-23, ps2-crc32-merge, claim #18)
+### Unary `+` (`GoUnOp GoPos`) has no semantics: `cmp.Compare` is stuck at `x > y` (2026-11-24, sortslice, claim #18)
 
-- **Limitation.** Perennial's `sort` translates `sort.Sort` and `pdqsort` over a `sort.Interface`
-  (`zsortinterface.go`), but not `sort.Slice` (`slice.go`) nor `pdqsort_func` and its helpers
-  (`zsortfunc.go`): `Slice` swaps through `internal/reflectlite.Swapper(x)`, which has no model.
-  `Spec/sort/Slice.lean` is stated for `[]int64` only and is a hypothesis (`?`) of mvccrand's results.
-- **Needed by.** `mvcc.hashStorage.Store` (`hash.go`): it logs (`zap.Logger.Info` over `zap.Uint32`/
-  `zap.Int64`, specified here), appends under `hashMu`, then `sort.Slice(s.hashes, func(i, j int) bool
-  { return s.hashes[i].Revision < s.hashes[j].Revision })` and keeps the last `hashStorageMaxSize`.
-  Its axiom was thought to wait only on `hash/crc32` (`hash.go`'s hasher): crc32 is now translated and
-  proved (etcd-grove#14), but `Store` never calls crc32; `sort.Slice` is the one callee with no spec
-  that can be proved (with `hashStorageOk` carrying `hashMu`'s lock invariant over `hashes`, which
-  `NewHashStorage` would establish, every other step is provable over existing specs).
-- **Workaround.** None here: the axiom `mvcc.hashStorage.Store.wp_proof` stays (an axiom for
-  `sort.Slice` at `[]KeyValueHash` would trade one axiom for another, and a `?` hypothesis would add a
-  premise to every result reaching `store.compact`).
-- **Proposed change.** In Perennial: translate `slice.go` (`Slice`, `SliceStable`, `SliceIsSorted`) and
-  `zsortfunc.go` (`pdqsort_func` and the `_func` helpers, the same code as the interface ones over
-  `lessSwap`), with a trusted model of `reflectlite.Swapper` for slices (swap two elements of the slice
-  the interface holds; panics on a non-slice), and prove `sort.Slice` generically in the element type
-  (the order of `less` not required, as `sort.Sort.wp_anyLess`). A trusted-model change: a PR for
-  upamanyus's review.
+- **Limitation.** goose translates Go's unary `+x` as `GoUnOp GoPos t` (`goose/glang/lean.go`), but no
+  semantics rule steps it at any type: `Golang/Defn/Predeclared.lean` has `neg_untyped_int`, `neg_int`,
+  `neg_int64`, ... and no `pos_*` (still so at Perennial `lean` `4074d4ac7`). A program that evaluates `+x`
+  is stuck in the model. `cmp.Compare` (Go's `cmp/cmp.go`) returns `+1` for `x > y`, translated
+  `Convert untypedInt int (GoUnOp GoPos untypedInt #1)`.
+- **Needed by.** `mvcc.hashStorage.Store`, which (fork `a336e97f9`, `goose-lean-slicessort`) sorts with
+  `slices.SortFunc(s.hashes, func(a, b KeyValueHash) int { return cmp.Compare(a.Revision, b.Revision) })`
+  instead of `sort.Slice`. Its proof is complete over `cmp.Compare.spec` (at `int64`, `Spec/cmp/Compare.lean`,
+  proved here but for the `x > y` branch, a `sorry`). (It replaces the 2026-11-23 entry "`sort.Slice` is
+  names-only": Upamanyu chose rewriting the call in the fork over a model of `reflectlite.Swapper`, #18;
+  `slices.SortFunc` is translated and proved in Perennial, `slices.wp_SortFunc`. mvccrand's `genLease`
+  keeps `sort.Slice` and its `Spec/sort/Slice.lean` hypothesis: `slices.Sort` needs `len ≤ 2^62`, which its
+  spec does not bound.)
+- **Workaround.** None landed: the branch `prove-ps2-sortslice/2026-11-23` waits (`Store` stays an axiom on `lean`).
+  The fork keeps the idiomatic `cmp.Compare` (coordinator's decision, #18), not explicit `if`s.
+- **Proposed change.** Complete the `neg_*` scheme in `Predeclared.lean` with an identity `pos_*` beside each
+  (`pos_untyped_int (v : Int) : ⟦GoUnOp GoPos go.untypedInt, #v⟧ ⤳ #v`, `pos_int`, ...: Go's `+x` is `0 + x`,
+  which for integers and floats is `x`), with a semantics test (`func testUnaryPlus() bool`) and Go evidence;
+  trusted, so `fix-semantics` with Upamanyu's sign-off (#18 issuecomment-7119669938). Then also `cmp.Compare`'s
+  spec belongs in Perennial (`Spec/cmp/Compare.lean`, as `cmp.Less`'s), and the local one goes.
+- **Status.** Proposed on #18, awaiting sign-off.
+
+### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
+
+- **Limitation.** Perennial proves `sort.Sort` (and `slices.Sort`/`SortFunc`) only for a `Less` that agrees with
+  a strict weak order. `lease.leasesByExpiry`'s `Less` reads the clock, so the lease package and bbolt's
+  `Tx.write` use etcd-grove's trust-boundary axiom `sort.Sort.wp_anyLess` (`Spec/sort/SortAnyLess.lean`:
+  a permutation, no order).
+- **Proposed change.** In Perennial: order-free copies of the `pdqsort` helper proofs (each index bounded by
+  the slice, never by `Less`'s answers, as Go's code is), proving `sort.Sort`'s permutation-only spec. Found
+  while porting the helpers for `sort.Slice` (sortslice, the `*_func` copies, since dropped).
+- **Status.** Not started.
 
 ### Goose drops the implicit conversion of a type-parameter value to an interface (2026-11-23, zap-z1, claim #40)
 

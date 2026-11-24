@@ -36,17 +36,16 @@ theorem cmp.Compare.wp_proof : cmp.Compare.spec (GF := GF) (hG := hG) := by
     iapply HΦ
     ipureintro
     simp only [Hif, ↓reduceIte]
-    rfl
   · (try wp_auto)
+    have Hlt := Hif
     wp_if_destruct
-    · (try wp_auto)
-      iapply HΦ
-      ipureintro
+    · -- `return +1`: stuck, Perennial has no semantics for unary `+` (`GoUnOp GoPos`);
+      -- notes/perennial-changes.md
       sorry
     · (try wp_auto)
       iapply HΦ
       ipureintro
-      sorry
+      simp only [Hlt, Hif, ↓reduceIte]
 
 end proof
 

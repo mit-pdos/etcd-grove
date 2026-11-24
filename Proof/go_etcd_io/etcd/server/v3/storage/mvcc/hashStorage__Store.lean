@@ -89,9 +89,53 @@ theorem mvcc.hashStorage.Store.wp_proof
     unfold _root_.Perennial.slices.cmpImplements
     iintro %a %b
     iintro !> %Φ' _ HΦ'
-    sorry
+    wp_auto
+    wp_apply hCompare as %r %Hr
+    (try wp_auto)
+    iapply HΦ'
+    ipureintro
+    unfold mvcc.hashRevLt
+    subst Hr
+    by_cases h1 : sint.Z a.Revision' < sint.Z b.Revision'
+    · simp only [h1, ↓reduceIte, _root_.iff_true]; word
+    · by_cases h2 : sint.Z b.Revision' < sint.Z a.Revision'
+      · simp only [h1, h2, ↓reduceIte, _root_.iff_false]; word
+      · simp only [h1, h2, ↓reduceIte, _root_.iff_false]; word
   (try wp_auto)
-  sorry
+  ihave %Hl1 := ownSlice_len $$ Hsl
+  have hys : ys.length = xs.length + 1 := by rw [← Hperm.length_eq]; simp
+  wp_if_destruct
+  · (try wp_auto)
+    ihave %Hwf := ownSlice_wf $$ Hsl
+    have hb : 0 ≤ sint.Z (s1.len - W64 10) ∧ sint.Z (s1.len - W64 10) ≤ sint.Z s1.len ∧
+        sint.Z s1.len ≤ sint.Z s1.cap := ⟨by word, by word, Hwf.2⟩
+    simp only [hb, _root_.and_self, ↓reduceIte]
+    (try wp_auto)
+    ihave ⟨-, Hsl, Hcap⟩ := ownSlice_slice_with_cap (s1.len - W64 10) s1.len s1 ys
+      ⟨by word, by word, Int.le_refl _⟩ $$ [Hsl Hcap]
+    · iframe
+    wp_apply +noauto sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hf Hsl Hcap]
+    · inext
+      iunfold mvcc.hashesR
+      iexists _, _
+      iframe
+      ipureintro
+      simp only [subslice, List.length_drop, List.length_take]
+      word
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  · (try wp_auto)
+    wp_apply +noauto sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hf Hsl Hcap]
+    · inext
+      iunfold mvcc.hashesR
+      iexists _, _
+      iframe
+      ipureintro
+      word
+    (try wp_auto)
+    iapply HΦ
+    itrivial
 
 end proof
 
