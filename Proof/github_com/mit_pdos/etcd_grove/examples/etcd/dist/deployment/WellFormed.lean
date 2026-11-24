@@ -33,6 +33,29 @@ namespace etcd_dist
 open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
 
+section argok
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- An argument `fmt` formats safely: `nil` or a well-formed basic value. -/
+def argOkP (a : GoInterface) : Prop := a = GoInterface.nil ∨ ∃ ii, a = interface.ok ii ∧ fmt.ArgWf ii
+
+theorem argOkP_set {l : List GoInterface} {n : Nat} {x : GoInterface} (hl : ∀ a ∈ l, argOkP a)
+    (hx : argOkP x) : ∀ a ∈ l.set n x, argOkP a :=
+  fun a ha => (List.mem_or_eq_of_mem_set ha).elim (hl a) (fun h => h ▸ hx)
+
+theorem argOkP_cons {l : List GoInterface} {x : GoInterface} (hx : argOkP x) (hl : ∀ a ∈ l, argOkP a) :
+    ∀ a ∈ x :: l, argOkP a := by
+  intro a ha
+  rcases List.mem_cons.1 ha with rfl | ha
+  · exact hx
+  · exact hl a ha
+
+theorem argOkP_nil : ∀ a ∈ ([] : List GoInterface), argOkP a := fun a ha => absurd ha List.not_mem_nil
+
+theorem argOkP_nilv : argOkP GoInterface.nil := Or.inl rfl
+
+end argok
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -40,25 +63,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-/-- Arguments `fmt` formats safely: each a well-formed basic value. -/
-theorem strArgOk_list (args : List GoInterface)
-    (h : ∀ a ∈ args, ∃ ii, a = interface.ok ii ∧ fmt.ArgWf ii) :
+theorem argOkP_int (n : w64) : argOkP (interface.mkOk go.int #n) :=
+  Or.inr ⟨_, rfl, argWf_int (hG := hG) (sem := sem) n⟩
+
+theorem argOkP_string (x : GoString) : argOkP (interface.mkOk go.string #x) :=
+  Or.inr ⟨_, rfl, argWf_string (hG := hG) (sem := sem) x⟩
+
+/-- Arguments `fmt` formats safely. -/
+theorem strArgOk_list (args : List GoInterface) (h : ∀ a ∈ args, argOkP a) :
     ⊢ ([∗list] a ∈ args, fmt.strArgOk (GF := GF) a) := by
   induction args with
   | nil => iintro; iapply BigSepL.bigSepL_nil.2; itrivial
   | cons a args ih =>
-    obtain ⟨ii, rfl, hw⟩ := h a (List.mem_cons_self ..)
     iapply BigSepL.bigSepL_cons.2
     isplitr
-    · unfold fmt.strArgOk; ileft; ipureintro; exact Or.inl hw
+    · rcases h a (List.mem_cons_self ..) with rfl | ⟨ii, rfl, hw⟩
+      · unfold fmt.strArgOk; itrivial
+      · unfold fmt.strArgOk; ileft; ipureintro; exact Or.inl hw
     · iapply ih (fun a ha => h a (List.mem_cons_of_mem _ ha))
-
-theorem len_zero (s : GoSlice) (h : sint.nat s.len = 0) (h0 : 0 ≤ sint.Z s.len) : s.len = W64 0 := by
-  word
-
-theorem len_le (s : GoSlice) (n k : Nat) (h : ¬ sint.Z (W64 (k : Int)) < sint.Z s.len)
-    (hl : n = sint.nat s.len) (hk : k < 2 ^ 63 := by decide) : n ≤ k := by
-  word
 
 set_option hygiene false in
 /-- A check fails: `fmt.Errorf(format, args...)` (a fresh error, not `nil`) is returned. -/
@@ -76,17 +98,24 @@ local macro "err_exit" : tactic => `(tactic| (
        wp_apply (hErrorf _ _ _ (DFrac.own 1)) $$ [Hasl] as %e ⟨-, -, -⟩
        · iframe
          iapply strArgOk_list
-         intro a ha
-         (try simp only [List.set_cons_zero, List.set_cons_succ, List.mem_cons, List.not_mem_nil, _root_.or_false] at ha)
-         (try simp only [show sint.nat (W64 0) = 0 by rfl, show sint.nat (W64 1) = 1 by rfl, show sint.nat (W64 2) = 2 by rfl,
-           show sint.nat (W64 (0 + 1)) = 1 by rfl, show sint.nat (W64 (1 + 1)) = 2 by rfl,
-           List.set_cons_zero, List.set_cons_succ, List.mem_cons, List.not_mem_nil, _root_.or_false] at ha)
-         rcases ha with rfl | rfl | rfl | rfl <;>
-           exact ⟨_, rfl, by first | exact argWf_int _ | exact argWf_string _⟩)
+         repeat' (first
+           | exact argOkP_nil
+           | exact argOkP_nilv
+           | exact argOkP_int (hG := hG) (sem := sem) _
+           | exact argOkP_string (hG := hG) (sem := sem) _
+           | apply argOkP_set
+           | apply argOkP_cons))
   (try wp_auto)
   repeat wp_for_post
   iapply HΦ
   ipureintro; intro h; cases h))
+
+theorem len_zero (s : GoSlice) (h : sint.nat s.len = 0) (h0 : 0 ≤ sint.Z s.len) : s.len = W64 0 := by
+  word
+
+theorem len_le (s : GoSlice) (n k : Nat) (h : ¬ sint.Z (W64 (k : Int)) < sint.Z s.len)
+    (hl : n = sint.nat s.len) (hk : k < 2 ^ 63 := by decide) : n ≤ k := by
+  word
 
 theorem idx_facts (s : GoSlice) (j len : Nat) (hl : len = sint.nat s.len) (h0l : 0 ≤ sint.Z s.len)
     (h : sint.Z (W64 (j : Int)) < sint.Z s.len) (hj : j ≤ len) :
@@ -161,6 +190,14 @@ local macro "addr_call" : tactic => `(tactic| (
   wp_apply wp_mapInsert $$ [Ham] as Ham
   · iframe
   have Hok := addrsOk_insert _ _ _ Hok hin (hab rfl) (by unfold etcd_dist.typed.maxLen; exact hl255)))
+
+theorem idx_lt (s : GoSlice) (j len : Nat) (hl : len = sint.nat s.len) (h0l : 0 ≤ sint.Z s.len)
+    (hj : j < len) : sint.Z (W64 (j : Int)) < sint.Z s.len := by
+  word
+
+theorem len_eq_of (s : GoSlice) (n : Nat) (hl : n = sint.nat s.len) (h0l : 0 ≤ sint.Z s.len) :
+    s.len = W64 (n : Int) ∧ n < 2 ^ 63 := by
+  constructor <;> word
 
 theorem deployment.WellFormed.wp_proof
     (hNameOk : etcd_dist.deployment.nameOk.spec (GF := GF) (hG := hG))
@@ -351,7 +388,54 @@ theorem deployment.WellFormed.wp_proof
               (d.members.take j).flatMap (fun m => [m.peer, m.client]) ++ [mm.peer] ++ [mm.client] := by
             rw [List.take_add_one, hmm]; simp
           rw [e]; exact Hok
-        · skip
+        · have hjl := idx_end _ _ _ Hlm.1 Hlm.2 Hif Hj1'
+          subst hjl
+          rw [List.take_length] at Hok
+          ihave HN : (∃ (j : Nat) (wv : deployment.Workload) (jv : w64) (mpA : GMap GoString Bool),
+              "i" ∷ i_ptr ↦ W64 j ∗ "w" ∷ w_ptr ↦ wv ∗ "j" ∷ j_ptr ↦ jv ∗ "Ham" ∷ am ↦$ mpA ∗
+              "%Hj" ∷ ⌜j ≤ d.workloads.length ∧
+                addrsOk mpA (d.members.flatMap (fun m => [m.peer, m.client]) ++ (d.nodes.take j).flatten) ∧
+                ∀ (j' : Nat) (w : Workload) (ns : List GoString), j' < j → d.workloads[j']? = some w →
+                  d.nodes[j']? = some ns → W64 ns.length = w.goNodeCount ∧ ns.length < 2 ^ 63⌝ : IProp GF)
+            $$ [i w j Ham]
+          · iexists 0, _, _, _
+            iframe
+            ipureintro
+            refine ⟨by omega, by simpa using Hok, fun j' w ns h => absurd h (by omega)⟩
+          wp_for HN
+          obtain ⟨Hn1, Hok, Hn3⟩ := Hj
+          wp_if_destruct
+          · obtain ⟨hj, h0, hsj, hw⟩ := idx_facts _ _ _ Hlw.1 Hlw.2 Hif Hn1
+            simp only [h0, Hif, and_self, ↓reduceIte]
+            obtain ⟨ww, hww⟩ : ∃ ww, d.workloads[j]? = some ww := ⟨_, List.getElem?_eq_getElem hj⟩
+            wp_apply (wp_load_slice_index v.Workloads' (sint.Z (W64 (j : Int))) (d.workloads.map Workload.val) DFrac.discard ww.val h0) $$ [] as -
+            · iframe #; ipureintro; rw [hsj, List.getElem?_map, hww]; rfl
+            have hjn : j < d.nodes.length := by omega
+            obtain ⟨ns, hns⟩ : ∃ ns, d.nodes[j]? = some ns := ⟨_, List.getElem?_eq_getElem hjn⟩
+            have hjs : j < ss.length := by omega
+            obtain ⟨sj, hsj'⟩ : ∃ sj, ss[j]? = some sj := ⟨_, List.getElem?_eq_getElem hjs⟩
+            ihave #Hsj := BigSepL2.bigSepL2_lookup (Φ := fun _ s ns => (s ↦*□ ns : IProp GF)) hsj' hns $$ Hns
+            have hcN := idx_lt v.Nodes' j ss.length Hln.1 Hln.2 hjs
+            simp only [h0, hcN, and_self, ↓reduceIte]
+            wp_apply (wp_load_slice_index v.Nodes' (sint.Z (W64 (j : Int))) ss DFrac.discard sj h0) $$ [] as -
+            · iframe #; ipureintro; rw [hsj]; exact hsj'
+            ihave %Hsjl := ownSlice_len _ _ _ $$ Hsj
+            obtain ⟨hsjlen, hsjlt⟩ := len_eq_of sj ns.length Hsjl.1 Hsjl.2
+            wp_apply hNodeCount
+            by_cases hnc : sj.len = ww.goNodeCount
+            · rw [decide_eq_true hnc]
+              (try simp only [Bool.not_true])
+              wp_auto
+              skip
+            · rw [decide_eq_false hnc]
+              (try simp only [Bool.not_false])
+              wp_auto
+              simp only [h0, hcN, _root_.and_self, ↓reduceIte]
+              wp_apply (wp_load_slice_index v.Nodes' (sint.Z (W64 (j : Int))) ss DFrac.discard sj h0) $$ [] as -
+              · iframe #; ipureintro; rw [hsj]; exact hsj'
+              wp_apply hNodeCount
+              err_exit
+          · skip
       · rw [decide_eq_false hnl]
         (try simp only [Bool.not_false])
         err_exit
