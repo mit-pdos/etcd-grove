@@ -4,7 +4,7 @@ Ported from dsverify-lab examples/paxos/proof/Paxos/Proof/Deploy.lean (lab maste
 The deployment's API (`netcluster.go`; stage 1 interface, frozen at `stage1-frozen`): what the
 kit's adapter (`examples/paxosnet`) and the start need of `RunServer`, `NewNetCluster` and
 `NetCluster.Propose`, for the kit's configuration (3 acceptors, 2 learners, 4 clients over the
-nine addresses `addrs`: here each client is a machine of its own, at its own address, where the
+nine addresses `addrs` (`examples/paxosnet/Addrs.lean`): here each client is a machine of its own, at its own address, where the
 lab's four clients shared one client node).
 
 * `allProtos Γ`: every configured address's protocols are the wire's over `msgOK Γ` (set at the
@@ -19,6 +19,7 @@ lab's four clients shared one client node).
 module
 
 public import Dsverify.Proof.github_com.xiang90.paxos.Agents
+public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.Addrs
 public import Perennial.Proof.sync
 
 @[expose] public section
@@ -34,13 +35,6 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 namespace github_com.xiang90.paxos
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- The deployment's node addresses (`paxosnet.PaxosAddrs()`): acceptors 1..3, learners 2001,
-2002, then client `c`'s, `c = 0..3`. -/
-def addrs : List GoString :=
-  [go!"127.0.0.1:7401", go!"127.0.0.1:7402", go!"127.0.0.1:7403", go!"127.0.0.1:7404",
-   go!"127.0.0.1:7405", go!"127.0.0.1:7406", go!"127.0.0.1:7407", go!"127.0.0.1:7408",
-   go!"127.0.0.1:7409"]
 
 /-- Client `c`'s node's agents, in `NewNetCluster`'s order: proposer `1001 + c`, box `3001 + c`. -/
 def clientIds (c : w64) : List w64 := [W64 1001 + c, W64 3001 + c]

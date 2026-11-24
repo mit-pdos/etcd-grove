@@ -19,7 +19,6 @@ axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
@@ -194,7 +193,6 @@ axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
-axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewCounterVec.wp_proof
 axiom prometheus.NewGauge.wp_proof
@@ -202,10 +200,6 @@ axiom prometheus.NewGaugeFunc.wp_proof
 axiom prometheus.NewGaugeVec.wp_proof
 axiom prometheus.NewHistogram.wp_proof
 axiom prometheus.NewHistogramVec.wp_proof
-axiom prometheus.Register.wp_proof
-axiom prometheus.collectorName
-axiom prometheus.nameFree
-axiom prometheus.nameUnclaimed
 axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
@@ -277,7 +271,6 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
-axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable

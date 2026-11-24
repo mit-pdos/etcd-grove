@@ -109,6 +109,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   printing a slice of basic-typed elements by reflection (`%v`/`%s`); `fmt.Fprint`'s spec;
   `strconv.AppendQuote`'s. With the first two, the three printf axioms become proofs over trusted
   models of klog's sink only (`loggingT.header`, `loggingT.output`, the `sync.Pool` buffer pool).
+- **Status (2026-11-24, pin `580868e54`).** `fmt.Fprint` is modelled with a spec in Perennial
+  (`08164dd00`, `Perennial/Spec/fmt/Fprint.lean`); `WriteByte`, slices in the `fmt` model and
+  `strconv.AppendQuote` are still missing, so the klog axioms stay.
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
@@ -4117,6 +4120,19 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 (`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
 
+## SPSC receive that keeps the consumer after the close; `go.IntoValInj Unit` (prom-registry, 2026-11-22)
+
+- **Limitation.** `wp_spsc_receive` (`Chan/Idioms/Spsc.lean`) hands the consumer token to the invariant on
+  the receive that sees the channel closed and drained (taking `R`), so no later receive can be proved.
+  client_golang's `(*Registry).Register` receives again after its loop saw the close (its deferred
+  `for range descChan {}`).
+- **Workaround here.** `Proof/github_com/prometheus/client_golang/prometheus/SpscPeek.lean`:
+  `EtcdGrove.spsc_rcv_au_peek`/`wp_spsc_receive_peek`, a copy for a persistent `R` whose closed case
+  returns `R received ∗ spscConsumer γ received` (R duplicated, put back).
+- **Proposed general fix.** The same lemma in Perennial's `Spsc.lean` (for `[∀ l, Persistent (R l)]`).
+- **Also:** Perennial has no `go.IntoValInj Unit` instance (maps of `struct{}` values need it for
+  `ownMap_agree`); a local instance is in `RegInv.lean` (`unit_intoValInj`). Proposed for Perennial's
+  `IntoValInj` instances. Status: proposed only.
 ## 2026-11-22: two facts of Perennial's channel idioms proved locally (net/rpc client, branch `models-rpc-client`)
 
 - **Limitation.** The future idiom (`Golang/Theory/Chan/Idioms/Future.lean`) fulfils a promise only
@@ -4211,7 +4227,15 @@ execution. Also local, for Perennial: `Exts.globalStart`'s projection at an exte
   BI lemmas.
 - **Status.** Not filed yet.
 
-## 2026-11-23: `io.ReadAtLeast`/`io.ReadFull` ask `Pre` of a read they never make (dsv-bufio, #24 review C1)
+## 2026-11-23: `io.ReadAtLeast`/`io.ReadFull` ask `Pre` of a read they never make (dsv-bufio, #24 review C1) -- DONE (Perennial `af905abba`, in the pin `580868e54`, 2026-11-24, branch `pin-bump-580868e54`)
+
+- **Done (2026-11-24).** The pin `580868e54` has `readatleast-prefix`. The three local copies are now
+  Perennial's specs and proofs under their old names: `Dsverify/Proof/raxos/IoReadFull{,Spec}.lean`
+  (`raxos.ioLt.*`), epaxos's `Interface/IoReadFullPre.lean` and `replica/IoReadFull.lean`
+  (`ioReadAtLeastPre`, `ioReadFullPre`), rabia's `ConnRead.lean`/`ConnReadFull.lean`
+  (`io.ReadFull.specLt`, `wp_proofLt`; its `ReadAtLeast.specLt` copy deleted). Callers of Perennial's
+  specs over a `*bufio.Reader` (`raxos/Proxy/NetUnmarshal.lean`) re-prove the weaker premise
+  (`Nat.le_of_lt`).
 
 - **Limitation.** `io.ReadAtLeast.spec`'s premise is `∀ ys, ys.length ≤ len(buf) → Pre (r0 ++ ys)
   (len(buf) - ys.length)` (`io.ReadFull.spec`'s the same), so at `ys.length = len(buf)` it asks `Pre` of an
@@ -4237,7 +4261,7 @@ execution. Also local, for Perennial: `Exts.globalStart`'s projection at an exte
   `ioReadFullPre` (over the same translated `io` code, proved, no axiom); drop it for Perennial's on the
   pin bump that has the change.
 
-## 2026-11-23: `io.ReadFull` directly over a connection, local workaround (dsv-rabia)
+## 2026-11-23: `io.ReadFull` directly over a connection, local workaround (dsv-rabia) -- DONE (pin `580868e54`, 2026-11-24: the copy is Perennial's proof; entry above)
 
 - **Problem.** The rabia kit's `sendConf`/`awaitConf` call `io.ReadFull(conn, buf)` on a `net.Conn`
   (no `bufio`). Perennial's `io.ReadFull.spec` asks the reader's condition `Pre` at every
