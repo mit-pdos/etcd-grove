@@ -196,11 +196,11 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
-# net/rpcdriver's boot table (etc/gen-rpcdriver-boottable.py, from the server command's PkgTable)
-if python3 etc/gen-rpcdriver-boottable.py --check > "$tmp/rpcboot.log" 2>&1; then
-  echo "$(tail -1 "$tmp/rpcboot.log")"
+# the library drivers' boot tables (etc/gen-driver-boottable.py, from each server command's PkgTable)
+if python3 etc/gen-driver-boottable.py --check > "$tmp/driverboot.log" 2>&1; then
+  echo "$(tail -1 "$tmp/driverboot.log")"
 else
-  echo "gen-rpcdriver-boottable: FAILED"; tail -3 "$tmp/rpcboot.log"; fail=1
+  echo "gen-driver-boottable: FAILED"; tail -3 "$tmp/driverboot.log"; fail=1
 fi
 # the dsverify kits' generated plumbing (etc/dsv/kitgen.py, from each kit file's KITGEN: the
 # commands' mains, the statements, TopLevelDefs, the proofs' skeletons, Mains, the boot tables; and

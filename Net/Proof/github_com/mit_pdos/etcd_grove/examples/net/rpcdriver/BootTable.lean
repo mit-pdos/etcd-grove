@@ -3,7 +3,7 @@
 # `net/rpcdriver`: the package facts of its machines' first initialization
 
 The tables of a machine's boot (as the dsverify kits', `etc/dsv/kitgen.py`'s `BootTable.lean`; written by
-`etc/gen-rpcdriver-boottable.py` from the server command's `PkgTable.lean`, both commands having the same closure): generic in
+`etc/gen-driver-boottable.py` from the server command's `PkgTable.lean`, both commands having the same closure): generic in
 a program's table `G` that gives every package of `rpcdriver`'s import closure its `isPkgInit`
 (`KitG G`), the facts at `G` (`wf_*`) and, for the packages whose closure avoids the owned packages
 (`ownedPkgs`: `rpcdriver`, net/rpc, net/http, whose first initializations return the machine's owned
