@@ -10,6 +10,7 @@ module
 public import Proof.os.PathKindS
 public import Proof.os.StatS
 public import Proof.os.PathParent
+public import Proof.os.MkdirParts
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section
@@ -141,100 +142,11 @@ theorem os.osPathS_unchild (R : Roots) (d b : GoString) (j J : Ino) (e a : Qp) (
   iframe
   ipureintro; exact hJ
 
-/-- `os.Mkdir(d/b)` of a name holding something (a fraction of a claim on names containing `b`), with
-a fraction of the call permission: an error, no effect. -/
-theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (N : NameSet)
-    (dq dqn : DFrac) (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
-    (hi : (h.cur !! b).isSome) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
-      (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
-    {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
-        ⌜err ≠ interface.nil⌝ }} := by
-  wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
-  imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp Hn HΦ
-  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
-  wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
-    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
-  iclear Hls
-  wp_apply +noauto wp_osMkdirS_some R d b j N dq dqn h t s0 qc hb hN hi
-    CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
-  try wp_auto
-  by_cases he4 : e = W64 4
-  · rw [decide_eq_true he4]
-    try wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
-  rw [decide_eq_false (show e ≠ W64 4 from he4)]
-  try wp_auto
-  rw [decide_eq_false (show e ≠ W64 0 from he)]
-  try wp_auto
-  wp_apply os.wp_modelErrno
-  try wp_auto
-  wp_apply os.wp_modelPathError
-  iapply HΦ
-  iframe
-  ipureintro; intro hc; cases hc
-
-set_option hygiene false in
-/-- The end of `mkdirAllAbove`: `Lstat` sees a directory (`nil`), or `Mkdir`'s error. -/
-local macro "above_tail" : tactic => `(tactic| (
-  wp_apply wp_ArbitraryInt as %y _
-  by_cases hy : y = W64 0
-  · subst hy
-    try wp_auto
-    iapply HΦ $$ %_
-    itrivial
-  rw [decide_eq_false hy]
-  try wp_auto
-  wp_apply wp_ArbitraryInt as %m _
-  try wp_auto
-  unfold os.model.pathError
-  by_cases hm : m = W64 0
-  · subst hm
-    try wp_auto
-    wp_apply wp_errno
-    try wp_auto
-    iapply HΦ $$ %_
-    itrivial
-  · rw [decide_eq_false hm]
-    try wp_auto
-    wp_apply wp_errno
-    try wp_auto
-    iapply HΦ $$ %_
-    itrivial))
-
-/-- `MkdirAll` at a root or an ancestor of one, no extension step: `nil` or an error, any path. -/
-theorem os.model.wp_mkdirAllAbove (p : GoString) :
-    {{ (True : IProp GF) }} (App (Val os.model.mkdirAllAbove) (Val #p))
-    {{ (err : GoInterface), RET #err; True }} := by
-  wp_start
-  iclear Hpre
-  try unfold os.model.mkdirAllAbove
-  try wp_auto
-  iloeb as IH generalizing %p %Φ HΦ
-  wp_apply wp_ArbitraryInt as %x _
-  by_cases hx : x = W64 0
-  · subst hx
-    try wp_auto
-    iapply HΦ $$ %_
-    itrivial
-  rw [decide_eq_false hx]
-  try wp_auto
-  wp_apply os.model.wp_mkdirAllParent
-  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
-  try wp_auto
-  wp_if_destruct
-  · wp_apply IH as %e _
-    cases e with
-    | ok i =>
-      try wp_auto
-      iapply HΦ $$ %_
-      itrivial
-    | nil =>
-      try wp_auto
-      above_tail
-  · try wp_auto
-    above_tail
+-- `os.Mkdir.wp_takenS` is in `MkdirParts.lean` (over Go's `os.Mkdir`, 2026-11-24). The model's
+-- `mkdirAllAbove` is gone: Go's `MkdirAll` recurses through the strict ancestors of a root, each a
+-- `Stat` (`modelStatAbove`), a `Mkdir` (`os.Mkdir.wp_notTree`) and an `Lstat`; TODO(S5)
+-- `os.MkdirAll.wp_aboveS` by induction on the path's length (`os.rootsAbove_parent`), and
+-- `wp_spineS`'s root case over it.
 
 set_option hygiene false in
 /-- `IsDir` through the `FileInfo` of a `*fileStat` (`os.ownFileStat` in `H`): some boolean. -/
