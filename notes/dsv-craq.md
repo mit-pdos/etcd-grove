@@ -5,7 +5,12 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State in one line (2026-11-23, seventh agent: F1 discharged, the statement has no finding premise left, P10; fifth agent: `craq_remote_robust` proved over its premises, see P8, P7, P6, then P5; the line below is the first agent's):** the Go and its translation are done and tested;
+**State (2026-11-23, eighth agent, P12: review #24's craq findings fixed):** craq is on
+`models-rpc-http`'s shapes verbatim (merged `origin/models-rpc-http` fda1e58c0a and `origin/lean`
+69adf61913); the dial is Net's proved `net.rpc.DialHTTP.wp`; the net/rpc world's allocation is
+proved; the statement's step bound is `2 ^ 31 - 1`; craq lands after models-rpc-http. See P12.
+
+**Older state line (seventh agent: F1 discharged, the statement has no finding premise left, P10; fifth agent: `craq_remote_robust` proved over its premises, see P8, P7, P6, then P5; the line below is the first agent's):** the Go and its translation are done and tested;
 the lab's protocol proof is ported and built (`Store`, `Kv/`, `Protocol/`, `Wire`, `Methods`,
 `Iface`, `Codec`, `Specs`, `Netrpc/`, `Node/`, `Coord/`: `lake build` of the leaves `Coord.All`,
 `Node.Svc`, `Netrpc.New`, `Kv.New`, `Protocol.All` green); what remains is the kit (the lab's `Kit/`,
@@ -542,3 +547,36 @@ porcupine replaces it).
   new); gen-init `--check` up to date; `proof_roots.namespace()` `Perennial.EtcdGrove.`; goose.py,
   gen-init.py and the six landed `TopLevelRobustness` files equal origin/lean's; dup scan
   (`dups.py` at the new pin): no craq duplicates (the 4 hits are the scanner's known false positives).
+- **P12. Eighth agent (2026-11-23/24): review #24's craq findings fixed.** Merged `origin/lean`
+  69adf61913 (net-sticky-read included) and `origin/models-rpc-http` fda1e58c0a (as dsv-gryff did;
+  craq now lands after models-rpc-http). Merge conflicts: `models/README.md` (mrh's net/http row,
+  lean's json rows), `Net/GeneratedProof/net/http/chunk5-8` (regenerated, `goose.py --project
+  models-net` at Perennial ccfeb3895, identical to dsv-gryff's). Integration fixes of mrh x lean
+  (not craq's; upamanyus's landing merge must do the same or better): `modelReadMIMEHeader`
+  (dsv-gryff's `fmt.Lent` fix), `Dsverify/Proof/net/http/Init.lean` + `mime/multipart`,
+  `net/http/internal/ascii` True facts (dsv-gryff's), `Proto.lean`'s `accept_addrs_shared_au`
+  drops the new `rdlTok`, `Errs.lean`'s `errAny_opErrPtr` takes the `*OpError`'s read-only fields
+  (lean's `OpError.Error` reads `e.Op`; `DialHTTPPath` persists its fresh OpError), and net/http's
+  `connReader.{abortPendingRead,startBackgroundRead}`, `conn.hijackLocked`, `hjPre` carry the
+  end's `∃ b, rdlTok cn true b` (net-sticky-read's `deadline_au`; `hijackOk` unchanged).
+  `goose.py --project dsv-craq` regenerated (qualified field types).
+  Findings: (1, critical) `Craq/HttpRpc.lean` rewritten: the classes `RpcHttpAddr`/`RpcHttpDial`
+  are gone; `httpRpcAddr W a` is Net's `net.rpc.rpcAddrP W a (connectReq defaultRPCPath)
+  connectAns`; the client dials through Net's `net.rpc.DialHTTP.spec` (`RpcClientSpecs.dialHTTP`,
+  Link's instance `net.rpc.DialHTTP.wp`), so `isClient` is models-rpc-http's (handshake, then
+  frames). The world's allocation is proved (`craq_rpc_alloc`, TopLevelRobustness proof: a
+  registry ghost map, `inv regN' (regInv W)`, `addrs_set_proto`, `W.hs`/`W.hsAns` HTTP's), so
+  `rpcAlloc` is no longer a premise. (2, high) the dial precondition is Net's: `rpcReady` now
+  carries `rpcEnv` (`receiptBound ≤ 2^64`, `srvEnv` ⊇ `cliEnv`, `httpEnv`, `connected ↦□
+  connectedStatus`); `rpcBootRes` gains `httpEnv` and `connected`; the bound is the
+  deployment's; `Client.spec`/`Server.spec` take `rpcEnv`. (3) lean merged (above). (4) craq's
+  `connectReq`, `connectedAns`, `defaultRPCPath`, `defaultServer` def, `rpc.DialHTTPPath.spec`,
+  `rpc.DialHTTP.spec` deleted; `RpcHttpServe` restated in the kits' shape (`muxOwner`, `muxHas`,
+  abstract `defaultServer`, `RegisterName`, `HandleHTTP`, `ListenAndServe`; `ServeHTTP`/
+  `handlerOk`/`muxRoute` gone). (5) headers rewritten; **step bound**: net/rpc's server (Net's
+  `Server.ServeHTTP.spec`) needs `threadBound ≤ 2^31`, so `HandleHTTP`/`ListenAndServe` take it
+  and the statement is now `Robust … (2 ^ 31 - 1)` via dsv-epaxos's `robust_of_distProtoLisRBT`
+  with no listener (`las = []`). Statement diff: premises `ra`, `rd`, `rpcAlloc` removed (and the
+  `letI := ra G`s); `rs` now `∀ G L, letI := heapAt G L; ∀ π, RpcHttpServe remoteGF`; bound
+  `2 ^ 63` → `2 ^ 31 - 1`; `rpcBootRes` (its definition, in the tcb) gains `httpEnv`,
+  `connected`, and uses `RpcHttpServe.defaultServer`. Built on fk-lean1 (see the final report).
