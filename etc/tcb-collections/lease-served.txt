@@ -20,10 +20,8 @@ axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
 axiom os.Getenv.wp_proof

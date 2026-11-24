@@ -489,6 +489,177 @@ theorem txnSizeOk_wireOf {t : TxnModel} (h : txnSizeOk t) : txnSizeOk (txnWireOf
   simp only [txnWireOf]
   omega
 
+/-! ### The message models are countable (phase 7, SW1, 2026-11-24: `ProtoMsg.cnt`, a call's queues
+are ghost lists of models). Named `*.msgCountable`: some of the types have instances in leaf files
+(`leasing/InvLeaseCache.lean`, `mvcc/WatchModel.lean`) this file does not import. -/
+
+instance HdrM.msgCountable : Pos.Countable HdrM :=
+  .ofInjective (fun h => Pos.Countable.encode (h.clusterId, h.memberId, h.revision, h.raftTerm,
+      h.leaderId))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance EtcdKv.msgCountable : Pos.Countable EtcdKv :=
+  .ofInjective (fun v => Pos.Countable.encode (v.key, v.createRev, v.modRev, v.version, v.value,
+      v.lease))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance PutRespM.msgCountable : Pos.Countable PutRespM :=
+  .ofInjective (fun r => Pos.Countable.encode (r.hdr, r.prev))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance RangeRespM.msgCountable : Pos.Countable RangeRespM :=
+  .ofInjective (fun r => Pos.Countable.encode (r.hdr, r.kvs, r.more, r.count))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance DelRespM.msgCountable : Pos.Countable DelRespM :=
+  .ofInjective (fun r => Pos.Countable.encode (r.hdr, r.deleted, r.prevs))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+mutual
+/-- `OpRespM` as a generic tree (for its countability). -/
+def OpRespM.toTreeM : OpRespM → GenTree
+  | .range rev kvs more count => .node 0 [.of rev, .of kvs, .of more, .of count]
+  | .put rev prev => .node 1 [.of rev, .of prev]
+  | .delete rev deleted prevKvs => .node 2 [.of rev, .of deleted, .of prevKvs]
+  | .txn rev succeeded resps => .node 3 [.of rev, .of succeeded, opRespsToTreeM resps]
+/-- A list of `OpRespM`s as a generic tree. -/
+def opRespsToTreeM : List OpRespM → GenTree
+  | [] => .node 0 []
+  | r :: rs => .node 1 [r.toTreeM, opRespsToTreeM rs]
+end
+
+mutual
+theorem OpRespM.toTreeM_inj : ∀ {a b : OpRespM}, a.toTreeM = b.toTreeM → a = b
+  | .range .., b, h => by
+    cases b <;> simp_all [OpRespM.toTreeM, GenTree.of, Pos.encode_eq_iff]
+  | .put .., b, h => by
+    cases b <;> simp_all [OpRespM.toTreeM, GenTree.of, Pos.encode_eq_iff]
+  | .delete .., b, h => by
+    cases b <;> simp_all [OpRespM.toTreeM, GenTree.of, Pos.encode_eq_iff]
+  | .txn rev succeeded resps, b, h => by
+    cases b with
+    | txn rev' succeeded' resps' =>
+      simp only [OpRespM.toTreeM, GenTree.of, GenTree.node.injEq, List.cons.injEq,
+        GenTree.leaf.injEq, Pos.encode_eq_iff, and_true, true_and] at h
+      obtain ⟨rfl, rfl, h⟩ := h
+      rw [opRespsToTreeM_inj h]
+    | _ => simp [OpRespM.toTreeM] at h
+termination_by structural a _ _ => a
+theorem opRespsToTreeM_inj : ∀ {a b : List OpRespM}, opRespsToTreeM a = opRespsToTreeM b → a = b
+  | [], b, h => by cases b <;> simp_all [opRespsToTreeM]
+  | r :: rs, b, h => by
+    cases b with
+    | nil => simp [opRespsToTreeM] at h
+    | cons r' rs' =>
+      simp only [opRespsToTreeM, GenTree.node.injEq, List.cons.injEq, and_true, true_and] at h
+      rw [OpRespM.toTreeM_inj h.1, opRespsToTreeM_inj h.2]
+termination_by structural a _ _ => a
+end
+
+instance OpRespM.msgCountable : Pos.Countable OpRespM :=
+  countableOfTree OpRespM.toTreeM OpRespM.toTreeM_inj
+
+instance TxnRespM.msgCountable : Pos.Countable TxnRespM :=
+  .ofInjective (fun r => Pos.Countable.encode (r.hdr, r.succeeded, r.resps))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance OpModel.msgCountable : Pos.Countable OpModel :=
+  .ofInjective (fun o => Pos.Countable.encode ((o.countOnly, o.prevKV, o.sortSet, o.limit,
+      o.minModRev, o.maxModRev, o.minCreateRev, o.maxCreateRev), (o.fragment, o.createdNotify,
+      o.filterPut, o.filterDelete, o.rangeEnd, o.rev, o.serializable, o.progressNotify)))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance OpFull.msgCountable : Pos.Countable OpFull :=
+  .ofInjective (fun o => Pos.Countable.encode ((o.base, o.t, o.key, o.keysOnly, o.withPrefix,
+      o.withFromKey, o.leaseID), (o.val, o.rangeEndSet, o.sortTarget, o.sortOrder, o.ignoreValue,
+      o.ignoreLease)))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance CmpTarget.msgCountable : Pos.Countable CmpTarget :=
+  .ofInjective (fun t => Pos.Countable.encode t.code)
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a <;> cases b <;> first | rfl | (exfalso; revert this; decide))
+
+instance CmpOp.msgCountable : Pos.Countable CmpOp :=
+  .ofInjective (fun t => Pos.Countable.encode t.code)
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a <;> cases b <;> first | rfl | (exfalso; revert this; decide))
+
+instance CmpModel.msgCountable : Pos.Countable CmpModel :=
+  .ofInjective (fun c => Pos.Countable.encode (c.key, c.rangeEnd, c.target, c.op, c.num, c.val))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+mutual
+/-- `TxnOp` as a generic tree (for its countability). -/
+def TxnOp.toTreeM : TxnOp → GenTree
+  | .get o => .node 0 [.of o]
+  | .put k v l => .node 1 [.of k, .of v, .of l]
+  | .delete o => .node 2 [.of o]
+  | .putKeep k v => .node 3 [.of k, .of v]
+  | .putIgnVal k l => .node 4 [.of k, .of l]
+  | .txn cs ts es => .node 5 [.of cs, txnOpsToTreeM ts, txnOpsToTreeM es]
+/-- A list of `TxnOp`s as a generic tree. -/
+def txnOpsToTreeM : List TxnOp → GenTree
+  | [] => .node 0 []
+  | t :: ts => .node 1 [t.toTreeM, txnOpsToTreeM ts]
+end
+
+mutual
+theorem TxnOp.toTreeM_inj : ∀ {a b : TxnOp}, a.toTreeM = b.toTreeM → a = b
+  | .get _, b, h => by cases b <;> simp_all [TxnOp.toTreeM, GenTree.of, Pos.encode_eq_iff]
+  | .put .., b, h => by cases b <;> simp_all [TxnOp.toTreeM, GenTree.of, Pos.encode_eq_iff]
+  | .delete _, b, h => by cases b <;> simp_all [TxnOp.toTreeM, GenTree.of, Pos.encode_eq_iff]
+  | .putKeep .., b, h => by cases b <;> simp_all [TxnOp.toTreeM, GenTree.of, Pos.encode_eq_iff]
+  | .putIgnVal .., b, h => by cases b <;> simp_all [TxnOp.toTreeM, GenTree.of, Pos.encode_eq_iff]
+  | .txn cs ts es, b, h => by
+    cases b with
+    | txn cs' ts' es' =>
+      simp only [TxnOp.toTreeM, GenTree.of, GenTree.node.injEq, List.cons.injEq,
+        GenTree.leaf.injEq, Pos.encode_eq_iff, and_true, true_and] at h
+      obtain ⟨rfl, h2, h3⟩ := h
+      rw [txnOpsToTreeM_inj h2, txnOpsToTreeM_inj h3]
+    | _ => simp [TxnOp.toTreeM] at h
+termination_by structural a _ _ => a
+theorem txnOpsToTreeM_inj : ∀ {a b : List TxnOp}, txnOpsToTreeM a = txnOpsToTreeM b → a = b
+  | [], b, h => by cases b <;> simp_all [txnOpsToTreeM]
+  | t :: ts, b, h => by
+    cases b with
+    | nil => simp [txnOpsToTreeM] at h
+    | cons t' ts' =>
+      simp only [txnOpsToTreeM, GenTree.node.injEq, List.cons.injEq, and_true, true_and] at h
+      rw [TxnOp.toTreeM_inj h.1, txnOpsToTreeM_inj h.2]
+termination_by structural a _ _ => a
+end
+
+instance TxnOp.msgCountable : Pos.Countable TxnOp :=
+  countableOfTree TxnOp.toTreeM TxnOp.toTreeM_inj
+
+instance TxnModel.msgCountable : Pos.Countable TxnModel :=
+  .ofInjective (fun t => Pos.Countable.encode (t.cmps, t.thenOps, t.elseOps))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
 end model
 
 section defs
@@ -1446,6 +1617,18 @@ structure CompactReqM where
 structure CompactRespM where
   hdr : HdrM
 
+instance CompactReqM.msgCountable : Pos.Countable CompactReqM :=
+  .ofInjective (fun r => Pos.Countable.encode (r.revision, r.physical))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance CompactRespM.msgCountable : Pos.Countable CompactRespM :=
+  .ofInjective (fun r => Pos.Countable.encode r.hdr)
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
 /-- **The `*pb.CompactionResponse` `l` holds the message `m`** (read-only, as `putRespMsg`). -/
 def compactRespMsg (l : Loc) (m : CompactRespM) : IProp GF :=
   iprop(⌜l ≠ null⌝ ∗ ∃ h : Loc,
@@ -1556,15 +1739,15 @@ metadata since G2): the retry interceptor sends
 every attempt on `withVersion(ctx)`, a context whose outgoing metadata is `ctx`'s with the API
 version's key set (`withVersion.spec`), and grpc's attempt on it delivers `md`
 (`grpcAttemptMd`). (errdesc stage 1, 2026-11-20) Over metadata values only: `withVersion`'s context's
-metadata is `mdSet m …` (until then a context `c` with that pure `metadata.outgoingOf c`). -/
-def clientAttemptMdOf (conn : Loc) (m : GrpcMd) (md : GrpcMd) : Prop :=
-  ∃ v : GoString, grpcAttemptMd conn (metadata.mdSet m go!"client-api-version" [v]) md
+metadata is `mdSet m …` (until then a context `c` with that pure `metadata.outgoingOf c`). Until
+errdesc stage 1 it took a context; the statements relate the context's outgoing metadata `om` to it by
+`metadata.outMD ci om`. An `IProp` (persistent), over `grpcAttemptMd`. -/
+def clientAttemptMd (conn : Loc) (om md : GrpcMd) : IProp GF :=
+  iprop(∃ v : GoString, grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [v]) md)
 
-/-- `clientAttemptMdOf` (the name the callers' statements use). Until errdesc stage 1 (2026-11-20) it
-took a context, through the pure `metadata.outgoingOf ctx`; now the context's outgoing metadata `om`,
-which the statements relate to the context by `metadata.outMD ci om`. -/
-abbrev clientAttemptMd (conn : Loc) (om : GrpcMd) (md : GrpcMd) : Prop :=
-  clientAttemptMdOf conn om md
+instance clientAttemptMd_persistent (conn : Loc) (om md : GrpcMd) :
+    Persistent (clientAttemptMd (GF := GF) conn om md) := by
+  unfold clientAttemptMd; infer_instance
 
 /-- **A call's precondition at every attempt** (the auth plan's E3zc): the metadata-indexed `Spec`'s
 for the request `m` and the caller's `Φ`, at every metadata an attempt of the call on `conn` with
@@ -1576,7 +1759,7 @@ description, `ifcErrOut`) is `fun _ => True` by default, for the callers that as
 def attemptPre {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd) (Spec : GrpcSpecMd Req Rep)
     (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF := fun _ => iprop(True)) :
     IProp GF :=
-  iprop(∀ md, ⌜clientAttemptMd conn om md⌝ -∗ Spec md m Φ Ψe)
+  iprop(∀ md, clientAttemptMd conn om md -∗ Spec md m Φ Ψe)
 
 /-- A plain spec's precondition is one at every attempt. -/
 theorem attemptPre_md {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd)
@@ -1597,13 +1780,14 @@ context (`withVersion.spec`'s outgoing metadata `mdSet om …`). -/
 theorem attemptPre_attempt {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd) (v : GoString)
     (Spec : GrpcSpecMd Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) :
     attemptPre conn om Spec m Φ Ψe ⊢
-      ∀ md, ⌜grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [v]) md⌝ -∗
+      ∀ md, grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [v]) md -∗
         Spec md m Φ Ψe := by
-  iintro H %md %h
+  iintro H %md #h
   unfold attemptPre
   iapply H
-  ipureintro
-  exact ⟨v, h⟩
+  unfold clientAttemptMd
+  iexists v
+  iexact h
 
 /-- **The retry interceptor's error outcome** (k8s 7e-1): the caller's `Ψe` at a returned error's
 description when it is a handler's (`handlerDescs`), for a KV method on a refusal-free connection

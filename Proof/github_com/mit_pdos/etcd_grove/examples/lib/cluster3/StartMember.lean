@@ -9,7 +9,7 @@ the cluster's compaction mode; then `net.Listen` at the client address, `s.Start
 keepalive policy: `v3rpc.Server(s, nil, nil, opt)` (its configuration from the started server's,
 `grpcCfgOk_of_started`, with the watchable store's built part `srvWatchBuilt`), the ghost step
 `etcd_kv_started` (etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at the client address)
-with the members' axiom after it (`etcd_noRefusal_at` at the started server, D29: the address refusal-free), (W2 of
+with the members' axiom `etcd_noRefusal` before it (D29: the address refusal-free), (W2 of
 `notes/watch-cut-plan.md`) the `Watch` stream served there
 (`etcd_watch_served_chain`, watchkv's), the runs borrowing from the server's run pools, built from
 `memberUp`'s stocks (`etcdstart.kvServeStocks_pools`; per-type stage B3), `go holdToken()`
@@ -220,8 +220,12 @@ theorem StartMember.wp_proof
       iexists ql, pl, lcid, lmid
       iframe #
       ipureintro; exact Hregs.2.2.2.1
+    ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt clis client) ∨
+        (grpcSrvAtLis gs clis client [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt client⌝))
+      $$ [Hgsn Hclis]
+    · ileft; iframe Hgsn Hclis
     ihave Hup : etcdstart.grpcUp srv E { ρ with wait := γw } ρ.rd gs clis client cid mid R
-        $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hclis Hcleft]
+        $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hcleft]
     · iunfold etcdstart.grpcUp
       iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs
       iframe; iframe #
@@ -238,7 +242,7 @@ theorem StartMember.wp_proof
         Hrb48 (by omega) Hrf (HlP hlm) rfl lm hm Hms.watch_impl (etcdstart.srvWOf E ρ.rd false) rfl
         Htbr HLv)
       $$ [Hstk Hup HWok]
-      with ⟨⟨%Svc, Hserv⟩, Hgo, #Hlr, Hls, ⟨%pw', #Hws'⟩, %HR', #Hstr, %Hnr⟩
+      with ⟨⟨%Svc, Hserv⟩, Hgo, #Hlr, Hls, ⟨%pw', #Hws'⟩, %HR', #Hstr, %Hnr, #Htb⟩
     · iframe; iframe #
     -- `go gs.Serve(l)`
     wp_apply wp_fork $$ [Hserv]
@@ -262,7 +266,17 @@ theorem StartMember.wp_proof
     isplitl []
     · iexists pw', R
       iframe #
-      ipureintro; exact HR'
+      isplitr
+      · ipureintro; exact HR'
+      -- (phase 7's switch, SW1) what the member serves, at every address serving its table
+      iapply etcdstart.tableAt_mono
+      iframe Htb
+      iintro !> %a ⟨#HRd, #HSv, #Hw⟩
+      imodintro
+      iunfold memberRegs
+      iframe Hw
+      iapply (servedRegs_of_lease lm hlm a srv E ρ γw cid mid)
+      iframe #
     ipureintro; exact Hnr
   subst hlm
   simp only [memberServed_none]
@@ -273,21 +287,13 @@ theorem StartMember.wp_proof
   rw [HC.2] at hRE
   ihave #Hkva := EtcdGrove.client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]
-  imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
-      cid mid C.n il im iu ims is svcs regs sregs Hregs.1 Hrf Hregs.2.2.2.2.2 rfl HLv)
-    $$ [Hgsn Hclis Hcleft] with ⟨%γg, Hserv, #Hss, #Hksa, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
-  · iframe Hgsn Hclis Hcleft
-    iframe Pv3 Psrv Hreq Hrd Hkva Hq Hil Him Hiu Hrp Hrb
-    iintro !>
-    imodintro
-    iunfold idCred
-    ipureintro; exact Hrb48
-  -- (D29) the member never refuses: the server now at its client address is etcd's, authentication
-  -- off, a voter (the members' axiom)
-  ihave %Hnr := EtcdGrove.etcd_noRefusal_at client srv [il, im, iu] E { ρ with wait := γw } HEo
-      $$ [Hreq Hksa Hics]
-  · iframe Hreq Hksa Hics
-  -- (W2) the `Watch` stream served at the client address
+  -- (D29) the member never refuses: authentication off, a voter (the members' axiom); (phase 7's
+  -- switch, SW1) the server comes back bound to its listener
+  ihave ⟨Hgsn, %Hnr⟩ := (EtcdGrove.etcd_noRefusal client gs q p srv clis E
+      { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HEo) $$
+    [Hgsn Hclis]
+  · iframe Hgsn Hclis; iframe #
+  -- (W2) the `Watch` stream's run contract, which the start registers (phase 7's switch, SW1)
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
   haveI := v3rpc.srvWOk_persistent hP (etcdstart.srvWOf E ρ.rd false) R.wsl v3rpc.wsN
@@ -296,10 +302,42 @@ theorem StartMember.wp_proof
     iapply (etcdstart.srvWOk_of_up hP hR srv E ρ.rd cfg C (by omega))
     iframe #
   ihave #HWl := EtcdGrove.client.srvWLaws_of_ok (etcdstart.srvWOf E ρ.rd false) R.wsl v3rpc.wsN $$ HWok
-  imod (EtcdGrove.v3rpc.etcd_watch_served_chain client pw R (etcdstart.srvWOf E ρ.rd false) ims is
-      sregs γg ρ.rd (by rw [hRE]; rfl) Htbr HLv Hms.watch_impl Hregs.2.1) $$ [] with #Hwst
+  ihave #Hwr := EtcdGrove.v3rpc.etcd_watch_served_chain pw R (etcdstart.srvWOf E ρ.rd false) ims is
+      ρ.rd (by rw [hRE]; rfl) Htbr HLv Hms.watch_impl $$ []
   · rw [hRs, hRE]
     iframe #
+  ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt clis client) ∨
+      grpcSrvAtLis gs clis client [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
+  · iright; iexact Hgsn
+  imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
+      cid mid C.n il im iu ims is svcs regs sregs
+      [EtcdGrove.v3rpc.watchMethod pw R (etcdstart.srvWOf E ρ.rd false)] Hregs.1
+      (by intro x hx; simp only [List.mem_singleton] at hx; subst hx; exact Hregs.2.1) (by simp)
+      Hrf Hregs.2.2.2.2.2 rfl HLv)
+    $$ [Hgsn Hcleft] with ⟨Hserv, #Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, #Hsat, #Htab⟩
+  · iframe Hgsn Hcleft
+    iframe Pv3 Psrv Hreq Hrd Hkva Hq Hil Him Hiu Hrp Hrb Hwr
+    iintro !>
+    imodintro
+    iunfold idCred
+    ipureintro; exact Hrb48
+  ihave #Hwst := BigSepL.bigSepL_singleton.1 $$ Hss
+  -- (phase 7's switch, SW1) what the member serves, at every address serving its table
+  ihave #Htbl : etcdstart.tableAt client
+      (fun a => memberRegs .none a srv E ρ cid mid R) $$ []
+  · iunfold etcdstart.tableAt
+    iexists _, _, _, _
+    iframe Hsat
+    iintro !> %a #Ha
+    try dsimp only
+    imod Htab $$ %a Ha with ⟨#Hsa, #G1, #G2, #G3, #G4, #G5⟩
+    ihave #Hwa := BigSepL.bigSepL_singleton.1 $$ Hsa
+    try simp only [EtcdGrove.v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
+    imodintro
+    iunfold memberRegs
+    simp only [servedRegs, etcdstart.etcdKVAt_eq]
+    iframe #
+  try simp only [EtcdGrove.v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
   -- `go gs.Serve(l)`
   wp_apply wp_fork $$ [Hserv]
   · wp_apply (wp_GServe gs clis client _) $$ [$Hserv] as %serr -

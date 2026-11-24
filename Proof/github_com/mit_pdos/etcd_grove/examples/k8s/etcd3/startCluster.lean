@@ -289,8 +289,9 @@ theorem startCluster.wp_proof
     ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
     · rw [HElg]; iexact Hlgz
     wp_apply (wp_Serve sj xj.1.Client' E { xj.2.ρ with wait := γw } xj.2.ρ.rd cfg
-        (fun cid mid R => iprop(etcdstart.etcdKVAt xj.1.Client' E { xj.2.ρ with wait := γw } xj.2.ρ.rd
-          cid mid ∗ etcdstart.watchRegAt xj.1.Client' sj E xj.2.ρ.rd R ∗ ⌜noRefusalAt xj.1.Client'⌝)))
+        (fun cid mid R => iprop(etcdstart.tableAt xj.1.Client' (fun a =>
+          iprop(etcdstart.etcdKVAt a E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid ∗
+            etcdstart.watchRegAt a sj E xj.2.ρ.rd R)) ∗ ⌜noRefusalAt xj.1.Client'⌝)))
       $$ [Hcj Hlg3 Hbemu Hgo Hstk] as %serr Hsv
     · iframe; iframe #
       isplitr
@@ -298,19 +299,19 @@ theorem startCluster.wp_proof
       iintro %gs' %lis %cid %mid %R Hg
       rw [HsvOff.1]
       ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-      imod (etcdstart.kvWatch_served Hp Hr sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd cfg gs' lis
-        xj.1.Client' cid mid R Hrb48 Hrf rfl HLv Hms
-        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hksa, #Hwr⟩
+      ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs'
+        lis xj.1.Client' cid mid R HEo $$ [Hg]
       · iframe; iframe #
-      -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
-      ihave %Hnr := EtcdGrove.etcd_noRefusal_srv xj.1.Client' sj E { xj.2.ρ with wait := γw } HEo $$ [Hksa]
-      · iframe #
+      imod (etcdstart.kvWatch_served_tbl Hp Hr sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd cfg gs' lis
+        xj.1.Client' cid mid R Hrb48 Hrf rfl HLv Hms
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Htb⟩
+      · iframe; iframe #
       imodintro
       iframe Htk
       iframe #
       ipureintro
       exact Hnr
-    icases Hsv with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, #Hwr, %Hnr⟩)
+    icases Hsv with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Htb, %Hnr⟩)
     · cases serr with
       | nil => exact absurd rfl Hserr
       | ok ei => ?_
@@ -331,9 +332,11 @@ theorem startCluster.wp_proof
     icases Hbfree with ⟨Hbj, Hbfree⟩
     simp only [Hbm, _root_.and_self, ↓reduceIte]
     (try wp_auto)
-    wp_apply (wp_StartBridge (bridgeAt j) xj.1.Client') $$ [Hbj] as %br %berr Hbr
-    · iframe
-    icases Hbr with (⟨%Hberr, Hob, #Hfw⟩ | %Hberr)
+    wp_apply (wp_StartBridge (bridgeAt j) xj.1.Client' (fun a =>
+        iprop(etcdstart.etcdKVAt a E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid ∗
+          etcdstart.watchRegAt a sj E xj.2.ρ.rd R))) $$ [Hbj] as %br %berr Hbr
+    · iframe; iframe #
+    icases Hbr with (⟨%Hberr, Hob, ⟨#Hkv, #Hwr⟩, %Hfw⟩ | %Hberr)
     rotate_left
     · cases berr with
       | nil => exact absurd rfl Hberr
@@ -366,12 +369,10 @@ theorem startCluster.wp_proof
     (try wp_auto)
     -- the member as the clients reach it: at its bridge's address
     ihave #Hrg : client.kvRegsAt (⟨bridgeAt j, E, xj.2.ρ.rd, cid, mid⟩ : client.SrvAt GF) $$ []
-    · iapply kvRegs_forwards
-      iframe #
-      iapply etcdstart.etcdKVAt_regs xj.1.Client' E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid rfl
+    · iapply etcdstart.etcdKVAt_regs (bridgeAt j) E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid rfl
       iexact Hkv
     ihave %Hnrb : ⌜noRefusalAt (bridgeAt j)⌝ $$ []
-    · iunfold cluster3.forwards at Hfw; icases Hfw with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr
+    · ipureintro; exact Hfw Hnr
     ihave Hobs : [∗list] br' ∈ bs ++ [br], ∃ addr : GoString, bridge.ownBridge br' addr false
       $$ [Hobs Hob]
     · iapply BigSepL.bigSepL_snoc.2
@@ -391,8 +392,6 @@ theorem startCluster.wp_proof
     ihave #Hws' : [∗list] sv; w ∈ svs ++ [⟨bridgeAt j, E, xj.2.ρ.rd, cid, mid⟩]; ws ++ [(sj, R)],
         etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗ isServerRead w.1 sv.E sv.γr $$ []
     · iapply BigSepL2.bigSepL2_snoc.2
-      iframe #
-      iapply watchRegAt_forwards
       iframe #
     iclear Hws
     wp_for_post

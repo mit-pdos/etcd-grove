@@ -174,7 +174,7 @@ theorem Client.unaryClientInterceptor.wp_proof
     · cases once
       · simp only [Bool.false_eq_true, ↓reduceIte, laterHid]; icases Hpre with #Hpre; iexact Hpre
       · simp only [↓reduceIte, laterHid]; iexact Hpre
-    ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [vver]) md⌝ -∗ Spec md m Φ' Ψe)
+    ihave Hsp : ▷ (∀ md, grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [vver]) md -∗ Spec md m Φ' Ψe)
       $$ [Hsp]
     · inext; iapply (attemptPre_attempt conn om vver) $$ Hsp
     wp_apply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ' %Ψe %ci
@@ -284,7 +284,7 @@ theorem Client.unaryClientInterceptor.wp_proof
           isplitl [Hp]
           · iapply Hp; ipureintro; exact Ha0
           · iintro %h; exfalso; rw [Ha0] at h; revert h; decide
-      ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [vver]) md⌝ -∗ Spec md m Φ' Ψe)
+      ihave Hsp : ▷ (∀ md, grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [vver]) md -∗ Spec md m Φ' Ψe)
         $$ [Hsp]
       · inext; iapply (attemptPre_attempt conn om vver) $$ Hsp
       wp_apply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ' %Ψe %ci

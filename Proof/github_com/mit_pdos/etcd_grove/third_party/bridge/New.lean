@@ -24,7 +24,9 @@ accepts on `l` and, per accepted connection, dials `addr` and copies bytes betwe
 ways, until a copy fails, the bridge is blackholed or its connections dropped; a client of `a` thus
 reaches `addr`'s server through connections that deliver a prefix of each side's bytes, which gRPC
 sees as `addr`'s server or as a failed attempt (D26). Its goroutines do not panic (the wait group
-counts at most one goroutine per live connection, far below its `2^31` bound). -/
+counts at most one goroutine per live connection, far below its `2^31` bound). Since phase 7's switch
+(SW1, 2026-11-24) it takes both addresses' service tables at one `Svc`: the relay carries bytes, and
+both addresses run grpc's protocols for the same table (`notes/phase7-endstate.md` §1.3). -/
 axiom New.wp_proof : New.spec (GF := GF) (hG := hG)
 
 end proof

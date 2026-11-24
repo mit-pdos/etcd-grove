@@ -1,10 +1,10 @@
 /-
-**gRPC's registrations and its client attempt** (split from `InvGrpcBase.lean`, phase 7 S2's
-interface, 2026-11-24, so that the registration can name `InvGrpcWire.lean`'s service table; the file
-header of `InvGrpcBase.lean` describes both). Since S2's interface a registration
-`isGrpcRpcMd addr name Spec` is heap-free: dialing `addr` reaches an address `a₀` (`grpcReach`)
-whose service table, fixed when its protocols were set, has an entry for `name` that a caller of
-`Spec` meets (`grpcSvcAt`). The single-process start sets the address's table to Go's
+**gRPC's registrations and its client attempt** (split from `InvGrpcBase.lean`, so that the
+registration can name `InvGrpcWire.lean`'s service table; the file header of `InvGrpcBase.lean`
+describes both). A registration `isGrpcRpcMd addr name Spec` is heap-free: `addr`'s service table,
+fixed when its protocols were set, has an entry for `name` that a caller of `Spec` meets
+(`grpcSvcAt`). A bridge's address serves its target's table (`bridge.New`), so a registration is read
+off the dialed address's own table, as at any address. The single-process start sets the address's table to Go's
 configuration (`grpcGoSvc`, `InvGrpcRun.lean`), so `grpc.serve` stays a theorem.
 -/
 module
@@ -28,25 +28,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Dialing `a` reaches the listener at `a₀`** (persistent; phase 7 S2's interface, 2026-11-24): `a`
-is `a₀`, or a bridge at `a` relays to the server listening at `a₀` (`bridge.New`'s trusted wand over
-`grpcAddrIs`). -/
-def grpcReach (a a₀ : GoString) : IProp GF :=
-  iprop(⌜a = a₀⌝ ∨ □ ∀ γ : GName, grpcAddrIs (GF := GF) a₀ γ -∗ grpcAddrIs a γ)
-
-instance grpcReach_persistent (a a₀ : GoString) : Persistent (grpcReach (GF := GF) a a₀) := by
-  unfold grpcReach; infer_instance
-
-/-- **The method `name` at `addr` meets `Spec`** (persistent; phase 7 S2's interface, 2026-11-24:
-until then `∃ γ, grpcAddrIs addr γ ∗ isGrpcRpcAt γ name Spec`, a WP of the server's handler at the
-holder's heap): dialing `addr` reaches an address `a₀` whose service table, fixed when its protocols
-were set, has an entry for `name` at the messages' wire parts that a caller of `Spec` meets after an
-update (`grpcSvcAt`, no heap). -/
+/-- **The method `name` at `addr` meets `Spec`** (persistent): `addr`'s service table, fixed when
+its protocols were set, has an entry for `name` at the messages' wire parts that a caller of `Spec`
+meets after an update (`grpcSvcAt`, no heap). -/
 def isGrpcRpcMd {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpecMd Req Rep) :
     IProp GF :=
-  iprop(∃ (a₀ : GoString) (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
-    grpcReach addr a₀ ∗
-    grpcSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) a₀ name Req.wire Rep.wire Spec)
+  iprop(∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
+    grpcSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr name Req.wire Rep.wire Spec)
 
 instance isGrpcRpcMd_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
     (Spec : GrpcSpecMd Req Rep) : Persistent (isGrpcRpcMd addr name Spec) := by
@@ -55,13 +43,11 @@ instance isGrpcRpcMd_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
 /-- An entry of the table `a` serves registers its method. -/
 theorem isGrpcRpcMd_of_addr {Req Rep : ProtoMsg GF} (a name : GoString) (Svc : GrpcSvc GF)
     [hX : HasExt netExt] [π : NetProtoGS] [σ : NetSlotGS] (Spec : GrpcSpecMd Req Rep)
-    (h : Svc name = some ⟨Req.wire, Rep.wire, Spec⟩) :
+    (h : Svc name = some (.unary ⟨Req.wire, Rep.wire, Spec⟩)) :
     grpcAddrAt (Gg := hG.goose_globalGS) a Svc ⊢ isGrpcRpcMd a name Spec := by
   iintro #Ha
   unfold isGrpcRpcMd
-  iexists a, hX, π, σ
-  isplitl []
-  · unfold grpcReach; ileft; ipureintro; rfl
+  iexists hX, π, σ
   iapply (grpcSvcAt_of_addr (Gg := hG.goose_globalGS) a name Svc ⟨Req.wire, Rep.wire, Spec⟩ h) $$ Ha
 
 /-- **The method `name` of the server at `addr` meets `Spec`** (persistent; see the file
@@ -173,17 +159,16 @@ theorem grpcMethodOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfac
   iapply (grpcSpecAt_mono Spec Spec' h ci m Φ Ψe) $$ HSpec
 
 /-- A registration with the metadata-indexed `Spec` is one with a `Spec'` that gives `Spec` after an
-update (through `grpcSvcAt_mono_upd`; the reach is unchanged). -/
+update (through `grpcSvcAt_mono_upd`). -/
 theorem isGrpcRpcMd_mono_upd {Req Rep : ProtoMsg GF} (addr name : GoString)
     (Spec Spec' : GrpcSpecMd Req Rep) (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
     isGrpcRpcMd addr name Spec ⊢ isGrpcRpcMd addr name Spec' := by
   iintro #H
   iunfold isGrpcRpcMd at H
-  icases H with ⟨%a₀, %hX, %π, %σ, #Hr, #Hs⟩
+  icases H with ⟨%hX, %π, %σ, #Hs⟩
   unfold isGrpcRpcMd
-  iexists a₀, hX, π, σ
-  iframe Hr
-  iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) a₀ name Req.wire Rep.wire Spec Spec') $$ [] Hs
+  iexists hX, π, σ
+  iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) addr name Req.wire Rep.wire Spec Spec') $$ [] Hs
   imodintro
   iintro %md %m %Φ %Ψe HS
   iapply (h md m Φ Ψe) $$ HS
@@ -223,7 +208,7 @@ theorem grpcMethodOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInte
 /-! ## The single-process table: Go's configuration -/
 
 /-- **The entry of Go's configuration for `name` at the message models `Req`, `Rep`** (heap-dependent:
-for one process, whose start sets the table; phase 7 S2's interface, 2026-11-24): a caller's
+for one process, whose start sets the table): a caller's
 precondition is some spec `S` that a handler registered under `name` meets as a run
 (`grpcRunOkMd`), with `S`'s precondition. -/
 def grpcGoEntry (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface)) (name : GoString)
@@ -232,92 +217,23 @@ def grpcGoEntry (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterf
     iprop(∃ (mh : GoFunc) (srv : GoInterface) (S : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg),
       ⌜(name, mh, srv) ∈ regs⌝ ∗ □ grpcRunOkMd #mh srv ics S ∗ S md m Φ Ψe)⟩
 
-/-- **Go's configuration as a service table** (one process; phase 7 S2's interface): an entry for each
+/-- **Go's configuration as a service table** (one process): an entry for each
 registered unary method `tys` gives message models for (`tys`: the program's unary methods by full
 name, with their registered models), none for a stream or an unregistered name. -/
 def grpcGoSvc (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface))
     (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) : GrpcSvc GF := fun name =>
-  if name ∈ regs.map Prod.fst then (tys name).map (fun p => grpcGoEntry ics regs name p.1 p.2)
+  if name ∈ regs.map Prod.fst then (tys name).map (fun p => .unary (grpcGoEntry ics regs name p.1 p.2))
   else none
 
 theorem grpcGoSvc_some (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface))
     (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (name : GoString) (mh : GoFunc)
     (srv : GoInterface) (Req Rep : ProtoMsgT GF) (hin : (name, mh, srv) ∈ regs)
     (hty : tys name = some (Req, Rep)) :
-    grpcGoSvc ics regs tys name = some (grpcGoEntry ics regs name Req Rep) := by
+    grpcGoSvc ics regs tys name = some (.unary (grpcGoEntry ics regs name Req Rep)) := by
   have hm : name ∈ regs.map Prod.fst := List.mem_map.2 ⟨_, hin, rfl⟩
   simp [grpcGoSvc, hm, hty]
 
-/-- **The server listening at `addr` is `γ`, built with the unary chain `ics` and the unary methods
-`regs`, and `addr` serves Go's configuration at the models `tys`** (persistent; per-type stage B,
-B1b; the table since phase 7 S2's interface): Go's configuration of `γ` (`grpcSrvCfg`), whatever its
-stream chain and streams, and the address's table `grpcGoSvc ics regs tys`. Made by `grpc.start'`
-from `grpc.start`'s facts. Several registrations of one Go handler at different specs are each a true
-fact about it. -/
-def grpcServerAt (addr : GoString) (ics : List GoFunc)
-    (regs : List (GoString × GoFunc × GoInterface))
-    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (γ : GName) : IProp GF :=
-  iprop(grpcAddrIs addr γ ∗ (∃ (sics : List GoFunc) (sregs : List (GoString × GoFunc × GoInterface)),
-    grpcSrvCfg γ ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF)) ∗
-    ∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
-      grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr (grpcGoSvc ics regs tys))
-
-instance grpcServerAt_persistent (addr : GoString) (ics : List GoFunc)
-    (regs : List (GoString × GoFunc × GoInterface))
-    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (γ : GName) :
-    Persistent (grpcServerAt (GF := GF) addr ics regs tys γ) := by
-  unfold grpcServerAt; infer_instance
-
-/-- **Serving** (a theorem since per-type stage B, B1b; it was an axiom whose caller-chosen run
-resource and count made every handler meet every spec, `axiom/grpc-serve-pool`; over the address's
-table since phase 7 S2's interface): the methods `ms` of the server at `addr` with the unary chain
-`ics`, the registrations `regs` and the table's models `tys` (`grpcServerAt`, made by `grpc.start'`),
-each registered with its handler and service, at its models, and meeting its run contract
-(`grpcRunOkMd`), are registered at `addr` (`isGrpcRpcMd`): the table's entry is met by the method's
-spec (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`). What runs the handlers is `Server.Serve` (its
-trust-boundary axiom). -/
-theorem grpc.serve (addr : GoString) (ics : List GoFunc)
-    (regs : List (GoString × GoFunc × GoInterface))
-    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (ms : List (GrpcMethod GF)) (γ : GName) :
-    (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) →
-    (∀ m ∈ ms, tys m.name = some (m.Req, m.Rep)) →
-    grpcServerAt addr ics regs tys γ ∗ □ ([∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv ics m.spec) ⊢
-    |={⊤}=> [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
-  intro hreg hty
-  iintro ⟨#Hs, #Hms⟩
-  iunfold grpcServerAt at Hs
-  icases Hs with ⟨-, -, %hX, %π, %σ, #Ha⟩
-  imodintro
-  have Hm : iprop(□ grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr
-      (grpcGoSvc ics regs tys)) ⊢ [∗list] m ∈ ms, (grpcRunOkMd #m.handler m.srv ics m.spec -∗ isGrpcRpcMd addr m.name m.spec) :=
-    BigSepL.bigSepL_intro (fun _ m hk => by
-      have hm : m ∈ ms := List.mem_of_getElem? hk
-      have he := grpcGoSvc_some ics regs tys m.name m.handler m.srv m.Req m.Rep (hreg m hm) (hty m hm)
-      have Hg' : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr (grpcGoSvc ics regs tys) ⊢
-          grpcSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr m.name m.Req.toProtoMsg.wire
-            m.Rep.toProtoMsg.wire (grpcGoEntry ics regs m.name m.Req m.Rep).spec :=
-        grpcSvcAt_of_addr (Gg := hG.goose_globalGS) addr m.name (grpcGoSvc ics regs tys)
-          (grpcGoEntry ics regs m.name m.Req m.Rep) he
-      iintro #Ha #Hr
-      ihave #Hg := Hg' $$ Ha
-      unfold isGrpcRpcMd
-      iexists addr, hX, π, σ
-      isplitl []
-      · unfold grpcReach; ileft; ipureintro; rfl
-      iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) addr m.name m.Req.toProtoMsg.wire
-        m.Rep.toProtoMsg.wire (grpcGoEntry ics regs m.name m.Req m.Rep).spec m.spec) $$ [] Hg
-      imodintro
-      iintro %md %x %Φ %Ψe HS
-      imodintro
-      unfold grpcGoEntry
-      iexists m.handler, m.srv, m.spec
-      isplitr
-      · ipureintro; exact hreg m hm
-      iframe HS
-      iexact Hr)
-  ihave Hw := Hm $$ []
-  · imodintro; iexact Ha
-  iapply BigSepL.bigSepL_wand $$ Hms Hw
+/-! `grpcServerAt` and `grpc.serve` are in `InvGrpcRun.lean`: the table they read (`grpcStartSvc`) holds the streams too. -/
 
 /-! ## The client side: one attempt, the interceptor chain (unit P3a) -/
 
@@ -609,25 +525,37 @@ the attempt contract (`grpcInvokerOk`) is to read it with the auth refusals' ide
 server's error branches (`notes/auth-mode-merge-plan.md`, F-S2 part 2). -/
 opaque noOtherRefusalAt : GoString → Prop
 
+include hG in
 /-- **The per-RPC credentials of the connection `conn` returned the metadata `cm` to an attempt**
-(opaque; the auth plan's C1, 2026-10-28): `none` if it has none or they returned none; what is
-known of `cm` is the credentials' contract at the dial (`grpc.NewClient`'s `connCredsOk`). -/
-opaque credsYield (conn : Loc) (cm : GrpcMd) : Prop
+(raw, opaque; in the end state a definition over `grpcConn`'s ghost record of the credentials'
+outputs): `none` if it has none or they returned none; what is known of `cm` is the
+credentials' contract at the dial (`grpc.NewClient`'s `connCredsOk`). Trusted text with no law. Its
+signature carries the heap's instance (`hG`), which its definition over `grpcConn`'s ghost state will
+need. -/
+opaque credsYieldRaw (conn : Loc) (cm : GrpcMd) : IProp GF := iprop(True)
+
+/-- **The per-RPC credentials of `conn` returned `cm` to an attempt** (persistent by construction). -/
+def credsYield (conn : Loc) (cm : GrpcMd) : IProp GF := iprop(□ credsYieldRaw conn cm)
+
+instance credsYield_persistent (conn : Loc) (cm : GrpcMd) :
+    Persistent (credsYield (GF := GF) conn cm) := by
+  unfold credsYield; infer_instance
 
 /-- **The handler of an attempt on the connection `conn` with a caller's context whose outgoing
-metadata is `om` sees the metadata `md`** (the auth plan's E3zb; a definition since C1, 2026-10-28, until
-then opaque): on every key grpc does not set itself, the values of the connection's per-RPC credentials'
+metadata is `om` sees the metadata `md`** (persistent): on every key grpc does not set itself, the values of the connection's per-RPC credentials'
 metadata `cm` for the attempt (`credsYield`), then the context's outgoing metadata `om`; and no key with
 no values (grpc writes one header field per value, so a key the context carries with none is not sent;
 C1's review, F2). True of grpc-go v1.84 (`http2Client.createHeaderFields`, to check in C1's phase 2); the
-attempt contract (`grpcInvokerOk`) gives the method's spec at such an `md`. (errdesc stage 1,
-2026-11-20) Over the context's metadata value `om`, which the attempt contract's precondition relates to
-the context (`metadata.outMD ctx om`); until then over the pure `metadata.outgoingOf ctx`. -/
-def grpcAttemptMd [GooseExts] (conn : Loc) (om : GrpcMd) (md : GrpcMd) : Prop :=
-  ∃ cm, credsYield conn cm ∧
-    (∀ k, ¬ grpcReservedKey k →
-      metadata.mdVals md k = metadata.mdVals cm k ++ metadata.mdVals om k) ∧
-    ∀ k, mdGet md k ≠ some []
+attempt contract (`grpcInvokerOk`) gives the method's spec at such an `md`. `om` is the context's
+metadata value, which the attempt contract's precondition relates to the context
+(`metadata.outMD ctx om`). -/
+def grpcAttemptMd (conn : Loc) (om md : GrpcMd) : IProp GF :=
+  iprop(∃ cm, credsYield conn cm ∗ ⌜(∀ k, ¬ grpcReservedKey k →
+      metadata.mdVals md k = metadata.mdVals cm k ++ metadata.mdVals om k) ∧ ∀ k, mdGet md k ≠ some []⌝)
+
+instance grpcAttemptMd_persistent (conn : Loc) (om md : GrpcMd) :
+    Persistent (grpcAttemptMd (GF := GF) conn om md) := by
+  unfold grpcAttemptMd; infer_instance
 
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
 connection's interceptor chain; unit P3a): a call of a method registered at every address `addrs`
@@ -728,7 +656,7 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop) 
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd)
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc) (R : IProp GF),
     {{ ⌜Ok R⌝ ∗ R ∗ isGrpcRpcsMd addrs method Spec ∗ metadata.outMD ctx om ∗
-        ▷ (∀ md, ⌜grpcAttemptMd conn om md⌝ -∗ Spec md m Φ Ψe) ∗
+        ▷ (∀ md, grpcAttemptMd conn om md -∗ Spec md m Φ Ψe) ∗
         ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
@@ -747,6 +675,12 @@ instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (Ok : IPr
     (inv : GoFunc) : Persistent (grpcInvokerOk (GF := GF) conn addrs Ok inv) := by
   unfold grpcInvokerOk; infer_instance
 
+/-- **No key of the credentials' metadata `cm` is a pseudo-header** (grpc's `createHeaderFields` appends the credentials' fields after the
+real `:path`, and a key starting with `:` would be read by the server as the method's path, as
+`metadata.ValidateKey`, which grpc does not call on them, would refuse). -/
+def credKeysOk (cm : GrpcMd) : Prop :=
+  ∀ (k : GoString) (vs : List GoString), mdGet cm k = some vs → k.head? ≠ some (58 : w8)
+
 /-- **Per-RPC credentials' metadata**: `GetRequestMetadata`'s map `mp` (a `map[string]string`;
 `nil` for none) as metadata `cm`, each key with its one value (the auth plan's C1), its keys
 lower-case (grpc lower-cases them, `http2Client.getTrAuthData`; C1's review, F3: the metadata
@@ -762,7 +696,7 @@ def credsMapIs (mp : Loc) (cm : GrpcMd) : IProp GF :=
 handler's, but grpc-go v1.84 returns a credentials error that carries a status, or wraps one with
 `%w`, unchanged as the attempt's (`http2_client.go:697-702`), a `*fmt.wrapError` or the caller's own
 type: neither a leaf nor of `clientErrTys`, so `grpcInvokerOk`/`cliStreamErr` overclaimed under such
-credentials; etcd's `perRPCCredential` returns `nil`), and, a map whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`); and
+credentials; etcd's `perRPCCredential` returns `nil`), and, a map whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`) and no pseudo-header key (`credKeysOk`); and
 `pc.RequireTransportSecurity()` can be called (grpc calls it at the dial to refuse credentials that
 need a secure transport on an insecure one; C1's review, F4). Since 2026-11-23 (#24's S2
 signatures) `GetRequestMetadata` is called with a resource `R` of the family `Ok` fixed at the dial,
@@ -778,7 +712,7 @@ def perRPCCredsOk (pc : GoInterface) (Ok : IProp GF → Prop) (Q : GrpcMd → IP
         (Val #pc)) (Val #ctx)) (Val #sl))
     {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err); R ∗
         ⌜err = GoInterface.nil⌝ ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm) }}) ∗
+        (⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ ⌜credKeysOk cm⌝ ∗ □ Q cm) }}) ∗
     □ {{ True }}
       (App (App (Val (GoInstruction (MethodResolve
           google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"RequireTransportSecurity")))
@@ -795,8 +729,8 @@ contract at the dial, `perRPCCredsOk`): with no credentials, nothing (`none`); w
 meeting `Q`; with more, nothing is stated. -/
 def connCredsOk (conn : Loc) (pcs : List GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
   match pcs with
-  | [] => iprop(⌜∀ cm, credsYield conn cm → cm = none⌝)
-  | [_] => iprop(□ ∀ cm, ⌜credsYield conn cm⌝ -∗ □ Q cm)
+  | [] => iprop(□ ∀ cm, credsYield conn cm -∗ ⌜cm = none⌝)
+  | [_] => iprop(□ ∀ cm, credsYield conn cm -∗ □ Q cm)
   | _ => iprop(True)
 
 instance connCredsOk_persistent (conn : Loc) (pcs : List GoInterface) (Q : GrpcMd → IProp GF) :

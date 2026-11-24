@@ -8,17 +8,18 @@ token left:
 * `addrClaim addr` (exclusive, axiomatized): the program's closed-world claim on `addr`'s requests: the
   program's own connections to `addr` carry requests of its verified or trust-boundary clients (until
   2026-11-22 part (b) of `addrsUnclaimed`, `Proof/runtime/Start.lean`, which program start turned into
-  `netAddrFree`). The grpc and net/http transport axioms (`grpc.start`, `http.register`) rest on it
+  `netAddrFree`). The grpc and net/http transport axioms (`Server.Serve`'s axiom, `http.register`) rest on it
   until phase 7 (S2, S5) proves the transport over the net extension. Program start
   (`goose_adequacy_start`, `Proof/runtime/Start.lean`) hands it out for the addresses `As` of a
   single-process closed theorem (removed at the net swap, restored 2026-11-23,
   `notes/single-process-restore.md`); nothing else produces it; `etcd_safe`'s deployment premise is to
   give it. The same for `httpProtoFree` below (whose docstring predates the restoration: program start
   gives it again, with `addrClaim`, for the addresses `As`). Consumed by `net.Listen` (into `netListenerAt`)
-  and, from there, by `grpc.start`, `bridge.New` and `http.register` for good, so at most one server is started,
-  bridged or registered at an address in a run (`grpcAddrIs_agree`). (Not one `Listen` per address: after a
-  listener's `Close`, or once an address's protocols are set, `listen_au` lends its listening token again, to a raw
-  listener without the claim; 2026-11-24, `notes/axiom-review/norefusal-link.md`, `http-reserve-addrproto.md`.)
+  and, from there, by the start (`grpc.start'`, into `grpcServeTok`), `bridge.New` and `http.register`, so a
+  node opens at most one listener at an address while it is open (net D6). Not one `Listen` per address:
+  after a listener's `Close`, or once an address's protocols are set, `listen_au` lends its listening token
+  again, to a raw listener without the claim (2026-11-24, `notes/axiom-review/norefusal-link.md`,
+  `http-reserve-addrproto.md`; for `noRefusalAt`, `notes/axiom-review/phase7-switch.md`, finding 1).
 * `netAddrFree addr` := `addrClaim addr ∗ addrUnset addr`: the claim, and the address unset in the net
   extension's ghost state (`addrUnset`: its pending set, empty, `addr` a valid address, `addrOk`,
   `GooseLang/Ext/Net/Impl.lean`, and the right to listen at it, `netLisTok`, all from its start
@@ -84,7 +85,7 @@ being built, `grpcServeTok`): `l` is the `*TCPListener` `t` whose struct names t
 
 (2026-11-24) The tie `lisAt t lv x` is what makes `l` the listener at `addr`: without it the facts of the
 listener at one address could be packed around the Go value of a listener at another, and the trust-boundary
-axioms over `netListenerAt l a` (`http.register`, `grpc.start`, `bridge.New`) served the wrong socket (a raw
+axioms over `netListenerAt l a` (`http.register`, `grpc.start'`, `bridge.New`) served the wrong socket (a raw
 listener at an unreserved `b` registered as the HTTP listener of `a`: `examples/axiomcx/httpregfwd/`,
 `notes/axiom-review/http-reserve-addrproto.md`). `net.Listen`'s proofs keep it from Net's `isListener`. -/
 def netListenerOpen (l : GoInterface) (addr : GoString) : IProp GF :=

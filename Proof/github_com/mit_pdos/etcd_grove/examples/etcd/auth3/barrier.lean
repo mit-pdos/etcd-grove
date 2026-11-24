@@ -135,7 +135,7 @@ theorem barrier.wp_proof
     iintro !>
     ileft
     ipureintro; rfl
-  icases Hout with ⟨-, (⟨%Herr, %m, #Hm, #Hok, %md, %Hmd, #Hauth⟩ | ⟨%Herr, -⟩)⟩
+  icases Hout with ⟨-, (⟨%Herr, %m, #Hm, #Hok, %md, #Hmd, #Hauth⟩ | ⟨%Herr, -⟩)⟩
   · imod (akAuthFixed_barrier s E γa ρ γz hs Lset Lc r 0 _ _
       (rangeWireOf (opGetModel go!"z/barrier" [])) HEo rfl hc)
       $$ [Hrd Hfz HLs HLc Hauth] with ⟨%i, #Hfix⟩

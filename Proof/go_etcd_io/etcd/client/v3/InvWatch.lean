@@ -172,6 +172,29 @@ theorem WEnv.idxOf_lt (V : WEnv GF) (a : GoString) (h : a ∈ V.addrs) : V.idxOf
   simp only [Option.getD_some]
   exact List.mem_range.1 (List.mem_of_find?_eq_some hk)
 
+/-- The member at an address of the members has that address. -/
+theorem WEnv.idxOf_mem (V : WEnv GF) (a : GoString) (h : a ∈ V.addrs) : (V.mem (V.idxOf a)).1 = a := by
+  unfold WEnv.addrs at h
+  unfold WEnv.idxOf
+  obtain ⟨j, hj, rfl⟩ := List.mem_map.1 h
+  have hs : ((List.range V.nm).find? (fun i => decide ((V.mem i).1 = (V.mem j).1))).isSome := by
+    rw [List.find?_isSome]; exact ⟨j, hj, by simp⟩
+  obtain ⟨k, hk⟩ := Option.isSome_iff_exists.1 hs
+  rw [hk]
+  simp only [Option.getD_some]
+  have := List.find?_some hk
+  simpa using this
+
+/-- With distinct addresses, a member is the one at its address. -/
+theorem WEnv.idxOf_self (V : WEnv GF) (i : Nat) (hi : i < V.nm) (hnd : V.addrs.Nodup) :
+    V.idxOf (V.mem i).1 = i := by
+  have hmem : (V.mem i).1 ∈ V.addrs := List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩
+  have hlt := V.idxOf_lt _ hmem
+  have heq := V.idxOf_mem _ hmem
+  unfold WEnv.addrs at hnd
+  refine hnd.eq_of_getElem?_eq (by simpa using hlt) ?_
+  simp [List.getElem?_map, List.getElem?_range, hlt, hi, heq]
+
 theorem WEnv.atIdx_R (V : WEnv GF) (i : Nat) : (V.atIdx i).R = (V.mem i).2 := rfl
 theorem WEnv.atIdx_addrs (V : WEnv GF) (i : Nat) : (V.atIdx i).addrs = V.addrs := rfl
 theorem WEnv.atIdx_memOf (V : WEnv GF) (i : Nat) (a : GoString) :
@@ -535,6 +558,45 @@ theorem watchUp_create (V : WEnv GF) (i : Nat) (c : v3rpc.CreateReqM)
   iframe Hb
   ipureintro; exact h
 
+/-- **The client's content of a watch request, at every member** (phase 7's switch, SW1, 2026-11-24:
+grpc's `NewStream` takes one content for every address, since a transparent retry before the stream
+is committed may re-pick the address and replays the requests sent): `watchUp`'s at each member, a
+create's bound published at every member's auth store (what `wsBdOk` holds). -/
+def watchUpW (V : WEnv GF) (_i : Nat) (m : v3rpc.WatchReqM) : IProp GF :=
+  iprop(⌜v3rpc.watchReqOk m⌝ ∗
+    (match m with
+     | .create c => □ (∀ k : Nat, ⌜k < V.nm⌝ → auth.authPubLbM (V.mem k).2.E.authMode c.bound)
+     | _ => iprop(True)))
+
+/-- `watchUpW`'s content is every member's (`watchUp`). -/
+theorem watchUpW_up (V : WEnv GF) (a : GoString) (ha : a ∈ V.addrs) :
+    ⊢ □ ∀ (i : Nat) (m : v3rpc.WatchReqM), watchUpW V i m ==∗ v3rpc.watchUp (V.memOf a) i m := by
+  iintro !> %i %m H
+  unfold watchUpW v3rpc.watchUp
+  cases m with
+  | create c =>
+    try dsimp only
+    icases H with ⟨%Hok, #Hb⟩
+    imodintro
+    isplitr
+    · ipureintro; exact Hok
+    imodintro
+    iapply Hb
+    ipureintro; exact V.idxOf_lt a ha
+  | _ =>
+    try dsimp only
+    icases H with ⟨%Hok, -⟩
+    imodintro
+    isplitr
+    · ipureintro; exact Hok
+    itrivial
+
+/-- **What the client learns of a watch stream's dispatch** (SW1, R2; `NewStream`'s family `Md` at the
+watcher's connection): an address of the members and the metadata of an attempt with the outgoing
+metadata `om`. -/
+abbrev watchMdW (V : WEnv GF) (om : GrpcMd) (a : GoString) (md : GrpcMd) : IProp GF :=
+  iprop(⌜a ∈ V.addrs⌝ ∗ clientAttemptMd V.conn om md)
+
 /-- **The facts about the servers, the transport and the packages a watcher rests on, but the
 stub** (persistent; see the file header; W3b, 2026-10-22: of every member): the connection to
 the members' addresses, the `Watch` stream registered at each (its member's content and
@@ -551,6 +613,73 @@ def watchConnFacts (V : WEnv GF) : IProp GF :=
 
 instance watchConnFacts_persistent (V : WEnv GF) : Persistent (watchConnFacts V) := by
   unfold watchConnFacts; infer_instance
+
+/-- **The `Watch` stream registered with one content at every member** (SW1): each member's
+registration holds of `watchUpW` (`isGrpcStreamMd_mono`). -/
+theorem isGrpcStreamsMd_watchUpW (V : WEnv GF)
+    (Spec : GoString → GrpcMd → StreamSpec (GF := GF) v3rpc.pbWatchResponse) :
+    ∀ l : List GoString, (∀ a ∈ l, a ∈ V.addrs) →
+    isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) l
+        go!"/etcdserverpb.Watch/Watch" (fun a => v3rpc.watchUp (V.memOf a)) Spec ⊢
+      isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) l
+        go!"/etcdserverpb.Watch/Watch" (fun _ => watchUpW V) Spec
+  | [], _ => by
+    iintro -
+    simp only [isGrpcStreamsMd]
+    itrivial
+  | [a], h => by
+    iintro #H
+    simp only [isGrpcStreamsMd] at *
+    iapply (isGrpcStreamMd_mono (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) a _
+      (v3rpc.watchUp (V.memOf a)) (watchUpW V) (Spec a) (Spec a))
+    isplitr
+    · iapply watchUpW_up V a (h a (by simp))
+    isplitr
+    · iintro !> %md %γ %Dn HS; iexact HS
+    iexact H
+  | a :: b :: rest, h => by
+    iintro #H
+    simp only [isGrpcStreamsMd] at *
+    icases H with ⟨#H1, #H2⟩
+    isplitl []
+    · iapply (isGrpcStreamMd_mono (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) a _
+        (v3rpc.watchUp (V.memOf a)) (watchUpW V) (Spec a) (Spec a))
+      isplitr
+      · iapply watchUpW_up V a (h a (by simp))
+      isplitr
+      · iintro !> %md %γ %Dn HS; iexact HS
+      iexact H1
+    iapply (isGrpcStreamsMd_watchUpW V Spec (b :: rest)
+      (fun x hx => h x (List.mem_cons_of_mem a hx))) $$ H2
+
+/-- **A watch stream's registration at one content** (SW1): `watchConnFacts`' registration, at
+`watchUpW`. -/
+theorem watchConnFacts_regW (V : WEnv GF) :
+    watchConnFacts V ⊢
+      isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addrs
+        go!"/etcdserverpb.Watch/Watch" (fun _ => watchUpW V)
+        (fun a md => v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md)) := by
+  iintro #H
+  iunfold watchConnFacts at H
+  icases H with ⟨-, #Hgs, -⟩
+  iapply (isGrpcStreamsMd_watchUpW V _ V.addrs (fun _ h => h)) $$ Hgs
+
+/-- **`V` is at the member of its address** (SW1): the member at `V.addr` (distinct addresses). -/
+theorem watchConnFacts_atIdx_self (V : WEnv GF) :
+    watchConnFacts V ⊢ ⌜V.atIdx (V.idxOf V.addr) = V⌝ := by
+  iintro #H
+  iunfold watchConnFacts at H
+  icases H with ⟨-, -, -, -, -, -, -, -, %Hp⟩
+  ipureintro
+  obtain ⟨-, hnd, i, hi, he, hw⟩ := Hp
+  have hx : V.idxOf V.addr = i := by
+    have := V.idxOf_self i hi hnd
+    rw [he] at this
+    exact this
+  rw [hx]
+  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kv, W, memW⟩ := V
+  simp only at he hw ⊢
+  simp [WEnv.atIdx, he, hw]
 
 /-- **The current member's facts** (W3b): `V` is at one of its members. -/
 theorem watchConnFacts_cur (V : WEnv GF) :
@@ -717,8 +846,7 @@ of the watch's request key and range end (`P.key`, `P.ed`) passed for `md`'s tok
 bound `n`. -/
 def wsRow (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(□ (⌜V.nm = 1⌝ → ∃ (m md : GrpcMd),
-    ⌜streamKeyOf m = streamKeyOf P.omd ∧
-      clientAttemptMdOf V.conn m md⌝ ∗
+    ⌜streamKeyOf m = streamKeyOf P.omd⌝ ∗ clientAttemptMd V.conn m md ∗
     v3rpc.watchAuthed (V.mem 0).2.tag (V.mem 0).2.s (auth.mdTokenOf md) P.n P.key P.ed))
 
 instance wsRow_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsRow V P) := by
@@ -800,38 +928,34 @@ theorem watchConnFacts_one (V : WEnv GF) :
   have : i = 0 := by omega
   subst this; rw [he.1]
 
-/-- **A create's bound at the current member** (G2): what `watchUp` asks of a create. -/
+/-- **A create's bound at every member** (G2; SW1: was the current member's): what `watchUpW` asks
+of a create. -/
 theorem wsBdOk_cur (V : WEnv GF) (P : WsPrm GF) :
-    watchConnFacts V ∗ wsBdOk V P ⊢ □ auth.authPubLbM V.R.E.authMode P.bd := by
-  iintro ⟨#H, #Hb⟩
-  iunfold watchConnFacts at H
-  icases H with ⟨-, -, -, -, -, -, -, -, %Hp⟩
-  obtain ⟨-, -, i, hi, he⟩ := Hp
+    watchConnFacts V ∗ wsBdOk V P ⊢
+      □ (∀ k : Nat, ⌜k < V.nm⌝ → auth.authPubLbM (V.mem k).2.E.authMode P.bd) := by
+  iintro ⟨-, #Hb⟩
   iunfold wsBdOk at Hb
   icases Hb with ⟨#Hb, -⟩
-  ihave #Hi := Hb $$ %i %hi
-  have hR : (V.mem i).2 = V.R := by rw [he.1]
-  irevert Hi; rw [hR]; iintro #Hi
-  iexact Hi
+  iexact Hb
 
 /-- **A watch's row from its create's check** (G2): the check the current member made of the
 watch's create (`watchAuthed`, from its created response), at a token an attempt of a stream of
 the watch's context's stream key delivered. -/
-theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (om : GrpcMd)
-    (htok : ∃ md, tok = auth.mdTokenOf md ∧ clientAttemptMdOf V.conn om md)
-    (hkey : streamKeyOf P.omd = streamKeyOf om) :
-    watchConnFacts V ∗ wsBdOk V P ∗
+theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (md om : GrpcMd)
+    (htok : tok = auth.mdTokenOf md) (hkey : streamKeyOf P.omd = streamKeyOf om) :
+    watchConnFacts V ∗ wsBdOk V P ∗ clientAttemptMd V.conn om md ∗
       v3rpc.watchAuthed V.R.tag V.R.s tok P.bd P.key P.ed ⊢ wsRow V P := by
-  iintro ⟨#Hc, #Hb, #Ha⟩
+  iintro ⟨#Hc, #Hb, #Hmd, #Ha⟩
   ihave %H1 := watchConnFacts_one V $$ Hc
   iunfold wsBdOk at Hb
   icases Hb with ⟨-, %Hbn⟩
-  obtain ⟨md, rfl, hmd⟩ := htok
+  subst htok
   unfold wsRow
   iintro !> %hn
   iexists om, md
   isplitr
-  · ipureintro; exact ⟨hkey.symm, hmd⟩
+  · ipureintro; exact hkey.symm
+  iframe Hmd
   rw [H1 hn, ← Hbn hn]
   iexact Ha
 
@@ -1056,9 +1180,10 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
   unfold wsIs; infer_instance
 
-/-- **A watch's creates' bound** (G2), at the current member: what `watchUp` asks of a create. -/
+/-- **A watch's creates' bound** (G2), at every member (SW1): what `watchUpW` asks of a create. -/
 theorem wsIs_bd (V : WEnv GF) (P : WsPrm GF) :
-    watchConnFacts V ∗ wsIs V P ⊢ □ auth.authPubLbM V.R.E.authMode P.bd := by
+    watchConnFacts V ∗ wsIs V P ⊢
+      □ (∀ k : Nat, ⌜k < V.nm⌝ → auth.authPubLbM (V.mem k).2.E.authMode P.bd) := by
   iintro ⟨#Hc, #H⟩
   iunfold wsIs at H
   icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, #Hb⟩
@@ -1075,16 +1200,15 @@ theorem wsIs_wire (V : WEnv GF) (P : WsPrm GF) (rv : w64) (pn sr : Bool) (bd : N
 
 /-- **A watch's row from its create's check** (G2; `wsRow_of_authed`), at the watch's key and
 range end as its request has them. -/
-theorem wsIs_row (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (om : GrpcMd)
-    (htok : ∃ md, tok = auth.mdTokenOf md ∧ clientAttemptMdOf V.conn om md)
-    (hkey : streamKeyOf P.omd = streamKeyOf om) :
-    watchConnFacts V ∗ wsIs V P ∗ v3rpc.watchAuthed V.R.tag V.R.s tok P.bd P.key P.ed ⊢
-      wsRow V P := by
-  iintro ⟨#Hc, #H, #Ha⟩
+theorem wsIs_row (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (md om : GrpcMd)
+    (htok : tok = auth.mdTokenOf md) (hkey : streamKeyOf P.omd = streamKeyOf om) :
+    watchConnFacts V ∗ wsIs V P ∗ clientAttemptMd V.conn om md ∗
+      v3rpc.watchAuthed V.R.tag V.R.s tok P.bd P.key P.ed ⊢ wsRow V P := by
+  iintro ⟨#Hc, #H, #Hmd, #Ha⟩
   iunfold wsIs at H
   icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, #Hb⟩
-  iapply wsRow_of_authed V P tok om htok hkey
-  iframe Hc Hb Ha
+  iapply wsRow_of_authed V P tok md om htok hkey
+  iframe Hc Hb Hmd Ha
 
 /-! ## A goroutine's lifetime (D25) -/
 
@@ -1174,34 +1298,34 @@ def respcElem (γs : StreamNames) (Dn : Nat → v3rpc.WatchRespM → IProp GF) (
   iprop(∃ (m : v3rpc.WatchRespM) (L : List v3rpc.WatchRespM),
     v3rpc.watchRespRecv p m ∗ Dn k.toNat m ∗ v3rpc.downLbW γs (L ++ [m]) ∗ ⌜L.length = k.toNat⌝)
 
-instance streamNames_countable : Pos.Countable StreamNames :=
-  .ofInjective (fun s => Pos.Countable.encode (s.up, s.upRcv, s.down, s.upEnd, s.downRcv, s.downEnd,
-    s.aux))
-    (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
-        simp_all)
+-- (SW1) `StreamNames`' countable instance is grpc's (`StreamNames.countable`, `InvGrpcCall.lean`).
 
 /-- **An epoch of `run`** (D25): the gRPC stream it opened, the first position of `respc` its
-responses take, the name of its count of responses forwarded (a mono nat, `serveWatchClient`'s),
-(W3b) the member the stream is at, (G2) the token of the metadata the stream was opened with. -/
-abbrev EpInfo := StreamNames × Nat × GName × Nat × Option GoString
+responses take, the name of its count of responses forwarded (a mono nat, `serveWatchClient`'s).
+(Phase 7's switch, SW1, R2: until then also (W3b) the member the stream is at and (G2) the token of
+the metadata it was opened with, fixed when it was opened; both are learned with each response now,
+`streamDispIs`, `respcE`.) -/
+abbrev EpInfo := StreamNames × Nat × GName
 
 /-- **What `respc` carries, across reconnections** (D25): the `k`th element was forwarded from the
 gRPC stream of some epoch `e` of `run` (`γep`), from its first position `b` on, while its count was
 at `k` (the count's lower bound `k + 1`: the epoch had not ended), and is that stream's `(k - b)`th
-response (`respcElem`, its content the watch stream's `watchDn`). -/
-def respcE (V : WEnv GF) (γep : GName) (k : Int) (p : Loc) : IProp GF :=
-  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (i : Nat) (tok : Option GoString),
-    monoListIdxOwn γep e ((γs, b, γc, i, tok) : EpInfo) ∗ monoNatLbOwn γc (k.toNat + 1) ∗
-    ⌜b ≤ k.toNat⌝ ∗
-    respcElem γs (v3rpc.watchDn γs (V.mem i).2 (V.memW i) tok)
+response (`respcElem`, its content the watch stream's `watchDn`). (SW1, R2) With the stream's
+dispatch (`streamDispIs`: the address `a` and the metadata `md` the response came with; `watchMdW`:
+an attempt's, with the stream's outgoing metadata `om`), whose member's and token's `watchDn` the
+content is. -/
+def respcE (V : WEnv GF) (om : GrpcMd) (γep : GName) (k : Int) (p : Loc) : IProp GF :=
+  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (a : GoString) (md : GrpcMd),
+    monoListIdxOwn γep e ((γs, b, γc) : EpInfo) ∗ monoNatLbOwn γc (k.toNat + 1) ∗
+    ⌜b ≤ k.toNat⌝ ∗ streamDispIs γs a md ∗ watchMdW V om a md ∗
+    respcElem γs (v3rpc.watchDn γs (V.memOf a) (V.memWOf a) (auth.mdTokenOf md))
       ((k.toNat - b : Nat) : Int) p)
 
 /-- **`respc`'s producer side, handed back** (D25; with the stream's receive error on `errc`): the
 epoch the forwarder served, its count at the responses sent. -/
 def prodBack (γr : SpscNames) (γep : GName) : IProp GF :=
-  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (i : Nat) (tok : Option GoString)
-      (sent : List Loc),
-    monoListIdxOwn γep e ((γs, b, γc, i, tok) : EpInfo) ∗ sspscProducer γr sent ∗
+  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (sent : List Loc),
+    monoListIdxOwn γep e ((γs, b, γc) : EpInfo) ∗ sspscProducer γr sent ∗
     monoNatAuthOwn γc 1 sent.length ∗ ⌜b ≤ sent.length⌝)
 
 /-- **What `errc` carries** (`serveWatchClient`'s receive error; a bag): a stream error or
@@ -1321,7 +1445,7 @@ def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
     isChanBag G.γreq G.reqc (reqP V (streamKeyOf G.omd)) ∗ isChanBag G.γerr G.errc (errP G.γr G.γep) ∗
     isChanBag G.γclosing G.closingc (closingP V G) ∗
     ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Unknown ∗
-    isSspsc G.γr G.respc (respcE V G.γep) (fun _ => iprop(False)))
+    isSspsc G.γr G.respc (respcE V G.omd G.γep) (fun _ => iprop(False)))
 
 instance isWGS_persistent (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) :
     Persistent (isWGS V G callSl) := by

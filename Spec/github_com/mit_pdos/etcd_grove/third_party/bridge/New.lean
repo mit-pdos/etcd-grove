@@ -26,32 +26,34 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
-/-- **`New(addr, l)`**, `l` a listener bound at `a` (`net.Listen`'s, unused): it returns a bridge
-to `addr`, not blackholed, and `a` reaches the server listening at `addr` (per-type stage B, B1b:
-`grpcAddrIs`; until then two facts, `a` serves method by method and stream method by stream method
-what `addr` serves); and (D29,
-2026-10-21) `a` is refusal-free if `addr` is: the bridge relays bytes, so a status from `addr`
-reaches the client unchanged, and a cut's (a blackhole's, a dropped connection's) errors are
-grpc's own. The bridge relays bytes, so a call or stream on `a` is one on the server at `addr` (D32,
-2026-10-21: grpc hands a stream's receiver only whole length-prefixed messages, in order, each
-once, so each side receives a prefix of what the other sent, and a cut ends the stream with an
-error); `a`'s own listener is consumed (`grpcAddrIs_agree` holds: no server listens at `a`).
+/-- **`New(addr, l)`**, `l` a listener bound at `a` (`net.Listen`'s, unused), where `a` and `addr`
+serve one service table `Svc` (`grpcAddrAt`): it returns a bridge to `addr`, not blackholed; and `a`
+is refusal-free if `addr` is: the bridge relays bytes, so a
+status from `addr` reaches the client unchanged, and a cut's (a blackhole's, a dropped connection's)
+errors are grpc's own. The bridge relays bytes, so a call or stream on `a` is one on the server at
+`addr` (grpc hands a stream's receiver only whole length-prefixed messages, in order,
+each once, so each side receives a prefix of what the other sent, and a cut ends the stream with an
+error); both addresses run grpc's protocols for the same table, so what a client of `a` writes meets
+`addr`'s dialer protocol and what `addr`'s server writes meets `a`'s acceptor protocol. `a`'s own
+listener is consumed (no server listens at `a`).
 
-(2026-11-24) It also consumes `netAddrLeft a`, what sets `a`'s protocols (`net.Listen`'s, beside the
-listener): a bridged address's protocols are its target's, so no program may both bridge `a` and give
-`a` protocols of its own. Without it a program listened at `a`, set `a`'s grpc table from `netAddrLeft`
-(`addr_set_proto_tok`, as `grpc.start'` does) at specs of its choosing, and bridged `a` to a server that
-meets none of them: `etcd_dist.Client_Get_dist` then proved a `Get` returns a value the real store lacks
-(Go panics: `notes/audit.md`, "`bridge.New` and `netAddrLeft`"). -/
+The bridge's address serves its target's table: the caller sets `a`'s table to
+the target's `Svc` from what `Listen` left (`netAddrLeft a`, spent by `grpc_addr_set` or
+`addr_set_proto_tok`), and registrations at `a` are read off `a`'s table, as at any address. Whoever bridges `a` has spent
+what sets `a`'s protocols, and set them to the target's table: a program that listened at `a`, set
+`a`'s grpc table at specs of its choosing and bridged `a` to a server meeting none of them
+(`notes/audit.md`, "`bridge.New` and `netAddrLeft`") cannot meet this precondition, which asks for one
+`Svc` at both addresses. -/
 abbrev New.spec : Prop :=
-  ∀ (addr a : GoString) (l : GoInterface),
+  ∀ (addr a : GoString) (l : GoInterface) (Svc : GrpcSvc GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge ∗
-      netListenerAt l a ∗ netAddrLeft a }}
+      netListenerAt l a ∗
+      (∃ (_ : HasExt Net.netExt) (π : Net.NetProtoGS) (σ : Net.NetSlotGS),
+        grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) a Svc ∗
+        grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr Svc) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.third_party.bridge.New)) (Val #addr))
       (Val #l))
-  {{ (br : GoInterface), RET #br; ownBridge br addr false ∗
-      □ (∀ γ : GName, grpcAddrIs addr γ -∗ grpcAddrIs a γ) ∗
-      ⌜noRefusalAt addr → noRefusalAt a⌝ }}
+  {{ (br : GoInterface), RET #br; ownBridge br addr false ∗ ⌜noRefusalAt addr → noRefusalAt a⌝ }}
 
 end spec
 

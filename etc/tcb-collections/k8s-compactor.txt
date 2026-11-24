@@ -14,10 +14,8 @@ axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom klog.Errorf.wp_proof
 axiom klog.Verbose.Infof.wp_proof

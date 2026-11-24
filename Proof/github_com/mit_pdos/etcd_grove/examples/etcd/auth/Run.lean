@@ -148,25 +148,33 @@ theorem Run.wp_proof
     imod (etcdstart.kvServeStocks_pools srv E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
+    -- (R9) the watch path's server facts, with auth on
+    ihave %hkv := etcdstart.kv_wsIface_of_cfg srv E cfg C $$ [Hsf Hgc]
+    · iframe #
+    haveI := v3rpc.srvWOk_persistent hP (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN
+    ihave #HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN $$ []
+    · rw [hRw, hRE]
+      iapply (etcdstart.srvWOk_of_readOn hP hR srv E ρ.rd C.wsl hkv (by omega))
+      rw [← hon]; iexact Hrd0
+    -- (phase 7's switch, SW1) the `Watch` stream's run contract, which the start registers
+    ihave #Hwr := v3rpc.etcd_watch_served_chain pw R (etcdstart.srvWOf R.E ρ.rd true) ims is ρ.rd rfl
+      (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv Hms.watch_impl $$ []
+    · rw [hRs, hRE]
+      iframe #
     imod (ak_served_kv addr gs q p pa srv lis E { ρ with wait := γw } cid mid C.n
-        il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
-      $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, -⟩
+        il im iu ims is svcs regs sregs [v3rpc.watchMethod pw R (etcdstart.srvWOf R.E ρ.rd true)]
+        γa HEo Hregs1 HregsA
+        (by intro m hm; simp only [List.mem_singleton] at hm; subst hm; exact Hregs2) (by simp)
+        wp_BcryptCost Hrf Hnd HLv)
+      $$ [Hgsn Hlis Hleft] with ⟨Hserv, #Hss, #HKV, #HSA, #HAu, -⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
-    -- (R9) the watch path's server facts, with auth on
-    ihave %hkv := etcdstart.kv_wsIface_of_cfg srv E cfg C $$ [Hsf Hgc]
-    · iframe #
-    ihave HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN $$ []
-    · rw [hRw, hRE]
-      iapply (etcdstart.srvWOk_of_readOn hP hR srv E ρ.rd C.wsl hkv (by omega))
-      rw [← hon]; iexact Hrd0
-    imod (ak_served_watch hP (akV R) addr pw srv E ρ.rd ims is sregs γ rfl hRE hRs rfl
-        (by simp) (kvSame_refl _) hlog (by omega) Hms.watch_impl Hregs2 rfl rfl rfl rfl
-        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [HWok] with ⟨#HWF, #Htag⟩
+    imod (ak_served_watch hP (akV R) addr pw srv E ρ.rd rfl hRE hRs
+        (by simp) (kvSame_refl _) hlog (by omega) rfl rfl rfl rfl)
+      $$ [] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
     imodintro
     iframe HKV HSA HAu HWF Htag

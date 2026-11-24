@@ -5,9 +5,8 @@ start since 2026-10-22, D33). Lean-first (no Rocq counterpart).
 The server's start is putget's `Main`'s (`Proof/.../putget/Main.lean`), at `linkvtxn`'s
 configuration: `Main`'s premises in the shared start's form (`etcdstart.bootPremise_of`); the ghost
 state `NewServer` takes (`etcdstart.alloc1`);
-`etcdstart.StartServer`; `etcdstart.Serve` with the ghost step `etcdstart.kv_served_at` (etcd's KV
-calls registered at the address, and the server there etcd's) then `etcd_noRefusal_srv` (the member
-refusal-free, D29);
+`etcdstart.StartServer`; `etcdstart.Serve` with the ghost step `etcdstart.grpcUp_noRefusal` (the member
+refusal-free, D29) then `etcdstart.kv_served` (etcd's KV calls registered at the address);
 `etcdstart.NewClient` (etcd's default configuration; `clientWriteOnce`, D29). Then the instance's
 invariant at the server's start store (`linkvInv_alloc_boot`: the bootstrap log changes no KV
 state) and `Check(cli, clients, ops, 0)`, which returns `Ok` (`timeout = 0`), so the panic on
@@ -144,13 +143,12 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    imod (etcdstart.kv_served_at srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl HLv)
-      $$ [Hg Hstk] with ⟨Hserv, #Hkv, #Hksa⟩
+    ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
+      go!"127.0.0.1:23796" cid mid R HEo $$ [Hg]
     · iframe; iframe #
-    -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
-    ihave %Hnr := EtcdGrove.etcd_noRefusal_srv go!"127.0.0.1:23796" srv E { ρ with wait := γw } HEo
-      $$ [Hksa]
-    · iframe #
+    imod (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl HLv)
+      $$ [Hg Hstk] with ⟨Hserv, #Hkv⟩
+    · iframe; iframe #
     imodintro
     iframe Hserv Hkv
     ipureintro; exact Hnr

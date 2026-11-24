@@ -27,9 +27,8 @@ such a run must meet. Since per-type stage B (B1b), a run is a fork of grpc's `S
 (its trusted model, `TrustedCode/google_golang_org/grpc.lean`), given the fork's thread
 token and one later credit and returning the token (`grpcRunOkMd`, the run contract; handlers
 proved against `grpcMethodOkMd` at a bundle get it from the adapters, `InvGrpcRun.lean`). The server's
-configuration is Go's (`grpcSrvCfg γ c`, made only by `grpc.start` from `grpcSrvNew`), at the server
-listening at `addr` (`grpcAddrIs addr γ`); `grpc.serve` (a theorem) packages it with the run
-contracts into registrations. (Until B1b, `grpc.serve` was an axiom taking a caller-chosen run
+configuration is Go's (`grpcSrvNew`), which the start (`grpc.start'`) makes the address's service
+table; `grpc.serve` (a theorem) packages it with the run contracts into registrations. (Until B1b, `grpc.serve` was an axiom taking a caller-chosen run
 resource `S` and count `n`, `axiom/grpc-serve-pool`.)
 Interceptors are specified as transparent (`srvInterceptorOk`, `srvChainWP_of_ok`).
 
@@ -109,6 +108,10 @@ structure ProtoMsg (GF : BundledGFunctors) where
   `ProtoMsgT`, unchanged): the tree of values (`Store.lean`) that `storeInto ty l` writes for a `*T`
   holding `m`. With `ty` and `M` it is the message's wire part (`ProtoMsg.wire`, no heap). -/
   tree : M → VTree
+  /-- **The model is countable** (phase 7, SW1, 2026-11-24, `notes/phase7-endstate.md` §1.2): a
+  call's queues are ghost lists of models (`ProtoWire.cnt`). Filled by instance resolution at the
+  instance's `M`; not itself a global instance (a projection instance could disagree with `M`'s own). -/
+  cnt : Pos.Countable M := by infer_instance
   /-- The sender's `*T` holding `m` (what marshaling needs; it comes back). -/
   send : Loc → M → IProp GF
   /-- **An upper bound on the length of the encoding** (`proto.Size`) of every message `send`
@@ -700,7 +703,7 @@ runtime: the codec's unmarshaling of the request's bytes): called on a zero `*T`
 decoded copy, read-only; `Req.recvOwn l m`: what the caller still owns of it) or fails, with an
 error `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: `serverStream.RecvMsg`'s
 `*status.Error`s and the raw `io.ErrUnexpectedEOF` of its second `recv`, a leaf). That holds for
-`Server.Serve`'s HTTP/2 transport only, the one `grpc.start` covers: under `ServeHTTP`,
+`Server.Serve`'s HTTP/2 transport only, the one `Server.Serve`'s axiom covers: under `ServeHTTP`,
 `mapRecvMsgError` returns a raw `transport.ConnectionError`, not a leaf
 (`notes/axiom-review/hs6.md`). -/
 def grpcDecOk (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) : IProp GF :=
@@ -1070,75 +1073,12 @@ structure GrpcSrvCfg (GF : BundledGFunctors) where
   regs : List (GoString × GoFunc × GoInterface)
   sregs : List (GoString × GoFunc × GoInterface)
 
-/-- **The full names of `c`'s methods and streams are jointly distinct** (`grpc.start`'s premise, M1:
+/-- **The full names of `c`'s methods and streams are jointly distinct** (`grpc.start'`'s premise, M1:
 what makes the one entry named by a call's path the handler Go's split lookup finds). -/
 def grpcSrvNodup {GF : BundledGFunctors} (c : GrpcSrvCfg GF) : Prop :=
   ((c.regs ++ c.sregs).map Prod.fst).Nodup
 
 end cfg
-
-/-- **The server listening at `addr` is `γ`** (raw; see `grpcAddrIs`). Made only by `grpc.start` (and
-carried to a bridge's address by `bridge.New`). `addr` is the exact string `grpc.start` listened on:
-two strings for one socket (`":2379"`, `"127.0.0.1:2379"`) are different addresses here, so the
-pair's "the server listening at `a`" assumes the client dials that string. -/
-axiom grpcAddrIsRaw {GF : BundledGFunctors} (addr : List w8) (γ : GName) : IProp GF
-
-/-- **Server `γ` was built with Go's configuration `c`** (raw). Made only by `grpc.start`, from
-`grpcSrvNew gs c.ics c.sics _ c.regs c.sregs`: no registration is made after `Serve` starts (grpc
-logs fatally on `RegisterService` after `Serve`, `server.go` `RegisterService`/`register`). -/
-axiom grpcSrvCfgRaw {GF : BundledGFunctors} [GooseExts] (γ : GName) (c : GrpcSrvCfg GF) : IProp GF
-
-/-- **The right to accept `γ`'s calls on `lis` through `gs`** (exclusive; made only by `grpc.start`;
-`acceptRun` returns it with each accepted call, consumes it in its `lisFailed` arm, and drops it in
-its `stopped` arm). -/
-axiom grpcSrvLink {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (γ : GName) :
-  IProp GF
-
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **The server listening at `addr` is `γ`** (persistent by construction). -/
-def grpcAddrIs (addr : GoString) (γ : GName) : IProp GF := iprop(□ grpcAddrIsRaw addr γ)
-
-instance grpcAddrIs_persistent (addr : GoString) (γ : GName) :
-    Persistent (grpcAddrIs (GF := GF) addr γ) := by
-  unfold grpcAddrIs; infer_instance
-
-/-- **Server `γ` was built with Go's configuration `c`** (persistent by construction). -/
-def grpcSrvCfg (γ : GName) (c : GrpcSrvCfg GF) : IProp GF := iprop(□ grpcSrvCfgRaw γ c)
-
-instance grpcSrvCfg_persistent (γ : GName) (c : GrpcSrvCfg GF) :
-    Persistent (grpcSrvCfg (GF := GF) γ c) := by
-  unfold grpcSrvCfg; infer_instance
-
-end defs
-
-section axioms
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **One server per address string.** True: `grpcAddrIs` is made only by `grpc.start` and
-`bridge.New`, each consuming a `netListenerAt l addr`, whose `addrClaim addr` is exclusive and given
-once per address by program start (`Proof/net/InvNet.lean`); `grpc.start` consumes the listener (and
-its claim) for good, and `bridge.New` consumes the bridge's own. (Not because the address is listened
-on once: after `grpc.start'` the address's protocols, persistent, let `listen_au` lend its listening
-token again, but such a listener has no claim, and none can be started or bridged; the extension's
-`Listen` fails with one open at the address, and the started server's listener is never closed by a
-spec, 2026-11-24, `notes/axiom-review/norefusal-link.md`.) Addresses are compared as strings
-(`grpcAddrIsRaw`): the law is used only at one string, never to identify two spellings of one socket.
-(Restart's S10 must revisit this if a `Stop` spec ever frees an address.) -/
-axiom grpcAddrIs_agree (addr : GoString) (γ γ' : GName) :
-  grpcAddrIs (GF := GF) addr γ ∗ grpcAddrIs addr γ' ⊢ ⌜γ = γ'⌝
-
-/-- **One configuration per server**: `grpc.start` makes `grpcSrvCfg γ _` once per `γ`. -/
-axiom grpcSrvCfg_agree (γ : GName) (c c' : GrpcSrvCfg GF) :
-  grpcSrvCfg (GF := GF) γ c ∗ grpcSrvCfg γ c' ⊢ ⌜c = c'⌝
-end axioms
 
 /-! ## The run contracts -/
 

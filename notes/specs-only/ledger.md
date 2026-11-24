@@ -25,6 +25,31 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-24: the watch and lease clients' stream specs fix the stream's member and metadata at open (SW1's users, R2)
+
+- **Spec.** `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/watchClient__Watch.lean`,
+  `Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__{openWatchClient,newWatchClient,serveWatchClient}.lean`
+  (the watch client), `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/leaseClient__LeaseKeepAlive.lean`,
+  `Spec/go_etcd_io/etcd/client/v3/{retryLeaseClient__LeaseKeepAlive,lessor__resetRecv,lessor__sendKeepAliveLoop}.lean`
+  (the lease client). SpecPlan: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__*.lean`,
+  `.../etcdserverpb/watchClient__Watch.lean` (same shape as the old real specs).
+- **Defect.** Too strong, inherited from `NewStream`'s (the entry below): each fixes, when the stream is
+  returned, its address (the member `i`, the content `watchUp (V.mem i).2`) and its metadata `md`
+  (`clientAttemptMd`, the token `auth.mdTokenOf md`, which `run`'s epoch recorded, `EpInfo`).
+- **Evidence.** SW1's `NewStream` (`phase7-switch`, commit 5): one content `Up` for every address, the
+  dispatch learned with each response (`streamDispIs γ a md`, `Md a md`, `Dn a md`).
+- **Proposed change (applied on `phase7-switch-ab`).** The watch client: the requests' content is one for
+  every member (`client.watchUpW V`: a create's bound published at every member's auth store, which
+  `wsBdOk` already holds; `watchConnFacts`' per-member registration gives it, `isGrpcStreamMd_mono`,
+  `watchConnFacts_regW`); the specs return `cliWatchStreamIs … (watchUpW V) (watchMdW V om) Dn` and
+  `□ ∀ a md, watchMdW V om a md -∗ watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md) γs (Dn a md)`;
+  `EpInfo` drops the member and the token; `respcE` carries each response's dispatch; `run`'s epoch
+  (`epochAt`) learns its member and token with its first response (until then no substream's state reads
+  them: `wsElem_atIdx_nil`). The callers' guarantees (`watcher.Watch.spec`, `watchCheckOk`'s statement
+  but its `clientAttemptMd` conjunct, now SW1's `IProp` `clientAttemptMdI`) are unchanged. The lease
+  client: an existential dispatch family `Md` and a dispatch-indexed `Dn` (it never reads the content).
+- **Decision.** Applied with SW1 (branch `phase7-switch-ab`), pending the user's review of SW1.
+
 ## 2026-11-23: rafthttp.NewRoundTripper -- the post doesn't say the round tripper is a `*http.Transport`, which `bootOk`'s Hprt needs
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`,

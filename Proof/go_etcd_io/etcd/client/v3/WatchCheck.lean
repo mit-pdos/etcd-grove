@@ -38,14 +38,15 @@ variable [sem : go.Semantics]
 went on was opened with outgoing metadata `m` of the same stream key as the watch's context's outgoing
 metadata `om` (errdesc stage 1, 2026-11-20: until then of a context `ctx`, through the pure
 `metadata.outgoingOf ctx`; `watcher.Watch`'s precondition relates `om` to its context);
-an attempt of it on the connection `conn` delivered `md` (`clientAttemptMdOf`); and the server
+an attempt of it on the connection `conn` delivered `md` (`clientAttemptMd`; phase 7's switch, SW1,
+2026-11-24: an `IProp`, it was the `Prop` `clientAttemptMdOf`); and the server
 `s`'s check of a create of the key `key` and the range end `rangeEnd` passed for `md`'s token at
 the bound `n` (`v3rpc.watchAuthed`, at the server's auth tag `tag`; strict M1: was over mvcc's watch names `γ`,
 whose `γ.tag` it read). -/
 def watchCheckOk (tag : GName) (s conn : Loc) (om : GrpcMd) (n : Nat)
     (key rangeEnd : GoString) : IProp GF :=
   iprop(∃ (m md : GrpcMd),
-    ⌜streamKeyOf m = streamKeyOf om ∧ clientAttemptMdOf conn m md⌝ ∗
+    ⌜streamKeyOf m = streamKeyOf om⌝ ∗ clientAttemptMd conn m md ∗
     v3rpc.watchAuthed tag s (auth.mdTokenOf md) n key rangeEnd)
 
 instance watchCheckOk_persistent (tag : GName) (s conn : Loc) (om : GrpcMd) (n : Nat)
@@ -67,10 +68,9 @@ theorem watchCheckOk_tok (tag : GName) (s conn : Loc) (om : GrpcMd) (n : Nat)
         □ (⌜M.isOn = true⌝ → v3rpc.infoBoundT (srvTLSId s) M tok info) := by
   iintro ⟨#Hc, #Ht⟩
   unfold watchCheckOk
-  icases Hc with ⟨%m, %md, %hka, #Ha⟩
-  obtain ⟨hk, ha⟩ := hka
+  icases Hc with ⟨%m, %md, %hk, #Hmd, #Ha⟩
   unfold attemptTokOk
-  ihave #Htk := Ht $$ %m %md %ha
+  ihave #Htk := Ht $$ %m %md Hmd
   icases v3rpc.watchAuthed_elim _ _ _ _ _ _ $$ Ha with ⟨%M, %info, #Htag, #Hcl, #Hb, -⟩
   iexists m, auth.mdTokenOf md, M, info
   iframe Htag Hcl Hb Htk

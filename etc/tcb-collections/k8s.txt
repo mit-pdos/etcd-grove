@@ -28,11 +28,9 @@ axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcResolverAt
-axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom klog.Errorf.wp_proof
 axiom klog.Verbose.InfoS.wp_proof

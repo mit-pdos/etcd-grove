@@ -73,7 +73,7 @@ theorem foreign.wp_proof
       iapply HQr
       · iexact Htok
       · ipureintro; exact hout
-    iintro !> %md %m' %_ Hres -
+    iintro !> %md %m' - Hres -
     iunfold v3rpc.leaseRevokeResT at Hres
     ihave Hres := Hres $$ %hon
     icases Hres with ⟨%hm, %L, -, -, -, HQ⟩

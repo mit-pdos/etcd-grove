@@ -43,6 +43,8 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   · iexact Hfacts
   iunfold watchSrvFacts at Hfacts'
   icases Hfacts' with ⟨#Hstub, #Hconn⟩
+  -- (SW1) the registration at one content for every member
+  ihave #Hreg := watchConnFacts_regW V $$ Hconn
   iunfold watchConnFacts at Hconn
   icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, -, -, -, #Hcea, #Hvars, -⟩
   iunfold ctxErrClientAllW at Hcea
@@ -66,14 +68,14 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   wp_apply HDone as %dch %γd #Hdone
   wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]
       iprop((∀ (ws err : GoInterface),
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (γs : StreamNames)
-          (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
-          (md : GrpcMd),
-          ⌜i < V.nm ∧ clientAttemptMd V.conn om md⌝ ∗
-          v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ (γs : StreamNames)
+          (Dn : GoString → GrpcMd → Nat → v3rpc.WatchRespM → IProp GF)
+          (cd' : context.ContextDesc (IProp GF)),
+          v3rpc.cliWatchStreamIs ws γs (watchUpW V) (watchMdW V om) Dn cd' ∗
           cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
           cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
-          v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs Dn) ∨
+          □ (∀ a md, watchMdW V om a md -∗
+            v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md) γs (Dn a md))) ∨
         (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ closeErrOk err)) -∗ Φ (PairV #ws #err)) ∗
         w_ptr ↦ wgs ∗ backoff_ptr ↦ b ∗ err_ptr ↦ e ∗ ws_ptr ↦ wsv ∗
         (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ closeErrOk e))
@@ -119,17 +121,17 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   · iframe
   · iintro ⟨HΦ, w, backoff, err, ws, He⟩ -
     wp_auto
-    wp_apply wp_Watch V.wc V.conn V.addrs V.ics (fun a => v3rpc.watchUp (V.memOf a))
+    wp_apply wp_Watch V.wc V.conn V.addrs V.ics (watchUpW V)
       (fun a md => v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md)) ci cd om callSl vs $$ []
       as %cs %err' Hr
     · iframe #
-    icases Hr with (⟨%He', %a, %γs, %Dn, %cd', %md, %Ha, Hcs, Hst, Hrt, Hspec⟩ | ⟨%Hcs, #Hse⟩)
+    icases Hr with (⟨%He', %γs, %Dn, %cd', Hcs, Hst, Hrt, #Hspec⟩ | ⟨%Hcs, #Hse⟩)
     · subst He'
       iunfold v3rpc.cliWatchStreamIs at Hcs
       iunfold cliBidiStreamIs at Hcs
       icases Hcs with ⟨%ci', %Hcs', Hcs⟩
       subst Hcs'
-      ihave Hcs : v3rpc.cliWatchStreamIs (GoInterface.ok ci') γs (v3rpc.watchUp (V.memOf a)) Dn
+      ihave Hcs : v3rpc.cliWatchStreamIs (GoInterface.ok ci') γs (watchUpW V) (watchMdW V om) Dn
           cd' $$ [Hcs]
       · iunfold v3rpc.cliWatchStreamIs
         iunfold cliBidiStreamIs
@@ -143,9 +145,12 @@ theorem watchGRPCStream.openWatchClient.wp_proof
       ileft
       isplitr
       · ipureintro; rfl
-      iexists V.idxOf a, γs, Dn, cd', md
-      iframe
-      ipureintro; exact ⟨V.idxOf_lt a Ha.1, Ha.2⟩
+      iexists γs, Dn, cd'
+      iframe Hcs Hst Hrt
+      iintro !> %a %md ⟨%Ha, #Hmd⟩
+      ihave Hs := Hspec $$ %a %md [] Hmd
+      · ipureintro; exact Ha
+      iexact Hs
     · subst Hcs
       ihave #Hse' := Hse
       iunfold cliStreamErr at Hse'

@@ -46,6 +46,15 @@ theorem credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof
     iintro -
     iexists cm
     iframe Hm
+    isplitr
+    · -- `credKeysOk`: the one key a token bundle's credentials may set is `token`.
+      iunfold tokMdOk at Hq
+      icases Hq with ⟨%hoth, -⟩
+      ipureintro
+      intro k vs hk
+      by_cases hkt : k = go!"token"
+      · subst hkt; decide
+      · rw [hoth k hkt] at hk; cases hk
     imodintro
     iexact Hq
   · iintro !> !> %Ψ - HΨ
