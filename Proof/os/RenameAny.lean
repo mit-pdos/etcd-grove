@@ -46,10 +46,9 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %isDir %e %hd Hperm Hp Hn
   by_cases hd1 : isDir = 1
   · -- a directory at the target: Go's `EEXIST`, no `rename(2)`
-    rw [decide_eq_true (show isDir = W64 1 from hd1)]
+    (try rw [decide_eq_true (show isDir = W64 1 from hd1)])
     try wp_auto
-    wp_apply (os.wp_linkError_ok _ _ _ _ (hd hd1).2)
-    iintro %le #Hle
+    wp_linkError_ok (hd hd1).2
     iapply HΦ
     iframe Hp Hperm
     isplitl []
@@ -57,21 +56,24 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     ileft
     iframe Hn Hau
     ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩⟩
-  rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
+  (try rw [decide_eq_false (show isDir ≠ W64 1 from hd1)])
   try wp_auto
   ihave HSt : iprop((osAUnc (osNames j N (DFrac.own r) h) (renDirOutA j J N bs bt h (DFrac.own r) lb) Q ∗
       osNames j N (DFrac.own q) h) ∨
     (∃ xs, Q (some xs) ∗ renDirOutA j J N bs bt h (DFrac.own q) lb (some xs)))
     $$ [Hau Hn]
   · ileft; iframe
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp HSt HΦ
+  wp_for_step
   icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_stub os.fsRename.impl
   wp_apply +noauto wp_osCallBeginS R _ 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout⟩)
   · wp_apply +noauto (wp_aunc_step "Rename" _ (osNames j N (DFrac.own r) h)
-      (renDirOutA j J N bs bt h (DFrac.own r) lb) Q) $$ Hau [Hn Hk Hp HΦ]
+      (renDirOutA j J N bs bt h (DFrac.own r) lb) Q) $$ Hau [-]
     iintro Hr
     ihave Hw := (osNames_join j N q r h hq).1 $$ [Hn Hr]
     · iframe
@@ -86,8 +88,14 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         iintro Hau
         subst he4
         try wp_auto
-        iapply IH $$ Hperm Hp [Hau Hn] HΦ
-        ileft; iframe
+        ihave HSt : iprop((osAUnc (osNames j N (DFrac.own r) h) (renDirOutA j J N bs bt h (DFrac.own r) lb) Q ∗
+            osNames j N (DFrac.own q) h) ∨
+          (∃ xs, Q (some xs) ∗ renDirOutA j J N bs bt h (DFrac.own q) lb (some xs)))
+          $$ [Hau Hn]
+        · ileft; iframe
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp HSt HΦ [$] [$] [$]
       · iright
         iexists none
         isplitl [Hr]
@@ -95,12 +103,12 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
           ipureintro; intro hc; cases hc
         iintro HQ
         try wp_auto
-        rw [decide_eq_false (show e ≠ W64 4 from he4)]
+        (try rw [decide_eq_false (show e ≠ W64 4 from he4)])
         try wp_auto
-        rw [decide_eq_false (show e ≠ W64 0 from he)]
+        (try rw [decide_eq_false (show e ≠ W64 0 from he)])
         try wp_auto
-        wp_apply (os.wp_linkError_ok _ _ _ _ he)
-        iintro %le #Hle
+        wp_linkError_ok he
+        wp_for_post
         iapply HΦ
         iframe Hp Hperm
         isplitl []
@@ -126,15 +134,18 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         ipureintro; exact ⟨fun _ => hR, (Nat.max_le.1 hs).2, hst⟩
       try wp_auto
       by_cases he4 : e = W64 4
-      · rw [decide_eq_true he4]
+      · (try rw [decide_eq_true he4])
         try wp_auto
-        iapply IH $$ Hperm Hp [HQ Hout] HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp [HQ Hout] HΦ [$] [$] [$]
         iright; iexists (x, s0); iframe
-      rw [decide_eq_false (show e ≠ W64 4 from he4)]
+      (try rw [decide_eq_false (show e ≠ W64 4 from he4)])
       try wp_auto
       by_cases he0 : e = W64 0
-      · rw [decide_eq_true he0]
+      · (try rw [decide_eq_true he0])
         try wp_auto
+        wp_for_post
         iapply HΦ
         iframe Hp Hperm
         isplitl []
@@ -143,10 +154,10 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         iexists some (x, s0)
         iframe HQ Hout
         ipureintro; exact ⟨fun _ => rfl, Or.inl rfl⟩
-      rw [decide_eq_false (show e ≠ W64 0 from he0)]
+      (try rw [decide_eq_false (show e ≠ W64 0 from he0)])
       try wp_auto
-      wp_apply (os.wp_linkError_ok _ _ _ _ he0)
-      iintro %le #Hle
+      wp_linkError_ok he0
+      wp_for_post
       iapply HΦ
       iframe Hp Hperm
       isplitl []
@@ -180,16 +191,18 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
       ipureintro; exact ⟨hRt, hlo, hlo2⟩
     try wp_auto
     by_cases he4 : e = W64 4
-    · rw [decide_eq_true he4]
+    · (try rw [decide_eq_true he4])
       try wp_auto
-      iapply IH $$ Hperm Hp [HQ Hout] HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp [HQ Hout] HΦ [$] [$] [$]
       iright; iexists (x, sx); iframe
-    rw [decide_eq_false (show e ≠ W64 4 from he4)]
+    (try rw [decide_eq_false (show e ≠ W64 4 from he4)])
     try wp_auto
-    rw [decide_eq_false (show e ≠ W64 0 from he)]
+    (try rw [decide_eq_false (show e ≠ W64 0 from he)])
     try wp_auto
-    wp_apply (os.wp_linkError_ok _ _ _ _ he)
-    iintro %le #Hle
+    wp_linkError_ok he
+    wp_for_post
     iapply HΦ
     iframe Hp Hperm
     isplitl []

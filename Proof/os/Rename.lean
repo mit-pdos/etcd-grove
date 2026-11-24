@@ -12,6 +12,7 @@ public import Spec.os.Rename
 public import Spec.os.RenameS
 public import GooseLang.Ext.Fs.NoErrSpecsRename
 public import GooseLang.Ext.Fs.TreeSharedRoots
+public import Proof.os.ForLoeb
 
 @[expose] public section
 
@@ -75,8 +76,10 @@ private theorem rename_fileNE :
   ihave Hperm := osCallPerm_congr qc ((hkd' bt).symm.trans hk) $$ Hperm
   have hd1 : isDir ≠ 1 := fun h1 => by obtain ⟨⟨J, hJ⟩, -⟩ := hd h1; exact htgt J hJ
   rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
-  try wp_auto
+  wp_for_bind
+  wp_for_step
   icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_stub os.fsRename.impl
   wp_apply +noauto wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t2 %s1 %hs1 Hk Hls
   iclear Hls
@@ -88,6 +91,7 @@ private theorem rename_fileNE :
     $$ Hos Hsi Hp Hp' Hn1 Hn2 Hk
   iintro Hperm Hp Hp' ⟨%x, -, Hn1, Hn2⟩
   try wp_auto
+  wp_for_post
   iapply HΦ
   iframe Hp Hp' Hperm
   iexists _, _

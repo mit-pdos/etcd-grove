@@ -129,6 +129,7 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
     try wp_auto
     wp_apply os.wp_pathError_errnoV as %err #Herr
     ihave %hne := os.errnoPathErr_ne err e $$ Herr
+    wp_for_post
     iapply HΦ
     iframe
     iright
@@ -209,6 +210,7 @@ theorem os.OpenFile.wp_dirErrS (p : GoString) (perm : w32) (R : Roots) (j : Ino)
       wp_apply os.wp_modelErrno
       try wp_auto
       wp_apply os.wp_pathError_errnoV as %err #Herr
+      wp_for_post
       iapply HΦ
       iframe
       iright
@@ -353,6 +355,7 @@ theorem os.File.Close.wp_dirS (f : Loc) (fd : w64) (name : GoString) (j : Ino) (
     try wp_auto
     wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn
     iintro %pe #Hpe
+    try wp_auto
     iapply HΦ
     iapply EtcdGrove.fmtErrorOkOrNil_of $$ Hpe
 
@@ -411,11 +414,15 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
   · obtain ⟨rfl, hb, hbr⟩ := hv
     try wp_auto
     ihave %hsl := ownSlice_len _ _ _ $$ Hsl
-    wp_apply_core wp_assume
-    iintro %hlt
+    by_cases hbig : sint.Z (W64 17592186044416) ≤ sint.Z sl0.len
+    · rw [decide_eq_true hbig]
+      try wp_auto
+      wp_for
+      wp_for_post
+      iframe
+    rw [decide_eq_false hbig]
     have hlt' : rs.length < 2 ^ 44 := by
       rw [List.length_reverse] at hsl
-      have := of_decide_eq_true hlt
       word
     try wp_auto
     wp_apply wp_slice_literal (V := GoString) [b]
@@ -423,7 +430,10 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
     · ipureintro; rfl
     iintro %sl1 ⟨Hsl1, -⟩
     wp_apply wp_slice_append $$ [$Hsl $Hcap $Hsl1] as %sl' ⟨Hsl, Hcap, -⟩
-    iapply IH $$ %false %(b :: rs) %r0' %sl' [] [Hosfd] [Hsl] Hcap Hcl HΦ Hfd
+    try wp_auto
+    wp_for_post
+    inext
+    iapply IH $$ %false %(b :: rs) %r0' %sl' [] [Hosfd] [Hsl] Hcap Hcl HΦ Hfd [$] [$] [$] [$]
     · ipureintro
       refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, ?_, ?_, ?_⟩
       · cases fresh
@@ -445,6 +455,7 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
     · rw [List.reverse_cons]; iexact Hsl
   · obtain ⟨rfl, hall⟩ := hv
     try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     isplitl []
@@ -463,7 +474,9 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       try wp_auto
-      iapply IH $$ %false %rs %r0' %sl0 [] [Hosfd] Hsl Hcap Hcl HΦ Hfd
+      wp_for_post
+      inext
+      iapply IH $$ %false %rs %r0' %sl0 [] [Hosfd] Hsl Hcap Hcl HΦ Hfd [$] [$] [$] [$]
       · ipureintro
         refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, hin, hcnt, hlen⟩
         cases fresh
@@ -475,6 +488,7 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
       rw [decide_eq_false (show ¬ e = W64 0 from he)]
       try wp_auto
       wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %err #Herr
+      wp_for_post
       iapply HΦ
       iframe
       isplitl []

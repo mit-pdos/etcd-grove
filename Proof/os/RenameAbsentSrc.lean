@@ -23,7 +23,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [syscall.Assumptions]
+variable [os.Assumptions]
 
 theorem os.Rename.wp_proofAbsentSrc : os.Rename.specAbsentSrc (GF := GF) (hG := hG) := by
   intro d bs bt j N R qd dqn h qc hbs hbt hN hN' hsrc
@@ -41,15 +41,17 @@ theorem os.Rename.wp_proofAbsentSrc : os.Rename.specAbsentSrc (GF := GF) (hG := 
   by_cases h1 : isDir = W64 1
   · rw [decide_eq_true h1]
     try wp_auto
-    wp_apply wp_linkError
-    iintro %le
+    wp_linkError
     iapply HΦ
     iframe
     ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩⟩
   rw [decide_eq_false h1]
   try wp_auto
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_stub os.fsRename.impl
   wp_apply +noauto wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t' %s1 %hs' Hk Hls
   iclear Hls
@@ -67,13 +69,15 @@ theorem os.Rename.wp_proofAbsentSrc : os.Rename.specAbsentSrc (GF := GF) (hG := 
   by_cases he4 : e' = W64 4
   · rw [decide_eq_true he4]
     try wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$]
   rw [decide_eq_false (show e' ≠ W64 4 from he4)]
   try wp_auto
   rw [decide_eq_false (show e' ≠ W64 0 from he')]
   try wp_auto
-  wp_apply wp_linkError
-  iintro %le
+  wp_linkError
+  wp_for_post
   iapply HΦ
   iframe
   ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩⟩
