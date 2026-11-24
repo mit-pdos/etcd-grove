@@ -63,7 +63,7 @@ theorem wp_main
   iunfold net.rpc.srvEnv at Henv
   icases Henv with ⟨#Hcli, -⟩
   ihave #Hhe := net.http.httpEnv_access $$ Hhttp
-  wp_auto
+  try wp_auto
   wp_apply wp_Register $$ [$Hsync $Hmu $Hunset] as #Hset
   wp_apply wp_Client γid reg $$ [Htok Hauth] as Htok
   · iframe Htok Hstr Hsync Hf Hset Hcli Hhe Hcon Htcp Hha Hauth

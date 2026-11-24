@@ -62,7 +62,7 @@ theorem wp_main
   iunfold net.rpc.rpcInit at Hri
   icases Hri with ⟨-, #Henv, #Hcon, #Hmu⟩
   ihave #Hhe := net.http.httpEnv_access $$ Hhttp
-  wp_auto
+  try wp_auto
   wp_apply wp_Register $$ [$Hsync $Hmu $Hunset] as #Hset
   wp_apply wp_Server γid reg γs γf $$ [Hown Hmux]
   · iframe Hf Hset Hhttp Hlog Hsvcp Henv Hcon Hhe Hds Hown Hmux Htl Hhl
