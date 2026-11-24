@@ -1184,3 +1184,140 @@ the model. Dispositions (fixed = in this commit):
 The review also notes that F3 and F4 make two recorded nonissues reachable under real crashes
 (`nonissues/etcd-request-id-restart-reuse.md`, `nonissues/etcd-watch-lagging-member-auth-off.md`):
 their "Proof" sections are to be updated when the statement lands. No new Go bug was found.
+
+## 11. Stage table and critical path (2026-11-24, `etcd_safe` lead; replaces §9's states)
+
+Read at `lean` `b0a063163c`. Branch of this work: `etcd-safe-plan/2026-11-24`.
+
+| Stage | State | Owner | Where |
+|---|---|---|---|
+| D0 statement | **redrafted** 2026-11-24 (§11.2): `etcd_safe` (crashes) and `etcd_safe_nocrash`, over `etcdNetExts`, D8's machines; no `WellFormed`/`TrustBoundary`/`NetStart`/`HNs` premise. Packet to the owner | etcd_safe lead | `Spec/.../dist/TopLevelRobustness.lean`, `Proof/.../dist/TopLevelDefs.lean` |
+| D1 Go | done | — | `examples/etcd/dist` |
+| D2 net swap | done (`82847d941b`); **step 5 not done** (`etc/gen-init.py` `NET_MAIN`: Net's copies of os, syscall, poll, io/fs, porcupine, lintest) | etcd_safe lead (unowned until now) | `etc/gen-init.py`, `Net/Proof/{os,syscall}/Init.lean` |
+| D2 translation | **not started**: only `dist/putget` (project `putget-dist`). `server` needs `etcdserver/api/etcdhttp` (not translated) and `net/http`'s server; `client`/`kvremote` need `remote` (Net only), `walarea`, `math/rand/v2` | etcd_safe lead | `etc/goose.py` |
+| D3 mixed bridge | `[net, fs]` only (`robust_of_netFsBoot{,_addrs}`, hard-wired to `kvnetExts`) | etcd_safe lead (D4c) | `Net/Statement/NetFsBridge.lean` |
+| D4 bundle under crash | **not started** (§12) | etcd_safe lead | — |
+| D5 transport | S0, S1, S2 interface (`6d5a98fb3d`, axioms `Invoke`/`Serve`/`NewClient`/`NewServer`/`RegisterService`/`grpc.start`) landed; S2 proofs in flight (`phase7-s2-core`); S5 server pieces in flight (`prove-ps2-s5srv`, partly landed); **S3 (streams), S4, S5 client not started** | #24 owner; proving session 2 (S5) | `notes/phase7-plan.md` |
+| D6 server restart | **not started** (§12); `NewServerR` exists for the graceful restart only | etcd_safe lead | — |
+| D7 no-crash split | `d7-idsplit` **landed** (`2f67a12c06`): `idClusterInv gen`, `srvClusterBoot_allocG`, `clusterFacts`, `clusterAllocN`, `memberBoot_of_slice`, `cluster_svc_start`. `etcdClusterStart` and the k-member boot: on `dist-putgetk/2026-11-24` (n members) | putgetK lead | `etcdstart/AllocN.lean`, `dist/ClusterStart.lean` |
+| D8 clients | `remote` proved (`counter_remote_robust`, `Report`); **kv instance not started** (needs D2 step 5, D2 translation of `kvremote`, D7's one KV state); watch/cache/auth need `remote`'s ownership-carrying wire (A) | etcd_safe lead | `Net/Proof/.../lib/remote/` |
+| D9 assembly | skeleton `etcd_safe_nocrash_of_boot` (from `EtcdBootNC`, `EtcdBootNCBad`); no axiom, no sorry | etcd_safe lead | `Proof/.../dist/TopLevelRobustness.lean` |
+| putget milestones | `putget_safe` (2 machines; interim S2 axioms A1/A3-A5, A4/A5 false until `bridge-new-addrleft` lands), `putgetK_safe` (n members, in progress) | putget leads | `dist-putget-interim/2026-11-24`, `dist-putgetk/2026-11-24` |
+
+### 11.1 Critical path to a closed `etcd_safe`
+
+Sound interim axioms at a piece's interface stand in for what is proved elsewhere (S2-S5, bootstrap #34,
+per-function contracts), so the path is the work nobody else does:
+
+1. **putgetK_safe** (n members, no crash): the k-member boot over interim S2/S5 axioms. (putgetK lead.)
+2. **M1 `etcd_kv_safe_nocrash`** (smallest next milestone): n members + the `kv` workload (orchestrator and
+   client machines over `remote`), no crash, unary gRPC only (Txn/Range/Put: no S3). Needs D2 step 5,
+   the translation of `dist/server` and of `dist/client`'s kv part with `kvremote`, the kv instance of
+   `remoteDistSafe` (txnlin's model, `PendDec`, `codecOk`), and putgetK's k-member boot. A corollary-shaped
+   instance of `etcd_safe_nocrash` at deployments with one `kv` workload.
+3. **M2 `putget_crash_safe`** (first crash milestone; in parallel with M1): one member machine that crashes
+   and restarts, the putget client stable. Exercises all of D4 and D6 with no peer transport (k = 1: no
+   rafthttp traffic) and no new workload proof. Needs D4a-D4c and D6.
+4. **M3 `etcd_kv_safe`**: M1 with crashing members (D6 at k members: the raft log's durability across a
+   member's crash, the restart invariant of D7).
+5. **`etcd_safe_nocrash`**, then **`etcd_safe`**: the remaining workloads (watch/cache need S3 or interim
+   stream axioms; auth/lease rows need `remote`'s wire (A); durable is M2's check at k members).
+
+The long poles: D6 (weeks: the restart from a crash state, per member, with the cluster's invariants
+surviving it) and the workload instances (D8, ~2k lines). S3/S5 are not on the path while their interim
+axioms hold.
+
+### 11.2 The statement (2026-11-24 redraft)
+
+- **`WellFormed` moved into the programs** (no pure premise the program can check): each machine's program
+  takes the whole deployment and its index (`serverProg d i`, `clientProg d j`, `nodeProg d n`), runs
+  Go's `dist.WellFormed` (exists, `deploy.go`, tested by `TestWellFormed`; needs to move from the test-side
+  `dist` package into a package the programs import) and returns if it fails. The skeleton case-splits:
+  `EtcdBootNCBad` (malformed: the bridge at no address, every program returns after its check). This also
+  removes `memberId` from the premises (Q5): Go computes it with Perennial's proved `crypto/sha1`.
+- **`TrustBoundary` dropped**: Iris contract premises become per-function axioms (premises-to-axioms).
+- **`NetStart` and the net halves of `ServerStart`/`ClientStart` dropped**: `Robust` itself assumes the
+  extensions' initial states (net's `initLocal`/`initGlobal` are exactly `init`).
+- Kept: `BootFacts` (pure, until bootstrap's results are Lean functions of `d`), `EtcdEnv`, `FsInit` (until
+  D4a), `HEnv`/`HEnvTok` (approved for `putget_safe`), instance binders. Bound `2 ^ 28 - 1` (`putget_safe`'s)
+  for both, until the proofs fix theirs (kvnet's crash theorem has `2 ^ 61`).
+- `putget`'s `S2Holds` generalization from the D9 commit was not taken (the putget files are the putget
+  leads'); the skeleton does not need it yet.
+
+## 12. The crash plan: D4 (the bundle under crash) and D6 (server restart)
+
+Specs first, then invariants, then proofs in parallel.
+
+**D4a. `fsSemWithS` gets `initLocal := FsInit`** (trusted semantics, small). Today `fsSemWithS`
+(`GooseLang/Ext/Fs/Premises.lean:37`) keeps the default `initLocal` (any state), so every theorem over
+`etcdFsSem` carries `FsInit` as a premise. With it, `FsInit` is `Robust`'s own assumption, as for
+`fs_semantics` (`Fs/Impl.lean:1330`). Owner sign-off (a trusted change). Independent of everything else.
+
+**D4b. The issue record keyed by incarnation, with a crash interpretation** (trusted semantics + axiom
+review). Today `IdIssueState := GMap w64 Loc` survives a crash unchanged (`IdIssue/Impl.lean:40,77`) and
+`idIssueExt` has no `ExtCrashInterp`. Change: the local state holds an epoch the crash relation increments,
+the record maps an id to `(machine, epoch, Loc)` (the global part, shared by machines; or local, if the
+member's prefix bits make ids disjoint across machines -- they do: `WellFormed`'s 16 low bits), `Issue`
+excludes reissuing an id under another key. Its semantics example (`examples/.../semantics`) and the
+nonissue's update; an axiom review (`axiom` skill) of `idutil.Next`'s trusted model over it. Ghost side:
+`idIssueCtx` per epoch; the crash interpretation drops the old epoch's ghost generator records but keeps
+the issued ids (so a restarted generator cannot reissue them). The D7 split puts `idPfxInv` on the
+member's machine: it must be re-established at each generation from the global `idKeyGenFacts` (the
+ghost-level `idIncarnation_alloc`, `idutil/Defs.lean:1011`, exists for the graceful restart).
+
+**D4c. The bridge for `etcdNetExts` with crashing machines** (untrusted). Generalize
+`robust_of_netFsBoot{,_addrs}` (`Net/Statement/NetFsBridge.lean`, hard-wired to `kvnetExts`) to a bundle
+`[idIssue, fs at a restricted semantics, net]` with D4b's crash interpretation: `crashPre`, `CrashBootWp`
+gain the issue record's crash rest. `etcdFsSem`'s crash relation is the file extension's
+(`fsSemWithS SQ Q`'s `crash` is `OsCrash st st' ∧ Q st st'`, and `etcdFsSem` has `Q := True`: checked). Template: kvnet's `kvPc`/`kvPc_crashBoot`/`kvPc_first`.
+
+**D6. The member's restart from a crash state.** Spec phase first:
+1. *The per-generation predicate* `memberGen i` (kvnet's `kvPc`): the persistent cluster facts
+   (`clusterFacts`, D7's global part) ∗ the member's durable ghost state at the generation's root
+   (`osShared` view of its data dir and WAL area) ∗ empty package state.
+2. *`NewServer` from a crash state*: one spec for both starts (`haveWAL` chosen by the files), over
+   `bootstrap`'s spec (#34 stage 5: `bootstrapRestartContract_holds`; interim axiom if #34 is not there)
+   and the WAL's `ReadAll` over fsExt (proved), with `walReadFacts` for crash states (C6, `walFoRes`, the
+   WAL tester's `BootFo`). The backend after a power loss: `storage.OpenBackend` is an axiom today;
+   its crash-state form is a new interim axiom (reviewed), retired by bbolt over fsExt (`osfs/bboltfs` is
+   the start).
+3. *The raft log's durability across the member's crash*: raft's invariants hold with the member's state
+   being its durable one (what the WAL keeps). Checked by reading the pin: raft v3.7's leader self-acks
+   only after persistence (`raft.go:851-857`) and etcd calls `Advance` after `storage.Save` (syncs), so a
+   single member never commits an unsynced entry. The kvnet proof's `kvGen_crash` is the model.
+4. *The restart invariant* (D7's remainder): the member's local invariants rebuilt from its files and
+   the global invariants (`InvRestart`'s graceful version is the start).
+
+**Can start now** (disjoint files): D4a (packet), D4b (design note + semantics example; Lean after
+sign-off), D4c (the bridge generalized over an abstract third extension: untrusted), D6.1-D6.2 specs (new
+files under `Spec/.../etcdserver/`, `Proof/.../dist/crash/`), D2 step 5 and D2 translation (shared scripts:
+announce on #28).
+
+## 13. What the multi-machine theorems make unnecessary (none removed; the owner decides)
+
+`examples/lib/cluster3` and its TCP relay `third_party/bridge` exist to inject partitions inside one
+process; over the net extension the network's faults replace them.
+
+| Single-process theorem / cluster3 example | Replaced by |
+|---|---|
+| `etcd_safe_single_process` (`examples/etcd/all`, 11 drivers) | `etcd_safe` (each driver a workload, §6) |
+| `etcd_leaseexpiryN_safe_single_process` | `etcd_safe`'s `leaseExpiry` workload (Q2) |
+| `k8s_safe_single_process` (`examples/k8s/all`) | k8s-dist's `k8s_safe` (`notes/k8s-dist.md`, Go done; no Lean yet, not ours) |
+| `examples/etcd/txnlinfaultsN` (cluster3 partitioner) | `etcd_safe`'s `kv` (M1/M3) |
+| `examples/etcd/partition` (`Check`, `MainWatch`) | `kv`, `watch` |
+| `examples/etcd/leasecatchup` | `leaseCatchup` |
+| `examples/k8s/etcd3`, `examples/k8s/compactor` | k8s-dist's store and compactor workloads |
+
+Retire with them: `examples/lib/cluster3` (`Partitioner`, `StartBridge`, its proofs);
+`third_party/bridge` and its five axioms (`bridgeAt`, `New.wp_proof`, `Blackhole`, `Unblackhole`,
+`DropConnections`); the single-process-only premises `Hlow`, `addrsUnclaimed`, `dataDirsAbsent`, `HWal`
+over many data directories, the schedules; the collections `etcd-all-single-process`,
+`leaseexpiryN-single-process`, `k8s-all-single-process`.
+
+**`examples/k8s/dist/{compactorcopy,storecopy}` import cluster3 and the bridge** only because they are
+byte-for-byte copies of the single-process drivers' packages (`TestVerbatim`), made to reach the drivers'
+unexported model and checks; the distributed workloads call only the copies' `export.go` wrappers, never
+`MainPartition`/`startCluster`. So the dist closure carries cluster3 and the bridge as dead code (their
+initializers; no bridge axiom is reached unless called). They should not: split each driver's model and
+checks into a package of their own that both the in-process driver and k8s-dist import, and drop the
+copies. (A k8s-dist change, its owner's; recorded here.)
