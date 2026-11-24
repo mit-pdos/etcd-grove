@@ -10,6 +10,8 @@ public import Net.Proof.net.http.ServeDefs
 public import Net.Proof.net.http.ConnReaderHead
 public import Net.Proof.net.http.ServerConnLemmas
 public import Net.Spec.net.OpError__Timeout
+public import Perennial.Proof.fmt.DoPrintf
+public import Net.Spec.net.Conn__Close
 
 @[expose] public section
 
@@ -257,6 +259,130 @@ theorem wp_shuttingDown (s : Loc) :
   imodintro
   wp_auto
   iapply HΦ; itrivial
+
+/-- `bw.Flush()` of a writer holding nothing: no write, the writer unchanged. -/
+theorem wp_rawFlush [bufio.Assumptions] (bw : Loc) (sz : Nat) :
+    {{ EtcdGrove.bufio.rawWriter (GF := GF) bw sz }}
+      (App (Val (bw @!! go.GoType.PointerType bufio.Writer.ty @!! go!"Flush")) (Val #()))
+    {{ (e : GoInterface), RET #e; EtcdGrove.bufio.rawWriter bw sz }} := by
+  wp_start as Hraw
+  iunfold EtcdGrove.bufio.rawWriter at Hraw
+  icases Hraw with ⟨%v, %bs, Hb, Hbuf, %Hv⟩
+  have hn := Hv.2.2
+  wp_auto
+  rcases hE : v.err' with _ | i
+  all_goals wp_auto
+  all_goals try (simp only [hn, decide_true]; wp_auto)
+  all_goals
+    iapply HΦ
+    iunfold EtcdGrove.bufio.rawWriter
+    iexists v, bs
+    iframe Hb Hbuf
+    ipureintro; exact Hv
+
+/-- `putBufioReader(br)` of a raw reader: reset to `nil`, back in `bufioReaderPool`. -/
+theorem wp_putBufioReader [bufio.Assumptions]
+    (wp_Reset : EtcdGrove.bufio.Reader.Reset.spec (GF := GF) (hG := hG)) (br : Loc) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ rPool ∗ EtcdGrove.bufio.rawReader (GF := GF) br }}
+      (App (Val (@! net.http.putBufioReader)) (Val #br))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hpool, Hraw⟩
+  wp_auto
+  wp_apply wp_Reset br _ $$ [$Hraw] as Hfr
+  · ipureintro; left; rfl
+  ihave Hraw := EtcdGrove.bufio.freshReader_raw _ _ $$ Hfr
+  try wp_auto
+  iunfold rPool at Hpool
+  wp_apply sync.Pool.wp_Put $$ [$Hpool Hraw]
+  · iunfold rPoolP; iexists br; iframe Hraw; ipureintro; rfl
+  iapply HΦ; itrivial
+
+/-- `c.close()` of a connection whose buffered reader and writer are raw (nothing read past what
+was consumed, nothing written through the writer): both back in their pools, the connection
+closed. -/
+theorem wp_conn_close [bufio.Assumptions]
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (wp_RReset : EtcdGrove.bufio.Reader.Reset.spec (GF := GF) (hG := hG))
+    (wp_WReset : EtcdGrove.bufio.Writer.Reset.spec (GF := GF) (hG := hG))
+    (c br bw t : Loc) (cn : Nat) (a : GoString) (la ra : GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ rPool ∗ wPools ∗
+        structFieldRef net.http.conn go!"bufr" c ↦ br ∗ EtcdGrove.bufio.rawReader br ∗
+        structFieldRef net.http.conn go!"bufw" c ↦ bw ∗ EtcdGrove.bufio.rawWriter bw 4096 ∗
+        structFieldRef net.http.conn go!"rwc" c ↦□
+          interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
+        connAt t cn true a la ra ∗ connIs (Gg := hG.goose_globalGS) cn }}
+      (App (Val (c @!! go.GoType.PointerType net.http.conn.ty @!! go!"close")) (Val #()))
+    {{ RET #(); structFieldRef net.http.conn go!"bufr" c ↦ (null : Loc) ∗
+        structFieldRef net.http.conn go!"bufw" c ↦ (null : Loc) }} := by
+  wp_start as ⟨#Hrpool, #Hwpools, Hbr, Hraw, Hbw, Hwraw, #Hrwc, #Hca, #Hci⟩
+  wp_auto
+  rw [method_unfold (t := go.GoType.PointerType net.http.conn.ty) (m := go!"finalFlush")]
+  iunfold EtcdGrove.bufio.rawReader at Hraw
+  icases Hraw with ⟨%rv, %rbs, Hrb, Hrbuf, %Hrv⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hrb with ⟨Hrb, %Hbrnn⟩
+  ihave Hraw : EtcdGrove.bufio.rawReader br $$ [Hrb Hrbuf]
+  · iunfold EtcdGrove.bufio.rawReader; iexists rv, rbs; iframe Hrb Hrbuf; ipureintro; exact Hrv
+  iunfold EtcdGrove.bufio.rawWriter at Hwraw
+  icases Hwraw with ⟨%wv, %wbs, Hwb, Hwbuf, %Hwv⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hwb with ⟨Hwb, %Hbwnn⟩
+  ihave Hwraw : EtcdGrove.bufio.rawWriter bw 4096 $$ [Hwb Hwbuf]
+  · iunfold EtcdGrove.bufio.rawWriter; iexists wv, wbs; iframe Hwb Hwbuf; ipureintro; exact Hwv
+  wp_auto
+  simp only [Hbrnn, decide_false, Bool.not_false]
+  wp_auto
+  wp_apply wp_putBufioReader wp_RReset br $$ [$Hrpool $Hraw]
+  try wp_auto
+  simp only [Hbwnn, decide_false, Bool.not_false]
+  try wp_auto
+  wp_apply wp_rawFlush bw 4096 $$ [$Hwraw] as %e Hwraw
+  try wp_auto
+  wp_apply wp_putBufioWriter wp_WReset bw 4096 (.inr rfl) $$ [$Hwpools $Hwraw]
+  try wp_auto
+  wp_apply wp_Close t cn true a la ra (fun _ => iprop(True)) $$ [$Hca] as %err -
+  · imod close_au (Gg := hG.goose_globalGS) cn true $$ Hci with ⟨%st, %d, Hst, Hd, Hk⟩
+    imodintro
+    iexists st, d
+    iframe Hst Hd
+    iintro %res %st' %d' %Hco Hst' Hd'
+    imod Hk $$ %res %st' %d' %Hco Hst' Hd' with -
+    imodintro
+    itrivial
+  try wp_auto
+  iapply HΦ
+  iframe
+
+/-- `fmt.Fprintf(w, f)` of a format `f` without a verb and no arguments: one `w.Write` of `f`'s bytes.
+(Perennial's `fmt.Fprintf.spec` lets the writer's spec see only some bytes, not which; its proof
+writes `SprintfOut`'s output, which here is `f`: proved over the same callees.) -/
+theorem wp_Fprintf_noVerb [fmt.Assumptions] (ii : GoInterfaceOk) (f : GoString)
+    (hf : ∀ c ∈ f, c ≠ W8 37) (P : IProp GF) (Q : w64 → GoInterface → IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ P ∗
+        (∀ (sl : GoSlice) (Φ : val → IProp GF), P -∗ sl ↦* f -∗
+          ▷ (∀ (n : w64) (err : GoInterface), sl ↦* f -∗ Q n err -∗ Φ (PairV #n #err)) -∗
+          WP (App (Val #(methods ii.ty go!"Write" ii.v)) (Val #sl)) {{ Φ }}) }}
+      (App (App (App (Val (@! fmt.Fprintf)) (Val #(interface.ok ii))) (Val #f)) (Val #slice.nil))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err); Q n err }} := by
+  wp_start as ⟨HP, HW⟩
+  try wp_auto
+  ihave Hsl := ownSlice_nil (V := GoInterface) (DFrac.own 1)
+  have hdo := fmt.wp_doPrintf (GF := GF) f slice.nil [] (DFrac.own 1) false
+  rw [fmt.modeVerbs_false] at hdo
+  wp_apply hdo $$ [$Hsl] as %s %wsl %unk ⟨-, %Hs, -⟩
+  · iapply fmt.argsOk_of_argsWf; exact fmt.ArgsWf.nil
+  have hs := SprintfOut_noVerb hf Hs
+  subst hs
+  try wp_auto
+  wp_apply (fmt.wp_printerBuf s) as %bsl ⟨Hb, %spare, Hspare⟩
+  try wp_auto
+  wp_bind (App (Val #(methods ii.ty go!"Write" ii.v)) (Val #bsl))
+  iapply HW $$ HP Hb
+  inext
+  iintro %n %err Hb HQ
+  try wp_auto
+  wp_apply (fmt.wp_retire bsl s spare) $$ [$Hb $Hspare]
+  try wp_auto
+  iapply HΦ
+  iexact HQ
 
 end lemmas
 
