@@ -125,20 +125,31 @@ theorem appNode_extend (γr : RNames) (n : NodeH) (l l' : List LogEntry) (k : Na
   · iapply skippedIn_prefix _ l l' _ _ hp hk $$ Hs
   ipureintro; exact Hv
 
-/-- The applier's view opened for `Advance`: the node's configuration view, every conf entry
-from its index skipped. -/
-theorem appNode_open (γr : RNames) (n : NodeH) (l : List LogEntry) (k : Nat) (m : Membership) :
+/-- The applier's view opened for `Advance`: the node's configuration view, and (2026-11-24, option D
+of `notes/raft-restart-confpoint.md`) the membership at `k` its membership (`confAt_skipped`: every
+conf entry from its index skipped); back at `k` (where `Advance` moves the view). -/
+theorem appNode_open (γr : RNames) (n : NodeH) (l : List LogEntry) (k : Nat) (m : Membership)
+    (hk : k ≤ l.length) :
     appNode (GF := GF) γr n l k m ⊢ ∃ v : ConfigView, nodeConfig n γr.cluster kvrRaftN v ∗
-      skippedIn γr.cluster l v.applied k ∗
-      (nodeConfig n γr.cluster kvrRaftN v -∗ appNode γr n l k m) := by
+      confAt γr.cluster (max v.applied k) v.membership ∗
+      (nodeConfig n γr.cluster kvrRaftN ⟨max v.applied k, v.membership⟩ -∗ appNode γr n l k m) := by
   unfold appNode
   iintro ⟨%v, Hc, #Hd, #Hs, %Hv⟩
+  icases nodeConfig_confAt n γr.cluster kvrRaftN v $$ Hc with ⟨Hc, #Hca⟩
+  ihave #Hcl := deliveredLogLb_committed n γr.cluster kvrRaftN l $$ Hd
   iexists v
-  iframe Hc Hs
+  rw [Nat.max_eq_right Hv.2]
+  iframe Hc
+  isplitr
+  · iapply confAt_skipped γr.cluster l v.applied k v.membership Hv.2 hk
+    iframe Hcl Hca Hs
   iintro Hc
-  iexists v
-  iframe Hc Hd Hs
-  ipureintro; exact Hv
+  iexists ⟨k, v.membership⟩
+  iframe Hc Hd
+  isplitl []
+  · iapply skippedIn_noConf
+    intro j e h1 h2; simp only at h1 h2; omega
+  ipureintro; exact ⟨Hv.1, Nat.le_refl _⟩
 
 /-- A delivered log with an entry frozen above the compaction point is shorter than `2^61`. -/
 theorem frozenTo_len (γs : MemStorNames) (c : Nat) (D : List LogEntry) :

@@ -49,7 +49,7 @@ theorem probeA_round (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64)
       (∀ (ce : List LogEntry) (es : List EntryM), readySnap γ N id rd st ce es none -∗
         advReceipt st.storage (st.delivered ++ ce).length es none ∗
         ∃ v : ConfigView, nodeConfig n γ N v ∗
-          skippedIn γ (st.delivered ++ ce) v.applied (st.delivered ++ ce).length) -∗
+          confAt γ (max v.applied (st.delivered ++ ce).length) v.membership) -∗
       |={⊤}=> notCrashed ∗ ∃ (ms : List QMsg) (S : RaftState), rd.Messages' ↦* ms.map QMsg.loc ∗ raftState γ id S ∗
         nodeRunning n γ N qr ∗
         WP (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))

@@ -264,3 +264,37 @@ Steps:
 A, when the server's membership changes are verified: the plan of section 2.A, starting with the term
 case of `lc_far_newer` (a pen-and-paper check of item 8's argument against the ghost state's facts:
 whether acknowledgements give a per-voter durable term lower bound the vote table can read).
+
+## Implementation of D (2026-11-24, branch `raft-restart-confpoint/2026-11-24`)
+
+Checkpoint log (newest last). Ledger entry: `notes/specs-only/ledger.md`, 2026-11-24 (committed first).
+
+**Raft internals (as built).**
+- `CfgKeep dec l lo hi cs` (`Protocol/StepR.lean`): folding the entries of `[lo, hi)` from `cs` gives `cs`
+  back; replaces `NoUndecConfIn` in `StepR.advance`/`applyConf` (lemmas `of_le`, `fold`, `of_folds`,
+  `congr`, `prefix`, `of_prefix`, `trans`, `mono_dec` in `StepRInv.lean`/`StepR.lean`). `RInv_cidxJump`
+  (`StepRInv.lean`) and its ghost form `ownStepGhost_cidxJump` (`InvRawnode.lean`).
+- `undecFree` replaced by `cfgKeepIn γ md D lo hi cfg` (`InvRawnode.lean`); `DynCCPreOp` (`ApiVocab.lean`,
+  and RaftNoAx's own copy) takes `CfgKeep dec D ca k cfg`; `DynHyp`/`GMode.Pre` take `CfgKeep`.
+- `RawNode.Advance.spec`'s `HA1`: `cfgKeepIn γ rs.mode rs.delivered rs.capplied rs.delivered.length rs.cfg`.
+  `TracedRawNodeAdvance`: before stepping the queue the ghost index jumps to `max capplied |delivered|`
+  (every acknowledgement of the queue is at most `applying`, so each step passes no entry; the queue
+  may hold several `MsgStorageApplyResp`s, and `CfgKeep` is not monotone in its range).
+- `runCfg`: the driver's view at or ahead of `capplied` (`capplied ≤ ca`, ahead only within `rsDlv`,
+  with `cfgKeepIn (rsDlv rs) capplied ca rs.cfg`); the `advancec` rendezvous moves the view
+  (dynamic mode, no snapshot) to `max ca |delivered|` (`capPay`/`capAns`/`loanReq`/`loanCfg` take the
+  length `n`, `advanceP γ L x n`); `advRet0` carries `|delivered| ≤ ca_d`; `runCfg_a1`/`runCfgR_a1`/
+  `runCfg_advance` rebuilt; `dynCCPreOp_transfer` from the view ahead.
+- API wrappers: `confAt_keep_impl` (`InvApiDec.lean`) turns two `confAtU`s of one membership into a
+  `CfgKeep` over the delivered log; `node.ApplyConfChange`'s and `node.Advance`'s wrappers use it.
+
+**The specs (as stated).** `node.ApplyConfChange.spec`: `confAt γ k v.membership` in place of
+`skippedIn γ l v.applied k`. `node.Advance.spec` (and `node.Advance.tracedSpec`), no-snapshot arm:
+premise `confAt γ (max v.applied st.delivered.length) v.membership`, post
+`nodeConfig n γ N ⟨max v.applied st.delivered.length, v.membership⟩`.
+
+**Clients.** kv (`KV__run`), kvreconf (`appNode_open` returns the `confAt` and takes the view back at
+`k`; `wp_conf_apply` by `confAt_skipped`), kvdurable (same; the restart-window arm keeps the view ahead),
+kvnet (KvNet's own copies of kvdurable's three files), tracecheck (`Cluster__app`, `Cluster__handleReady`,
+`ProbeALinked`), the server's `NodeBridge` (minimal: `confAt` from its `NoConfChangeIn` facts, the view
+moved after `Advance`). RaftTla/RaftNoAx/KvNet copies regenerated.

@@ -402,13 +402,22 @@ theorem KV.run.wp_proof
       -- the reads whose index is applied, answered
       wp_apply wp_answer γr γp r id n st (D ++ ce) pv' (ps ++ vls) (DFrac.own 1) a' (by rw [← Ha']; word)
         $$ [$Hpkg $Hrep $Hown $Hpv $Hps'] as %rest ⟨Hown, %ps', Hrest, Hcap2, #Hps2⟩
-      -- `r.node.Advance()`: every conf entry delivered skipped (there is none)
+      -- `r.node.Advance()`: every conf entry delivered skipped (there is none), so the view's
+      -- membership the cluster's at the committed log delivered (`confAt_skipped`); the view moves there
       iunfold appNode at Hview
       icases Hview with ⟨%v, Hcfg, -, -, %Hv⟩
+      have Hva : v.applied ≤ (D ++ ce).length := by
+        have := Hv.2; simp only [List.length_append]; omega
       ihave #Hsk := skippedIn_noConf γr.cluster (D ++ ce) v.applied (D ++ ce).length
         (fun j e _ h2 h3 => Hnc j e (Nat.zero_le _) h2 h3)
+      icases nodeConfig_confAt n γr.cluster kvRaftN v $$ Hcfg with ⟨Hcfg, #Hca⟩
+      ihave #Hcl := deliveredLogLb_committed n γr.cluster kvRaftN (D ++ ce) $$ Hdl
+      ihave #Hsk' : confAt γr.cluster (max v.applied (D ++ ce).length) v.membership $$ []
+      · rw [Nat.max_eq_right Hva]
+        iapply confAt_skipped γr.cluster (D ++ ce) v.applied _ v.membership Hva (Nat.le_refl _)
+        iframe Hcl Hca Hsk
       wp_apply wp_node_Advance n γr.cluster kvRaftN id _ es none v rfl (fun _ h => by cases h)
-        $$ [$Hraftinit $Hiscl $HisNode $Hdrv $Hrcpt $Hcfg $Hsk] as Hadv
+        $$ [$Hraftinit $Hiscl $HisNode $Hdrv $Hrcpt $Hcfg $Hsk'] as Hadv
       icases Hadv with (⟨Hdrv, #Hal', Hcfg⟩ | ⟨#Hstop, -⟩)
       rotate_left
       · iexfalso
@@ -416,10 +425,14 @@ theorem KV.run.wp_proof
         iframe Hrun Hstop
       ihave Hview : appNode γr n (D ++ ce) (D ++ ce).length (kvMembership γr) $$ [Hcfg]
       · unfold appNode
-        iexists v
-        iframe Hcfg Hdl Hsk
+        iexists ⟨(D ++ ce).length, v.membership⟩
+        rw [Nat.max_eq_right Hva]
+        iframe Hcfg Hdl
+        isplitl []
+        · iapply skippedIn_noConf γr.cluster (D ++ ce) _ _
+            (fun j e h1 h2 _ => absurd h2 (by simp only at h1; omega))
         ipureintro
-        exact ⟨Hv.1, by have := Hv.2; simp only [List.length_append]; omega⟩
+        exact ⟨Hv.1, Nat.le_refl _⟩
       try wp_auto
       wp_if_destruct
       · -- a snapshot of the state at the applied index, then a compaction below it

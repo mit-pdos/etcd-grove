@@ -309,7 +309,8 @@ theorem Replica.run.wp_proof
           ihave #HkC' := HkC
           iunfold kvrCluster at HkC'
           icases HkC' with ⟨#Hic, -⟩
-          icases appNode_open γr n (D ++ ce) (D ++ ce).length m' $$ Hview with ⟨%v, Hcfg, #Hsk, Hback⟩
+          icases appNode_open γr n (D ++ ce) (D ++ ce).length m' (Nat.le_refl _) $$ Hview
+            with ⟨%v, Hcfg, #Hsk, Hback⟩
           wp_apply wp_Advance n γr.cluster kvrRaftN id _ es none v rfl (fun _ h => by cases h)
             $$ [$HrP $Hic $HisNode $Hdrv $Hrcpt $Hcfg $Hsk] as Hadv
           icases Hadv with (⟨Hdrv, #Hal', Hcfg⟩ | ⟨#Hstop, -⟩)

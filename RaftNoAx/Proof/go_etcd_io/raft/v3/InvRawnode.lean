@@ -2122,69 +2122,86 @@ theorem ownStepGhost_absorbM (γ : RaftNames) (mode : RNMode) (g : RGh) (c : Cfg
     iapply ownStepGhost_absorb γ dec c0 h0 g c id s M
     iframe HM H
 
+/-- (2026-11-24, option D of `notes/raft-restart-confpoint.md`) **The ghost configuration index jumps**
+to `b` (within the commit index) over entries that keep the configuration (`RInv_cidxJump`): only the
+invariant reads it. -/
+theorem ownStepGhost_cidxJump (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh)
+    (c : CfgM) (id : w64) (s : NState) (b : Nat) (hb1 : g.cidx ≤ b)
+    (hb2 : b ≤ uint.nat (rOf s g).p.commit)
+    (hk : CfgKeep (effDec dec g.decs) (rOf s g).full g.cidx b g.cfg) :
+    ownStepGhost (GF := GF) γ (.dyn dec c0 h0 g) c id s ⊢
+      ownStepGhost γ (.dyn dec c0 h0 { g with cidx := b }) c id s := by
+  iintro H
+  icases (ownStepGhost_dyn γ dec c0 h0 g c id s).1 $$ H with ⟨%Hp, #Hg, Hr, Hl⟩
+  iapply (ownStepGhost_dyn γ dec c0 h0 { g with cidx := b } c id s).2
+  iunfold ownRaftGhostR at Hr
+  icases Hr with ⟨Hr, %HI, #Hfr⟩
+  iframe Hg Hl
+  isplitr
+  · ipureintro; exact Hp
+  iunfold ownRaftGhostR
+  isplitl [Hr]
+  · iExactEq Hr; rfl
+  isplitr
+  · ipureintro
+    exact RInv_cidxJump b HI hb1 hb2 hk
+  iExactEq Hfr; rfl
+
 /-- (2026-10-28, the conf-change decision switch) **A1 over the client's decisions**: in the dynamic
-mode, every conf entry of `D` at the positions `[lo, hi)` is rejected by the mode's decoder over
-some decisions recorded (`NoUndecConfIn`, `decLb`): skipped. (Until then no conf entry at all,
+mode, the configuration `cfg` is kept over the positions `[lo, hi)` of `D` by the mode's decoder over
+some decisions recorded (`CfgKeep`, `decLb`). (Until 2026-11-24 `undecFree`, every conf entry there
+rejected, `NoUndecConfIn`: etcd's replayed conf entries after a restart are decided `.apply` and
+skipped, `notes/raft-restart-confpoint.md`, option D; until 2026-10-28 no conf entry at all,
 `NoConfIn`.) Nothing in the static mode. Persistent. -/
-def undecFree (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi : Nat) : IProp GF :=
+def cfgKeepIn (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi : Nat) (cfg : CCState) :
+    IProp GF :=
   iprop(∃ M : DecMap, decLb γ M ∗ ⌜∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →
-    NoUndecConfIn (effDec dec M) D lo hi⌝)
+    CfgKeep (effDec dec M) D lo hi cfg⌝)
 
-instance undecFree_pers (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi : Nat) :
-    Persistent (undecFree (GF := GF) γ md D lo hi) := by
-  unfold undecFree; infer_instance
+instance cfgKeepIn_pers (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi : Nat)
+    (cfg : CCState) : Persistent (cfgKeepIn (GF := GF) γ md D lo hi cfg) := by
+  unfold cfgKeepIn; infer_instance
 
-theorem undecFree_noConf (γ : RaftNames) (md : RNMode) {D : List EntryM} {lo hi : Nat}
-    (h : NoConfIn D lo hi) : ⊢ undecFree (GF := GF) γ md D lo hi := by
-  unfold undecFree
+/-- Over an empty range. -/
+theorem cfgKeepIn_le (γ : RaftNames) (md : RNMode) (D : List EntryM) {lo hi : Nat} (cfg : CCState)
+    (h : hi ≤ lo) : ⊢ cfgKeepIn (GF := GF) γ md D lo hi cfg := by
+  unfold cfgKeepIn
   iexists ∅
   isplitr; · iapply decLb_empty
-  ipureintro; intro _ _ _ _ _; exact h.noUndec
+  ipureintro; intro _ _ _ _ _; exact CfgKeep.of_le h
 
-theorem undecFree_empty (γ : RaftNames) (md : RNMode) (D : List EntryM) (a : Nat) :
-    ⊢ undecFree (GF := GF) γ md D a a :=
-  undecFree_noConf γ md (fun _ _ _ h2 _ => absurd h2 (by omega))
-
-theorem undecFree_static (γ : RaftNames) {md : RNMode} (h : md.isDyn = false) (D : List EntryM)
-    (lo hi : Nat) : ⊢ undecFree (GF := GF) γ md D lo hi := by
-  unfold undecFree
+theorem cfgKeepIn_static (γ : RaftNames) {md : RNMode} (h : md.isDyn = false) (D : List EntryM)
+    (lo hi : Nat) (cfg : CCState) : ⊢ cfgKeepIn (GF := GF) γ md D lo hi cfg := by
+  unfold cfgKeepIn
   iexists ∅
   isplitr; · iapply decLb_empty
   ipureintro; intro _ _ _ _ hm; rw [hm] at h; cases h
 
-theorem undecFree_mono (γ : RaftNames) (md : RNMode) {D : List EntryM} {lo hi lo' hi' : Nat}
-    (h1 : lo ≤ lo') (h2 : hi' ≤ hi) :
-    undecFree (GF := GF) γ md D lo hi ⊢ undecFree γ md D lo' hi' := by
-  unfold undecFree
-  iintro ⟨%M, #HM, %H⟩
-  iexists M
-  iframe HM
-  ipureintro; intro dec c0 h0 h1' hm; exact (H dec c0 h0 h1' hm).mono h1 h2
-
-theorem undecFree_prefix (γ : RaftNames) (md : RNMode) {D D' : List EntryM} {lo hi : Nat}
-    (hp : D <+: D') (hh : hi ≤ D.length) :
-    undecFree (GF := GF) γ md D lo hi ⊢ undecFree γ md D' lo hi := by
-  unfold undecFree
+theorem cfgKeepIn_prefix (γ : RaftNames) (md : RNMode) {D D' : List EntryM} {lo hi : Nat}
+    {cfg : CCState} (hp : D <+: D') (hh : hi ≤ D.length) :
+    cfgKeepIn (GF := GF) γ md D lo hi cfg ⊢ cfgKeepIn γ md D' lo hi cfg := by
+  unfold cfgKeepIn
   iintro ⟨%M, #HM, %H⟩
   iexists M
   iframe HM
   ipureintro; intro dec c0 h0 h1 hm; exact (H dec c0 h0 h1 hm).prefix hp hh
 
-theorem undecFree_of_prefix (γ : RaftNames) (md : RNMode) {D D' : List EntryM} {lo hi : Nat}
-    (hp : D <+: D') (hh : hi ≤ D.length) :
-    undecFree (GF := GF) γ md D' lo hi ⊢ undecFree γ md D lo hi := by
-  unfold undecFree
+theorem cfgKeepIn_of_prefix (γ : RaftNames) (md : RNMode) {D D' : List EntryM} {lo hi : Nat}
+    {cfg : CCState} (hp : D <+: D') (hh : hi ≤ D.length) :
+    cfgKeepIn (GF := GF) γ md D' lo hi cfg ⊢ cfgKeepIn γ md D lo hi cfg := by
+  unfold cfgKeepIn
   iintro ⟨%M, #HM, %H⟩
   iexists M
   iframe HM
   ipureintro; intro dec c0 h0 h1 hm; exact (H dec c0 h0 h1 hm).of_prefix hp hh
 
 /-- With more decisions recorded (`M`, which joins the witness). -/
-theorem undecFree_join (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi : Nat) (M : DecMap) :
-    decLb (GF := GF) γ M ∗ undecFree γ md D lo hi ⊢
+theorem cfgKeepIn_join (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi : Nat)
+    (cfg : CCState) (M : DecMap) :
+    decLb (GF := GF) γ M ∗ cfgKeepIn γ md D lo hi cfg ⊢
       ∃ M' : DecMap, decLb γ M' ∗ ⌜M ⊆ M'⌝ ∗
-        ⌜∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 → NoUndecConfIn (effDec dec M') D lo hi⌝ := by
-  unfold undecFree
+        ⌜∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 → CfgKeep (effDec dec M') D lo hi cfg⌝ := by
+  unfold cfgKeepIn
   iintro ⟨#HM, %M2, #HM2, %H⟩
   icases decLb_compat γ M M2 $$ [HM HM2] with %Hc
   · iframe HM HM2
@@ -2196,19 +2213,20 @@ theorem undecFree_join (γ : RaftNames) (md : RNMode) (D : List EntryM) (lo hi :
   refine ⟨DecCompat.sub_left M M2, fun dec c0 h0 h1 hm => ?_⟩
   exact (H dec c0 h0 h1 hm).mono_dec (effDec_mono dec (DecCompat.sub_right Hc))
 
-theorem undecFree_trans (γ : RaftNames) (md : RNMode) (D : List EntryM) (a b c : Nat) :
-    undecFree (GF := GF) γ md D a b ∗ undecFree γ md D b c ⊢ undecFree γ md D a c := by
+theorem cfgKeepIn_trans (γ : RaftNames) (md : RNMode) (D : List EntryM) (a b c : Nat)
+    (cfg : CCState) (hab : a ≤ b) (hbc : b ≤ c) :
+    cfgKeepIn (GF := GF) γ md D a b cfg ∗ cfgKeepIn γ md D b c cfg ⊢ cfgKeepIn γ md D a c cfg := by
   iintro ⟨H1, H2⟩
   ihave ⟨%M1, #HM1, %H1p⟩ : iprop(∃ M : DecMap, decLb γ M ∗ ⌜∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →
-      NoUndecConfIn (effDec dec M) D a b⌝) $$ [H1]
-  · unfold undecFree; iexact H1
-  icases undecFree_join γ md D b c M1 $$ [HM1 H2] with ⟨%M', #HM', %Hsub, %H2p⟩
+      CfgKeep (effDec dec M) D a b cfg⌝) $$ [H1]
+  · unfold cfgKeepIn; iexact H1
+  icases cfgKeepIn_join γ md D b c cfg M1 $$ [HM1 H2] with ⟨%M', #HM', %Hsub, %H2p⟩
   · iframe HM1 H2
-  unfold undecFree
+  unfold cfgKeepIn
   iexists M'
   iframe HM'
   ipureintro; intro dec c0 h0 h1 hm
-  exact ((H1p dec c0 h0 h1 hm).mono_dec (effDec_mono dec Hsub)).trans (H2p dec c0 h0 h1 hm)
+  exact ((H1p dec c0 h0 h1 hm).mono_dec (effDec_mono dec Hsub)).trans (H2p dec c0 h0 h1 hm) hab hbc
 
 /-- `loanDec` of a loan, if any (what the driver holds of a `Ready`'s loan, `nodeDriverBusy`). -/
 def loanDecO (γ : RaftNames) : Option SnapLoan → IProp GF

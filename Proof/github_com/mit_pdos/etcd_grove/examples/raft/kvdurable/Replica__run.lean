@@ -966,15 +966,16 @@ theorem Replica.run.wp_proof
         iunfold kdCluster at HkC'
         icases HkC' with ⟨#Hic, -⟩
         ihave ⟨%v, Hcfg, #Hsk, Hback⟩ : iprop(∃ v : ConfigView, nodeConfig n γ.r.cluster kdRaftN v ∗
-            skippedIn γ.r.cluster (D ++ ce) v.applied (D ++ ce).length ∗
-            (nodeConfig n γ.r.cluster kdRaftN v -∗
+            confAt γ.r.cluster (max v.applied (D ++ ce).length) v.membership ∗
+            (nodeConfig n γ.r.cluster kdRaftN ⟨max v.applied (D ++ ce).length, v.membership⟩ -∗
               ((⌜(D ++ ce).length = ap'.length⌝ ∗ appNode γ n (D ++ ce) (D ++ ce).length m') ∨
                (⌜(D ++ ce).length < ap'.length⌝ ∗ nodeConfig n γ.r.cluster kdRaftN ⟨ap'.length, m'⟩ ∗
                  deliveredLogLb n γ.r.cluster kdRaftN (D ++ ce))))) $$ [Hview]
         · rw [Hfull]
           icases Hview with (⟨%Heq, Hv⟩ | ⟨%Hlt, Hc⟩)
           · rw [show (D ++ ce).length = ap'.length by omega]
-            icases appNode_open γ n (D ++ ce) ap'.length m' $$ Hv with ⟨%v, Hcfg, #Hsk, Hback⟩
+            icases appNode_open γ n (D ++ ce) ap'.length m' (by omega) $$ Hv
+              with ⟨%v, Hcfg, #Hsk, Hback⟩
             iexists v
             iframe Hcfg Hsk
             iintro Hc
@@ -982,11 +983,12 @@ theorem Replica.run.wp_proof
             isplitr
             · ipureintro; rfl
             iapply Hback $$ Hc
-          · iexists ⟨ap'.length, m'⟩
-            iframe Hc
-            isplitr
-            · iapply skippedIn_noConf
-              intro j e h1 h2; simp only at h1; omega
+          · -- (2026-11-24, option D) the view ahead of the committed log delivered: it stays
+            icases nodeConfig_confAt n γ.r.cluster kdRaftN ⟨ap'.length, m'⟩ $$ Hc with ⟨Hc, #Hca⟩
+            iexists ⟨ap'.length, m'⟩
+            simp only
+            rw [Nat.max_eq_left (by omega)]
+            iframe Hc Hca
             iintro Hc
             iright
             iframe Hc Hdl
