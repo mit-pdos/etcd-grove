@@ -136,6 +136,11 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           simp only [client.etcdLeaseReadMethods, List.mem_cons, List.mem_nil_iff,
             _root_.or_false] at hm
           rcases hm with rfl | rfl <;> simp [v3rpc.leaseRegs])
+        (by
+          intro m hm
+          simp only [client.etcdLeaseReadMethods, List.mem_cons, List.mem_nil_iff,
+            _root_.or_false] at hm
+          rcases hm with rfl | rfl <;> simp [etcdTys, etcdTyList])
         Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
     · iframe; iframe #
       iintro !>
@@ -192,6 +197,11 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           simp only [client.etcdLeaseGrantMethods, List.mem_cons, List.mem_nil_iff,
             _root_.or_false] at hm
           rcases hm with rfl | rfl | rfl <;> simp [v3rpc.leaseRegs])
+        (by
+          intro m hm
+          simp only [client.etcdLeaseGrantMethods, List.mem_cons, List.mem_nil_iff,
+            _root_.or_false] at hm
+          rcases hm with rfl | rfl | rfl <;> simp [etcdTys, etcdTyList])
         Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, -, -, -, -, -, Hle⟩
     · iframe; iframe #
       iintro !>
@@ -251,6 +261,11 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           simp only [client.etcdLeaseGrantLiveMethods, List.mem_cons, List.mem_nil_iff,
             _root_.or_false] at hm
           rcases hm with rfl | rfl | rfl <;> simp [v3rpc.leaseRegs])
+        (by
+          intro m hm
+          simp only [client.etcdLeaseGrantLiveMethods, List.mem_cons, List.mem_nil_iff,
+            _root_.or_false] at hm
+          rcases hm with rfl | rfl | rfl <;> simp [etcdTys, etcdTyList])
         Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, -, -, -, -, -, Hle⟩
     · iframe; iframe #
       iintro !>
