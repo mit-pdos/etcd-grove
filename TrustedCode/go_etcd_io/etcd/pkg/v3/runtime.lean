@@ -1,7 +1,7 @@
 /-
 Trusted code for etcd's `go.etcd.io/etcd/pkg/v3/runtime` (`pkg/runtime/fds_linux.go`, etcd
 `edc800c6f262`), in the generated package's namespace (`Code/go_etcd_io/etcd/pkg/v3/runtime.toml`):
-models of `FDUsage` and `FDLimit` (prove-ps2-srvgoroutines, 2026-11-24; Upamanyu's decision (b) on
+models of `FDUsage` and `FDLimit` (prove-ps2-srvgoroutines, 2026-11-24; the decision (b) on
 etcd-grove#42: until then their one caller, etcdserver's `monitorFileDescriptor`, was a names-only
 trust-boundary axiom). linux/amd64, Go 1.27.3 (`etc/goose.py`'s `GO_TOOLCHAIN`).
 
