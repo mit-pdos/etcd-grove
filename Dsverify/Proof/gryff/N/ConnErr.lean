@@ -17,6 +17,7 @@ module
 
 public import Dsverify.Proof.gryff.Wire.Proof.VarintWp
 public import Net.Proof.net.ConnIo
+public import Net.Proof.net.Errors
 public import Perennial.Proof.errors.NewVar
 public import Net.Proof.models_lab.Errors
 public import GooseLang.Ext.Net.Specs
@@ -73,10 +74,12 @@ theorem newVar_errAny (X msg : GoString) (e : GoInterface) :
     cases h
     exact ⟨x, rfl⟩
 
-/-- Any `*OpError` is `errAny` (its `Error()`, the net model's, returns some string). -/
-theorem opErrPtr_errAny (pe : Loc) :
-    ⊢ models_lab.errAny (GF := GF)
+/-- Any `*OpError` whose fields are persistent is `errAny` (its `Error()`, the net model's, reads
+them and returns a message of Go's form: `net.wp_OpError_Error`). -/
+theorem opErrPtr_errAny (pe : Loc) (v : Perennial.net.OpError) :
+    (pe ↦□ v : IProp GF) ⊢ models_lab.errAny (GF := GF)
       (interface.mkOk (go.GoType.PointerType Perennial.net.OpError.ty) #pe) := by
+  iintro #Hpe
   unfold models_lab.errAny
   iexists ⟨go.GoType.PointerType Perennial.net.OpError.ty, #pe⟩
   isplitr
@@ -85,17 +88,10 @@ theorem opErrPtr_errAny (pe : Loc) :
   · ipureintro; exact opError_ptr_isError'
   imodintro
   iintro %Φ HΦ
-  wp_method_call
-  wp_call
-  unfold Perennial.net.OpError.Error.impl
-  wp_auto
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyString
-  iintro %str
-  wp_auto
-  wp_if_destruct
-  · iapply HΦ
-  · iapply HΦ
+  iapply Perennial.net.wp_OpError_Error $$ Hpe
+  inext
+  iintro %msg -
+  iapply HΦ
 
 /-- See the file header. -/
 theorem rdErr_conn (t : Loc) (eof la ra ed : GoInterface) (err : GoInterface) (m : GoString) :
@@ -113,10 +109,10 @@ theorem rdErr_conn (t : Loc) (eof la ra ed : GoInterface) (err : GoInterface) (m
     · subst He
       iapply newVar_errAny $$ HEOF Heof
     · unfold Perennial.net.resErr Perennial.net.opErr
-      icases Hk with ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, -⟩, -⟩
+      icases Hk with ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
       subst Herr
       isplitl
-      · iapply opErrPtr_errAny
+      · iapply opErrPtr_errAny $$ Hpe
       · ipureintro
         intro ii T h _
         cases h

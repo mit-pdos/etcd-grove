@@ -128,9 +128,9 @@ theorem resErr_errAny_m [net.Assumptions] (k : NetErr) (op : GoString) (src addr
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
     Perennial.net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ models_lab.errAny err := by
   unfold Perennial.net.resErr Perennial.net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, -⟩, -⟩
+  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
   subst Herr
-  iapply netN.opErrPtr_errAny
+  iapply netN.opErrPtr_errAny $$ Hpe
 
 set_option goose.wp.extras true
 

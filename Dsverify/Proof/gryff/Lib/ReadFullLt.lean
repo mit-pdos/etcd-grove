@@ -138,9 +138,9 @@ theorem wp_connReadFull (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
           ihave ⟨H, -⟩ := netN.newVar_errAny _ _ _ $$ HEOFv Heof
           iexact H
         · unfold net.resErr net.opErr
-          icases Hk with ⟨%e', ⟨%pe, %nw, ⟨%Herr, -⟩, -⟩, -⟩
+          icases Hk with ⟨%e', ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
           subst Herr
-          iapply netN.opErrPtr_errAny
+          iapply netN.opErrPtr_errAny $$ Hpe
   iapply HΦ
   iexists ys
   iframe Hp HS HeA

@@ -200,11 +200,11 @@ theorem resErr_errAny (k : NetErr) (op : GoString) (src addr : GoInterface)
     Perennial.net.resErr (GF := GF) (some k) op src addr ed nm err ⊢
       ⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err := by
   unfold Perennial.net.resErr Perennial.net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, -⟩, -⟩
+  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
   subst Herr
   isplitr
   · ipureintro; simp [interface.mkOk]
-  iapply opErrPtr_errAny
+  iapply opErrPtr_errAny $$ Hpe
 
 /-- `bufio.NewReader(conn)` of a connection (`wire.wp_NewReader` at the conn's interface value). -/
 theorem wp_NewReader_conn (tc : Loc) (eof la ra ed : GoInterface) (I : List w8 → IProp GF)
