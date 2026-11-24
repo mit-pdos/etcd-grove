@@ -16,6 +16,10 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "GenericClientStream.Send", "GenericClientStream.Recv", "GenericServerStream.Send",
   "GenericServerStream.Recv", "GenericClientStream.CloseSend", "GenericClientStream.Context",
   "GenericServerStream.Context",
+  # (grpcdriver, 2026-11-24) the client-streaming wrappers gRPC's robustness driver calls, with their
+  # bodies (`GenericClientStream.CloseAndRecv`: `CloseSend`, then `RecvMsg` into a new reply;
+  # `GenericServerStream.SendAndClose`: `SendMsg`)
+  "GenericClientStream.CloseAndRecv", "GenericServerStream.SendAndClose",
   # (phase 7 S1, 2026-11-21, notes/phase7-plan.md; grpc is the model's since S0) the server
   # option constructors that only store a closure, with their bodies, and the closures' holder (the
   # dial options' come with `dialOptions`, whose fields need more of grpc's packages)
