@@ -56,13 +56,13 @@ theorem ownInitializing_of_empty (g : GoString → IProp GF) :
   iapply BigSepM.bigSepM_empty.2
   iempintro
 
+theorem rpcLe : ∀ q ∈ [pkg_id.net.rpc], q ∈ ownedPkgs := by decide
+theorem rpcHttpLe : ∀ q ∈ [pkg_id.net.rpc, pkg_id.net.http], q ∈ ownedPkgs := by decide
+
 variable {G : GoString → IProp GF} (hk : KitG G) (hT : threadBound GF ≤ 2 ^ 30)
 include hk hT
 
 set_option goose.wp.extras true
-
-theorem rpcLe : ∀ q ∈ [pkg_id.net.rpc], q ∈ ownedPkgs (GF := GF) := by decide
-theorem rpcHttpLe : ∀ q ∈ [pkg_id.net.rpc, pkg_id.net.http], q ∈ ownedPkgs (GF := GF) := by decide
 
 /-- **`rpcdriver`'s first initialization** (see the file header). -/
 theorem boot_rpcdriver :
@@ -99,8 +99,10 @@ theorem boot_rpcdriver :
     $$ Hown as ⟨Hown, #H7⟩
   wp_apply errors.wp_initialize' _ (wf_errors hk) $$ Hown as ⟨Hown, #H8⟩
   try wp_auto
-  wp_apply (wp_slice_literal (l := failList)) as %sf ⟨Hsf, -⟩
+  wp_apply (wp_slice_literal (l := failList))
+  isplitr
   · ipureintro; rfl
+  iintro %sf ⟨Hsf, -⟩
   try wp_auto
   imod (typedPointsto_dfractional _ _).dfractional_persist $$ HfailMsgs with #HfailMsgs
   imod (typedPointsto_dfractional _ _).dfractional_persist $$ Hreached with #Hreached
@@ -112,12 +114,13 @@ theorem boot_rpcdriver :
     iframe Hmux Hrf
     iunfold drvFacts
     isplitr
-    · iexists sf; iframe HfailMsgs Hsf
+    · iexists _; iframe HfailMsgs Hsf
     · iexists _
       iframe Hreached
       imodintro
       iintro %s
       wp_auto
+      ipureintro; rfl
   isplitr
   · ipureintro; exact isPanic_intoVal ()
   is_pkg_init_finish
