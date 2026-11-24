@@ -140,6 +140,11 @@ theorem newClient.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
       ihave #Hcl : isPkgInit (PROP := IProp netDistGF)
           pkg_id.github_com.imdea_software.swiftpaxos.client $$ []
       · iPkgInit
+      ihave Hfresh : client.freshOf (sp.PNode.cl c) $$ [Hfresh]
+      · iunfold client.ghostFresh at Hfresh
+        iunfold client.freshOf
+        simp only [client.nodeVar]
+        iexact Hfresh
       imod wp_claim γ.sp γ.conf γ.mem γ.lin (sp.PNode.cl c) $$ Hcl Hi Hfresh Htok
         with ⟨#Hreg, Hok⟩
       imodintro

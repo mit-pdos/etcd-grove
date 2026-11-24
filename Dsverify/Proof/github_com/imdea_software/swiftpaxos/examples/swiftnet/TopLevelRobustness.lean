@@ -78,7 +78,7 @@ theorem bootRes_client (hrb : receiptBound netDistGF ≤ 2 ^ 64) :
     bootRes ⊢ client.ghostFresh ∗ codecFresh ∗ cliBoot ∗
       globalAddr swift.useFastAckPool ↦ false := by
   unfold bootRes rpcBootRes
-  iintro ⟨Hfr, Hmg, Hmu, Hcu, #Hse, -, -, #Hde⟩
+  iintro ⟨Hfr, -, Hmg, Hmu, Hcu, #Hse, -, -, #Hde⟩
   unfold swift.mutGlobalsInit
   icases Hmg with ⟨-, Hp, -⟩
   iframe Hfr Hp
@@ -94,7 +94,7 @@ theorem bootRes_server (i : Nat)
     (hb : threadBound netDistGF ≤ 2 ^ 31 ∧ receiptBound netDistGF ≤ 2 ^ 64) :
     bootRes ⊢ srvBoot i := by
   unfold bootRes rpcBootRes srvBoot
-  iintro ⟨Hfr, Hmg, Hmu, Hcu, #Hse, Hmux, Hds, #Hde⟩
+  iintro ⟨-, Hfr, Hmg, Hmu, Hcu, #Hse, Hmux, Hds, #Hde⟩
   iframe Hmux Hds Hse
   unfold codecFresh cliBoot
   iframe Hmu Hcu Hde
@@ -107,7 +107,9 @@ theorem bootRes_server (i : Nat)
   · ipureintro; exact hb.1
   split
   · itrivial
-  · iframe Hfr
+  · iunfold client.freshOf
+    simp only [client.nodeVar]
+    iframe Hfr
     iapply swift.mutGlobalsInit_mutGlobals $$ Hmg
 
 end res

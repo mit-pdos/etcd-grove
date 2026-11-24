@@ -85,7 +85,7 @@ theorem wp_awaitConf_srv (wp_awaitConf : awaitConf.spec (hG := hG))
         addrProto (Gg := hG.goose_globalGS) a (conf.dialP γ) (srvAckQ γ i) ∗
         (if i = 0 then iprop(True)
          else sp.inv γ.sp γ.conf γ.mem γ.lin ∗ sp.predTok γ.sp (sp.PNode.rep (i - 1)) ∗
-           client.ghostFresh) ∗
+           client.freshOf (sp.PNode.rep (i - 1))) ∗
         isFuture examples.swiftnet.msg γf ch ∗
         Fulfill γf (confMsg γ (fun _ cs => cs = []) (srvR γ i)) }}
       (App (App (Val (@! examples.swiftnet.awaitConf)) (Val #a)) (Val #ch))
@@ -94,7 +94,7 @@ theorem wp_awaitConf_srv (wp_awaitConf : awaitConf.spec (hG := hG))
   iapply (wp_awaitConf γ a ch γf (conf.dialP γ) (srvAckQ γ i) (fun _ cs => cs = [])
     iprop(if i = 0 then iprop(True)
      else iprop(sp.inv γ.sp γ.conf γ.mem γ.lin ∗ sp.predTok γ.sp (sp.PNode.rep (i - 1)) ∗
-       client.ghostFresh))
+       client.freshOf (sp.PNode.rep (i - 1))))
     iprop(if i = 0 then iprop(True) else sp.predReg γ.sp (sp.PNode.rep (i - 1)))
     (srvR γ i) iprop(True)
     (conf.dialP_closed γ) (dialP_fullX γ) (srvAckQ_ok γ i) ?_) $$ [Hpt Hful] HΦ
@@ -211,7 +211,7 @@ theorem serve.wp_proof (D : SwNetDeps (hG := hG)) (γ : SwiftNames netDistGF) (i
   icases Hcom' with ⟨-, #Hlis, %HSS, #Hrpc, #Hinv⟩
   ihave Hpt : (if i = 0 then iprop(True)
       else sp.inv γ.sp γ.conf γ.mem γ.lin ∗ sp.predTok γ.sp (sp.PNode.rep (i - 1)) ∗
-        client.ghostFresh) ∗
+        client.freshOf (sp.PNode.rep (i - 1))) ∗
       (if i = 0 then mem.writer γ else sp.replicaStart γ.sp (i - 1)) ∗
       (if i = 0 then iprop(True) else swift.mutGlobals) $$ [Hrole Hrep]
   · by_cases h0 : i = 0

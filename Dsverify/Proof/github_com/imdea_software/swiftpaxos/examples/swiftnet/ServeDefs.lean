@@ -6,7 +6,7 @@ the kit over remote (`ServeProof.lean` proves them):
   (`codecFresh`), the dialer's state (`cliBoot`), the server's (`net.rpc.srvEnv`, the thread
   bound), net/http's `muxOwner []`, net/rpc's `DefaultServer` (`∃ γs, defaultServer γs`: a boot
   resource since Upamanyu's EPaxos review), and on a replica node the node's fresh ghost
-  (`client.ghostFresh`) and the mutable globals' points-to (`swift.mutGlobals`);
+  (`client.freshOf (rep _)`, the swift package's) and the mutable globals' points-to (`swift.mutGlobals`);
 * `serverRes γ i`: its share and its boot resources.
 -/
 module
@@ -37,7 +37,7 @@ variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 def srvBoot (i : Nat) : IProp netDistGF :=
   iprop(cnode.codecFresh ∗ cnode.cliBoot ∗ ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗
     H.muxOwner [] ∗ (∃ γs, H.defaultServer γs) ∗
-    (if i = 0 then iprop(True) else client.ghostFresh ∗ swift.mutGlobals))
+    (if i = 0 then iprop(True) else client.freshOf (sp.PNode.rep (i - 1)) ∗ swift.mutGlobals))
 
 /-- Server node `i + 1`'s start: its share and its boot resources. -/
 def serverRes (γ : SwiftNames netDistGF) (i : Nat) : IProp netDistGF :=

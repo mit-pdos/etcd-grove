@@ -86,10 +86,12 @@ variable [encoding.gob.InitHyp netDistGF]
 variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
-/-- A machine's boot resources: the node's fresh ghost, the mutable globals at their initial
-values, net/rpc's boot resources. -/
+/-- A machine's boot resources: the client package's and the swift package's fresh node
+prophecies (a client node claims the first, a replica the second), the mutable globals at their
+initial values, net/rpc's boot resources. -/
 def bootRes : IProp netDistGF :=
-  iprop(client.ghostFresh ∗ swift.mutGlobalsInit ∗ rpcBootRes)
+  iprop(client.ghostFresh ∗ client.prophFresh github_com.imdea_software.swiftpaxos.swift.nodeProph ∗
+    swift.mutGlobalsInit ∗ rpcBootRes)
 
 variable {G : GoString → IProp netDistGF} (hk : KitG G)
 include hk
@@ -248,6 +250,7 @@ theorem boot_swift :
     | wp_apply wp_GlobalAlloc (V := GoFunc) github_com.imdea_software.swiftpaxos.swift.ExecHook _ as H_ExecHook
     | wp_apply wp_GlobalAlloc (V := sync.Pool) github_com.imdea_software.swiftpaxos.swift.fastAckPool sync.Pool.ty as H_fastAckPool
     | wp_apply wp_GlobalAlloc (V := Bool) github_com.imdea_software.swiftpaxos.swift.useFastAckPool go.bool as H_useFastAckPool
+    | wp_apply wp_GlobalAlloc (V := github_com.goose_lang.primitive.ProphId) github_com.imdea_software.swiftpaxos.swift.nodeProph github_com.goose_lang.primitive.ProphId.ty as H_snodeProph
     | wp_apply wp_GlobalAlloc (V := w64) github_com.imdea_software.swiftpaxos.swift.MaxDescRoutines go.int as H_MaxDescRoutines
     | wp_apply wp_GlobalAlloc (V := GoInterface) github_com.imdea_software.swiftpaxos.swift.errVarintOverflow go.error as H_errVarintOverflow
     | wp_auto)
@@ -262,6 +265,8 @@ theorem boot_swift :
   wp_apply sync.atomic.wp_initialize' _ (wfO_sync_atomic hk bootS3 (by decide)) $$ Hown as ⟨Hown, #Hs4⟩
   try wp_auto
   wp_apply boot_cmap hk $$ Hown as ⟨Hown, #Hcm, Hsc⟩
+  try wp_auto
+  wp_apply github_com.goose_lang.primitive.wp_initialize' _ (wfO_github_com_goose_lang_primitive hk bootS4 (by decide)) $$ Hown as ⟨Hown, #Hsp⟩
   try wp_auto
   wp_apply log.wp_initialize' _ (wfO_log hk bootS4 (by decide)) $$ Hown as ⟨Hown, #Hs5⟩
   try wp_auto
@@ -297,7 +302,9 @@ theorem boot_swift :
   repeat (first
     | wp_apply errors.wp_New_errorString as %xE #EE
     | wp_auto
-    | (wp_func_lits; wp_auto))
+    | (wp_func_lits; wp_auto)
+    | wp_apply github_com.goose_lang.primitive.wp_NewProph as %spvs %sp Hspr)
+  imod (typedPointsto_dfractional _ _).dfractional_persist $$ H_snodeProph with #HsnP
   imod sync.init_Pool (globalAddr swift.fastAckPool)
       { noCopy' := zeroValDef, local' := null, localSize' := 0, victim' := null, victimSize' := 0,
         New' := _ } iprop(True) swift.fastAckP ⊤ rfl $$ [H_fastAckPool] with #Hpool
@@ -322,9 +329,12 @@ theorem boot_swift :
   ipersist H_errVarintOverflow
   imodintro
   iframe Hown
-  isplitl [H_MaxDescRoutines H_useFastAckPool Hsc Hfr Hrb]
+  isplitl [H_MaxDescRoutines H_useFastAckPool Hsc Hfr Hrb Hspr]
   · unfold bootRes swift.mutGlobalsInit
     iframe
+    iunfold client.prophFresh
+    iexists sp, spvs
+    iframe HsnP Hspr
   isplitr
   · ipureintro; exact isPanic_intoVal ()
   is_pkg_init_finish
