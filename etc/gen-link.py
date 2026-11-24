@@ -25,7 +25,6 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --v3lock > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/Link.lean
        etc/gen-link.py --v3election > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3election/Link.lean
        etc/gen-link.py --kvreconf > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/Link.lean
-       etc/gen-link.py --kvdurable > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Link.lean
        etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --raft-tla > RaftTla/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness/Link.lean
@@ -165,10 +164,6 @@ etc/link-lean-first-kvreconf.txt (raft's, the porcupine driver's and porcupine's
 are `@` callees, linked in their `Link.lean`s): its specs' `[KvrStor GF]` (the storage registry) is
 passed on, and its storage model `kvrStorageModel` (a `def`) is a local instance of the Link, at
 which raft's results over `[StorageModel GF]` are instantiated.
-`--kvdurable` links the durable store's (`examples/raft/kvdurable`), from
-etc/link-lean-first-kvdurable.txt, as `--kvreconf` (its registry `[KdStor GF]`, its storage model
-`kdStorageModel` a local instance), with the durable extension's section variables (`[HasExt
-durableExt] [go.IntoValInj GoString]`, which its specs take).
 `--bbolt` links bbolt's proofs (`Proof/go_etcd_io/bbolt/`), with no list file: the callees are
 read off each proof's binders, the specs with no proof are hypotheses of `links_pending`, and the
 non-spec premises are given by a table (`etc/link_bbolt.py`, whose docstring has the rules);
@@ -346,12 +341,6 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
                    "github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions",
                    "The reconfiguring key-value store example's proofs (`examples/raft/kvreconf`)", [""]),
-    # the durable store (examples/raft/kvdurable), as `--kvreconf`, its storage registry `KdStor`
-    "--kvdurable": ("link-lean-first-kvdurable.txt",
-                    "github_com.mit_pdos.etcd_grove.examples.raft.kvdurable go_etcd_io.raft.v3 "
-                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
-                    "github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions",
-                    "The durable key-value store example's proofs (`examples/raft/kvdurable`)", [""]),
     # the Raft proof (raft v3.7 plus the read-index fix, project raft of etc/goose.py) and the
     # trust boundary of protobuf-go it rests on (Spec/google_golang_org/protobuf/proto/, stage R1)
     "--raft": ("link-lean-first-raft.txt", "go_etcd_io.raft.v3",
@@ -616,7 +605,7 @@ for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--link
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest", "--perclient": "perclient",
-              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--kvdurable": "raft_kvdurable", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
@@ -661,8 +650,6 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # Perennial's `time` results (`=_root_.Perennial.time.*`), gokv's trusted
                  # `ResolveBytes`'s proved spec (`Cluster.Read`'s prophecy, `=_root_.Perennial.…`)
                  # raft's importable `confchange`/`tracker` specs, Perennial's `time` results
-                 "--kvdurable": ["Proof.go_etcd_io.raft.v3.Linked", "Perennial.Proof.time.Link",
-                                 "Proof.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes"],
                  "--kvreconf": ["Proof.go_etcd_io.raft.v3.Linked", "Perennial.Proof.time.Link",
                                 "Proof.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes"],
                  # (rafthttp stage 6f) the HTTP boundary's axioms and Perennial's linked results
@@ -820,13 +807,12 @@ if ALIAS:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--perclient", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kvreconf", "--kvdurable", "--linkv3p",
+NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--perclient", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kvreconf", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
 # `[StorageModel GF]` are instantiated there.
-LOCAL_INSTANCES = {"--kvreconf": ["raft_kvreconf.kvrStorageModel"],
-                   "--kvdurable": ["raft_kvdurable.kdStorageModel"]}
+LOCAL_INSTANCES = {"--kvreconf": ["raft_kvreconf.kvrStorageModel"]}
 # The modes whose blocked results take only the pending hypotheses they reach (k8s 7e-2,
 # 2026-11-10: the etcd3 store's list path pends specs the compactor, linked into a closed
 # result, does not reach); the others take every pending hypothesis
@@ -838,10 +824,8 @@ EXT_ANY_LINK = {"--k8setcd3"}
 # layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
 # emit; `OpenFile`'s and `Stat`'s proofs take them).
 PRE_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
-# The section variables a mode's specs take besides the usual ones, last (kvdurable's: the durable
-# extension, `GooseLang/Ext/Durable`, and the injectivity of strings its file names need)
-EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoString]\n",
-              # (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor registry, at its name
+# The section variables a mode's specs take besides the usual ones, last
+EXTRA_VARS = {# (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor registry, at its name
               "--k8s-etcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n",
               "--k8setcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n"}
 # mvcc's randomized tester (examples/mvccrand, R10, 2026-11-07): its functions over mvcc's API
@@ -879,10 +863,10 @@ em = ((PRE_VARS.get(sys.argv[1], ""))
                 for i in LOCAL_INSTANCES.get(sys.argv[1], [])))
 # The storage registries a store's specs take (kvwitness's `KVStor`, kvreconf's `KvrStor`): passed on; a
 # spec taking one is stated at the store's storage model, not at any `[StorageModel GF]`.
-STOR_REGS = ["[KVStor GF]", "[KvrStor GF]", "[KdStor GF]"]
+STOR_REGS = ["[KVStor GF]", "[KvrStor GF]"]
 # a registry as a pending hypothesis's binder, named in full (the Link opens the package's Go
 # namespace, not the store's proof namespace)
-STOR_QUAL = {"[KdStor GF]": "[raft_kvdurable.KdStor GF]"}
+STOR_QUAL = {}
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))

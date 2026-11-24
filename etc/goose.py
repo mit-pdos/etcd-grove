@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvnet, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -774,7 +774,7 @@ PROJECTS = [
         # `WalTester/` too (until 2026-11-15 `LinuxFs/`), over the main tree's `os` (fsExt) and
         # `path/filepath`, where its specs are proved (no trusted function:
         # `WalTester/Code/.../examples/lib/durable.toml` absent); the main tree's stays trusted over
-        # `durableExt` for kvdurable, kvfile and etcdstart (notes/wal-lean-integration.md)
+        # `durableExt` for kvfile and etcdstart (notes/wal-lean-integration.md; kvdurable until 2026-11-24)
         parts=[Part(
             root="WalTester",
             lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/durable=WalTester",
@@ -984,23 +984,6 @@ PROJECTS = [
         # the store; not its command (cmd/durablekv), which only runs it
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvfile")],
-    ),
-    Project(
-        name="kvdurable",
-        # kvreconf made durable (`examples/raft/kvdurable`): kvreconf's store, its every application
-        # choice at random, with each replica's raft storage in a file of the durable package
-        # (written whole, before what raft needs durable is relied on; what it does not need,
-        # written late or not at all), and replicas that crash and restart from their files. A
-        # package of the examples' Go module, with kvreconf's imports (trusted_proph, translated
-        # by kvreconf's project) and the durable package's.
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "raft", "kvdurable"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
-                    "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
-        # the store; not its command (cmd/kvdurablecheck), which only runs it
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvdurable")],
     ),
     Project(
         name="common",

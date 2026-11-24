@@ -92,9 +92,6 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend',
          # (2026-10-29, track C) the store that reconfigures and snapshots
          'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf',
-         # (2026-11-01) the durable store (its files through the durable-state extension's Go
-         # package `durable`)
-         'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable',
          'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
          'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
@@ -5186,8 +5183,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
             # (2026-11-23, etcd-grove#28) k8s_safe_single_process's and etcd_leaseexpiryN_safe_single_process's
             # tables, restored
             'github_com.mit_pdos.etcd_grove.examples.k8s.all':

@@ -192,8 +192,8 @@ class Part:
         return self._roots(self)
 
     def pkg(self, owned):
-        """The Lean package path (dotted) the source trees name a package the part owns by: RaftNoAx's
-        renamed kvdurable is the main tree's kvdurable; KvNet's packages are its own."""
+        """The Lean package path (dotted) the source trees name a package the part owns by (a renamed
+        package's is the source's, `RENAME`; KvNet's packages are its own)."""
         d = owned.replace(os.sep, ".")
         return d if self.own_first else unrename(d, self.renames)
 
