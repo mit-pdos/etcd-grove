@@ -8,6 +8,8 @@ axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
+axiom Perennial.EtcdGrove.strings.Cut.wp_proof
+axiom Perennial.EtcdGrove.strings.TrimLeft.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
@@ -28,7 +30,11 @@ axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
+axiom Perennial.net.http.Handle.wp_proof
+axiom Perennial.net.http.Serve.wp_proof_rpc
 axiom Perennial.net.http.initFuncsOk
+axiom Perennial.net.http.wp_init_first
+axiom Perennial.net.rpc.wp_init_first
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
@@ -333,4 +339,3 @@ axiom verifyEnvOff
 axiom wait.Jitter.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof
-sorry Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.rpcdriver_robust

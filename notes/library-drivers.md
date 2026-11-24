@@ -53,9 +53,13 @@ the models (`-tags netmodel`, the GOROOT farm of `models/goroot.py`).
 Statement (2026-11-24): `rpcdriver_robust.spec`
 (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/rpcdriver/TopLevelRobustness.lean`): the
 two machines (`system σs σc`, `TopLevelDefs.lean`), neither crashing, deployed at `rpcAddrs`
-(`DistDeploy`), are `Robust []` for fewer than `rpcStepBound = 2 ^ 31 - 1` steps (net/rpc's
-server's thread bound, as the net/rpc kits). No premise but the deployment's start and the
-programs' typing facts. Proof: a `sorry` skeleton. The trust-base collection
+(`DistDeploy`), are `Robust []` for fewer than `rpcStepBound = 2 ^ 30 - 1` steps (lowered from
+`2 ^ 31 - 1` after S5's review: net/http's mux takes reader slots, `threadBound ≤ 2 ^ 30`). No premise
+but the deployment's start and the programs' typing facts. Proved 2026-11-24 over six interim
+axioms (`etc/tcb-collections/rpcdriver.txt`): `net.rpc.wp_init_first`, `net.http.wp_init_first`
+(first-run initializers, L2 step 6), `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`
+(S5), `EtcdGrove.strings.{Cut,TrimLeft}.wp_proof` (the Perennial pin bump past
+strings-cut-lastindex). The paragraph below is the plan as of the skeleton. The trust-base collection
 `etc/tcb-collections/rpcdriver.txt` lists the `sorry` and the interim axioms of net/rpc's and
 net/http's initializers (`Net/Proof/net/{rpc,http}/Init.lean`; their facts, `True`, in `PkgInit.lean`,
 shared with `Dsverify/`'s `InitHyp`s; retired by L2 step 6, net/rpc's and net/http's initializers
