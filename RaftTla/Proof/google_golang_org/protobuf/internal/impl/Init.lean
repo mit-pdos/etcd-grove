@@ -9,6 +9,7 @@ initializers of its variables (`X.init`, models in `TrustedCode/` that do nothin
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Perennial.Proof.strconv.Link
 public import RaftTla.Proof.google_golang_org.protobuf.internal.pragma.Init
 public import RaftTla.Proof.runtime.PkgInitExt
 
@@ -49,7 +50,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.google_golang_org.protobuf.internal.pragma.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (_root_.Perennial.google_golang_org.protobuf.internal.pragma.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
+      EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_call  -- wireTypes: its trusted initializer does nothing
   wp_call  -- boolType: its trusted initializer does nothing
   wp_call  -- int32Type: its trusted initializer does nothing

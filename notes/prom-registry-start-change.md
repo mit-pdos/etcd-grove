@@ -402,3 +402,9 @@ and `<ex>_regQsOk` (decided over the 84 IDs as literals, `<ex>RegKeys`, as `mvcc
 The distributed `putget_safe.spec` (`examples/etcd/dist/putget`, new on `lean`, stated, not proved) loses
 `(HNs : prometheus.namesUnclaimed (bootMember peer client) initNames ∧ prometheus.namesUnclaimed (bootClient client)
 initNames)` (and `PutgetBoot`/`PutgetBootS2` their `_HNs`): each machine's boot proof will allocate its rights.
+
+Re-merged onto `lean` `69adf61913` (2026-11-23): `putget_safe.spec` keeps `dist-noclearproxy`'s new premises
+(`HEnv`, `HEnvTok`) and loses only `HNs`. `putget-boot`'s `MemberBootHyps` (`putget/AdequacyMember.lean`) loses its
+field `names : ⊢ prometheus.namesFree initNames`: `member_boot` allocates the machine's rights itself
+(`regKeys_alloc` of `putget.regQs`, decided by `putget_regQsOk` over the 84 IDs as literals, `putgetRegKeys`),
+making their name the machine's `PromRegGS`. No other statement changed.

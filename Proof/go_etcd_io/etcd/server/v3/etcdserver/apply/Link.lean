@@ -100,6 +100,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__T
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendQuota__Cost
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
 public import Proof.strconv.FormatUint
+public import Proof.strconv.Itoa
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
@@ -183,9 +184,13 @@ theorem types.ID.wp_String :
     EtcdGrove.types.ID.String.spec (GF := GF) (hG := hG) :=
   EtcdGrove.types.ID.String.wp_proof strconv.wp_FormatUint
 
+theorem strconv.wp_Itoa :
+    EtcdGrove.strconv.Itoa.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.Itoa.wp_proof
+
 theorem etcdserverpb.AlarmType.wp_String :
     EtcdGrove.etcdserverpb.AlarmType.String.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdserverpb.AlarmType.String.wp_proof
+  EtcdGrove.etcdserverpb.AlarmType.String.wp_proof strconv.wp_Itoa
 
 theorem prometheus.GaugeVec.wp_WithLabelValues :
     EtcdGrove.prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG) :=

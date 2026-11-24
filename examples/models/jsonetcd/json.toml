@@ -1,0 +1,17 @@
+# models/json/jsongen.py over the types etcd's translated packages pass to encoding/json (at the
+# examples' etcd and raft pins; notes/jsongen-extension.md): the membership records the backend and
+# the conf-change contexts hold (membership.Member, whose RaftAttributes and Attributes are embedded,
+# and ConfigChangeContext, which embeds Member; storev2's RaftAttributes and Attributes alone), the
+# downgrade record (version.DowngradeInfo), the conf state (raftpb.ConfState, a protobuf-go message
+# with `AutoLeave *bool`), the peers' cluster and version responses (cluster_util: []*Member,
+# version.Versions) and the hash-KV requests (corrupt.go: etcdserverpb.HashKVRequest, HashKVResponse,
+# whose Header is a pointer). Only the roots are named; their structure is derived by reflection.
+# The generated test (json_gen_test.go) checks the codec against the real encoding/json. Generate from
+# the repository root:
+#     models/json/jsongen.py examples/models/jsonetcd/json.toml examples/models/jsonetcd --pkg jsonetcd
+[json]
+imports = { types = "go.etcd.io/etcd/client/pkg/v3/types", membership = "go.etcd.io/etcd/server/v3/etcdserver/api/membership", version = "go.etcd.io/etcd/server/v3/etcdserver/version", apiversion = "go.etcd.io/etcd/api/v3/version", raftpb = "go.etcd.io/raft/v3/raftpb", etcdserverpb = "go.etcd.io/etcd/api/v3/etcdserverpb" }
+roots = ["membership.Member", "membership.RaftAttributes", "membership.Attributes",
+         "membership.ConfigChangeContext", "[]*membership.Member", "version.DowngradeInfo",
+         "apiversion.Versions", "raftpb.ConfState", "etcdserverpb.HashKVRequest",
+         "etcdserverpb.HashKVResponse"]

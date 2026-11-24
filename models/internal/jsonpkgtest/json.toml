@@ -1,0 +1,10 @@
+# jsongen's same-package mode (models/json/jsongen_core.py, THE SAME-PACKAGE METHODS) over types.go:
+# the roots get JSONModelMarshal, JSONModelMarshalPtr and JSONModelUnmarshal in json_model_gen.go (a
+# model build's: tag goose or netmodel). Generate from the repository root:
+#     models/json/jsongen.py models/internal/jsonpkgtest/json.toml models/internal/jsonpkgtest --pkg jsonpkgtest
+# json_model_gen_test.go (go test -tags netmodel) checks the methods against the real encoding/json;
+# dispatch_test.go checks the model's dispatch (internal/jsonstreamtest/run.sh runs it in both builds).
+[json]
+package = "models.lab/internal/jsonpkgtest"
+imports = { jsonpkgtest = "models.lab/internal/jsonpkgtest" }
+roots = ["jsonpkgtest.Rec", "jsonpkgtest.Ctx", "jsonpkgtest.token"]

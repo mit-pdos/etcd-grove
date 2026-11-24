@@ -8,9 +8,10 @@
 // roots, its kind, name, package, String, element type, length, number of methods (an
 // interface's), its struct fields (name, exported, embedded, the `json` key of its tag as
 // reflect.StructTag.Lookup returns it; the types of exported and of embedded fields are followed),
-// which of the methods encoding/json consults it or a pointer to it has (by name: the generator
-// refuses a type with any of them, whatever their signature), and whether it is encoding/json's
-// RawMessage or Number. It decides nothing: the generator's core refuses what is outside its
+// which of the methods encoding/json consults it or a pointer to it has (by name), which of
+// encoding/json's hook interfaces it or a pointer to it implements (by reflect's Implements), the
+// exported method names of a pointer to it, and whether it is encoding/json's RawMessage or
+// Number. It decides nothing: the generator's core refuses what is outside its
 // subset.
 //
 // jsongen.py writes a throwaway main package in the program's module that calls Main with the
@@ -19,6 +20,7 @@
 package jsondesc
 
 import (
+	"encoding"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -64,6 +66,14 @@ type Type struct {
 	// has (a superset).
 	Methods    []string `json:"methods"`
 	PtrMethods []string `json:"ptr_methods"`
+	// Implements: per interface of encoding/json's hooks (ImplIfaces: "Marshaler", "Unmarshaler",
+	// "TextMarshaler", "TextAppender", "TextUnmarshaler"), whether the type implements it
+	// ("value"), only a pointer to it does ("ptr"), or neither (""): reflect's Implements, with the
+	// interfaces' real signatures, as encoding/json/v2's `implements` (arshal_methods.go).
+	Implements map[string]string `json:"implements"`
+	// MethodNames: the exported methods of a pointer to the type (a superset of the type's own),
+	// promoted ones included: the generator checks a promoted field's selector is no method.
+	MethodNames []string `json:"method_names"`
 	// RawMessage: the type is encoding/json's RawMessage (in Go 1.27.3 an alias of
 	// encoding/json/jsontext.Value); Number: encoding/json's Number.
 	RawMessage bool `json:"raw_message"`
@@ -90,6 +100,41 @@ type Field struct {
 // dump records any method of these names, whatever its signature.
 var JSONMethods = []string{"MarshalJSON", "UnmarshalJSON", "MarshalText", "UnmarshalText",
 	"AppendText", "MarshalJSONTo", "UnmarshalJSONFrom"}
+
+// ImplIfaces are the hook interfaces whose implementation the dump records (Go 1.27.3:
+// encoding/json.Marshaler and Unmarshaler are aliases of encoding/json/v2's; the text interfaces
+// are package encoding's).
+var ImplIfaces = map[string]reflect.Type{
+	"Marshaler":       reflect.TypeFor[json.Marshaler](),
+	"Unmarshaler":     reflect.TypeFor[json.Unmarshaler](),
+	"TextMarshaler":   reflect.TypeFor[encoding.TextMarshaler](),
+	"TextAppender":    reflect.TypeFor[encoding.TextAppender](),
+	"TextUnmarshaler": reflect.TypeFor[encoding.TextUnmarshaler](),
+}
+
+func implementsOf(t reflect.Type) map[string]string {
+	out := map[string]string{}
+	for n, it := range ImplIfaces {
+		switch {
+		case t.Implements(it):
+			out[n] = "value"
+		case reflect.PointerTo(t).Implements(it):
+			out[n] = "ptr"
+		default:
+			out[n] = ""
+		}
+	}
+	return out
+}
+
+func methodNames(t reflect.Type) []string {
+	out := []string{}
+	pt := reflect.PointerTo(t)
+	for i := 0; i < pt.NumMethod(); i++ {
+		out = append(out, pt.Method(i).Name)
+	}
+	return out
+}
 
 var (
 	rawMessageT = reflect.TypeFor[json.RawMessage]()
@@ -133,7 +178,8 @@ func (d *dumper) id(t reflect.Type) int {
 	d.table = append(d.table, Type{ID: id})
 	e := Type{ID: id, Kind: t.Kind().String(), Name: t.Name(), PkgPath: t.PkgPath(),
 		PkgName: pkgName(t), String: t.String(), Elem: -1, Key: -1, Methods: methodsOf(t),
-		PtrMethods: methodsOf(reflect.PointerTo(t)), RawMessage: t == rawMessageT, Number: t == numberT}
+		PtrMethods: methodsOf(reflect.PointerTo(t)), Implements: implementsOf(t),
+		MethodNames: methodNames(t), RawMessage: t == rawMessageT, Number: t == numberT}
 	if t.Kind() == reflect.Interface {
 		e.NumMethod = t.NumMethod()
 	}

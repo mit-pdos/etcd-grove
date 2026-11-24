@@ -486,8 +486,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.go_humanize.Bytes.wp_proof $$ Hd13 as %sRMR -
   try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
-  wp_apply (initFuncsOk init.«1» (by mem_tac))
-  wp_apply (initFuncsOk init.«2» (by mem_tac))
+  -- the translated init.«1»
+  wp_func_call
+  wp_call
+  try wp_auto
+  -- the translated init.«2»
+  wp_func_call
+  wp_call
+  try wp_auto
   -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ConnWriteTimeout))
   ipersist HserverFeatureEnabled
   ipersist HserverID

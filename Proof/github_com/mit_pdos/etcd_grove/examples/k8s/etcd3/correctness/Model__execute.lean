@@ -46,7 +46,7 @@ theorem Model.execute.wp_proof
     (wp_get : Model.get.spec (GF := GF) (hG := hG))
     (wp_list : Model.list.spec (GF := GF) (hG := hG)) :
     Model.execute.spec (GF := GF) (hG := hG) := by
-  intro mp m x r hfit hfx hlist
+  intro mp m x r hfit hfx hlist hsz
   wp_start as ⟨#Hm, #Hr⟩
   iunfold reqRep at Hr
   by_cases h4 : x.Kind' = W64 4
@@ -81,7 +81,7 @@ theorem Model.execute.wp_proof
     wp_apply (wp_Clone mp m) as %np Hnp
     · iexact Hm
     rw [hkey, hob]
-    wp_apply (wp_create np m x op) $$ [Hnp] as %resp %cp ⟨Hnp, #Hresp, #Hcp⟩
+    wp_apply (wp_create np m x op hsz) $$ [Hnp] as %resp %cp ⟨Hnp, #Hresp, #Hcp⟩
     · iframe Hnp Hop
     have hx : rexecL x m = rcreateL x m := by unfold rexecL; simp [h0]
     have hw : k8s_etcd3.isWriteL x = true := by unfold k8s_etcd3.isWriteL; simp [h0]
@@ -121,7 +121,7 @@ theorem Model.execute.wp_proof
     · iexact Hm
     wp_apply context.wp_Background
     rw [hkey, hig]
-    wp_apply (wp_update np m x _ _ _ _ hfit hfx huf) $$ [Hnp] as %resp %cp ⟨Hnp, #Hresp, #Hcp⟩
+    wp_apply (wp_update np m x _ _ _ _ hfit hfx huf hsz) $$ [Hnp] as %resp %cp ⟨Hnp, #Hresp, #Hcp⟩
     · iframe Hnp Hpre Huf
     have hx : rexecL x m = rupdateL x m := by unfold rexecL; simp [h2]
     have hw : k8s_etcd3.isWriteL x = true := by unfold k8s_etcd3.isWriteL; simp [h2]

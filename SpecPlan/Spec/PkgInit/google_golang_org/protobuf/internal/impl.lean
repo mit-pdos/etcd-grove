@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.google_golang_org.protobuf.internal.impl
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.strconv.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.internal.pragma
 
 @[expose] public section

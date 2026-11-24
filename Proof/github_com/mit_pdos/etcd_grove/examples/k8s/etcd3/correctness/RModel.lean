@@ -510,6 +510,17 @@ def rstepL (x : Input) (m : RM) (out : RResp) : Bool × RM × Option RChange :=
 
 /-! ## The initial model -/
 
+/-- A map of a list has at most its length's keys. -/
+theorem size_ofList_le {V : Type} (l : List (GoString × V)) : GMap.size (GMap.ofList l) ≤ l.length := by
+  induction l with
+  | nil => show GMap.size (∅ : GMap GoString V) ≤ 0; rw [GMap.map_size_empty]; exact Nat.le_refl 0
+  | cons a l ih =>
+    obtain ⟨k, v⟩ := a
+    show GMap.size (<[k := v]> (GMap.ofList l)) ≤ _
+    have := GMap.map_size_insert (GMap.ofList l) k v
+    simp only [List.length_cons]
+    split at this <;> omega
+
 /-- **`initialModel(st0)`** (`realcheck.go`), and the abstraction of a driver's store: the items
 at their store keys, the resource version, the prefix `/registry`, and (D30g) the keys whose
 stored data is not canonical. -/

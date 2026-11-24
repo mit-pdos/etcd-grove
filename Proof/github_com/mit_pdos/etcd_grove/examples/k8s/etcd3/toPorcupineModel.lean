@@ -31,7 +31,7 @@ theorem toPorcupineModel.wp_proof
     (wp_Step : k8s_correctness.Model.Step.spec (GF := GF) (hG := hG))
     (wp_Equal : k8s_correctness.Model.Equal.spec (GF := GF) (hG := hG)) :
     toPorcupineModel.spec (GF := GF) (hG := hG) := by
-  intro mp init L hfit
+  intro mp init L hfit hsz0
   wp_start as #Hm
   wp_auto
   ipersist s
@@ -58,7 +58,7 @@ theorem toPorcupineModel.wp_proof
     rw [show (realM L init).init = init from rfl]
     iexists mp'
     isplitr
-    · ipureintro; exact ⟨rfl, hfit⟩
+    · ipureintro; exact ⟨rfl, hfit, by omega⟩
     · iexact Hm'
   isplitr
   · iright
@@ -71,12 +71,13 @@ theorem toPorcupineModel.wp_proof
     iintro !> %Φ' ⟨%Hk, #Hrep, #Hio⟩ HΦ'
     ihave #Hrep0 := Hrep
     iunfold realMS at Hrep Hio
-    icases Hrep with ⟨%sp, ⟨%hv, %hsf⟩, #Hsm⟩
+    icases Hrep with ⟨%sp, ⟨%hv, %hsf, %hsk⟩, #Hsm⟩
     icases Hio with ⟨%rq, %ro, %x, %r, ⟨%hi, %ho, %hdec, %hin⟩, #Hrq, #Hro⟩
     subst hv hi ho
     obtain ⟨⟨hf, hrv, hlim, hfl, hlo, hoo⟩, hcr, hk, hl⟩ := hin
     wp_auto
     wp_apply wp_Step sp s x rq ro r hsf hf hrv hlim (rexecL_notOther x s hrv hk hl) hfl hlo hoo
+      (by omega)
       $$ [] as %b %np %cp ⟨%Hb, #Hnp, -⟩
     · iframe #
     (try wp_auto)
@@ -95,7 +96,8 @@ theorem toPorcupineModel.wp_proof
       · iunfold realMS
         iexists np
         iframe Hnp
-        ipureintro; exact ⟨rfl, itemsFitL_step x s r hsf hcr⟩
+        ipureintro
+        exact ⟨rfl, itemsFitL_step x s r hsf hcr, by have := rstepL_size x s r; omega⟩
     · simp only [hc, Bool.false_eq_true, ↓reduceIte, Option.isSome_none]
       isplitr
       · ipureintro; rw [Hb]; simpa using hc

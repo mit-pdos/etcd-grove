@@ -30,6 +30,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.models_lab.jsoncodec.Init
 public import Proof.path.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws

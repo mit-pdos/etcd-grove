@@ -9,25 +9,27 @@ No axiom and no `sorry`. The bridge from one WP per machine to `Robust []` is pr
 extension), with the interpretations' initial-state conditions from the statement's `FsInit` premises
 (`etcdNetExts_initP`).
 
-`PutgetBoot`: at the statement's premises, the start update from the two addresses unset (the net library's
-start) to a share per machine, each machine's boot program safe from its share and its whole start
-(`DistBootWpS`: its files' and listeners' start resources, its main thread's token, the logic's bounds). Its
-split (the plan's section 7):
-* the start: the client address's service right and the one-shot name `γE` of the member's apply
-  environment (upamanyus's S2 names, #24; not defined here until his signatures are posted);
-* the member's boot (`putget.Member`): the in-process `Main.wp_proof` up to `Serve`, given its start
-  resources: `threadTok` and the address's listen token from the bridge, its files from `MemberFiles`;
-  `addrClaim` (until S2), `dataDirFresh` (until the WAL link), the metric names' rights (until
-  `prom-registry`) and `env.ClearProxy`'s spec (until an `os.Unsetenv` model) as hypotheses;
-* the client's boot (`putget.Client`): the in-process `Main.wp_proof`'s second half over S2's `Invoke`
-  (**blocked on S2**: today's `isGrpcRpcMd` holds a WP of the member's handler at the holder's heap and cannot
-  cross machines; S2 redefines it as `grpcSvcAt` with `envAt γE E`).
+`PutgetBoot`: at the statement's premises (and the addresses valid, from `DistDeploy`), the start update
+from the two addresses unset to a share per machine, each machine's boot program safe from its share and its
+whole start (`DistBootWpSL srvLevelK`: its files' and listeners' start resources, its main thread's token,
+the logic's bounds with at least `srvLevelK` receipts, which the served member's `srvLevels` needs; the
+bridge `robust_of_distBootIL` picks them). Against phase 7 S2's draft names (`S2Draft`, PLACEHOLDER;
+`notes/putget-dist-plan.md` sections 8 and 10), `putget_safe_of_s2` splits it:
+* the start (`putget_start`, proved): the client address set to etcd's table at `γE`, the publication
+  invariant, the member's and the client's shares (`Defs.lean`);
+* the member's boot (`member_boot`, `AdequacyMember.lean`, proved): the in-process `Main.wp_proof`'s first half
+  (`etcdstart.wp_StartServer1`, shared with it), `Serve` in S2's form publishing the view with `putgetPub`,
+  from S2's names and the named hypotheses `MemberBootHyps` (`ClearProxy`'s spec, the metric names' rights,
+  `dataDirFresh`, `addrOk`'s peer URL plain);
+* the client's boot (`PutgetClientS2`, a hypothesis): the in-process second half over S2's `Invoke`.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.TopLevelRobustness
 public import Net.Statement.DistBridgeExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.S2Draft
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AdequacyMember
 
 @[expose] public section
 
@@ -65,12 +67,14 @@ def PutgetBoot : Prop :=
     (_Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
           boot)
-    (σm σc : state) (_Hm : MemberFiles σm) (_Hc : ClientFiles σc),
-    ∀ [GooseGlobalGS .hasLC putgetGF], receiptBound putgetGF ≤ 2 ^ 28 - 1 →
+    (σm σc : state) (_Hm : MemberFiles σm) (_Hc : ClientFiles σc)
+    (_Hok : ∀ a ∈ addrs peer client, Net.addrOk a = true),
+    ∀ [GooseGlobalGS .hasLC putgetGF], srvLevelK ≤ receiptBound putgetGF →
+      receiptBound putgetGF ≤ 2 ^ 28 - 1 →
       ⊢ ([∗list] a ∈ addrs peer client, Net.addrUnset a) ={⊤}=∗
         ∃ Ps : Nat → IProp putgetGF,
           ⌜∀ (i : Nat) (m : Expr × state), (system peer client σm σc)[i]? = some m →
-            Net.DistBootWpS (2 ^ 28 - 1) m.1 m.2 (Ps i)⌝ ∗
+            Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ system peer client σm σc, Ps i
 
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
@@ -78,9 +82,10 @@ over `etcdNetExts` (`Net.robust_of_distBootI`), with each machine's `FsInit` fro
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
   intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
     Hm Hc Hd
-  refine Net.robust_of_distBootI (GF := putgetGF) (addrs peer client) (system peer client σm σc) g
-    (2 ^ 28) (2 ^ 28 - 1) ?_
-    (fun hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc Hm Hc hb) Hd
+  refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peer client) (system peer client σm σc) g
+    (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
+    (fun hlo hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc Hm Hc
+      Hd.2.1 hlo hb) Hd
   refine etcdNetExts_initP g _ ?_
   intro m hm
   simp only [system, List.mem_cons, List.not_mem_nil, or_false] at hm
@@ -96,20 +101,6 @@ variable [GoGlobalContext]
 /-- **S2's names hold** (what S2 proves, at every global ghost state and net protocol names). -/
 def S2Holds : Prop :=
   ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS], Nonempty (S2Draft putgetGF)
-
-/-- **The member's share** of the start: its client address set to serve etcd's table at `γE`
-(`grpcAddrAt`), its half of the publication token, the publication invariant. -/
-def memberShare [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S : S2Draft putgetGF)
-    (client : GoString) (γE : GName) (mid : w64) (Pub : S.EnvView → IProp putgetGF) :
-    IProp putgetGF :=
-  iprop(S.grpcAddrAt client (S.etcdSvc γE mid) ∗ S.envPubHalf γE ∗ S.envPubInv γE Pub)
-
-/-- **The client's share**: etcd's KV registrations before the view (`kvRegsPub`), the publication
-invariant. -/
-def clientShare [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S : S2Draft putgetGF)
-    (client : GoString) (γE : GName) (mid : w64) (Pub : S.EnvView → IProp putgetGF) :
-    IProp putgetGF :=
-  iprop(S.kvRegsPub client γE mid ∗ S.envPubInv γE Pub)
 
 /-- **The deployment's start, against S2's names** (upamanyus's §1.3 steps 1-4): the slot map, `γE`
 allocated, the publication invariant, the client address set to `etcdSvc` (spending its `addrUnset`), the
@@ -130,23 +121,20 @@ theorem putget_start [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S : 
   iframe Hhalf
   iframe #
 
-/-- **The two machines' boots against S2's names**: under S2's names (the cluster id in the view), what the member publishes (`Pub`) and each machine's boot program safe from its
-share at every `γE` (`DistBootWpS`). The member's boot: the in-process `Main.wp_proof` up to `Serve`, its
-start resources as the plan's section 7, publishing its view at `γE` (`env_publish`, his §1.3) with
-`□ Pub ν`; the client's: the in-process second half, reading the view from its first call's reply and
-then `kvRegsPub_at`. -/
-def BootsS2 [GoLocalContext] [go.Semantics] (peer client : GoString) (id : w64) (σm σc : state) : Prop :=
-  ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S : S2Draft putgetGF),
-    receiptBound putgetGF ≤ 2 ^ 28 - 1 → ∃ Pub : S.EnvView → IProp putgetGF,
-      (∀ γE, Net.DistBootWpS (2 ^ 28 - 1) (bootMember peer client) σm
-        (memberShare S client γE id Pub)) ∧
-      (∀ γE, Net.DistBootWpS (2 ^ 28 - 1) (bootClient client) σc
-        (clientShare S client γE id Pub))
+/-- **The client machine's boot against S2's names** (the client half of `putget_safe`; the member's half is
+`member_boot`, `AdequacyMember.lean`): under S2's names, the client's boot program safe from its share at every
+`γE`, with what the member publishes (`putgetPub`: the client's putget invariant at the view's read names).
+The in-process `Main.wp_proof`'s second half, reading the view from its first call's reply and then
+`kvRegsPub_at`. -/
+def ClientBootS2 [GoLocalContext] [go.Semantics] (client : GoString) (id : w64) (σc : state) : Prop :=
+  ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S : S2Draft putgetGF) (γE : GName),
+    Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootClient client) σc
+      (clientShare S client γE id (putgetPub S))
 
 end s2
 
-/-- **The two machines' boots against S2's names, at the statement's premises.** -/
-def PutgetBootS2 : Prop :=
+/-- **The client machine's boot against S2's names, at the statement's premises.** -/
+def PutgetClientS2 : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
@@ -163,45 +151,52 @@ def PutgetBootS2 : Prop :=
     (_Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
           boot)
-    (σm σc : state) (_Hm : MemberFiles σm) (_Hc : ClientFiles σc),
-    BootsS2 peer client id σm σc
+    (σc : state) (_Hc : ClientFiles σc),
+    ClientBootS2 client id σc
 
-/-- **`putget_safe` from S2's names and the two machines' boots against them**: the start is proved
-(`putget_start`), the bridge is proved (`putget_safe_of_boot`). The hypotheses: `S2Holds` (phase 7 S2) and
-`PutgetBootS2` (the member's and the client's proofs). -/
-theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds) (HB : PutgetBootS2) :
+/-- **`putget_safe` from S2's names, the member's named hypotheses and the client's boot**: the start is
+proved (`putget_start`), the member's boot is proved (`member_boot`, at `Pub = putgetPub`), the bridge is
+proved (`putget_safe_of_boot`). The hypotheses: `S2Holds` (phase 7 S2, with `Serve`'s S2 form), the member's
+start resources with no source yet (`MemberBootHyps`), and the client's boot (`PutgetClientS2`). -/
+theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
+    (HM : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics]
+      [github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions], MemberBootHyps)
+    (HC : PutgetClientS2) :
     putget_safe.spec := by
   refine putget_safe_of_boot ?_
   intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
-    Hm Hc G hb
-  have H : BootsS2 peer client id σm σc := HB Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc Hm Hc
+    Hm Hc Hok G hlo hb
+  have HCb : ClientBootS2 client id σc := HC Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
+    Hprem σc Hc
+  have hpeer : Net.addrOk peer = true := Hok peer (by simp [addrs])
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   obtain ⟨S⟩ := @HS2 _ G π
-  obtain ⟨Pub, HM, HC⟩ := @H G π S hb
   simp only [addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Hs with ⟨Hp, Hcl, -⟩
-  imod putget_start S peer client id Pub $$ Hreg Hp Hcl with ⟨%γE, Hms, Hcs⟩
+  imod putget_start S peer client id (putgetPub S) $$ Hreg Hp Hcl with ⟨%γE, Hms, Hcs⟩
   imodintro
-  iexists (fun i => if i = 0 then memberShare S client γE id Pub
-    else clientShare S client γE id Pub)
+  iexists (fun i => if i = 0 then memberShare S client γE id (putgetPub S)
+    else clientShare S client γE id (putgetPub S))
   isplitr
   · ipureintro
     intro i m hm
     match i, hm with
-    | 0, hm => simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm; exact HM γE
+    | 0, hm =>
+      simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
+      exact member_boot Hctx HM peer client hpeer id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm S γE
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
-        Option.some.injEq] at hm; subst hm; exact HC γE
+        Option.some.injEq] at hm; subst hm; exact HCb S γE
     | k + 2, hm => simp [system] at hm
   simp only [system, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   isplitl [Hms]
-  · iapply (show memberShare S client γE id Pub ⊢ (if (0 : Nat) = 0 then
-        memberShare S client γE id Pub else clientShare S client γE id Pub) by
+  · iapply (show memberShare S client γE id (putgetPub S) ⊢ (if (0 : Nat) = 0 then
+        memberShare S client γE id (putgetPub S) else clientShare S client γE id (putgetPub S)) by
       rw [if_pos rfl])
     iexact Hms
   isplitl [Hcs]
-  · iapply (show clientShare S client γE id Pub ⊢ (if (0 : Nat) + 1 = 0 then
-        memberShare S client γE id Pub else clientShare S client γE id Pub) by
+  · iapply (show clientShare S client γE id (putgetPub S) ⊢ (if (0 : Nat) + 1 = 0 then
+        memberShare S client γE id (putgetPub S) else clientShare S client γE id (putgetPub S)) by
       rw [if_neg (by decide)])
     iexact Hcs
   iempintro
