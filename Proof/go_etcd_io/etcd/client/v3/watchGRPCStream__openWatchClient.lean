@@ -66,7 +66,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   wp_apply HDone as %dch %γd #Hdone
   wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]
       iprop((∀ (ws err : GoInterface),
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (γs : StreamNames)
+        levelTok 0 ∗ (((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (γs : StreamNames)
           (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
           (md : GrpcMd),
           ⌜i < V.nm ∧ clientAttemptMd V.conn om md⌝ ∗
@@ -74,7 +74,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
           cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
           cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
           v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs Dn) ∨
-        (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ closeErrOk err)) -∗ Φ (PairV #ws #err)) ∗
+        (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ closeErrOk err))) -∗ Φ (PairV #ws #err)) ∗
         w_ptr ↦ wgs ∗ backoff_ptr ↦ b ∗ err_ptr ↦ e ∗ ws_ptr ↦ wsv ∗
         (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ closeErrOk e) ∗ levelTok 0)
       $$ [] [HΦ w backoff err ws He Hlt] []
