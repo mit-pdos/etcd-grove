@@ -109,12 +109,12 @@ theorem vsrnet.wp_jdec_S_log_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : 
   simp only [List.length_drop, List.length_append] at hlen
   have hsl : 2 ≤ (VsrJson.ser (VsrJson.logsJV es)).length := by
     cases es <;> simp [vsrnet.ser_logs_nil, vsrnet.ser_logs_cons] <;> omega
-  wp_auto
+  try wp_auto
   wp_apply (wp_At b dq bs i 91#8 (by omega)
     (by rw [models_lab.jsoncodec.skipEnd_ns' bs _ _ hc0 (by decide)]; exact hc0)) $$ Hs as Hs
   rw [models_lab.jsoncodec.skipEnd_ns' bs _ _ hc0 (by decide),
     show W64 ((uint.nat i : Nat) : Int) = i by word]
-  wp_auto
+  try wp_auto
   cases es with
   | nil =>
     have hb1 : bs.drop (uint.nat i + 1) = 93#8 :: R := by
@@ -124,9 +124,9 @@ theorem vsrnet.wp_jdec_S_log_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : 
       (by rw [models_lab.jsoncodec.skipEnd_ns' bs _ _ hc1 (by decide)]; exact hc1)) $$ Hs as Hs
     rw [models_lab.jsoncodec.skipEnd_ns' bs _ _ hc1 (by decide)]
     simp only [show ((93#8 : w8) = W8 93 ∨ (93#8 : w8) = W8 125) from Or.inl rfl, if_true, ite_true]
-    wp_auto
+    try wp_auto
     wp_apply vsrnet.wp_make_empty_logs as %s0 ⟨Hs0, Hcap0, %hs0⟩
-    wp_auto
+    try wp_auto
     rw [vsrnet.ser_logs_nil]
     rw [show W64 ((uint.nat i + [91#8, 93#8].length : Nat) : Int) = W64 ((uint.nat i + 1 + 1 : Nat) : Int)
       by simp only [List.length_cons, List.length_nil]]
@@ -149,9 +149,9 @@ theorem vsrnet.wp_jdec_S_log_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : 
     wp_apply (wp_Empty b dq bs i 123#8 (by omega)
       (by rw [models_lab.jsoncodec.skipEnd_ns' bs _ _ hc1 (by decide)]; exact hc1)) $$ Hs as Hs
     simp only [show ¬((123#8 : w8) = W8 93 ∨ (123#8 : w8) = W8 125) by decide, if_false, ite_false]
-    wp_auto
+    try wp_auto
     wp_apply vsrnet.wp_make_empty_logs as %s0 ⟨Hs0, Hcap0, %hs0⟩
-    wp_auto
+    try wp_auto
     ihave IH : iprop(∃ (m : Nat) (kw : w64) (sl : GoSlice) (ls : List pkg.log.Log),
         "k" ∷ k_ptr ↦ kw ∗ "s" ∷ s_ptr ↦ sl ∗ "Hs0" ∷ sl ↦* ls ∗
         "Hcap0" ∷ ownSliceCap pkg.log.Log sl (DFrac.own 1) ∗
@@ -176,7 +176,7 @@ theorem vsrnet.wp_jdec_S_log_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : 
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType pkg.log.Log.ty))))
       (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := pkg.log.Log) (t := pkg.log.Log.ty) [_]
-    wp_auto
+    try wp_auto
     rw [show go.arrayLiteralSize
       [KeyedElement none (ElementExpression pkg.log.Log.ty #(zero_val pkg.log.Log))] = 1 from rfl]
     isplitl []
@@ -186,7 +186,7 @@ theorem vsrnet.wp_jdec_S_log_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : 
     · iframe
     ihave %Hl' := ownSlice_len $$ Hs0
     simp only [List.length_append, List.length_cons, List.length_nil, hlsl] at Hl'
-    wp_auto
+    try wp_auto
     have hidxm : sint.Z (sl'.len - W64 1) = (m : Int) := by word
     have hbnd : 0 ≤ sint.Z (sl'.len - W64 1) ∧ sint.Z (sl'.len - W64 1) < sint.Z sl'.len := by word
     try rw [ite_eq_left_of_eq_true _ _ (eq_true hbnd)]
@@ -229,7 +229,7 @@ theorem vsrnet.wp_jdec_S_log_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : 
         (by rw [hez]; have := congrArg List.length hbk; simp at this; omega)
         (by rw [hez, models_lab.jsoncodec.skipEnd_ns' bs _ _ hc (by decide)]; exact hc)) $$ Hs as Hs
       rw [hez, models_lab.jsoncodec.skipEnd_ns' bs _ _ hc (by decide)]
-      wp_auto
+      try wp_auto
       wp_for_post
       have hall : (e0 :: es').take (m + 1) = e0 :: es' := by
         apply List.take_of_length_le
@@ -261,7 +261,7 @@ theorem vsrnet.wp_jdec_S_log_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : 
         (by rw [hez]; have := congrArg List.length hbk; simp at this; omega)
         (by rw [hez, models_lab.jsoncodec.skipEnd_ns' bs _ _ hc (by decide)]; exact hc)) $$ Hs as Hs
       rw [hez, models_lab.jsoncodec.skipEnd_ns' bs _ _ hc (by decide)]
-      wp_auto
+      try wp_auto
       wp_for_post
       iframe
       iexists m + 1, _, sl', _
