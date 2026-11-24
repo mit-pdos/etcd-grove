@@ -24,16 +24,17 @@ The model (the note's points 1-6):
   for every address, but a spec stated for any `H` would let a client and a server of one
   address use different ones. So the protocol a client sends with and the one a server serves
   with are tied to the address: `http.register` turns the address's listener (`netListenerAt l
-  a`, one per address in a run: `net.Listen` consumes `netAddrFree a`), with what sets its net protocols
-  (`netAddrLeft a`, consumed since 2026-11-24 so that no raw net client of the program can write to it),
-  into `httpListenerAt l a P`,
+  a`, one per address in a run: `net.Listen` consumes the right to listen at `a`) into `httpListenerAt l a P`,
   which `Serve` takes, and `httpProtoAt a P` (persistent), which `RoundTrip` needs of a request's
   host. Two `httpProtoAt a P` of one address are of the one registration: the facts' model is a
   global ghost map from addresses to saved protocols, an entry set once. (D39a, 2026-10-23,
   stage 6a) The entry is set before the listener exists: `http.reserve` turns the address's
   protocol right (`httpProtoFree a`, from program start) into `httpProtoAt a P` and the right to
   serve it (`httpProtoOwn a P`), which `register` takes with the listener; a member sends to its
-  peers before they listen.
+  peers before they listen. (2026-11-24) Only of an address whose net protocols are net/http's
+  (`httpAddrNet a`, `AddrNet.lean`, set from `netAddrFree a`): from the reservation on nothing but net/http
+  reads or writes at `a` (no raw net server answers a client of `a`, no raw net client writes to `a`'s
+  server), and the address's listener is made from `httpAddrFree a` (`net.Listen.specHttp`).
 * (2026-10-23, D38b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
   fresh exclusive ghost ticket (`reqTicket γk`) and the handler of the request receives it; the
   protocols are indexed by the ticket's name. Go's client never replays a `POST` without an

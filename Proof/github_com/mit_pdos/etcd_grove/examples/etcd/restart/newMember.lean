@@ -20,6 +20,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.restart.build
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.restart.raftSwap
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Spec.net.Listen
+public import Spec.net.ListenHttp
 public import Proof.net.http.Axioms
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartStop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
@@ -62,7 +63,7 @@ theorem swap_handlerOk (wp_ServeHTTP : raftSwap.ServeHTTP.spec (GF := GF) (hG :=
   iapply (wp_ServeHTTP sw γS γn a wi r R γk rd) $$ Hpkg Hsw Hra %Hr Hreq Htk Hbody Hw Hhd %Hfl HRs
 
 theorem newMember.wp_proof
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
+    (wp_ListenHttp : net.Listen.specHttp (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
     (wp_ServeHTTP : raftSwap.ServeHTTP.spec (GF := GF) (hG := hG)) :
@@ -76,9 +77,9 @@ theorem newMember.wp_proof
   · iPkgInit
   (try wp_auto)
   -- `net.Listen("tcp", peerAddr)`
-  wp_apply (wp_Listen go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
+  wp_apply (wp_ListenHttp go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
-  icases Hlis with (⟨%Hlerr, Hlis, Hleft⟩ | %Hlerr)
+  icases Hlis with (⟨%Hlerr, Hlis⟩ | %Hlerr)
   rotate_left
   · cases lerr with
     | nil => exact absurd rfl Hlerr
@@ -92,7 +93,7 @@ theorem newMember.wp_proof
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
     Hlgm, Hrc, #Hnm, Htokp, HServeR, #Hlr, Hkeep⟩
   -- the listener serves the peer address with the raft protocol
-  imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hleft Hpown with Hlis
+  imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with Hlis
   -- `&raftSwap{mu: new(sync.Mutex), h: s.RaftHandler()}`
   wp_apply (wp_RaftHandler s γn id τ peerAddr Hown) as %h #Hh
   · iframe #
