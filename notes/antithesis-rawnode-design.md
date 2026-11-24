@@ -1001,6 +1001,22 @@ named definition in `Rel.lean`, appended as a conjunct; `GC`, `init`, `boot`, `r
     `ReadyOk.rnf`).
   - **`RaftLaws` gains `CampTermsOk`**: every entry of a campaign log is of an earlier term (raft's
     `isCamp γ c T F` carries `CampOk T F`). The harness must supply it with the other laws.
+  - **C3 gains `LedConfOk`** (2026-11-24, `ready_cmt`): every term `ledLog` has maps to the initial
+    configuration in `ledConf` (`InMemory`'s `lc1` records `config[n]`, always the initial one, at
+    a win; `GC` drops a term from `ledLog` and `ledConf` together). Why: `cmt`'s `Acked` quorum
+    (B 252) reads `ledConf[T]`, and nothing else related `ledConf` to `ledLog`. Alternatives: a
+    `ReadyOk`-only premise (would have to be re-derived at every state, so it is an invariant
+    anyway); stating it of `ledConf` alone (`∀ p ∈ ledConf, p.2 = initConf`) does not give the
+    entry's existence. `ReadyOk` gains `lconf` (the new `ledConf` covers the new `ledLog`);
+    `BindingOk.termLenOk`/`.ledConfOk` read the last two conjuncts.
+  - **`ReadyKind.cmt` gains `NoSelf id ps₁`** (no self-addressed message in the outbox): a commit's
+    `Ready` queues no self-acknowledgement, so `QsOk` is vacuous (only `appendEntry` queues one, at a
+    win or a proposal, whose store records its ack fact). Proved in `kind_handle`'s `MsgAppResp` arm
+    (`SendsEnd`'s messages are to others) and in `Advance` (`AdvP`'s leader phase carries
+    `NoSelf`, `noSelf_step`); `ready_kind`/`kind_recv`/`kind_handle`/`kind_advance`/`advP_run`/
+    `voteSelf_ready` take the view's empty outbox (C1). Alternative rejected: a `LeaderPart`
+    conjunct "a self-ack fact covers the leader's log" (true, but every producer of `LeaderPart`
+    would have to maintain it).
 
 ---
 
