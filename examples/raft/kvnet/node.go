@@ -3,6 +3,7 @@ package kvnet
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/durable"
@@ -84,12 +85,49 @@ func FileOf(dir string, id uint64) string {
 	return dir + "/replica-" + itoa(id)
 }
 
-// Node is a running replica: the replica and its transport.
+// Node is a running replica: its counters and, under mu, its current incarnation's replica and
+// transport (restart replaces them; mu is held for the whole restart, so that two restarts never
+// overlap and nothing uses a half-started incarnation).
 type Node struct {
 	cfg   NodeConfig
-	r     *Replica
-	t     *Transport
 	stats *Stats
+	newT  newPeerTransport
+	mu    sync.Mutex
+	r     *Replica
+	t     peerTransport
+}
+
+// current is the current incarnation's replica.
+func (n *Node) current() *Replica {
+	n.mu.Lock()
+	r := n.r
+	n.mu.Unlock()
+	return r
+}
+
+// stepPeer steps a message a peer sent (a transport received it) on the current incarnation's
+// node; one the node does not take within stepTimeout is dropped (as is one stepped on an
+// incarnation stopped meanwhile).
+func (n *Node) stepPeer(m *pb.Message) {
+	n.stats.add(StMsgsReceived)
+	r := n.current()
+	ctx, cancel := withTimeout(stepTimeout)
+	r.node.Step(ctx, m)
+	cancel()
+}
+
+// restart stops the current incarnation cleanly (Replica.stop: its loop, clock and snapshot
+// goroutine, then raft's Node.Stop; then its transport's senders) and starts the next one in this
+// process from the file (start), as kvdurable's Cluster.restart does with a crash. What the
+// stopped incarnation still holds in memory and never wrote is lost, as in a crash; requests
+// waiting on it time out.
+func (n *Node) restart() {
+	n.mu.Lock()
+	n.r.stop()
+	n.t.stop()
+	n.stats.add(StRestartsInProcess)
+	n.r, n.t = start(n.cfg, n.stats, n.newT)
+	n.mu.Unlock()
 }
 
 // listen listens on addr, retrying until it can (the previous incarnation's socket may not be
@@ -130,7 +168,12 @@ func RunNode(id uint64, addrs string, dir string, voters uint64, preVote, checkQ
 // (StartNode), then serves its peers and clients on its address. It never returns.
 func Run(cfg NodeConfig) {
 	l := listen(cfg.Addrs[cfg.ID])
-	n := StartNode(cfg)
+	StartNode(cfg).accept(l)
+}
+
+// accept serves the connections l accepts, peers' and clients', each in a goroutine of its own
+// (serve). It never returns.
+func (n *Node) accept(l net.Listener) {
 	for {
 		c, err := l.Accept()
 		if err != nil {
@@ -150,11 +193,23 @@ func Run(cfg NodeConfig) {
 // random index from the log's start to the snapshot's, the entries up to the snapshot's index
 // then being skipped (Replica.applyEntry).
 func StartNode(cfg NodeConfig) *Node {
+	return startNode(cfg, newTCPTransport)
+}
+
+// startNode is StartNode with the transport newT makes (its incarnations' each).
+func startNode(cfg NodeConfig, newT newPeerTransport) *Node {
+	stats := &Stats{}
+	r, t := start(cfg, stats, newT)
+	return &Node{cfg: cfg, stats: stats, newT: newT, r: r, t: t}
+}
+
+// start starts an incarnation of replica cfg.ID from its file (StartNode), with the transport newT
+// makes, counting in stats.
+func start(cfg NodeConfig, stats *Stats, newT newPeerTransport) (*Replica, peerTransport) {
 	boot := &pb.ConfState{}
 	for id := uint64(1); id <= cfg.Opts.Voters; id++ {
 		boot.Voters = append(boot.Voters, id)
 	}
-	stats := &Stats{}
 	file := FileOf(cfg.Dir, cfg.ID)
 	st := newStorage(boot)
 	if data, ok := durable.Read(file); ok {
@@ -185,7 +240,7 @@ func StartNode(cfg NodeConfig) *Node {
 	if rafted < index {
 		stats.add(StRestartsAppliedBelow)
 	}
-	t := newTransport(cfg.ID, cfg.Addrs, stats)
+	t := newT(cfg.ID, cfg.Addrs, stats)
 	node := raft.RestartNode(&raft.Config{
 		ID:                       cfg.ID,
 		ElectionTick:             10,
@@ -203,7 +258,7 @@ func StartNode(cfg NodeConfig) *Node {
 	t.start(node)
 	tick := time.Duration(1+below(4)) * time.Millisecond
 	r := newReplica(cfg.ID, file, node, st, kv, ops, cs, index, rafted, tick, stats, t.Send)
-	return &Node{cfg: cfg, r: r, t: t, stats: stats}
+	return r, t
 }
 
 // helloTimeout bounds how long a new connection may take to say what it is.
@@ -221,11 +276,30 @@ func (n *Node) serve(c net.Conn) {
 	}
 	switch hello[0] {
 	case helloPeer:
-		n.t.servePeer(c)
+		n.servePeer(c)
 	case helloClient:
 		n.serveClient(c)
 	default:
 		c.Close()
+	}
+}
+
+// servePeer reads messages from a peer's connection and steps them on the current incarnation's
+// node, until the connection fails or ends. A frame that does not decode, or a message not
+// addressed to this replica, ends the connection.
+func (n *Node) servePeer(c net.Conn) {
+	defer c.Close()
+	for {
+		b, ok := readFrame(c)
+		if !ok {
+			return
+		}
+		m, good := getMsg(b)
+		if !good || m.GetTo() != n.cfg.ID {
+			n.stats.add(StBadFrames)
+			return
+		}
+		n.stepPeer(m)
 	}
 }
 
@@ -235,7 +309,7 @@ const (
 	ReqPropose = 1 // payload: an operation (encode); answer: its value
 	ReqRead    = 2 // payload: a read's sequence number (8 bytes) and key (putBytes); answer: the value
 	ReqConf    = 3 // payload: a configuration change (PutConfChange); answer: none
-	ReqDisrupt = 4 // payload: what (8 bytes: 0 transfer, 1 campaign, 2 forget the leader), the transferee (8 bytes)
+	ReqDisrupt = 4 // payload: what (8 bytes: 0 transfer, 1 campaign, 2 forget the leader, 3 restart the replica in its process), the transferee (8 bytes)
 	ReqStatus  = 5 // answer: Status (PutStatus)
 )
 
@@ -268,12 +342,13 @@ func (n *Node) serveClient(c net.Conn) {
 
 // handle runs one request; false if it has no answer.
 func (n *Node) handle(kind byte, p []byte, timeout time.Duration) ([]byte, bool) {
+	r := n.current()
 	switch kind {
 	case ReqPropose:
 		if _, _, _, _, ok := decode(p); !ok {
 			return nil, false
 		}
-		v, ok := n.r.propose(p, timeout)
+		v, ok := r.propose(p, timeout)
 		return []byte(v), ok
 	case ReqRead:
 		seq, r1, ok1 := getUint64(p)
@@ -281,7 +356,7 @@ func (n *Node) handle(kind byte, p []byte, timeout time.Duration) ([]byte, bool)
 		if !ok1 || !ok2 {
 			return nil, false
 		}
-		v, ok := n.r.read(seq, string(key), timeout)
+		v, ok := r.read(seq, string(key), timeout)
 		return []byte(v), ok
 	case ReqConf:
 		cc, ok := GetConfChange(p)
@@ -290,7 +365,7 @@ func (n *Node) handle(kind byte, p []byte, timeout time.Duration) ([]byte, bool)
 		}
 		n.stats.add(StConfChangesProposed)
 		ctx, cancel := withTimeout(timeout)
-		err := n.r.node.ProposeConfChange(ctx, cc)
+		err := r.node.ProposeConfChange(ctx, cc)
 		cancel()
 		return nil, err == nil
 	case ReqDisrupt:
@@ -299,14 +374,18 @@ func (n *Node) handle(kind byte, p []byte, timeout time.Duration) ([]byte, bool)
 		if !ok1 || !ok2 {
 			return nil, false
 		}
+		if what == 3 {
+			n.restart()
+			return nil, true
+		}
 		ctx, cancel := withTimeout(timeout)
 		switch what {
 		case 0:
-			n.r.node.TransferLeadership(ctx, n.r.node.Status().Lead, to)
+			r.node.TransferLeadership(ctx, r.node.Status().Lead, to)
 		case 1:
-			n.r.node.Campaign(ctx)
+			r.node.Campaign(ctx)
 		default:
-			n.r.node.ForgetLeader(ctx)
+			r.node.ForgetLeader(ctx)
 		}
 		cancel()
 		return nil, true
@@ -331,8 +410,9 @@ type Status struct {
 
 // status is the replica's Status now.
 func (n *Node) status() Status {
-	contents, index, cs := n.r.contents()
-	st := n.r.node.Status()
+	r := n.current()
+	contents, index, cs := r.contents()
+	st := r.node.Status()
 	return Status{Index: index, Conf: cs, Contents: contents, Lead: st.Lead, Term: st.HardState.GetTerm(),
 		Role: uint64(st.RaftState), Commit: st.HardState.GetCommit(), Stats: n.stats.Snapshot()}
 }

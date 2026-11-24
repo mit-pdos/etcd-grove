@@ -22,9 +22,9 @@ import (
 
 	"github.com/anishathalye/porcupine"
 	"github.com/goose-lang/primitive"
-	"github.com/mit-pdos/gokv/trusted_proph"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 	"github.com/mit-pdos/etcd-grove/examples/raft/kvnet"
+	"github.com/mit-pdos/gokv/trusted_proph"
 	pb "go.etcd.io/raft/v3/raftpb"
 )
 
@@ -214,10 +214,15 @@ func (c *checker) reconfigure(stop <-chan struct{}) {
 }
 
 // disrupt moves leadership at random times until stop: a transfer to a random replica, a
-// campaign, or a leader forgotten, asked of a random replica.
+// campaign, or a leader forgotten, asked of a random replica; or, one time in eight, a replica's
+// restart in its process (its node stopped, raft's Node.Stop, and restarted from its file).
 func (c *checker) disrupt(stop <-chan struct{}) {
 	for !sleep(disruptPause, stop) {
-		c.request(c.randomID(), kvnet.ReqDisrupt, kvnet.EncodeDisrupt(below(3), c.randomID()))
+		what := below(3)
+		if oneIn(8) {
+			what = 3
+		}
+		c.request(c.randomID(), kvnet.ReqDisrupt, kvnet.EncodeDisrupt(what, c.randomID()))
 	}
 }
 

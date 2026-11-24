@@ -16,11 +16,12 @@ import (
 // applied (by their encoding, each with its answer: the key's value after it) and the
 // configuration -- and the operations and reads waiting for their answers here.
 //
-// Unlike kvdurable's, an incarnation never stops and never crashes itself: it ends when its
-// process is killed, or its machine loses power, and nothing it does then (a write half done, a
-// message half sent) needs the program's help. So it has no stop channel and no crashed flag;
-// the read sequence numbers come from the clients (a read's context outlives the incarnation
-// that issued it: the clients never reuse a number, kvdurable's readSeqs).
+// An incarnation ends when its process is killed, or its machine loses power, and nothing it does
+// then (a write half done, a message half sent) needs the program's help; or when it is stopped
+// (stop: Node.restart, at a client's request), and the process starts the next incarnation from
+// the file. Unlike kvdurable's, it never crashes itself (a crash is the machine's), so it has no
+// crashed flag; the read sequence numbers come from the clients (a read's context outlives the
+// incarnation that issued it: the clients never reuse a number, kvdurable's readSeqs).
 type Replica struct {
 	id      uint64
 	file    string
@@ -28,8 +29,14 @@ type Replica struct {
 	storage *Storage
 	stats   *Stats
 	tick    time.Duration
+	stopc   chan struct{}
 	// snapc carries run's requests to the snapshot goroutine (snapshotter), one at most at a time
 	snapc chan snapReq
+	// runDone, tickDone and snapDone each get one value, when run, ticker and snapshotter return
+	// (stop waits for them)
+	runDone  chan struct{}
+	tickDone chan struct{}
+	snapDone chan struct{}
 
 	// dmu orders the storage's changes and the file's writes: each group of changes (a Ready's, a
 	// snapshot, a compaction: each to the MemoryStorage and to its image, Storage.img) and each
@@ -56,9 +63,10 @@ func newReplica(id uint64, file string, node raft.Node, storage *Storage, kv map
 	cs *pb.ConfState, index uint64, rafted uint64, tick time.Duration, stats *Stats,
 	send func([]*pb.Message)) *Replica {
 	hs := storage.img.hs
-	r := &Replica{id: id, file: file, node: node, storage: storage, stats: stats, tick: tick,
-		snapc: make(chan snapReq, 1),
-		cs:    pb.CloneConfState(cs), index: index,
+	r := &Replica{id: id, file: file, node: node, storage: storage, stats: stats, tick: tick, stopc: make(chan struct{}),
+		snapc:   make(chan snapReq, 1),
+		runDone: make(chan struct{}, 1), tickDone: make(chan struct{}, 1), snapDone: make(chan struct{}, 1),
+		cs: pb.CloneConfState(cs), index: index,
 		kv: kv, applied: applied,
 		waiters: make(map[string]chan string), reads: make(map[uint64]chan string)}
 	go r.run(send, index, hs, rafted)
@@ -67,12 +75,37 @@ func newReplica(id uint64, file string, node raft.Node, storage *Storage, kv map
 	return r
 }
 
-// ticker drives the node's clock.
+// ticker drives the node's clock until the incarnation stops.
 func (r *Replica) ticker() {
 	tk := time.NewTicker(r.tick)
-	for range tk.C {
-		r.node.Tick()
+	for {
+		select {
+		case <-tk.C:
+			r.node.Tick()
+		case <-r.stopc:
+			tk.Stop()
+			r.tickDone <- struct{}{}
+			return
+		}
 	}
+}
+
+// stop stops the incarnation for good, as kvdurable's Replica.stop: its loop, its clock, its
+// snapshot goroutine and its node. It stops the node only once the loop and the clock have
+// returned, so that the loop never meets a stopped node: every call it makes (the Ready,
+// ApplyConfChange, Advance) is on a running one. (Other goroutines -- proposers, readers, the
+// transport -- may still call a stopped node; they handle its answers.) Once run and the snapshot
+// goroutine have returned, nothing writes the file: the last critical section of dmu does nothing
+// at run time, and lets the proof take the file's writer out of dmu's invariant for the next
+// incarnation.
+func (r *Replica) stop() {
+	close(r.stopc)
+	<-r.runDone
+	<-r.tickDone
+	<-r.snapDone
+	r.node.Stop()
+	r.dmu.Lock()
+	r.dmu.Unlock()
 }
 
 // persist writes the storage's image to the file.
@@ -99,14 +132,22 @@ func (r *Replica) persist() {
 // handing the messages to the transport (send), which writes them to the network from other
 // goroutines: a message may reach its target after a later write of this replica, or never.
 //
-// Snapshots and compaction are asked of the snapshot goroutine (request), as in kvdurable.
+// Snapshots and compaction are asked of the snapshot goroutine (request), as in kvdurable. It
+// returns when the incarnation stops (stop), between two Readys.
 func (r *Replica) run(send func([]*pb.Message), snapIndex uint64, hs *pb.HardState, rafted uint64) {
 	var pending []raft.ReadState
 	lead := false
 	for {
-		rd := <-r.node.Ready()
+		var rd raft.Ready
+		select {
+		case rd = <-r.node.Ready():
+		case <-r.stopc:
+			r.runDone <- struct{}{}
+			return
+		}
 		if !fits(rd.Entries) {
 			// a log of 2^61 entries: it does not happen
+			r.runDone <- struct{}{}
 			return
 		}
 		if rd.SoftState != nil {
@@ -217,11 +258,18 @@ func (r *Replica) request(snapIndex uint64, snap bool, bound uint64) uint64 {
 	return snapIndex
 }
 
-// snapshotter takes the snapshots and makes the compactions run asks for; known is the least
-// index the stored snapshot is known to have reached (the storage's at start).
+// snapshotter takes the snapshots and makes the compactions run asks for, until the incarnation
+// stops; known is the least index the stored snapshot is known to have reached (the storage's at
+// start).
 func (r *Replica) snapshotter(known uint64) {
-	for req := range r.snapc {
-		known = r.snapshot(req, known)
+	for {
+		select {
+		case req := <-r.snapc:
+			known = r.snapshot(req, known)
+		case <-r.stopc:
+			r.snapDone <- struct{}{}
+			return
+		}
 	}
 }
 

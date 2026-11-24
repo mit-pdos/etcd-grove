@@ -44,6 +44,28 @@ type Transport struct {
 	peers map[uint64]*peer // every other replica the program knows, read-only once started
 }
 
+// peerTransport carries an incarnation's raft messages to its peers: this file's, over TCP
+// (Transport), or UDP's. Node.restart stops one and starts the next incarnation's with the same
+// constructor (newPeerTransport); what a transport receives it steps on the current incarnation's
+// node (Node.stepPeer).
+type peerTransport interface {
+	// start starts it once the incarnation's node exists.
+	start(node raft.Node)
+	// Send hands it the node's messages, without waiting.
+	Send(ms []*pb.Message)
+	// stop ends it once nothing sends any more (the incarnation's loop has returned).
+	stop()
+}
+
+// newPeerTransport makes the transport of node id, whose peers' addresses are addrs (by id; its
+// own included), counting in stats.
+type newPeerTransport func(id uint64, addrs map[uint64]string, stats *Stats) peerTransport
+
+// newTCPTransport is the TCP transport (newTransport), as a newPeerTransport.
+func newTCPTransport(id uint64, addrs map[uint64]string, stats *Stats) peerTransport {
+	return newTransport(id, addrs, stats)
+}
+
 // newTransport is the transport of node id, whose peers' addresses are addrs (by id; its own
 // included, and left out: raft never sends to itself).
 func newTransport(id uint64, addrs map[uint64]string, stats *Stats) *Transport {
@@ -61,6 +83,15 @@ func (t *Transport) start(node raft.Node) {
 	t.node = node
 	for _, p := range t.peers {
 		go t.runPeer(p)
+	}
+}
+
+// stop ends the senders once nothing sends any more (the incarnation's loop, the only caller of
+// Send, has returned: Replica.stop): each writes what its queue still holds, closes its
+// connection and returns.
+func (t *Transport) stop() {
+	for _, p := range t.peers {
+		close(p.queue)
 	}
 }
 
@@ -113,9 +144,10 @@ func (t *Transport) dial(p *peer) net.Conn {
 	return c
 }
 
-// runPeer writes p's messages to a connection to p, in order, dialing one when it has none. A
-// message whose connection cannot be made, or whose write fails, is dropped, and the connection
-// closed (the next message redials). A snapshot is reported finished once its frame is written:
+// runPeer writes p's messages to a connection to p, in order, dialing one when it has none, until
+// the transport stops (stop), and then closes its connection. A message whose connection cannot
+// be made, or whose write fails, is dropped, and the connection closed (the next message
+// redials). A snapshot is reported finished once its frame is written:
 // the peer may still lose it (crash before it steps it), which raft then learns by the peer's
 // answers, as with etcd's transport.
 func (t *Transport) runPeer(p *peer) {
@@ -143,26 +175,7 @@ func (t *Transport) runPeer(p *peer) {
 			t.node.ReportSnapshot(m.GetTo(), raft.SnapshotFinish)
 		}
 	}
-}
-
-// servePeer reads messages from a peer's connection and steps them on the node, until the
-// connection fails or ends. A frame that does not decode, or a message not addressed to this
-// node, ends the connection. A message the node does not take within stepTimeout is dropped.
-func (t *Transport) servePeer(c net.Conn) {
-	defer c.Close()
-	for {
-		b, ok := readFrame(c)
-		if !ok {
-			return
-		}
-		m, good := getMsg(b)
-		if !good || m.GetTo() != t.id {
-			t.stats.add(StBadFrames)
-			return
-		}
-		t.stats.add(StMsgsReceived)
-		ctx, cancel := withTimeout(stepTimeout)
-		t.node.Step(ctx, m)
-		cancel()
+	if c != nil {
+		c.Close()
 	}
 }

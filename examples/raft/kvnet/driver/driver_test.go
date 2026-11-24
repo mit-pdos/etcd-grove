@@ -9,6 +9,7 @@ import (
 
 	"github.com/anishathalye/porcupine"
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
+	"github.com/mit-pdos/etcd-grove/examples/raft/kvnet"
 )
 
 // TestMain runs a replica or the checking client instead of the tests when the harness started
@@ -108,4 +109,34 @@ func TestNetns(t *testing.T) {
 		crash = CrashMixed
 	}
 	round(t, crash, true)
+}
+
+// TestRestartsInProcess runs rounds of random configurations (kills as crashes) and checks that
+// in each the replicas were restarted in their processes (kvcheck's ReqDisrupt restart: raft's
+// Node.Stop, then RestartNode in the same process) and porcupine still answers Ok: the clean
+// stop-and-restart path runs alongside the machines' crashes, over many random runs.
+func TestRestartsInProcess(t *testing.T) {
+	rounds := 4
+	if testing.Short() {
+		rounds = 1
+	}
+	for i := 0; i < rounds; i++ {
+		cfg := RandomConfig(CrashKill, false)
+		res, c := Run(cfg, self(t), t.TempDir())
+		if c == nil {
+			t.Fatal(res.Err)
+		}
+		c.Stop()
+		n := c.Stats.Node[kvnet.StRestartsInProcess]
+		t.Logf("round %d %+v: %v; restarts in process %d, kills %d", i, cfg.Options, res.Check, n, c.Stats.Kills.Load())
+		if res.Err != nil {
+			t.Fatal(res.Err)
+		}
+		if res.Check != porcupine.Ok {
+			t.Fatalf("round %d: porcupine answered %v", i, res.Check)
+		}
+		if n == 0 {
+			t.Fatalf("round %d: no replica was restarted in its process", i)
+		}
+	}
 }

@@ -5,9 +5,9 @@ public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Code.github_com.anishathalye.porcupine
 public import Perennial.Code.github_com.goose_lang.primitive
-public import Code.github_com.mit_pdos.gokv.trusted_proph
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import KvNet.Code.github_com.mit_pdos.etcd_grove.examples.raft.kvnet
+public import Code.github_com.mit_pdos.gokv.trusted_proph
 public import KvNet.Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Golang.Defn
 
@@ -689,9 +689,10 @@ noncomputable def checker.reconfigure.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))
 
 /-- disrupt moves leadership at random times until stop: a transfer to a random replica, a
-    campaign, or a leader forgotten, asked of a random replica.
+    campaign, or a leader forgotten, asked of a random replica; or, one time in eight, a replica's
+    restart in its process (its node stopped, raft's Node.Stop, and restarted from its file).
 
-    go: kvcheck.go:218:19 -/
+    go: kvcheck.go:219:19 -/
 noncomputable def checker.disrupt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "stop"
@@ -702,14 +703,27 @@ noncomputable def checker.disrupt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Val disruptPause)
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "stop"))
   (App (App (App (Val (GoInstruction (FuncResolve sleep []))) (Val #())) (Var "$a0")) (Var "$a1"))))))) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(W64 3))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))
+  (Let "what" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType checker.ty) go!"randomID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType checker.ty)))) (Var "c"))) (Val #()))
   (Let "$a1" (Val #(W8 4))
-  (Let "$a2" (Let "$a0" (Let "$a0" (Val #(W64 3))
-  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))
+  (Let "$a2" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "what"))
   (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType checker.ty) go!"randomID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType checker.ty)))) (Var "c"))) (Val #()))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.EncodeDisrupt []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType checker.ty) go!"request"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType checker.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (If (Let "$a0" (Val #(W64 8))
+  (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
+  (Let "$r0" (Val #(W64 3))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "what") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "what") (Var "$r0")))))))))
   (Lam BAnon
   (Val #()))))))
   (Val #()))))
@@ -720,7 +734,7 @@ noncomputable def checker.disrupt.impl [GooseExts] [GoGlobalContext] : val :=
     (kvnet.ValidAddrs), and unless porcupine accepts the history of the operations it ran (the
     package's comment); otherwise it returns once they are done.
 
-    go: kvcheck.go:229:6 -/
+    go: kvcheck.go:234:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "voters"
@@ -882,7 +896,7 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.mit_pdos.gokv.trusted_proph, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet, pkg_id.go_etcd_io.raft.v3.raftpb]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet, pkg_id.github_com.mit_pdos.gokv.trusted_proph, pkg_id.go_etcd_io.raft.v3.raftpb]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -904,11 +918,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))))
 
@@ -1003,9 +1017,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
   import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
-  import_trusted_proph_Assumption : _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.Assumptions
   import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
   import_kvnet_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions
+  import_trusted_proph_Assumption : _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.Assumptions
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
 
 attribute [instance] Assumptions.checker_instance
@@ -1017,9 +1031,9 @@ attribute [instance] Assumptions.checker_instance
   Assumptions.import_time_Assumption
   Assumptions.import_porcupine_Assumption
   Assumptions.import_primitive_Assumption
-  Assumptions.import_trusted_proph_Assumption
   Assumptions.import_lintest_Assumption
   Assumptions.import_kvnet_Assumption
+  Assumptions.import_trusted_proph_Assumption
   Assumptions.import_raftpb_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck
