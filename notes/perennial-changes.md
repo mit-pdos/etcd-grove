@@ -86,10 +86,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   ServerContextKey, s), LocalAddrContextKey, la))`. Both calls block `conn.serve` and `Serve`.
 - **Who needs it.** net/http's server (`Net/Proof/net/http/`, `notes/dsverify-net-port-plan.md`, phase 5.2).
 - **Workaround.** (1) `wp_NewCond_nn` (`Net/Proof/net/http/ConnReaderLemmas.lean`): Perennial's proof of
-  `NewCond` over the translated body, the allocation's non-null kept. (2) None yet (`conn.serve` not proved;
-  without a Perennial change it would take two pending hypotheses: `WithValue` of a pointer key returns a
-  `*valueCtx` with its three fields, and `WithCancel` of a `*valueCtx` chain over `Background()` gives
-  `isContext`/`isCancelCtxCtx` of the child and its cancel function).
+  `NewCond` over the translated body, the allocation's non-null kept. (2) (2026-11-24, S5 batch 11) Two
+  **interim pending hypotheses** of the linked results that use them (not axioms; approved as interim by
+  coordinator-E on #24, 7139755664, each with a Go test and an adversarial review): `context.WithValue.specPtr`
+  (`Net/Spec/context/WithValuePtr.lean`: `WithValue` of a non-nil parent and a pointer key returns a fresh
+  `*valueCtx` with its three fields, read-only) and `context.WithCancel.specValBg`
+  (`Net/Spec/context/WithCancelValBg.lean`: `WithCancel` of `Background()` or a `*valueCtx` chain over it,
+  `context.ctxBg` in `Net/Proof/context/CtxBg.lean`, gives what `wp_WithCancel_Background` gives with
+  `PDone' := True`). Go evidence (go1.27.3): `/shared/tmp/ps2/s5d/gotest/ctxhyp` (`TestWithValuePtrKey`,
+  `TestWithValueExcluded`, `TestValueCtxFieldsNeverWritten`, `TestWithCancelValBg`, `TestNetHTTPChain`).
+  Retired by: `WithValue`'s body over Perennial's `internal/reflectlite` model (reflection S0.5, Perennial branch
+  `reflect-s05`); `isParentCtx` widened to `ctxBg` chains (then `specValBg` is a corollary of `wp_WithCancel_gen`).
 - **Proposed change.** (1) `NewCond.spec`'s post with `⌜c ≠ null⌝` (the proof has it). (2) `WithValue`
   translated with its body (its `reflectlite.TypeOf(key).Comparable()` check modelled) and a spec giving
   `isContext` of a value context over `isContext` or `Background()`; `isParentCtx` widened to a `*valueCtx`
