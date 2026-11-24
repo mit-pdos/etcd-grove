@@ -68,6 +68,7 @@ module
 
 public import GooseLang.Ext.Net.Slot
 public import Proof.google_golang_org.grpc.InvGrpcBase
+public import Proof.google_golang_org.grpc.InvGrpcCall
 public import Proof.encoding.base64.Base
 
 @[expose] public section

@@ -178,20 +178,7 @@ variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 /-! ## The stream's ghost state -/
 
-/-- The ghost names of one stream: the up queue (the requests the client sent), the server's
-received prefix of it, the down queue (the responses the server sent), the up queue's end, the
-client's received prefix of the down queue, the down queue's end, and (the watch slice's unit
-W-C) an auxiliary name the handler sets once (`streamAuxTok`, `streamAuxIs`): the names of the
-handler's own per-stream ghost state, allocated after the stream specification is fixed, which
-the stream specification can then mention. -/
-structure StreamNames where
-  up : GName
-  upRcv : GName
-  down : GName
-  upEnd : GName
-  downRcv : GName
-  downEnd : GName
-  aux : GName
+/-! `StreamNames` is in `InvGrpcCall.lean` (phase 7, SW1). -/
 
 /-- **The stream's auxiliary name, not yet set** (exclusive): the handler's run gets it with the
 fresh stream (`grpcStreamMethodOk`) and sets it once (`streamAux_set`). -/
