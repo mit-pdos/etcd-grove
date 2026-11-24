@@ -51,7 +51,7 @@ theorem etcd_restart.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io
   etcd_restart.Main.wp_proof zap.NewNop.wp_proof
     (etcd_restart.Run.wp_proof
       (etcd_restart.build.wp_proof etcdstart.wp_BuildServer)
-      (etcd_restart.newMember.wp_proof etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler
+      (etcd_restart.newMember.wp_proof etcdstart.net.wp_ListenHttp EtcdServer.wp_RaftHandler
         EtcdServer.wp_Start
         (etcd_restart.raftSwap.ServeHTTP.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock))
       (etcd_restart.put.wp_proof EtcdServer.wp_Put context.wp_Background

@@ -673,6 +673,20 @@ The remaining baseline and the two generated admissions have not been discharged
 |---|---|---|
 | `bridge.New.wp_proof` (D26) | **false before 2026-11-24**, with `grpc.ClientConn.Invoke.wp_proof` alone (the proved `client_Get_own`, `examples/axiomcx/bridgeinvoke/`) and with etcd-dist's interim `Client_Get_dist`; **fixed**: its precondition also consumes `netAddrLeft a` | A program listened at `a`, set `a`'s grpc table from `net.Listen`'s `netAddrLeft a` (`addr_set_proto_tok`) and bridged `a` to a server meeting none of the table's specs (`TestMainPanics`). With the fix the bridging program has spent what sets `a`'s protocols. |
 
+### `http.register` and `netAddrLeft` (2026-11-24; review `notes/axiom-review/http-register-addrleft.md`; Go: `examples/axiomcx/httpaddrleft/`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `http.register` (D38c; with `reserve`, `Serve_ok`) | **false before 2026-11-24**, with the net laws alone; **fixed**: its precondition also consumes `netAddrLeft a` | A program listened at `a`, set `a`'s net protocols to trivial ones from `net.Listen`'s `netAddrLeft a` (`addr_set_proto_tok`), wrote a raw request to `a`, and `Serve_ok` promised the handler a request of `a`'s http protocol (`TestMainPanics`). In the single-process `etcd-all`, `k8s-all`, `leaseexpiryN` bases (not `putget_safe`'s). |
+
+### `http.reserve` and an address's net protocols (2026-11-24; review `notes/axiom-review/http-reserve-addrproto.md`; Go: `examples/axiomcx/httpreserve/`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `http.reserve` (D39a; with `RoundTrip` through `roundTripperOk`) | **false before 2026-11-24**, with the net laws alone (after `register`'s `netAddrLeft` fix); **fixed**: its precondition also takes `httpAddrNet a`, `a`'s net protocols the opaque `httpNetCliP`/`httpNetSrvP`, set by the theorem `httpAddrFree_set` from `netAddrFree a` | A program reserved `a`, never registered it, listened at `a`, set `a`'s net protocols to trivial ones and answered `HTTP/1.1 200 OK`, a status the reserved protocol excluded and `RoundTrip`'s post promised could not come (`TestMainPanics`). |
+| `http.register` (D38c) | premise back to `netListenerAt l a ∗ httpProtoOwn a P` (no `netAddrLeft a`) | Sound by the reservation: `httpProtoOwn a P` comes only from `reserve`, after which no program holds anything that sets `a`'s net protocols, and a raw dialer to `a` writes nothing (`httpNetCliP` opaque), so the `httpaddrleft` route stays closed. |
+| `httpNetCliP`, `httpNetSrvP` (opaque definitions, `Proof/net/http/AddrNet.lean`) | trusted text, no law | Intended reading: the bytes Go's net/http client (server) writes on a connection to an address reserved for HTTP. Defined `True`, so consistent; opaque, so no program but the HTTP boundary's axioms can meet them. As grpc's `grpcCliPI`/`grpcSrvPI`. |
+| `netListenerOpen`/`netListenerAt` (definitions, `Proof/net/InvNet.lean`; premise of `http.register`, `grpc.start`, `bridge.New`) | **too weak before 2026-11-24** (pre-existing); **fixed**: it carries Net's `lisAt t lv x`, tying the Go listener to the extension's listener open at the address | Without the tie the listener facts of a reserved `a` repacked around a raw listener at `b`, and `register lb a P` with `Serve_ok` promised `b`'s handler `a`'s protocol of a raw `POST` (`examples/axiomcx/httpregfwd/`, `TestMainPanics`). |
 
 ### `etcd_noRefusal` and the server at the address (2026-11-24; review `notes/axiom-review/norefusal-link.md`; Go: `examples/axiomcx/norefusal/`)
 

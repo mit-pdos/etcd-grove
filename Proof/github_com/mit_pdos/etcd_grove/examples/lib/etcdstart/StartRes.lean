@@ -15,7 +15,9 @@ What a member's starters take of the program's start resources, as three sealed 
   the peer address also with its HTTP protocol unregistered (`httpProtoFree`).
 * `memberFreshRes name a γn`: what a first-start starter takes, after the cluster's network
   allocation (`alloc1`, `alloc3`): the same, the peer address's protocol reserved for the raft
-  protocol of the network `γn` (`http.httpProtoOwn p (raftProto (netRh γn))`).
+  protocol of the network `γn` (`http.httpProtoOwn p (raftProto (netRh γn))`), and (2026-11-24) its net
+  protocols set to net/http's, the right to listen at it now `http.httpAddrFree p` (`http.reserveAddr`;
+  `notes/axiom-review/http-reserve-addrproto.md`).
 * `memberRestartRes name a γn γ ρ id`: what a restart starter takes, what a member's stop gives back:
   the member's disk image in its data directory `memberDataDir name` (`srvDiskImage`, which holds the
   WAL's and the backend's files), and the same addresses' rights as `memberFreshRes`.
@@ -38,6 +40,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Stream
 public import Proof.net.InvNet
+public import Proof.net.http.AddrNet
 
 @[expose] public section
 
@@ -89,7 +92,7 @@ the cluster's network `γn`. -/
     IProp GF :=
   iprop(envVerifyOff ∗ dataDirFresh (memberDataDir name) ∗ memberAreasFresh (memberDataDir name) ∗
     (match a.peer with
-      | some p => netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))
+      | some p => http.httpAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))
       | none => emp) ∗
     (match a.client with | some c => netAddrFree c | none => emp))
 
@@ -98,7 +101,7 @@ the cluster's network `γn`. -/
     (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IProp GF :=
   iprop(srvDiskImage γ ρ id (memberDataDir name) ∗
     (match a.peer with
-      | some p => netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))
+      | some p => http.httpAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))
       | none => emp) ∗
     (match a.client with | some c => netAddrFree c | none => emp))
 
@@ -135,7 +138,7 @@ raft listener, `net.Listen` and `http.Serve`). -/
 theorem memberFreshRes_peer (n : GoString) (a : MemberAddrs) (γn : NetNames GF) (p : GoString)
     (h : a.peer = some p) :
     memberFreshRes (GF := GF) n a γn ⊢
-      (netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))) ∗
+      (http.httpAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))) ∗
         memberFreshRes n { a with peer := none } γn := by
   unfold memberFreshRes
   rw [h]
@@ -146,7 +149,7 @@ theorem memberFreshRes_peer (n : GoString) (a : MemberAddrs) (γn : NetNames GF)
 theorem memberRestartRes_peer (n : GoString) (a : MemberAddrs) (γn : NetNames GF) (γ : SrvRaft)
     (ρ : ReqNames) (id : w64) (p : GoString) (h : a.peer = some p) :
     memberRestartRes (GF := GF) n a γn γ ρ id ⊢
-      (netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))) ∗
+      (http.httpAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))) ∗
         memberRestartRes n { a with peer := none } γn γ ρ id := by
   unfold memberRestartRes
   rw [h]
@@ -179,7 +182,7 @@ theorem memberRestartRes_raft (n : GoString) (a : MemberAddrs) (γn : NetNames G
 `memberDataDir n`, and its peer address's listen right and raft protocol). -/
 theorem memberRestartRes_intro (n : GoString) (p : GoString) (γn : NetNames GF) (γ : SrvRaft)
     (ρ : ReqNames) (id : w64) :
-    srvDiskImage (GF := GF) γ ρ id (memberDataDir n) ∗ netAddrFree p ∗
+    srvDiskImage (GF := GF) γ ρ id (memberDataDir n) ∗ http.httpAddrFree p ∗
         http.httpProtoOwn p (raftProto (netRh γn)) ⊢
       memberRestartRes n { peer := some p } γn γ ρ id := by
   unfold memberRestartRes

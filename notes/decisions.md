@@ -42352,6 +42352,59 @@ bridges `a` keeps nothing to set them with. Trust-shrinking (a stronger precondi
 `client_Get_own` (over `grpc.ClientConn.Invoke`) promises a value the real store lacks (`examples/axiomcx/bridgeinvoke/`);
 with the fix it found no route (`notes/axiom-review/bridge-addrleft.md`).
 
+## `http.register` consumes what sets the address's net protocols (2026-11-24 · the coordinator, trust-shrinking · branch `http-register-addrleft/2026-11-24`)
+
+*Superseded in part* (the same day) by "`http.reserve` fixes the address's net protocols" below: `reserve` takes the
+address's net protocols as net/http's, `register` no longer takes `netAddrLeft a` (nothing gives it for a reserved
+address). The alternative this entry set aside was the right place: the hole was also open without any `register`.
+
+**Problem.** `http.register` (D38c) took only the listener `netListenerAt l a` (and the reserved protocol). Since phase 7
+S2's interface `net.Listen` also returns `netAddrLeft a`, from which a program gives `a` net protocols of its own and writes
+raw bytes to it; `Serve_ok` still promised each handler a request of `a`'s http protocol. Go: a raw `GET` reaches a handler
+promised only `POST`s and its check panics (`notes/axiom-review/http-register-addrleft.md`, `examples/axiomcx/httpaddrleft/`).
+The same class as `bridge.New` before its fix (above).
+
+**Choice.** `register` also consumes `netAddrLeft a`: an address served by net/http speaks HTTP, so the program that
+registers it keeps nothing to set its net protocols with. Trust-shrinking (a stronger premise of an axiom); its five
+callers pass `net.Listen`'s, their specs unchanged. Alternative: `reserve` consuming it (the reservation happens before
+the listener exists, from the start's `httpProtoFree`; `register` is where the listener and `netAddrLeft` meet).
+
+## `http.reserve` fixes the address's net protocols (2026-11-24 · the coordinator, trust-shrinking · branch `http-reserve-addrproto/2026-11-24`)
+
+**Problem.** `http.reserve` turned `httpProtoFree a` into `httpProtoAt a P ∗ httpProtoOwn a P`, and `RoundTrip` (through
+`NewTimeoutTransport`'s `roundTripperOk`) promises a client of `a` `P.resp` of whatever status it reads, from the
+reservation on. Nothing tied `a`'s net protocols to HTTP: a program that reserved `a` and never registered it listened at
+`a` (`net.Listen`, `netAddrFree a`), set `a`'s net protocols to trivial ones from `netAddrLeft a` (or kept `netPend a ∅`),
+accepted the client's connection and wrote `HTTP/1.1 200 OK`, a status `P` excluded. Go: `examples/axiomcx/httpreserve/`
+panics (`notes/axiom-review/http-reserve-addrproto.md`). The same class as `bridge.New`'s and `register`'s holes (above),
+and the previous entry's fix (`register` consuming `netAddrLeft a`) does not reach it: the program never registers.
+
+**Choice.** `reserve` also takes `httpAddrNet a` (persistent, `Proof/net/http/AddrNet.lean`): `a`'s net protocols are the
+opaque `httpNetCliP`/`httpNetSrvP` (trusted text with no law, as grpc's `grpcCliPI`/`grpcSrvPI`), so no program but
+raw net code writes at `a` (it may still listen, accept and read), and `a`'s pending set is spent (no
+`netAddrLeft a`: no protocols of the program's own). It is set by a theorem over the net extension (`httpAddrFree_set`: `netProto_alloc`,
+`addr_set_proto`) from `netAddrFree a`, which leaves `httpAddrFree a := addrClaim a ∗ httpAddrNet a`, the right to listen
+at `a` reserved for HTTP; `reserveAddr` packages the two. The member's peer listener is made from it by a second spec of
+`net.Listen`, `net.Listen.specHttp` (a theorem from Net's `Listen` spec with `listen_au`, linked as `net_Listen+Http`),
+which leaves no `netAddrLeft`, so `register` takes the listener and `httpProtoOwn a P` alone (`httpProtoOwn` comes only from
+`reserve`, so its address already speaks HTTP). The start bundles' peer part is `httpAddrFree p ∗ httpProtoOwn p P`
+(`memberFreshRes`, `memberRestartRes`, sealed), set at the clusters' allocations (`netHttp_reserve3`, `netHttp_reserveL`,
+which now take each address's `netAddrFree` with its `httpProtoFree`); the restart examples' `newMember.spec` say so. No
+top-level statement changes (they name program start's `addrClaim`/`httpProtoFree`, unchanged). Trust: `reserve`'s
+premise is stronger; `register`'s is weaker than the previous entry's but sound by the reservation; the two opaques
+are new trusted text without laws (definitions, not axioms). The drafts of `ListenerClose.lean` follow: the close gives
+back `httpAddrFree a`, never a fresh `netAddrFree a`.
+
+Alternatives. `reserve` consuming `netAddrFree a` whole and handing the listen right back opaque (an axiom for the
+listener: trust grows). Setting the protocols at `register` (too late: `RoundTrip`'s promise holds from the
+reservation). `httpProtoAt` carrying the net fact for `RoundTrip` to take (the same premise in a less direct place).
+
+**Addendum (the same day, the listener's tie).** An independent review of the fix found `netListenerOpen l a` did not tie
+the Go listener `l` to the extension's listener open at `a` (pre-existing): a raw listener at an unreserved `b` could be
+registered as `a`'s (`examples/axiomcx/httpregfwd/`, `notes/axiom-review/http-reserve-addrproto.md`, "The listener's
+tie"). `netListenerOpen` now carries Net's `lisAt t lv x` (as `isListener`), which `net.Listen`'s proofs keep; its
+consumers are axioms (`register`, `grpc.start`, `bridge.New`), whose premise is stronger. Alternative: an axiom-side
+check (each axiom taking `isListener`): the same fact in three places instead of the one definition.
 
 ## Go's process exit stays angelic, and checkers panic (2026-11-24 · branch `angelic-exit-doc/2026-11-24`)
 
