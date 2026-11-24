@@ -34,7 +34,7 @@ abbrev authClient.RoleGrantPermission.spec : Prop :=
   ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (name key rangeEnd : GoString) (permType : w32)
     (Spec : GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse) (Q : Unit → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (authObjAtC api conn addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜key.length < 2 ^ 63 - 1⌝ ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleGrantPermission" Spec ∗
       metadata.outMD ci om ∗ □ ▷ attemptPre conn om Spec (name, (⟨permType, key, rangeEnd⟩ : auth.PermW)) Q ∗
       ⌜strsSizeOk [name, key, rangeEnd]⌝) }}

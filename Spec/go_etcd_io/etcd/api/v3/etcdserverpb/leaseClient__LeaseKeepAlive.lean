@@ -30,7 +30,7 @@ a fresh stream (both tokens at `[]`), or a `nil` stream and a client error. -/
 abbrev leaseClient.LeaseKeepAlive.spec : Prop :=
   ∀ (lc conn : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (opts : GoSlice) (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ leaseStubAt lc conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (leaseStubAt lc conn ∗
       isEtcdConn conn [addr] ∗ leaseKAStreamOk addr ∗ leaseDescOk ∗ ctxOk ctx cd ∗
       opts ↦*□ vs ∗ streamCallOptsOk vs) }}
     (App (App (Val (lc @!! go.GoType.PointerType etcdserverpb.leaseClient.ty @!! go!"LeaseKeepAlive"))

@@ -30,7 +30,7 @@ abbrev retryAuthClient.UserGrantRole.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthUserGrantRoleRequest (GF := GF)).M)
     (opts : GoSlice) (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthAt rac conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryAuthAt rac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗ metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec m Φ ∗ ctxOk ctx cd ∗
       (pbAuthUserGrantRoleRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
       ⌜(pbAuthUserGrantRoleRequest (GF := GF)).wireLen m < grpcMsgMax⌝) }}

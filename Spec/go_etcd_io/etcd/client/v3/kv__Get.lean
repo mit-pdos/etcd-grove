@@ -38,7 +38,7 @@ abbrev kv.Get.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
     (opts : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKv kv γ dup ∗
       ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAtRes opts_sl opts R ∗ R ∗
       sortNamesIf (opGetModel key opts).base.sortSet ∗
       ⌜¬ opGetPanics opts ∧ (opGetModel key opts).t = W64 1⌝ ∗

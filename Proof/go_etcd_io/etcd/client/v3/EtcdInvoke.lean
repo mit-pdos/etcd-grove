@@ -55,7 +55,7 @@ abbrev etcdConn.Invoke.spec : Prop :=
   ∀ (Spec : GrpcSpec Req.toProtoMsg Rep.toProtoMsg)
     (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface),
-  {{ levelTok 0 ∗ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ levelTok 0 ∗ isEtcdConn conn addr ∗
       isGrpcRpcs addr method Spec ∗ reqPre conn method addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
       Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
     (App (App (App (App (App
@@ -80,7 +80,7 @@ abbrev etcdConn.InvokeMd.spec : Prop :=
   ∀ (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
     (om : GrpcMd) (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
     (vs : List GoInterface),
-  {{ levelTok 0 ∗ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ levelTok 0 ∗ isEtcdConn conn addr ∗
       isGrpcRpcsMd addr method Spec ∗ metadata.outMD ctx om ∗
       reqPre conn method addr vs (attemptPre conn om Spec m Φ) ∗ ctxOk ctx cd ∗
       Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
@@ -104,7 +104,7 @@ abbrev etcdConn.InvokeMdE.spec : Prop :=
   ∀ (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
     (om : GrpcMd) (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
     (vs : List GoInterface),
-  {{ levelTok 0 ∗ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ levelTok 0 ∗ isEtcdConn conn addr ∗
       isGrpcRpcsMd addr method Spec ∗ metadata.outMD ctx om ∗
       reqPre conn method addr vs (attemptPre conn om Spec m Φ Ψe) ∗ ctxOk ctx cd ∗
       Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
@@ -160,7 +160,7 @@ lent the caller's `levelTok 0` (the connection's resource, `clientRes`). -/
 theorem etcdConn_InvokeMdE (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdConn.InvokeMdE.spec (GF := GF) (hG := hG) := by
   intro conn addr method Req Rep hreq hrep Spec m Φ Ψe ctx om cd inp out opts vs
-  iintro %Ψ ⟨Htok, #Hg, #Hconn0, #Hrpc, #Hom, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
+  iintro %Ψ ⟨#Hg, Htok, #Hconn0, #Hrpc, #Hom, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
   iunfold isEtcdConn at Hconn0
   icases Hconn0 with ⟨%ic, #Hgc, #Hic, #HicW⟩
   iapply wp_wand_r
@@ -233,7 +233,7 @@ plain spec's metadata-indexed form (`GrpcSpec.md`, `isGrpcRpcs_md`, `attemptPre_
 theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdConn.Invoke.spec (GF := GF) (hG := hG) := by
   intro conn addr method Req Rep hreq hrep Spec m Φ ctx cd inp out opts vs
-  iintro %Ψ ⟨Htok, #Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
+  iintro %Ψ ⟨#Hg, Htok, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
   ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩

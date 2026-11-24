@@ -29,7 +29,7 @@ a spec `Spec` the server registered for the method and the caller's persistent
 abbrev authClient.AuthEnable.spec : Prop :=
   ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (Spec : GrpcSpecMd (GF := GF) pbAuthEnableRequest pbAuthEnableResponse) (Q : Unit → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (authObjAtC api conn addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/AuthEnable" Spec ∗
       metadata.outMD ci om ∗ □ ▷ attemptPre conn om Spec () Q) }}
     (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"AuthEnable")) (Val #(GoInterface.ok ci)))

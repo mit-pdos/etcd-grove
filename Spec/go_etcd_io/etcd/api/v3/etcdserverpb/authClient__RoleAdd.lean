@@ -35,7 +35,7 @@ abbrev etcdserverpb.authClient.RoleAdd.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbAuthRoleAddRequest pbAuthRoleAddResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthRoleAddRequest (GF := GF)).M)
     (opts : GoSlice) (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ authStubAt ac conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (authStubAt ac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleAdd" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec m Φ ∗ ctxOk ctx cd ∗
       (pbAuthRoleAddRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗

@@ -35,9 +35,7 @@ context (`clientAttemptMd`), and its specification is at `md`'s token (`auth.mdT
 abbrev watchGRPCStream.openWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (wgs : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (om : GrpcMd) (callSl : GoSlice) (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      wgsF wgs go!"ctx" ↦□ (GoInterface.ok ci) ∗ context.isContext ci cd ∗ metadata.outMD ci om ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (wgsF wgs go!"ctx" ↦□ (GoInterface.ok ci) ∗ context.isContext ci cd ∗ metadata.outMD ci om ∗
       wgsF wgs go!"remote" ↦□ wcIface V.wc ∗ wgsF wgs go!"callOpts" ↦□ callSl ∗
       callSl ↦*□ vs ∗ callOptsOk vs ∗ watchSrvFacts V) }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"openWatchClient")) (Val #()))

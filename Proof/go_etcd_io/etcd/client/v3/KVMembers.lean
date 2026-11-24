@@ -55,7 +55,7 @@ abbrev kv.Do.specM : Prop :=
   ∀ (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (c : w64) (F : mvcc.Log)
     (Q : KVState → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKV api ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKV api ms ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ opFullAt opv o ∗ doRunM api ms o c F Q ∗
       ⌜opSizeOk o⌝) }}
     (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
@@ -74,7 +74,7 @@ abbrev kv.Put.specM : Prop :=
   ∀ (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Q : KVState → IProp GF)
     (F : mvcc.Log),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKV api ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKV api ms ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2 ∧
         (putWireOf (opPutModel key val gs)).leaseID = W64 0⌝ ∗
@@ -98,7 +98,7 @@ abbrev kv.Get.specM : Prop :=
   ∀ (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF) (c : w64)
     (F : mvcc.Log) (Q : KVState → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKV api ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKV api ms ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
       sortNamesIf (opGetModel key gs).base.sortSet ∗
       ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
@@ -121,7 +121,7 @@ abbrev kv.Delete.specM : Prop :=
   ∀ (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Q : KVState → IProp GF)
     (F : mvcc.Log),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKV api ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKV api ms ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3 ∧
         (deleteWireOf (opDeleteModel key gs)).base.rangeEnd ≠ [W8 0]⌝ ∗
@@ -144,8 +144,7 @@ The builder is spent (its slices are now the request's). The request fits a gRPC
 abbrev txn.Commit.specM : Prop :=
   ∀ (tp : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      txnObjAt tp (ms.map SrvAt.addr) ci cd b ∗ kvRegs ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (txnObjAt tp (ms.map SrvAt.addr) ci cd b ∗ kvRegs ms ∗
       ⌜TxnModel.plain b.model ∧ txnModelIn (txnWireOf b.model)⌝ ∗ knownAt ms c F ∗
       txnReqPre tp (ms.map SrvAt.addr) (txnUpd ms (txnWireOf b.model) Q) ∗
       ⌜txnSizeOk (txnWireOf b.model)⌝) }}
@@ -189,7 +188,7 @@ abbrev kv.Do.specG : Prop :=
       (Sr : GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse) (Qr : RangeRespM → IProp GF)
       (Sd : GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
       (Qd : DelRespM → IProp GF) (Ψr : GoString → IProp GF),
-    {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAtC api conn addr ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAtC api conn addr ∗
         metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ opFullAt opv o ∗
         doRunGen api conn addr om o Sp Qp Sr Qr Sd Qd Ψr ∗
       ⌜opSizeOk o⌝) }}
@@ -209,7 +208,7 @@ abbrev kv.Put.specG : Prop :=
     (om : GrpcMd) (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (Sp : GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse)
     (Qp : PutRespM → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAtC api conn addr ∗
       metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2⌝ ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.KV/Put" Sp ∗
@@ -230,7 +229,7 @@ abbrev kv.Get.specG : Prop :=
     (gs : List (OpFull → OpFull)) (R : IProp GF)
     (Sr : GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse) (Qr : RangeRespM → IProp GF)
     (Ψr : GoString → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAtC api conn addr ∗
       metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
       sortNamesIf (opGetModel key gs).base.sortSet ∗
       ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
@@ -253,7 +252,7 @@ abbrev kv.Delete.specG : Prop :=
     (gs : List (OpFull → OpFull))
     (Sd : GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
     (Qd : DelRespM → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAtC api conn addr ∗
       metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3⌝ ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.KV/DeleteRange" Sd ∗
@@ -273,7 +272,7 @@ abbrev txn.Commit.specG : Prop :=
       (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
       (b : TxnBuild) (Spec : GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse)
       (Q : TxnRespM → IProp GF),
-    {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (txnObjAt tp addr ci cd b ∗
         metadata.outMD ci om ∗
         txnKvIs tp api ∗ kvObjAtC api conn addr ∗
         isGrpcRpcsMd addr go!"/etcdserverpb.KV/Txn" Spec ∗

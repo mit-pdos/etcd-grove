@@ -38,8 +38,7 @@ abbrev txn.Commit.spec : Prop :=
   ∀ (txn_ptr : Loc) (addr : List GoString) (kv : Loc) (γ : KVNames) (dup : Bool)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (Q : KVState → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      txnObjAt txn_ptr addr ctx ctx_desc b ∗ txnKvIs txn_ptr kv ∗ isKv kv γ dup ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (txnObjAt txn_ptr addr ctx ctx_desc b ∗ txnKvIs txn_ptr kv ∗ isKv kv γ dup ∗
       ⌜TxnModel.plain b.model ∧ txnModelIn (txnWireOf b.model)⌝ ∗
       □?dup (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ txn.txnSerializable (txnWireOf b.model) = false⌝ ∗

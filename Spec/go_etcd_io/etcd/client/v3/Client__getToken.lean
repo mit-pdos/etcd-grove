@@ -35,7 +35,7 @@ token), ready (`clientReady`: its `Auth` over the connection `conn` to `eps`; th
 through the client's retry interceptor). -/
 abbrev Client.getToken.spec : Prop :=
   ∀ (c conn : Loc) (eps : List GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryClientOk c ∗
       -- (the auth plan's C1, 2026-10-28) the client ready (`c.Auth` over `conn`, the token's
       -- facts), its connection (later: the retry interceptor's refresh path calls this under its
       -- own induction hypothesis)

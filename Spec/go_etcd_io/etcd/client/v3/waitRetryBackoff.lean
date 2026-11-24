@@ -34,7 +34,7 @@ returns: `retryOptsAt`) and returns `nil`, or, if the context is done first, a g
 errdesc stage 2b, 2026-11-21: a description `descIs`, until then the pure `errDesc`). -/
 abbrev waitRetryBackoff.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (attempt : w64) (o : Loc),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxOk ctx cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (ctxOk ctx cd ∗
       retryOptsAt o) }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.waitRetryBackoff))
       (Val #(GoInterface.ok ctx))) (Val #attempt)) (Val #o))

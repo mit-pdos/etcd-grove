@@ -32,7 +32,7 @@ abbrev authClient.UserGrantRole.spec : Prop :=
   ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (user role : GoString)
     (Spec : GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Q : Unit → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (authObjAtC api conn addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗
       metadata.outMD ci om ∗ □ ▷ attemptPre conn om Spec (user, role) Q ∗
       ⌜strsSizeOk [user, role]⌝) }}

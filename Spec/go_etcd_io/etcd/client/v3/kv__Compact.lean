@@ -45,7 +45,7 @@ abbrev kv.Compact.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (rev : w64),
   1 ≤ sint.Z rev → γ.cmp = true →
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKv kv γ dup ∗
       ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ kvRevLbZ γ (sint.Z rev + γ.cret)) }}
     (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Compact")) (Val #(GoInterface.ok ctx))) (Val #rev)) (Val #slice.nil))

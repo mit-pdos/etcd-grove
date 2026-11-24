@@ -28,7 +28,7 @@ abbrev retryKVClient.Txn.spec : Prop :=
     (Q : TxnRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.TxnRequest) (t : TxnModel) (opts : GoSlice)
     (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Txn" Spec ∗
       metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/Txn" addr vs (attemptPre conn om Spec t Q) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ txnReqAt req t ∗
       opts ↦*□ vs ∗ callOptsOk vs ∗

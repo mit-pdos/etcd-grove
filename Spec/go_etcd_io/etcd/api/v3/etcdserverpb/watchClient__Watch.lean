@@ -42,8 +42,7 @@ abbrev watchClient.Watch.spec : Prop :=
     (Up : GoString → Nat → v3rpc.WatchReqM → IProp GF)
     (Spec : GoString → GrpcMd → StreamSpec (GF := GF) v3rpc.pbWatchResponse) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (opts : GoSlice) (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      v3rpc.watchStubAt wc conn ∗ grpcConn conn addrs ics [] clientRes ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (v3rpc.watchStubAt wc conn ∗ grpcConn conn addrs ics [] clientRes ∗
       isGrpcStreamsMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) addrs
         go!"/etcdserverpb.Watch/Watch" Up Spec ∗
       v3rpc.watchDescOk ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗ opts ↦*□ vs ∗ callOptsOk vs) }}

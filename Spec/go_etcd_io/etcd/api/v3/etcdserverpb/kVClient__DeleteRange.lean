@@ -35,7 +35,7 @@ abbrev kVClient.DeleteRange.spec : Prop :=
     (Φ : DelRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.DeleteRangeRequest) (k e : GoString) (opts : GoSlice)
     (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
       metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (attemptPre conn om Spec (deleteReqOp req k e) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ callOptsOk vs ∗

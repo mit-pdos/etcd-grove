@@ -33,7 +33,7 @@ abbrev etcdserverpb.authClient.Authenticate.spec : Prop :=
     (Spec : GrpcSpec (GF := GF) pbAuthenticateRequest pbAuthenticateResponse) (Φ : GoString → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthenticateRequest (GF := GF)).M)
     (opts : GoSlice) (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ authStubAt ac conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (authStubAt ac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcs addr authnMethod Spec ∗ □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗
       (pbAuthenticateRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
       ⌜(pbAuthenticateRequest (GF := GF)).wireLen m < grpcMsgMax⌝) }}

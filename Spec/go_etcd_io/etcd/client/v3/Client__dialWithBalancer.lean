@@ -35,8 +35,7 @@ abbrev Client.dialWithBalancer.spec : Prop :=
   ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (cr : GoInterface) (r : Loc)
     (esl : GoSlice) (eps : List GoString) (atb : GoInterface)
     (P : GoString → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗
       cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
       clientF c go!"authTokenBundle" ↦□ atb ∗ (⌜atb = GoInterface.nil⌝ ∨ tokenBundleInv atb P) ∗ clientF c go!"creds" ↦□ cr ∗
       clientF c go!"endpoints" ↦□ esl ∗ esl ↦*□ eps ∗ ⌜plainEndpoints eps⌝ ∗

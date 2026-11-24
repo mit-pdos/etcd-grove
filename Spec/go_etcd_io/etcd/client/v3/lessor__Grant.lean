@@ -34,7 +34,7 @@ abbrev lessor.Grant.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Q : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (ttl : w64),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorRemoteAtC l conn addr ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec (ttl, W64 0) Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd) }}

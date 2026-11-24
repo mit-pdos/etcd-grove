@@ -37,7 +37,7 @@ abbrev lessor.TimeToLive.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse)
     (Q : LeaseTTLRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (id : w64) (sl : GoSlice) (gs : List (Bool → Bool)),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorRemoteAtC l conn addr ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec (id, leaseKeysFold gs false) Q ∗
       leaseOptsAt sl gs ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd) }}

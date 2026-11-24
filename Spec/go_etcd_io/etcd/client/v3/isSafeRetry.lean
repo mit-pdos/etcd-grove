@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 non-nil client error grpc's `status` accepts, returns some boolean. -/
 abbrev isSafeRetry.spec : Prop :=
   ∀ (c : Loc) (err : GoInterface) (o : Loc) (p : go_etcd_io.etcd.client.v3.retryPolicy) (m : GoString),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ retryOptsAt o ∗ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryClientOk c ∗ retryOptsAt o ∗ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗
       statusErrOk err ∗
       -- (2026-10-21, D29) the call's retry policy
       retryOptsPol o p ∗

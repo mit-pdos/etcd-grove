@@ -28,7 +28,7 @@ abbrev retryKVClient.Put.spec : Prop :=
     (Q : PutRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.PutRequest) (k v : GoString) (opts : GoSlice)
     (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Put" Spec ∗
       metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/Put" addr vs (attemptPre conn om Spec (putReqOp req k v) Q) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
       opts ↦*□ vs ∗ callOptsOk vs ∗

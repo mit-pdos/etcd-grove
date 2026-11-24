@@ -33,7 +33,7 @@ abbrev lessor.Leases.spec : Prop :=
   ∀ (l conn : Loc) (addr : List GoString)
     (Spec : GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
     (Q : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF)),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorRemoteAtC l conn addr ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec () Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd) }}

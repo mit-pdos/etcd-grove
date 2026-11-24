@@ -36,7 +36,7 @@ abbrev kVClient.Range.spec : Prop :=
     (Φ : RangeRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.RangeRequest) (k e : GoString) (opts : GoSlice)
     (vs : List GoInterface) (Ψe : GoString → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Range" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec (rangeReqOp req k e) Φ Ψe ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ callOptsOk vs ∗

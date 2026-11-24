@@ -31,7 +31,7 @@ abbrev retryLeaseClient.LeaseRevoke.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
     (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.LeaseRevokeRequest) (opts : GoSlice) (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryLeaseAt rlc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec req.ID' Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
       opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗

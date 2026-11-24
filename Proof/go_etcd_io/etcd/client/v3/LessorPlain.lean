@@ -36,7 +36,7 @@ abbrev lessor.Grant.specP : Prop :=
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Q : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (ttl : w64),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorRemoteAt l addr ∗
       isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (ttl, W64 0) Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd) }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
@@ -77,7 +77,7 @@ abbrev lessor.Revoke.specP : Prop :=
     (Spec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
     (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorRemoteAt l addr ∗
       isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗ □ ▷ Spec id Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd) }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
@@ -114,7 +114,7 @@ abbrev lessor.TimeToLive.specP : Prop :=
     (Spec : GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse)
     (Q : LeaseTTLRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64) (sl : GoSlice) (gs : List (Bool → Bool)),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorRemoteAt l addr ∗
       isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗
       □ ▷ Spec (id, leaseKeysFold gs false) Q ∗ leaseOptsAt sl gs ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd) }}
@@ -158,7 +158,7 @@ abbrev lessor.Leases.specP : Prop :=
   ∀ (l : Loc) (addr : List GoString)
     (Spec : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
     (Q : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorRemoteAt l addr ∗
       isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗ □ ▷ Spec () Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd) }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Leases"))

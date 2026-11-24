@@ -29,7 +29,7 @@ abbrev retryKVClient.Compact.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbCompactionRequest pbCompactionResponse)
     (Q : CompactRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.CompactionRequest) (opts : GoSlice) (vs : List GoInterface),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Compact" Spec ∗
       metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/Compact" addr vs
         (attemptPre conn om Spec ⟨req.Revision', req.Physical'⟩ Q) ∗

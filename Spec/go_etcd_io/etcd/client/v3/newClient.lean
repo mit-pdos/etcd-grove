@@ -32,9 +32,7 @@ or an error (the dial's) and `nil`. -/
 abbrev newClient.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (p : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
     (P : GoString → IProp GF),
-  {{ levelTok 0 ∗ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      p ↦□ cfg ∗ clientCfgOk cfg eps ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (p ↦□ cfg ∗ clientCfgOk cfg eps ∗
       -- (the auth plan's C1, 2026-10-28) its credentials' tokens
       clientAuthPre cfg eps P) }}
     (App (Val (@! go_etcd_io.etcd.client.v3.newClient)) (Val #p))
