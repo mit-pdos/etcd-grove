@@ -84,7 +84,7 @@ theorem stepLeader.wp_proof
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 9) every arm gated: `send`'s and `maybeCommit`'s one specs, no instance
-  intro c r id s ml m ents sn ctx rs k0 G G' Gp1 Gp2 Gc Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr
+  intro nc c r id s ml m ents sn ctx rs k0 G G' Gp1 Gp2 Gc Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr
     Hack Hncc HiG HiP HiC Hxtr Hltr
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc, HG, #Hgbeat, Hgriresp, #Hgrihb, Hgtnow, Hgxapp, #Hnosnap,
     Hgcq, Hgprep, Hgpack, #Hgpapp, Hgsapp, #Hghresp, Hgcommit, #Hgrlresp, #Hgrlhb, #Hgaapp,

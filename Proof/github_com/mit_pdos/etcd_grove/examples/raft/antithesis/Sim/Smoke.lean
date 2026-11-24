@@ -35,6 +35,7 @@ The schedule (each node's input, then its `drain`; a message not listed as recei
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Abs
+public meta import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Abs
 
 @[expose] public section
 
