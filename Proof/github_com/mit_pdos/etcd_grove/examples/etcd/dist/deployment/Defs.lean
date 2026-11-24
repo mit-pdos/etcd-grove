@@ -21,6 +21,16 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_dist
 
+/-- A byte `nameOk` admits (an ASCII letter or digit, or `-`). -/
+def nameByteOk (b : w8) : Bool := decide
+  ((48 ≤ b.toNat ∧ b.toNat ≤ 57) ∨ (65 ≤ b.toNat ∧ b.toNat ≤ 90) ∨
+    (97 ≤ b.toNat ∧ b.toNat ≤ 122) ∨ b.toNat = 45)
+
+theorem nameByteOk_iff (b : w8) : nameByteOk b = true ↔
+    ((48 ≤ b.toNat ∧ b.toNat ≤ 57) ∨ (65 ≤ b.toNat ∧ b.toNat ≤ 90) ∨
+      (97 ≤ b.toNat ∧ b.toNat ≤ 122) ∨ b.toNat = 45) := by
+  unfold nameByteOk; simp
+
 /-- `kindNames()`: the kinds' names, in the kinds' order. -/
 def kindNameList : List GoString :=
   [go!"kv", go!"watch", go!"cache", go!"compact", go!"putget", go!"auth", go!"authLease",
