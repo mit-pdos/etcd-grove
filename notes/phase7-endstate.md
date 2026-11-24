@@ -744,6 +744,13 @@ the measure; landings shrink its baseline until it is empty. Two items had no st
 
 ## 5. What each top-level theorem still rests on
 
+(2026-11-24) `etc/tcb-collections/grpc.txt` makes the family's part mechanical: its roots are every etcd
+and Kubernetes example's result and every top-level robustness theorem, its `axioms` lines restrict the
+baseline to the family (`etc/tcb-report.py --help`). Baseline at `2fac29cd4f`: 142 axioms, no `sorry`.
+"gRPC is done" is that baseline empty and the grpc-specific premises gone from the statements
+(`grpcRepliesFit`, `addrsUnclaimed`, `DialWithBalancerBody`'s resolver type; the opaques of the family
+are not axioms and the report does not see them).
+
 From the inventory (strict family counts, the adjacent prometheus and zap axioms in parentheses), with
 this plan's order:
 
