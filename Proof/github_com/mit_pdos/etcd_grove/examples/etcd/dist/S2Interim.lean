@@ -245,8 +245,9 @@ where it was an axiom): the deployment's start sets the unset address `a` to ser
 `(γE, mid)`, over a fresh slot map (`depSlots_alloc`, then `grpc_addr_set`). It spends `addrUnset a`:
 `a`'s pending set, its token and its listening token, so `a` is set at most once (`netLisTok_excl`). It is
 not the only source of `etcdAddrAt`: `net.Listen`'s `netAddrLeft` sets a table too (`addr_set_proto_tok`), and
-`etcdAddrAt`'s `addrProto` lets its holder listen at `a` (`listen_au`); with `bridge.New` that refutes
-`Client_Put_dist`/`Client_Get_dist` (review 4, pending a decision, `notes/putget-dist-plan.md` §12). -/
+`etcdAddrAt`'s `addrProto` lets its holder listen at `a` (`listen_au`). With the old `bridge.New` that refuted
+`Client_Put_dist`/`Client_Get_dist` (review 4); since 2026-11-24 `bridge.New` also consumes `netAddrLeft a`, which
+neither route leaves (`notes/axiom-review/bridge-addrleft.md`). -/
 theorem etcdAddr_set (E : CoPset) (a : GoString) (γE : GName) (mid : w64) :
     ⊢ regCtx (Gg := Gg) -∗ addrUnset (Gg := Gg) a ={E}=∗ etcdAddrAt (GF := GF) a γE mid := by
   iintro #Hreg Hu

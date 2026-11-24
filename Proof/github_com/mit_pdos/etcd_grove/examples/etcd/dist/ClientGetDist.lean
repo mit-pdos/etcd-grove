@@ -32,8 +32,8 @@ model) over the net extension, for a client that dials with **no proxy dial path
 from `etcdstart.NewClient`'s post: `grpc.WithNoProxy()` in the client's configuration, so no
 attempt goes through an HTTP `CONNECT` proxy named by `HTTPS_PROXY`; review F1, evidence
 `TestProxyRogue` and `TestWithNoProxyFix`): as `Client_Put_dist.wp_proof`, each attempt's `Range`
-reaches `ep`'s only acceptor, the member that published `ν` at `γE` (see `Client_Put_dist.wp_proof`'s
-known-false note, review 4). A `nil` result is that
+reaches `ep`'s only acceptor, the member that published `ν` at `γE` (see `Client_Put_dist.wp_proof` on
+review 4 and `bridge.New`'s fix). A `nil` result is that
 member's linearizable read of `key` (no `serializable`, revision `0`) at a state after the put fired
 (the flag at `1`), which the invariant says holds `val`.
 
