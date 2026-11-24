@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch :=
   build_get_is_pkg_init_wf
 

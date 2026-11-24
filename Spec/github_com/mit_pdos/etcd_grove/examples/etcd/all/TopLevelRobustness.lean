@@ -62,7 +62,7 @@ This file only states it (to audit); the proof is to be in
 bootstrap log (`BootFacts`; authlease's ids also apart in 15 bits, `Hap`), the server's opaque workload and
 environment premises once (`Haf`, `Hbuq`, `Hrf`, `Hdbo`), the lease premises of leaseN, authlease and
 leasecatchup once (`Hlp`, `Hlne`), the three workloads' bounds, the schedules' lengths, the program's
-metric names, addresses and data directories (all clusters', concatenated), `ETCD_VERIFY` off, each
+addresses and data directories (all clusters', concatenated), `ETCD_VERIFY` off, each
 cluster's named premises (`Hprem…`, at every step bound `n` with `n + 1 ≤ 2 ^ 48`, the bound the proof
 uses), the file system's initial state and the
 members' WAL areas (`HWal`, all clusters'); and one premise of the composition, `Hlow`: the 16 low bits of
@@ -186,9 +186,7 @@ def etcd_robust_single_process.spec : Prop :=
     -- cache's workload
     (cnw cnops : w64) (Hcnw0 : 0 ≤ sint.Z cnw) (Hcnw31 : sint.Z cnw < 2 ^ 31)
     (Hcnops : 0 ≤ sint.Z cnops) (Hcmul : sint.Z cnw * sint.Z cnops < 2 ^ 62)
-    -- the program's metric names, addresses, data directories and environment
-    (HNs : prometheus.namesUnclaimed
-      (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅) etcdNames)
+    -- the program's addresses, data directories and environment
     (HAs : addrsUnclaimed (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
       (etcdAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
