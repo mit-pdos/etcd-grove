@@ -159,24 +159,29 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
     have hnA' : nnv.toNat < A' := by omega
     have hA'l : A' ≤ data.length := by omega
     have h2p30 : sint.Z (W64 1073741824) = 1073741824 := rfl
-    wp_if_join (fun v => iprop(⌜v = executeVal⌝ ∗ ∃ mx : w64, max_ptr ↦ mx ∗ ⌜sint.Z mx = A'⌝))
+    wp_if_join (fun v => iprop(⌜v = executeVal⌝ ∗ (∃ mx : w64, max_ptr ↦ mx ∗ ⌜sint.Z mx = A'⌝) ∗
+        (nn_ptr ↦ nnv : IProp GF))) with [max Hnnp]
     · try wp_auto
       isplitr
-      · ipureintro; rfl
-      iexists (nnv + W64 1073741824)
-      iframe
-      ipureintro
-      rw [hsub, h2p30] at Hif
-      rw [wl_add30 nnv (by rw [hnnz]; omega) (by rw [hnnz]; omega), hnnz]; omega
+      · ipureintro; first | rfl | trivial
+      isplitr [Hnnp]
+      · iexists (nnv + W64 1073741824)
+        iframe
+        ipureintro
+        rw [hsub, h2p30] at Hif
+        rw [wl_add30 nnv (by rw [hnnz]; omega) (by rw [hnnz]; omega), hnnz]; omega
+      · iframe
     · try wp_auto
       isplitr
-      · ipureintro; rfl
-      iexists sl.len
-      iframe
-      ipureintro
-      rw [hsub, h2p30] at Hif
-      rw [hslz]; omega
-    iintro %v ⟨%hv, %mx, Hmax, %hmxz⟩
+      · ipureintro; first | rfl | trivial
+      isplitr [Hnnp]
+      · iexists sl.len
+        iframe
+        ipureintro
+        rw [hsub, h2p30] at Hif
+        rw [hslz]; omega
+      · iframe
+    iintro %v ⟨%hv, ⟨%mx, Hmax, %hmxz⟩, Hnnp⟩
     subst hv
     try wp_auto
     have hmxt := wl_toNat_of_sintZ mx A' hmxz
@@ -345,6 +350,8 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
           rw [decide_eq_true he0]
           simp only [Bool.not_true]
           wp_pure
+          try wp_auto
+          try wp_auto
           have hnk' : nnv.toNat + k ≠ data.length := by
             intro hc; apply hfull; apply BitVec.eq_of_toNat_eq
             rw [hnk, hsln, hlenN]; exact hc
