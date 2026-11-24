@@ -39,7 +39,8 @@ def loopRest (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.NodeView) (net₀
     n.[H.node, go!"role"] ↦ roleStr (roleGo v.ps.role) ∗ n.[H.node, go!"term"] ↦ v.ps.term ∗
     n.[H.node, go!"vote"] ↦ v.ps.vote ∗ n.[H.node, go!"commit"] ↦ v.ps.commit ∗
     n.[H.node, go!"applied"] ↦ applied ∗ n.[H.node, go!"cause"] ↦ cl ∗
-    viewFrag γ j v ∗ nodeLive γ j ∗ sentLb γ net₀ ∗ causeOwn γ j v cl ∗ ⌜ByOk v.byE⌝)
+    viewFrag γ j v ∗ nodeLive γ j ∗ sentLb γ net₀ ∗ causeOwn γ j v cl ∗ ⌜ByOk v.byE⌝ ∗
+    ⌜ViewNormal v⌝)
 
 /-- **`nodeOwn`'s loop phase opened.** -/
 theorem nodeOwn_loop_open (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.NodeView)
@@ -51,7 +52,7 @@ theorem nodeOwn_loop_open (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : A
         loopRest γ j n v net₀ rs := by
   unfold nodeOwn
   iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, Hbs, %Hsto, Hraw, Hnr,
-    %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, ⟨%Hph, #Hlb, Hco⟩⟩
+    %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %HN, ⟨%Hph, #Hlb, Hco⟩⟩
   obtain ⟨rfl, hR, rfl, hip, hby⟩ := Hph
   iexists rn, rs, ip
   iframe Hrn Hraw
@@ -60,7 +61,7 @@ theorem nodeOwn_loop_open (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : A
   iunfold loopRest
   iexists ms, si, cl, applied
   iframe Hms Hbs Hnr Hrole Hterm Hvote Hcommit Happ Hcause Hv Hl Hlb Hco
-  ipureintro; exact ⟨Hsto, hby⟩
+  ipureintro; exact ⟨Hsto, hby, HN⟩
 
 /-- **The loop's exit** (`HasReady` false at the loop head): the view moved to the node's state
 (`noReady_of`, `quiet_upd`), the node drained; the view's `by` kept. -/
@@ -75,7 +76,7 @@ theorem drain_exit (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.N
   iintro ⟨#Hinv, #Hrn, Hraw, Hrest⟩
   iunfold loopRest at Hrest
   icases Hrest with ⟨%ms, %si, %cl, %applied, #Hms, Hbs, %Hsto, Hnr, Hrole, Hterm, Hvote, Hcommit,
-    Happ, Hcause, Hv, Hl, #Hlb, Hco, -⟩
+    Happ, Hcause, Hv, Hl, #Hlb, Hco, -, %HN⟩
   imod quiet_upd γ j v { v with ps := ps₁, qs := [] } net₀ hq hl $$ [Hv Hl] with ⟨Hv, Hl⟩
   · iframe Hinv Hlb Hv Hl
   imodintro
@@ -87,6 +88,8 @@ theorem drain_exit (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.N
   · ipureintro; exact Hsto
   isplitr
   · ipureintro; exact hrv'
+  isplitr
+  · ipureintro; exact ⟨by simp only; rw [hl]; exact HN.1, HN.2⟩
   isplitr
   · ipureintro; simp only [true_and]; exact ⟨hI, by rw [hip], hP⟩
   unfold causeOwn
@@ -145,7 +148,7 @@ theorem nodeOwn_loop_close (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : 
   iintro ⟨#Hrn, Hraw, Hrest⟩
   iunfold loopRest at Hrest
   icases Hrest with ⟨%ms, %si, %cl, %applied, #Hms, Hbs, %Hsto, Hnr, Hrole, Hterm, Hvote, Hcommit,
-    Happ, Hcause, Hv, Hl, #Hlb, Hco, %hby⟩
+    Happ, Hcause, Hv, Hl, #Hlb, Hco, %hby, %HN⟩
   unfold nodeOwn
   iexists rn, ms, si, rs, ps₁, [], ip, cl, applied
   iframe Hrn Hms Hbs Hraw Hnr Hrole Hterm Hvote Hcommit Happ Hcause Hv Hl
@@ -153,6 +156,8 @@ theorem nodeOwn_loop_close (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : 
   · ipureintro; exact Hsto
   isplitr
   · ipureintro; exact hrv
+  isplitr
+  · ipureintro; exact HN
   isplitr
   · ipureintro; exact ⟨rfl, hR, rfl, hip, hby⟩
   iframe Hlb Hco

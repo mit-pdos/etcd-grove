@@ -93,6 +93,28 @@ theorem absMsgOf_dst {st : MsgSt} {m : Msg} (H : absMsgOf st = some m) :
   · obtain ⟨sv, -, rfl⟩ := Option.map_eq_some_iff.1 H; rfl
   · cases H; rfl
 
+/-- An in-flight message's entries are normal. -/
+theorem netFacts_normal {st : MsgSt} {m : Msg} (h : NetFacts st m) : AllNormal m.entries := by
+  obtain ⟨ty, -, -, hm, -⟩ := netFacts_absMsg h
+  subst hm
+  exact h.2.2.2.1
+
+theorem mtypeOf_eq_hb {t : w32} (H : mtypeOf t = some .heartbeat) : t = MsgHeartbeat := by
+  unfold mtypeOf at H; split at H <;> simp_all; rename_i h; exact uint_Z_inj.1 (by rw [h]; rfl)
+
+/-- An in-flight heartbeat carries no context. -/
+theorem netFacts_hbCtx {st : MsgSt} {m : Msg} (h : NetFacts st m) : m.ty = .heartbeat → m.ctx = [] := by
+  obtain ⟨ty, hty, -, hm, -⟩ := netFacts_absMsg h
+  subst hm
+  intro hhb
+  exact h.2.2.1 (.inl (mtypeOf_eq_hb (by rw [hty]; exact congrArg some hhb)))
+
+/-- The view after an input keeps its entries normal (the handled message's, for `recv`). -/
+theorem viewNormal_noteInput {v : AntSim.NodeView} {inp : AntSim.Input} (hN : ViewNormal v)
+    (h : ∀ m, inp.cause = some m → AllNormal m.entries ∧ (m.ty = .heartbeat → m.ctx = [])) :
+    ViewNormal (v.noteInput inp) :=
+  ⟨hN.1, h⟩
+
 /-- An in-flight message's term is nonzero (stamped). -/
 theorem netFacts_term {st : MsgSt} {m : Msg} (h : NetFacts st m) : m.term ≠ W64 0 := by
   obtain ⟨ty, -, -, hm, -⟩ := netFacts_absMsg h
@@ -251,19 +273,19 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
         ⌜γ.raft.raftNames.reTrace = none ∧ γ.raft.raftNames.reCfg = AntSim.voters3 ∧
           γ.raft.raftNames.maxData = none⌝ ∗
         n.[H.node, go!"cause"] ↦ (null : Loc) ∗ viewFrag γ j v ∗ nodeLive γ j ∗
-        ⌜RsView rs v ∧ v.Idle ∧ PIdle rs v.ps⌝ ∗
+        ⌜RsView rs v ∧ v.Idle ∧ PIdle rs v.ps ∧ ViewNormal v⌝ ∗
         (∀ (rs' : RNState) (ps₁ : PState) (ip' : Nat) (v' : AntSim.NodeView) (net₀ : List Msg)
             (cl : Loc),
           rawNode γ.raft.raftNames rn (AntSim.nodeId j) rs' ps₁ [] ip' -∗
           ⌜rs'.storage = rs.storage ∧ rs'.dur = rs.dur ∧ RsView rs' v' ∧ v'.ps = v.ps ∧
             AntSim.Reach (AntSim.nodeId j) net₀ v' ps₁ ∧ ip' = lcpLen v.ps.log ps₁.log ∧
-            ByOk v'.byE⌝ -∗
+            ByOk v'.byE ∧ ViewNormal v'⌝ -∗
           rnTermLB γ.raft rs'.tc -∗
           n.[H.node, go!"cause"] ↦ cl -∗ viewFrag γ j v' -∗ nodeLive γ j -∗ sentLb γ net₀ -∗
           causeOwn γ j v' cl -∗ nodeOwn c γ j n v' (.loop net₀ ps₁)) := by
   unfold nodeOwn
   iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, Hbs, %Hsto, Hraw, Hnr,
-    %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %Hph⟩
+    %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %HN, %Hph⟩
   obtain ⟨hI, rfl, rfl, rfl, hP, rfl⟩ := Hph
   icases nodeRaft_open hbp γ j rs $$ Hnr with ⟨Htc, #Hb, %Hst, Hnrc⟩
   iexists rn, rs
@@ -273,16 +295,16 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
   isplitr
   · ipureintro; exact Hst
   isplitr
-  · ipureintro; exact ⟨Hrv, hI, hP⟩
+  · ipureintro; exact ⟨Hrv, hI, hP, HN⟩
   iintro %rs' %ps₁ %ip' %v' %net₀ %cl' Hraw %Hf Htc Hcause Hv Hl Hlb Hco
-  obtain ⟨hsto, hdur, hrv, hps, hR, hip, hby⟩ := Hf
+  obtain ⟨hsto, hdur, hrv, hps, hR, hip, hby, hN'⟩ := Hf
   ihave Hnr := Hnrc $$ %rs' %hdur Htc
   iexists rn, ms, si, rs', ps₁, [], ip', cl', applied
   rw [hps]
   dsimp only
   iframe Hrn Hms Hbs Hraw Hnr Hrole Hterm Hvote Hcommit Happ Hcause Hv Hl Hlb Hco
   ipureintro
-  exact ⟨by rw [hsto]; exact Hsto, hrv, rfl, hR, rfl, hip, hby⟩
+  exact ⟨by rw [hsto]; exact Hsto, hrv, hN', rfl, hR, rfl, hip, hby⟩
 
 /-- **After a drain, the cause cell reset** (`n.cause = nil` in `run`'s `recv` arm): node `j` is
 between inputs again. -/
@@ -292,14 +314,14 @@ theorem nodeOwn_drained_reset (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v
         (n.[H.node, go!"cause"] ↦ (null : Loc) -∗ nodeOwn c γ j n v .idle) := by
   unfold nodeOwn
   iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, Hbs, %Hsto, Hraw, Hnr,
-    %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %Hph, -⟩
+    %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %HN, %Hph, -⟩
   iexists cl
   iframe Hcause
   iintro Hcause
   iexists rn, ms, si, rs, ps, qs, ip, null, applied
   iframe Hrn Hms Hbs Hraw Hnr Hrole Hterm Hvote Hcommit Happ Hcause Hv Hl
   ipureintro
-  exact ⟨Hsto, Hrv, Hph.1, Hph.2.1, Hph.2.2.1, Hph.2.2.2.1, Hph.2.2.2.2, rfl⟩
+  exact ⟨Hsto, Hrv, HN, Hph.1, Hph.2.1, Hph.2.2.1, Hph.2.2.2.1, Hph.2.2.2.2, rfl⟩
 
 /-- **After a drain not caused by a message**, the cause cell is `nil` (`causeOwn`): node `j` is
 between inputs again. -/
@@ -310,13 +332,13 @@ theorem nodeOwn_drained_idle (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v 
     intro cl; unfold causeOwn; simp only [h, false_and, ↓reduceIte]
   unfold nodeOwn
   iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, Hbs, %Hsto, Hraw, Hnr,
-    %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %Hph, Hco⟩
+    %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %HN, %Hph, Hco⟩
   rw [hco]
   icases Hco with %Hnil
   iexists rn, ms, si, rs, ps, qs, ip, cl, applied
   iframe Hrn Hms Hbs Hraw Hnr Hrole Hterm Hvote Hcommit Happ Hcause Hv Hl
   ipureintro
-  exact ⟨Hsto, Hrv, Hph.1, Hph.2.1, Hph.2.2.1, Hph.2.2.2.1, Hph.2.2.2.2, Hnil⟩
+  exact ⟨Hsto, Hrv, HN, Hph.1, Hph.2.1, Hph.2.2.1, Hph.2.2.2.1, Hph.2.2.2.2, Hnil⟩
 
 /-- **The cause cell after a message's input** (`n.cause = &cause`, `cause := msgOf(inp.msg, n.id)`):
 the report of the message, sent, with its receipts (`msgOf`'s, one per entry, and two more). -/

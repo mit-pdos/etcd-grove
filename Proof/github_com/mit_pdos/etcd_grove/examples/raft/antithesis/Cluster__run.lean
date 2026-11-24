@@ -132,7 +132,7 @@ theorem Cluster.run.wp_proof
     iintro %tm0 -
     icases nodeOwn_idle_open h_bp c γ j n v $$ Hown with
       ⟨%rn, %rs, #Hrn, Hraw, Htc, #Hb, %Hstat, Hcause, Hv, Hl, %Hst, Hclose⟩
-    obtain ⟨hrv, hI, hP⟩ := Hst
+    obtain ⟨hrv, hI, hP, hN⟩ := Hst
     icases h_wf _ _ _ _ _ _ _ $$ Hraw with ⟨%Hwf, Hraw⟩
     icases h_tc _ _ _ _ _ _ _ $$ Hraw with ⟨%Htcle, Hraw⟩
     wp_take_receipt as Hrc
@@ -154,7 +154,8 @@ theorem Cluster.run.wp_proof
     have hip' : ip' = lcpLen v.ps.log ps'.log := by
       rw [hip]; exact Nat.min_eq_right (lcpLen_le_left _ _)
     ihave Hown := Hclose $$ %_ %ps' %ip' %(v.noteInput .tick) %net₀ %null Hraw
-      %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inr (.inl rfl))⟩)
+      %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inr (.inl rfl)),
+        viewNormal_noteInput hN (fun _ h => by cases h)⟩)
       Htc Hcause Hv Hl Hlb Hco
     have hdr := wp_drain c γ n j (v.noteInput .tick) net₀ ps' q
     rw [show (v.noteInput .tick).byE = go!"tick" from rfl] at hdr
@@ -177,7 +178,7 @@ theorem Cluster.run.wp_proof
     iintro %inp Hinp
     icases nodeOwn_idle_open h_bp c γ j n v $$ Hown with
       ⟨%rn, %rs, #Hrn, Hraw, Htc, #Hb, %Hstat, Hcause, Hv, Hl, %Hst, Hclose⟩
-    obtain ⟨hrv, hI, hP⟩ := Hst
+    obtain ⟨hrv, hI, hP, hN⟩ := Hst
     iunfold inputOk at Hinp
     icases Hinp with (⟨%Hk, %st, %m, Hnm, %Hd⟩ | ⟨%Hk, %data, #Hdata, Hprop⟩)
     · -- a message
@@ -220,7 +221,7 @@ theorem Cluster.run.wp_proof
         · imodintro; iintro %ty %hty' %-
           rw [huniq ty hty', hm0]; iexact Hism
         wp_apply +noauto wp_Step γ.raft.raftNames rn (AntSim.nodeId j) { rs with tc := tb } v.ps []
-            v.ps.log.length inp.msg' st hnok (fun _ => ⟨hty, Hnf.2.2.1, by rw [Hstat.2.1]; exact netFacts_from Hnf⟩) hle2
+            v.ps.log.length inp.msg' st hnok (fun _ => ⟨hty, fun h => Hnf.2.2.1 (.inr h), by rw [Hstat.2.1]; exact netFacts_from Hnf⟩) hle2
             (fun h => absurd h (antStepTypes_ne_timeoutNow hty)) hrv.2.2.2.2.2.2 Hstat.1
             $$ [$Hrpkg $Hraw $Hm' $Hxfer $Hmsg Hcr] as %err %tt %ps' %ip' ⟨Hraw, %Ht, %Hend⟩
         · isplitr
@@ -243,7 +244,8 @@ theorem Cluster.run.wp_proof
         have hip' : ip' = lcpLen v.ps.log ps'.log := by
           rw [hip]; exact Nat.min_eq_right (lcpLen_le_left _ _)
         ihave Hown := Hclose $$ %_ %ps' %ip' %(v.noteInput (.recv m)) %net₀ %cause_ptr Hraw
-          %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inl rfl)⟩)
+          %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inl rfl),
+            viewNormal_noteInput hN (fun _ h => by cases h; exact ⟨netFacts_normal Hnf, netFacts_hbCtx Hnf⟩)⟩)
           Htb Hcause Hv Hl Hlb Hco
         have hdr := wp_drain c γ n j (v.noteInput (.recv m)) net₀ ps' q
         rw [show (v.noteInput (.recv m)).byE = go!"recv" from rfl] at hdr
@@ -278,7 +280,8 @@ theorem Cluster.run.wp_proof
         have hip' : ip' = lcpLen v.ps.log ps'.log := by
           rw [hip]; exact Nat.min_eq_right (lcpLen_le_left _ _)
         ihave Hown := Hclose $$ %_ %ps' %ip' %(v.noteInput (.propose data)) %net₀ %null Hraw
-          %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inr (.inr rfl))⟩)
+          %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inr (.inr rfl)),
+            viewNormal_noteInput hN (fun _ h => by cases h)⟩)
           Htc Hcause Hv Hl Hlb Hco
         have hdr := wp_drain c γ n j (v.noteInput (.propose data)) net₀ ps' q
         rw [show (v.noteInput (.propose data)).byE = go!"propose" from rfl] at hdr

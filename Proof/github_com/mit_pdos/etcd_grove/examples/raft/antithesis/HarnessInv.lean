@@ -174,15 +174,24 @@ def AntRun (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin 3 → AntSi
     AntCheck.Stream.ConfBounded AntSim.cfg3 evs ∧ ∀ ev ∈ evs, ev.ChgOk 0
 
 /-- **What an in-flight message's receiver needs of it** (pure): `RawNode.Step`'s premises at its
-destination (`NetMsgOk`, the harness's types, a heartbeat response with no context), the entries
+destination (`NetMsgOk`, the harness's types, a heartbeat response with no context; a heartbeat
+with none either, which the drain it causes needs, `ViewNormal`), the entries
 `entryOf` takes (normal), its protocol reading `m`, and every number below `2 ^ 61` (so that
 `msgOf`'s `int(x)` readings are `AntSim.msgOf`'s). -/
 def NetFacts (st : MsgSt) (m : Msg) : Prop :=
   NetMsgOk st.msg.To' st ∧ st.msg.Type' ∈ antStepTypes ∧
-  (st.msg.Type' = MsgHeartbeatResp → st.ctx = []) ∧ AllNormal st.ents ∧ absMsgOf st = some m ∧
+  (st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp → st.ctx = []) ∧
+  AllNormal st.ents ∧ absMsgOf st = some m ∧
   (∃ j : Fin 3, m.dst = AntSim.nodeId j) ∧ (∃ i : Fin 3, m.src = AntSim.nodeId i) ∧
   uint.Z st.msg.Term' < 2 ^ 61 ∧ uint.Z st.msg.Index' < 2 ^ 61 ∧ uint.Z st.msg.LogTerm' < 2 ^ 61 ∧
   uint.Z st.msg.Commit' < 2 ^ 61 ∧ (∀ e ∈ st.ents, uint.Z e.Term' < 2 ^ 61)
+
+/-- **The view's entries are normal** (`entryOf`'s premise, not in the binding's relation): its log
+and the entries of the message its drain handles (`NetFacts`'s `AllNormal`), with no context if it is a
+heartbeat (what `msgShape.stmt` takes). A drain keeps it
+(`Sim/MsgShapeStmt.lean`: a `Ready`'s log normal). -/
+def ViewNormal (v : AntSim.NodeView) : Prop :=
+  AllNormal v.ps.log ∧ ∀ m, v.cause = some m → AllNormal m.entries ∧ (m.ty = .heartbeat → m.ctx = [])
 
 /-- A drain's `by`, one of the harness's (`Reach.advance`'s premise). -/
 def ByOk (b : AntCheck.Str) : Prop :=
@@ -404,8 +413,8 @@ def RsView (rs : RNState) (v : AntSim.NodeView) : Prop :=
 /-- **Node `j`'s goroutine's state** at `n`, its view `v`, the phase `ph` (see the file header): the
 `RawNode` at `rs ps qs ip` and its raft ghost state; its `MemoryStorage` (`ms`, `nodeStor`: at the view's hard state, in the
 `bootStorage` raft reads, `si`); the Go fields `role term vote commit` the view's (the last
-`ready`'s), `applied` any; the cause cell; the view fragment and the right to report; and the
-phase's facts:
+`ready`'s), `applied` any; the cause cell; the view fragment and the right to report; its entries normal
+(`ViewNormal`); and the phase's facts:
 - `idle`: nothing of a `Ready` left (`Idle`), the node at the view's state, idle (`PIdle`), its
   in-progress boundary at the log's end, the cause cell `nil`;
 - `loop net₀ ps₁`: the node at `ps₁`, reached from the view (`Reach` over `net₀`, a lower bound of
@@ -425,7 +434,7 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.NodeView
     n.[H.node, go!"role"] ↦ roleStr (roleGo v.ps.role) ∗ n.[H.node, go!"term"] ↦ v.ps.term ∗
     n.[H.node, go!"vote"] ↦ v.ps.vote ∗ n.[H.node, go!"commit"] ↦ v.ps.commit ∗
     n.[H.node, go!"applied"] ↦ applied ∗ n.[H.node, go!"cause"] ↦ cl ∗
-    viewFrag γ j v ∗ nodeLive γ j ∗
+    viewFrag γ j v ∗ nodeLive γ j ∗ ⌜ViewNormal v⌝ ∗
     match ph with
     | .idle => iprop(⌜v.Idle ∧ ps = v.ps ∧ qs = [] ∧ ip = v.ps.log.length ∧ PIdle rs ps ∧
         cl = null⌝)
