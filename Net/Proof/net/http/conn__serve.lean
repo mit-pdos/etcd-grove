@@ -18,6 +18,7 @@ public import Net.Spec.context.WithValuePtr
 public import Net.Spec.context.WithCancelValBg
 public import Net.Proof.net.http.ServerConnLemmas
 public import Net.Proof.net.http.ServeDefs
+public import Net.Proof.net.http.ServeLemmas
 public import Perennial.Spec.fmt.Fprintf
 
 @[expose] public section
@@ -55,7 +56,7 @@ theorem conn.serve.wp_proof
     (wp_WReset : EtcdGrove.bufio.Writer.Reset.spec (GF := GF) (hG := hG))
     (wp_NewWriterSize : EtcdGrove.bufio.NewWriterSize.specRep (GF := GF) (hG := hG)) :
     conn.serve.spec (GF := GF) (hG := hG) := by
-  intro c s t cn a la ra P Q Z path ctx hp hlen hQ
+  intro c s t cn a la ra P Q Z path ctx hc hp hlen hQ
   wp_start as ⟨#Henv, #Hrenv, #Hctxi, #Hsc, #Hsd, #Hss, #Hkeys, #Hpools, #Hrpool, ⟨%tm, #Htm⟩, #Hbg, Hc,
     #Hca, Hsend, Hrecv, Hfresh, Hrdl, #Hhl, #Hzl, #HQ400, #Hh, Htok⟩
   wp_apply wp_with_defer_recover as %defer %pnc defer pnc
@@ -104,6 +105,84 @@ theorem conn.serve.wp_proof
     iframe #
     ipureintro; rfl
   wp_apply wp_WithCancelBg $$ [$Hctxi $Hbg1] as %ctx2 %γc %cancel ⟨#Hcancel, #Hctx2, #Hcctx2⟩
+  try wp_auto
+  -- the connection's reader
+  icases typedPointsto_split _ _ _ $$ «$r0» with «$r0»
+  simp only [TypedPointsto.typedPointstoDef, named]
+  icases «$r0» with ⟨rwc, mu, conn, hasByte, byteBuf, cond, inRead, aborted, remain, -⟩
+  ipersist rwc
+  ipersist Hr
+  ipersist Hcc
+  ihave #Hsc' := Hsc
+  iunfold srvConst at Hsc'
+  icases Hsc' with ⟨#Htime, #Hsync, #Hatomic, -, -⟩
+  imod inv_alloc curReqN ⊤ (curReqInv c) $$ [Hcur] with #Hcurinv
+  · inext; iunfold curReqInv; iexists null; iframe Hcur; ileft; ipureintro; rfl
+  ihave #Hcok : crConnOk (GF := GF) c $$ []
+  · iunfold crConnOk; iright; iexists cancel, γc
+    iframe Hsync Hatomic Hcc Hcancel Hcurinv
+    ipureintro; exact hc
+  imod ghostVar_alloc (GF := GF) false with ⟨%γph, Hph⟩
+  icases (ghostVar_split_half γph 1 false).1 $$ Hph with ⟨Hph1, Hph2⟩
+  imod token_alloc (GF := GF) with ⟨%γbg, Hbg⟩
+  imod ghostVar_alloc (GF := GF) (net.rpc.connectReq path) with ⟨%γr, Hγr⟩
+  let γ : CrNames := ⟨γph, γbg, γr⟩
+  imod sync.init_Mutex (crInv «$r0_ptr» γ cn P (net.rpc.connectReq path) Z) ⊤
+      (structFieldRef net.http.connReader go!"mu" «$r0_ptr») $$ mu [cond Hph1 Hbg] with #Hcrmu
+  · inext
+    iunfold crInv
+    isplitl [cond]
+    · ileft; iexact cond
+    iunfold crPh
+    iexists false
+    iframe Hph1
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iexact Hbg
+  ihave #Hcris : crIs (GF := GF) «$r0_ptr» γ cn P (net.rpc.connectReq path) Z $$ []
+  · iunfold crIs; iframe Hsync Hcrmu
+  ihave #Henv' := Henv
+  iunfold httpEnv at Henv'
+  icases Henv' with ⟨#Hbufio, #Hio, #Hfmt, -⟩
+  wp_apply wp_newBufioReader_fresh wp_RReset wp_NewReader
+      ⟨go.GoType.PointerType net.http.connReader.ty, #«$r0_ptr»⟩
+      (by unfold net.http.connReader.ty bufio.Reader.ty; intro h; cases h)
+      $$ [$Hsync $Hbufio $Hrpool] as %br Hfr
+  try wp_auto
+  wp_apply wp_newBufioWriterSize wp_WReset wp_NewWriterSize
+      ⟨net.http.checkConnErrorWriter.ty, #(net.http.checkConnErrorWriter.mk c)⟩ 4096 (.inr rfl)
+      (by unfold net.http.checkConnErrorWriter.ty bufio.Writer.ty; intro h; cases h)
+      $$ [$Hsync $Hbufio $Hpools] as %bw Hbw
+  try wp_auto
+  wp_apply wp_readHeaderTimeout s $$ [$Hss $Hsd]
+  try wp_auto
+  wp_apply wp_protocols s $$ [$Hss]
+  try wp_auto
+  rw [method_unfold (t := go.GoType.PointerType net.http.Protocols.ty) (m := go!"UnencryptedHTTP2")]
+  try wp_auto
+  rw [method_unfold (t := net.http.Protocols.ty) (m := go!"UnencryptedHTTP2")]
+  try wp_auto
+  iclear «$res0»
+  rw [method_unfold (t := go.GoType.PointerType net.http.Protocols.ty) (m := go!"HTTP1")]
+  try wp_auto
+  rw [method_unfold (t := net.http.Protocols.ty) (m := go!"HTTP1")]
+  try wp_auto
+  iclear «$res0»
+  -- the connection's mutex
+  imod ghostVar_alloc (GF := GF) false with ⟨%γh, Hγh⟩
+  icases (ghostVar_split_half γh 1 false).1 $$ Hγh with ⟨Hγh1, Hγh2⟩
+  imod sync.init_Mutex (connMuInv c γh) ⊤ (structFieldRef net.http.conn go!"mu" c) $$ Hmu
+      [Hhj Hγh1] with #Hcmu
+  · inext; iunfold connMuInv; iexists false; iframe Hhj Hγh1
+  ipersist Htls
+  wp_for
+  ihave Hmain : crMain (GF := GF) «$r0_ptr» γ cn P Q c [] (0 : w64) $$
+      [Hph2 conn hasByte inRead aborted remain byteBuf Hsend Hrecv Hrdl]
+  · iunfold crMain; iframe Hph2; iexists false; iframe conn hasByte inRead aborted remain Hsend Hrecv Hrdl
+    iexists _; iexact byteBuf
+  wp_apply wp_readRequest c s «$r0_ptr» br γ γh t cn a _ _ P Q Z path rmt [] (0 : w64) ctx2 _ (DFrac.own 1)
+      hc hp hlen (by decide) $$ [$Henv $Hrenv $Hctxi $Hsc $Hsd $Hpools $Hctx2 $Hcctx2 $Hsrv $Hr $Hbufr
+        $Hrwc $Hrma $Htls $Hcmu $Hγh2 $Hlm $Hcris $Hhl $Hzl $Hcok $rwc $Hca $Hmain $Hfr]
+    as %w %err ⟨Hγh2, Hbr, Hbufr, Hres⟩
   try wp_auto
   sorry
 /-PLAN
