@@ -118,7 +118,7 @@ deposed leader can conflict below the commit index -- and a stale message never 
 `maybeAppend`/`commitTo` (`Step`'s preamble drops it), so the branch lemma needs the
 premise only under `uint.Z s.term ≤ uint.Z m.Term`. -/
 
-private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_App {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -130,7 +130,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .app m ents) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPostT γ md c r id s m (AppTrunc m ents s) Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -208,7 +208,7 @@ private theorem isMessage_snap_isLeader (γ : RaftNames) (m : MessageM)
   iintro ⟨H, -⟩
   iexact H
 
-private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_Heartbeat {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -221,7 +221,7 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .heartbeat m ents ctx) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -271,7 +271,7 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
     [] HGq HΦ
   ileft; ipureintro; exact Herr
 
-private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_AppResp {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -287,7 +287,7 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .appResp m ents) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -401,7 +401,7 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
       $$ Hnc Hghost Hrest Hphys [] HGq HΦ
     ileft; ipureintro; exact Herr
 
-private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_HeartbeatResp {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -414,7 +414,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .heartbeatResp m ents ctx) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -458,7 +458,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
     [] HGq HΦ
   ileft; ipureintro; exact Herr
 
-private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_Beat {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -469,7 +469,7 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -497,7 +497,7 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
 
 /-- `MsgCheckQuorum` (2026-10-17, `CheckQuorum` on): as `MsgBeat`, a local message; the leader
 may step down at its term. -/
-private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_CheckQuorum {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -508,7 +508,7 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -531,7 +531,7 @@ the three `step_snap_*` rules need no other protocol fact: a restore replaces th
 wholesale and the fast-forward's `commitTo` is in range by `matchTerm`. In either mode since
 2026-10-14 (stage B8): the branch's `StepCDS` witness updates the mode's ghost state
 (`ghost_stepCDS`), with what the mode asks of the snapshot (`GMode.SnapOk`). -/
-private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_Snap {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -550,7 +550,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
       isMessageC γ (absSnap m sv scfg) -∗
       -- (D22 S-r, 2026-10-21) its data certificate, registered with its configuration's
       snapDataOk γ sv.Metadata'.Index' sv.Data' -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ snapPost γ md c r id s m sn Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -631,7 +631,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [Hsn] at h; cases h; exact Hsf.2
 
 /-- `MsgReadIndex` (2026-10-13): a local or forwarded request, `Term = 0`. -/
-private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_ReadIndex {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -645,7 +645,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
       msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .readIndex m ents ctx) -∗
       rdCred γ 1 -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -707,7 +707,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
   exact ⟨Hwf', Hout, fun _ => rfl, fun _ => Hfr, fun _ => Htm, by resp_other⟩
 
 /-- `MsgReadIndexResp` (2026-10-13): a leader's answer to a forwarded request. -/
-private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_ReadIndexResp {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -720,7 +720,7 @@ private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG 
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .readIndexResp m ents ctx) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -810,7 +810,7 @@ theorem raft.Step.wp_proof
   have PB : raft.Step.PbPostulates (GF := GF) (hG := hG) :=
     ⟨wp_Message_GetType, wp_Message_GetTerm, wp_Message_GetFrom, wp_Message_GetLogTerm,
      wp_Message_GetIndex, wp_Message_GetReject, wp_Message_GetContext, wp_MessageType_Enum⟩
-  intro c md γ r id s ml m ents ctx sn rs R Gout Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+  intro nc c md γ r id s ml m ents ctx sn rs R Gout Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
     Hsnaptr Hsartr Hsaptr Hp3 Hxtr Hltr
   iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hxfer, Hm, Hcred, Hlc, #Hsnap, HG, Hgates, Hclose⟩ HΦ
@@ -1323,7 +1323,7 @@ theorem raft.Step.wp_proof
         ⌜s.role = .follower → s.lead ≠ W64 0 → (X !! (s.lead, s.term)).isSome⌝ ∗
         (ownStepGhost γ md c id s -∗ ownStepGhost γ md c id { s with gh := { s.gh with xw := X } }) ∗
         ownRaftPhysCV c c.voters r id { s with gh := { s.gh with xw := X } } ∗
-        stepGates c r id { s with gh := { s.gh with xw := X } } m ents sn ctx rs (ghostIn γ md c id s R)
+        stepGates c r id { s with gh := { s.gh with xw := X } } m ents sn ctx rs (ghostIn γ md c id s R) nc
         $$ [Hphys Hgates]
     · by_cases Hrec : s.role = .follower ∧ s.lead ≠ W64 0
       · iexists insert (s.lead, s.term) s.gh.xw

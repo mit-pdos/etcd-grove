@@ -374,7 +374,9 @@ instance is `stepLeader.untraced` (`TracedUntracedStep.lean`).
 - `MsgHeartbeatResp`: the flow-control `sendAppend`'s gate at `s` (shared with a rejection's,
   `Hgsapp`) and the read-index responses' (no event), `G` to `G`. -/
 abbrev stepLeader.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+  -- (2026-11-24, #33 S4 P-raft-1b) the no-snapshot flag (`NoSnapG`, `IdxFreeN`; `false` for a caller
+  -- whose `IdxFree` premise fixes it): at `true` the log not compacted, whatever the trace mode
+  ∀ {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (k0 : Nat)
     (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
     (Gc : Bool → w64 → List Msg → IProp GF),
@@ -438,7 +440,7 @@ abbrev stepLeader.spec : Prop :=
   (m.Type' = MsgProp → s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e) →
   -- (2026-11-10, slice 14) the caller's resources indexed by the outbox, ignoring it untraced where
   -- they reach `maybeSendAppend` (its snapshot fallback, untraced only, queues through no gate)
-  IdxFree s.gh.tr G → IdxFree s.gh.tr Gp2 → (∀ b N, IdxFree s.gh.tr (Gc b N)) →
+  IdxFreeN nc s.gh.tr G → IdxFreeN nc s.gh.tr Gp2 → (∀ b N, IdxFreeN nc s.gh.tr (Gc b N)) →
   -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) a traced node
   -- sends no `MsgTimeoutNow` (a type the model does not describe, which `sendTimeoutNow` takes only
   -- untraced): it steps no transfer request, and has no transferee when it steps an append
@@ -491,7 +493,7 @@ abbrev stepLeader.spec : Prop :=
           ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From' ∧
             uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
-      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
+      "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst ∗
       -- `MsgCheckQuorum`: the step-down's `becomeFollower(r.Term, None)` gate
       "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) (G' s.outbox)) ∗

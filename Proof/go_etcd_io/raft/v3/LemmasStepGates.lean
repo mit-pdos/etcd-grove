@@ -325,8 +325,27 @@ def stepOutG (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) (o : List Msg
 `maybeSendAppend` ignore the outbox (`IdxFree`: its snapshot fallback queues through no gate); after a
 campaign, the order (`PermInv`: `campaign`'s result orders its messages its own way). An untraced
 caller's constant families have both (`StepGOk.const`). -/
-def StepGOk (tr : Option GName) (R : StepG GF) : Prop :=
-  PermInv R.GE ∧ IdxFree tr R.G1 ∧ IdxFree tr R.GE ∧ IdxFree tr R.Gp2 ∧ ∀ b N, IdxFree tr (R.Gc b N)
+def StepGOkU (nc : Bool) (tr : Option GName) (R : StepG GF) : Prop :=
+  PermInv R.GE ∧ IdxFreeN nc tr R.G1 ∧ IdxFreeN nc tr R.GE ∧ IdxFreeN nc tr R.Gp2 ∧
+    ∀ b N, IdxFreeN nc tr (R.Gc b N)
+
+/-- `StepGOkU` at `nc = false` (2026-11-24, #33 S4 P-raft-1b: the flag). -/
+abbrev StepGOk (tr : Option GName) (R : StepG GF) : Prop := StepGOkU false tr R
+
+/-- (2026-11-24, #33 S4 P-raft-1b) **`stepGates`' demand at the flag `nc`**: `StepGOk` at `false`; at
+`true` the families' `IdxFreeN true` and no automatic leave at the configuration `c` (`appliedTo`'s
+leave proposal, untraced, queues through no gate; outside the harness's scope, a static non-joint
+configuration). Defined by the flag so that at a literal `false` it is `StepGOk`. -/
+def StepGOkN : Bool → CfgM → Option GName → StepG GF → Prop
+  | false, _, tr, R => StepGOk tr R
+  | true, c, tr, R => StepGOkU true tr R ∧ c.autoLeave = false
+
+/-- Its parts at any flag. -/
+theorem StepGOkN.split {nc : Bool} {c : CfgM} {tr : Option GName} {R : StepG GF}
+    (h : StepGOkN nc c tr R) : StepGOkU nc tr R ∧ (nc = true → c.autoLeave = false) := by
+  cases nc
+  · exact ⟨h, fun h' => absurd h' (by decide)⟩
+  · exact ⟨h.1, fun _ => h.2⟩
 
 /-- `raft.hup.spec`'s gates (its `"Hgbc"`, `"#Hgsend"`), at `G0` and `G`; `"Hgbc"` given the
 campaign's conditions (2026-11-10, slice 19a). -/
@@ -362,7 +381,8 @@ def followerGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (e
       -- a forward to the leader: the send's gate, at no event (none of the three types is traced),
       -- whatever untraced messages it queues
       "Hgfwd" ∷ (⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗
-        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false⌝ -∗ G s.outbox -∗
+        -- (2026-11-24, #33 S4 P-raft-1b) and no snapshot
+        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false ∧ x.ty ≠ .snap⌝ -∗ G s.outbox -∗
         HookGateOpt s.gh.tr r none (G (s.outbox ++ out))) ∗
       -- a `MsgTimeoutNow`: `hup(campaignTransfer)`'s gates (the `BecomeCandidate` line, then each
       -- vote message, at the candidate's state)
@@ -381,7 +401,8 @@ def followerGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (e
 /-- `stepCandidate.spec`'s gates, at `G`, `G'`, `Gf`, `G1`, `G2` (2026-11-10, slice 14: `G`, `G'` indexed
 by the outbox). -/
 def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) (Tw : IProp GF) : IProp GF :=
+    (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) (Tw : IProp GF)
+    (nc : Bool := false) : IProp GF :=
   iprop(
       "Hgbf" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term m.From') c) Gf) ∗
@@ -415,7 +436,7 @@ def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (
         G' o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c MsgApp [mm])
           (G' (o ++ [mm]))) ∗
-      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
+      "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst ∗
       "Hgcamp" ∷ (⌜m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) (G' s.outbox)) ∗
@@ -438,7 +459,7 @@ def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (
 by the outbox). -/
 def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (Tp : IProp GF) (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
-    (Gc : Bool → w64 → List Msg → IProp GF) : IProp GF :=
+    (Gc : Bool → w64 → List Msg → IProp GF) (nc : Bool := false) : IProp GF :=
   iprop(
       "#Hgbeat" ∷ □ (⌜m.Type' = MsgBeat⌝ -∗ ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm = min (uint.Z s.logst.committed)
@@ -462,7 +483,7 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
           ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From' ∧
             uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
-      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
+      "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst ∗
       "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) (G' s.outbox)) ∗
       -- (2026-11-11, slice 23a) with what `Step` lends it (`Tp`: `StepG.Tp`)
@@ -523,18 +544,19 @@ def preGate (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (G0 G1 :
 
 /-- The role's step function's gates, at the state after the preamble (its `Progress` map `pvs`). -/
 def stepFnGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (ctx : List w8) (R : StepG GF) : IProp GF :=
+    (ctx : List w8) (R : StepG GF) (nc : Bool := false) : IProp GF :=
   iprop(∀ pvs : GMap w64 Progress,
     (⌜(preState s m pvs).role = .follower⌝ -∗
       followerGates c r id (preState s m pvs) m ents ctx R.G1 R.GE) ∧
     (⌜(preState s m pvs).role = .candidate ∨ (preState s m pvs).role = .preCandidate⌝ -∗
-      candidateGates c r id (preState s m pvs) m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 R.Tw) ∧
+      candidateGates c r id (preState s m pvs) m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 R.Tw nc) ∧
     (⌜(preState s m pvs).role = .leader⌝ -∗
-      leaderGates c r id (preState s m pvs) m ents (R.Tp ents) R.G1 R.GE R.Gp1 R.Gp2 R.Gc))
+      leaderGates c r id (preState s m pvs) m ents (R.Tp ents) R.G1 R.GE R.Gp1 R.Gp2 R.Gc nc))
 
 /-- **`raft.Step`'s gates** (see the header), at the caller's resources `R`. -/
 def stepGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) : IProp GF :=
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) (nc : Bool := false) :
+    IProp GF :=
   iprop(
       -- the receive hook, at `s`: the receipt's event (`recvGate`; none for a type not traced)
       "Hgrecv" ∷ (R.G -∗ HookGateOpt s.gh.tr r (recvGate id s c ⟨m, ents, sn, ctx, rs⟩) (R.G0 s.outbox)) ∗
@@ -553,9 +575,10 @@ def stepGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents 
       -- a `MsgHup`'s campaign (`hup`'s gates, at `s`)
       "Hghup" ∷ (⌜m.Type' = MsgHup⌝ -∗ hupGates c r id s (hupType s) (R.G1 s.outbox) R.GE) ∗
       -- the role's step function's gates, at the state after the preamble
-      "Hgstep" ∷ stepFnGates c r id s m ents ctx R ∗
+      "Hgstep" ∷ stepFnGates c r id s m ents ctx R nc ∗
       -- (2026-11-10, slice 14) what the callees ask of the indexed resources
-      "%Hgok" ∷ ⌜StepGOk s.gh.tr R⌝)
+      -- (2026-11-24, #33 S4 P-raft-1b) at the flag `nc`
+      "%Hgok" ∷ ⌜StepGOkN nc c s.gh.tr R⌝)
 
 end gates
 

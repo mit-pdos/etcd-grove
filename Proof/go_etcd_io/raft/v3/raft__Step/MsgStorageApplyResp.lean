@@ -144,7 +144,7 @@ leaves automatically proposes the leave (`appliedTo`'s `LeaveStep`), which is re
 the leave's proposal `leaveAbs`) at the bound `B` of its entry, its receipt given back. The
 premises are `appliedTo`'s: the last entry is committed, a leader's term nonzero, the last index a
 word, the last index's receipt (`⧖ k0`). -/
-theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgStorageApplyResp {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
@@ -166,7 +166,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         "#Hrc" ∷ ⧖ k0 ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (B : Int) (recv : List Msg), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -324,7 +324,10 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     ihave HG : R.G1 s2.outbox $$ [HG]
     · rcases Hls with ⟨rfl, -, -⟩ | ⟨Hal, -⟩
       · rw [← Hs1]; iidx HG
-      · rw [Hgok.2.1 (Htr (by simp) Hal) s2.outbox s.outbox]; iexact HG
+      · -- (2026-11-24, P-raft-1b) not under the no-snapshot flag (no automatic leave there)
+        cases nc
+        · rw [Hgok.2.1.eq (Htr (by simp) Hal) rfl s2.outbox s.outbox]; iexact HG
+        · exact absurd ((Hncal rfl).symm.trans Hal) (by decide)
     ihave HG := stepOut_G1 R $$ HG
     iapply HΦ $$ %interface.nil %s2 %B %recv
     iframe Hphys HG

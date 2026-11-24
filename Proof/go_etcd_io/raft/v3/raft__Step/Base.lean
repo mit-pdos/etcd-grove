@@ -110,6 +110,7 @@ traced node's message is no snapshot. -/
 macro "wp_recv_gate " h:term:max : tactic => `(tactic| (
   iunfold Perennial.EtcdGrove.stepGates at Hgates
   icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
+  obtain ⟨Hgok, Hncal⟩ := Perennial.EtcdGrove.StepGOkN.split Hgok
   wp_apply _P.traceReceiveMessage c r id s ml _ _ _ ⟨m, _, _, _, _⟩ _ $h $$ [Hphys Hm Hgrecv HG] as ⟨Hphys, Hm, HG⟩
   · iframe Hphys Hm
     iapply Hgrecv; iexact HG))
@@ -120,6 +121,7 @@ is raised at the next resolution). -/
 macro "wp_recv_gate_noauto " h:term:max : tactic => `(tactic| (
   iunfold Perennial.EtcdGrove.stepGates at Hgates
   icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
+  obtain ⟨Hgok, Hncal⟩ := Perennial.EtcdGrove.StepGOkN.split Hgok
   wp_apply +noauto _P.traceReceiveMessage c r id s ml _ _ _ ⟨m, _, _, _, _⟩ _ $h $$ [Hphys Hm Hgrecv HG]
     as ⟨Hphys, Hm, HG⟩
   · iframe Hphys Hm

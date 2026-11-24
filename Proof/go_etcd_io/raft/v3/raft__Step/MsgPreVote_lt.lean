@@ -41,7 +41,7 @@ set_option maxHeartbeats 2000000 in
 /-- `MsgPreVote` with `m.Term < r.Term`: the stale arm answers with a rejecting
 `MsgPreVoteResp` at `r.Term` (raft.go:1144-1152), a free message (`StepC.sendFree`);
 `r.Term > m.Term`, so it is not `0`. -/
-theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgPreVote_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
@@ -59,7 +59,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (stage R4) the message, as `Step` received it
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗

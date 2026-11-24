@@ -102,7 +102,7 @@ says it is `stepFuncOf s.role` -- without that there is nothing to apply at
   `stepLeader` only read, so again `StepC.refl`; `stepCandidate` records the vote and
   may win or lose in the same call, which is `StepC.recordVote` followed by `StepC.win` /
   `StepC.lose`, on its `won`/`lost` flags. -/
-theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgVoteResp {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (k0 : Nat) :
@@ -120,7 +120,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-18, D19b stage 5) a time receipt, raised by one (the step's first resolution)
         "#Hrc" ∷ ⧖ k0 ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R ∗
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc ∗
         -- (2026-11-11, slice 25b) the loan to a win's `Replicate` gate (`StepG.Tw`) from the raised
         -- receipt (slice 27b: and the node's membership of its own `Progress` map)
         "HTw" ∷ (⌜id ∈ domSet s.prvals⌝ -∗ ⧖ (k0 + 1) -∗ R.Tw) }}

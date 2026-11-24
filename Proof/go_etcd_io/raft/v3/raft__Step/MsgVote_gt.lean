@@ -53,7 +53,7 @@ namespace StepProof
 set_option maxHeartbeats 6000000 in
 /-- `MsgVote` with `m.Term > r.Term`: step down to follower first, then grant or decline
 in the new term. -/
-theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgVote_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
@@ -71,7 +71,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (stage R4) the message, as `Step` received it
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗

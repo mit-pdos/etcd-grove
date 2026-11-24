@@ -505,7 +505,10 @@ premise), no automatic leave at an application acknowledgement (`appliedTo`'s, s
 node's configuration never leaves automatically), no proposed configuration change (P3, `stepLeader`'s). The untraced instance is `raft.Step.untraced`
 (`TracedUntracedRaftStep.lean`), the statement before slice 11, which the node API uses. -/
 abbrev raft.Step.spec : Prop :=
-  ∀ (c : CfgM)
+  -- (2026-11-24, #33 S4 P-raft-1b) the no-snapshot flag of the gates (`stepGates`' `nc`, `false` for
+  -- a caller whose gates are stated at the default): at `true` the log not compacted, whatever the
+  -- trace mode, and the families kept by queueing anything but snapshots (`IdxFreeN`)
+  ∀ {nc : Bool} (c : CfgM)
     -- (2026-10-14, stage B7) the mode of the ghost state: static (`ownRaftGhost`, at a
     -- configuration with the ghost state's voters) or dynamic (`ownRaftGhostR`, the node's
     -- reconfiguration state over the struct's configuration); see `StepGhostMode.lean`
@@ -778,7 +781,7 @@ abbrev raft.Step.spec : Prop :=
       -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource, through the gates of the path that
       -- runs, raft's ghost state with it from the receive hook on ...
       "HG" ∷ R.G ∗
-      "Hgates" ∷ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      "Hgates" ∷ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc ∗
       -- ... and back, whichever resource the path ends in, with (traced) the step's new messages'
       -- numbers (`OutTrStep`, which the node's outbox keeps: `NsLink`'s `OutTr`), each logged by a
       -- send line of the caller's

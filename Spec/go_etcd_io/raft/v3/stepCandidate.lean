@@ -185,7 +185,9 @@ receives no snapshot, the Draft's P2). The untraced instance is `stepCandidate.u
 (`TracedUntracedStep.lean`).
 -/
 abbrev stepCandidate.spec : Prop :=
-  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+  -- (2026-11-24, #33 S4 P-raft-1b) the no-snapshot flag (`NoSnapG`, `IdxFreeN`; `false` for a caller
+  -- whose `IdxFree` premise fixes it): at `true` the log not compacted, whatever the trace mode
+  ∀ {nc : Bool} (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
     (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) (k0 : Nat),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
@@ -228,7 +230,7 @@ abbrev stepCandidate.spec : Prop :=
   -- (2026-11-10, slice 14) the caller's resources indexed by the outbox: `G'` up to order (after a
   -- campaign, `campaign`'s) and ignoring it untraced (after a win's `bcastAppend`, its snapshot
   -- fallback), `G` ignoring it untraced (a snapshot, untraced only, is handled through no gate)
-  PermInv G' → IdxFree s.gh.tr G' → IdxFree s.gh.tr G →
+  PermInv G' → IdxFreeN nc s.gh.tr G' → IdxFreeN nc s.gh.tr G →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (2026-11-11, Q8 stage 1 slice 25b) the caller's time receipt (passed to `becomeLeader`)
@@ -288,7 +290,7 @@ abbrev stepCandidate.spec : Prop :=
         G' o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c MsgApp [mm])
           (G' (o ++ [mm]))) ∗
-      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
+      "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst ∗
       -- a pre-vote count's win: `campaign(campaignElection)`'s gates (the `BecomeCandidate` line,
       -- then each vote message, at the candidate's state)
       "Hgcamp" ∷ (⌜m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧

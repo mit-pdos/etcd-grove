@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 set_option maxHeartbeats 1000000 in
-theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgHeartbeat_eq {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
@@ -60,7 +60,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗

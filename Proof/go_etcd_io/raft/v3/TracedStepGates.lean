@@ -251,10 +251,10 @@ theorem preGate_nobf (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
   iexact H
 
 /-- The step function's gates at the state after the preamble: a follower's ... -/
-theorem stepFnGates_follower (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
+theorem stepFnGates_follower {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (ctx : List w8) (R : StepG GF) (pvs : GMap w64 Progress) (s1 : NState)
     (hs : preState s m pvs = s1) (hr : s1.role = .follower) :
-    stepFnGates c r id s m ents ctx R ⊢ followerGates c r id s1 m ents ctx R.G1 R.GE := by
+    stepFnGates c r id s m ents ctx R nc ⊢ followerGates c r id s1 m ents ctx R.G1 R.GE := by
   iintro H
   unfold stepFnGates
   ispecialize H $$ %pvs
@@ -263,11 +263,11 @@ theorem stepFnGates_follower (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : M
   iapply H; ipureintro; exact hr
 
 /-- ... a (pre-)candidate's ... -/
-theorem stepFnGates_candidate (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
+theorem stepFnGates_candidate {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (ctx : List w8) (R : StepG GF) (pvs : GMap w64 Progress) (s1 : NState)
     (hs : preState s m pvs = s1) (hr : s1.role = .candidate ∨ s1.role = .preCandidate) :
-    stepFnGates c r id s m ents ctx R ⊢
-      candidateGates c r id s1 m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 R.Tw := by
+    stepFnGates c r id s m ents ctx R nc ⊢
+      candidateGates c r id s1 m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 R.Tw nc := by
   iintro H
   unfold stepFnGates
   ispecialize H $$ %pvs
@@ -276,10 +276,10 @@ theorem stepFnGates_candidate (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : 
   iapply H; ipureintro; exact hr
 
 /-- ... a leader's. -/
-theorem stepFnGates_leader (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
+theorem stepFnGates_leader {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (ctx : List w8) (R : StepG GF) (pvs : GMap w64 Progress) (s1 : NState)
     (hs : preState s m pvs = s1) (hr : s1.role = .leader) :
-    stepFnGates c r id s m ents ctx R ⊢ leaderGates c r id s1 m ents (R.Tp ents) R.G1 R.GE R.Gp1 R.Gp2 R.Gc := by
+    stepFnGates c r id s m ents ctx R nc ⊢ leaderGates c r id s1 m ents (R.Tp ents) R.G1 R.GE R.Gp1 R.Gp2 R.Gc nc := by
   iintro H
   unfold stepFnGates
   ispecialize H $$ %pvs
@@ -290,11 +290,11 @@ theorem stepFnGates_leader (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : Mes
 /-- (2026-11-11, slice 23a) **A leader's gates at another loan** (`"Hgprep"`'s `Tp`): what `Step` hands
 `stepLeader` (whose `"Hgprep"` takes `appendEntry`'s receipt, `⧖ (k0 + |ents|)`), given the loan from it
 on a proposal. -/
-theorem leaderGates_tp (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
+theorem leaderGates_tp {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (Tp Tp' : IProp GF) (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
     (Gc : Bool → w64 → List Msg → IProp GF) :
-    iprop((⌜m.Type' = MsgProp⌝ -∗ Tp' -∗ Tp) ∗ leaderGates c r id s m ents Tp G G' Gp1 Gp2 Gc) ⊢
-      leaderGates c r id s m ents Tp' G G' Gp1 Gp2 Gc := by
+    iprop((⌜m.Type' = MsgProp⌝ -∗ Tp' -∗ Tp) ∗ leaderGates c r id s m ents Tp G G' Gp1 Gp2 Gc nc) ⊢
+      leaderGates c r id s m ents Tp' G G' Gp1 Gp2 Gc nc := by
   iintro ⟨HW, H⟩
   unfold leaderGates
   iNamed H
@@ -306,12 +306,12 @@ theorem leaderGates_tp (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : Message
 
 /-- (2026-11-11, slice 25b) **`stepCandidate`'s gates at another loan** for the win's `Replicate` gate
 (`candidateGates`' `"Hgrep"`), given the conversion on the win. -/
-theorem candidateGates_tw (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
+theorem candidateGates_tw {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 Tw Tw' : IProp GF) :
     iprop((⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ Tw' -∗ Tw) ∗
-        candidateGates c r id s m ents cl G G' Gf G1 G2 Tw) ⊢
-      candidateGates c r id s m ents cl G G' Gf G1 G2 Tw' := by
+        candidateGates c r id s m ents cl G G' Gf G1 G2 Tw nc) ⊢
+      candidateGates c r id s m ents cl G G' Gf G1 G2 Tw' nc := by
   iintro ⟨HW, H⟩
   unfold candidateGates
   iNamed H
@@ -321,33 +321,33 @@ theorem candidateGates_tw (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : Mess
   iapply HW $$ %h Ht
 
 /-- ... off a win (the guard refuted), at `stepCandidate`'s receipt `⧖ (k0 + 1)`. -/
-theorem candidateGates_tw_ne (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
+theorem candidateGates_tw_ne {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 Tw : IProp GF) (k0 : Nat)
     (h : ¬ (m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))))) :
-    candidateGates c r id s m ents cl G G' Gf G1 G2 Tw ⊢
-      candidateGates c r id s m ents cl G G' Gf G1 G2 iprop(⧖ (k0 + 1)) := by
+    candidateGates c r id s m ents cl G G' Gf G1 G2 Tw nc ⊢
+      candidateGates c r id s m ents cl G G' Gf G1 G2 iprop(⧖ (k0 + 1)) nc := by
   iintro H
   iapply candidateGates_tw c r id s m ents cl G G' Gf G1 G2 Tw
   iframe H
   iintro %h'; exact absurd h' h
 
 /-- ... on a message that is no proposal, at `stepLeader`'s loan (the receipt `⧖ (k0 + |ents|)`). -/
-theorem leaderGates_tp_rc (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
+theorem leaderGates_tp_rc {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (k0 : Nat) (Tp : IProp GF) (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
     (Gc : Bool → w64 → List Msg → IProp GF) (h : m.Type' ≠ MsgProp) :
-    leaderGates c r id s m ents Tp G G' Gp1 Gp2 Gc ⊢
-      leaderGates c r id s m ents iprop(⧖ (k0 + ents.length)) G G' Gp1 Gp2 Gc := by
+    leaderGates c r id s m ents Tp G G' Gp1 Gp2 Gc nc ⊢
+      leaderGates c r id s m ents iprop(⧖ (k0 + ents.length)) G G' Gp1 Gp2 Gc nc := by
   iintro H
   iapply leaderGates_tp c r id s m ents Tp
   iframe H
   iintro %h'; exact absurd h' h
 
 /-- ... on a message that is no proposal, at any loan. -/
-theorem leaderGates_tp_ne (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
+theorem leaderGates_tp_ne {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (Tp Tp' : IProp GF) (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
     (Gc : Bool → w64 → List Msg → IProp GF) (h : m.Type' ≠ MsgProp) :
-    leaderGates c r id s m ents Tp G G' Gp1 Gp2 Gc ⊢ leaderGates c r id s m ents Tp' G G' Gp1 Gp2 Gc := by
+    leaderGates c r id s m ents Tp G G' Gp1 Gp2 Gc nc ⊢ leaderGates c r id s m ents Tp' G G' Gp1 Gp2 Gc nc := by
   iintro H
   iapply leaderGates_tp c r id s m ents Tp Tp'
   iframe H
@@ -546,11 +546,11 @@ local macro "tl_ne" : tactic => `(tactic| (
 /-- **`Step`'s gates for a leader-transfer request at a follower, at the state with the forward
 recorded** (`raft.Step`'s transfer arm records the node's leader in `NGhost.xw` before the step): the
 gates such a request runs read nothing of `xw`; the others are refuted by the type or the role. -/
-theorem stepGates_xw (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
+theorem stepGates_xw {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) (X : GSet (w64 × w64))
     (hty : m.Type' = MsgTransferLeader) (hrole : s.role = .follower) :
-    stepGates c r id s m ents sn ctx rs R ⊢
-      stepGates c r id { s with gh := { s.gh with xw := X } } m ents sn ctx rs R := by
+    stepGates c r id s m ents sn ctx rs R nc ⊢
+      stepGates c r id { s with gh := { s.gh with xw := X } } m ents sn ctx rs R nc := by
   have e1 : recvGate id ({ s with gh := { s.gh with xw := X } } : NState) c ⟨m, ents, sn, ctx, rs⟩ =
       recvGate id s c ⟨m, ents, sn, ctx, rs⟩ := rfl
   have e2 : preGate (GF := GF) c r id ({ s with gh := { s.gh with xw := X } } : NState) m R.G0 R.G1 =

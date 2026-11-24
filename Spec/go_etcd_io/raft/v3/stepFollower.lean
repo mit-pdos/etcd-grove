@@ -170,7 +170,9 @@ that does not campaign gives `G`, at `s' = s`, as `hup`'s), else `G`. A `MsgSnap
 (`TracedUntracedStep.lean`).
 -/
 abbrev stepFollower.spec : Prop :=
-  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+  -- (2026-11-24, #33 S4 P-raft-1b) the no-snapshot flag (`NoSnapG`, `IdxFreeN`; `false` for a caller
+  -- whose `IdxFree` premise fixes it): at `true` the log not compacted, whatever the trace mode
+  ∀ {nc : Bool} (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
     (G G' : List Msg → IProp GF),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
@@ -235,7 +237,7 @@ abbrev stepFollower.spec : Prop :=
   -- order (`hup`'s)
   PermInv G' →
   -- ... and `G` ignoring it untraced (a snapshot, untraced only, is handled through no gate)
-  IdxFree s.gh.tr G →
+  IdxFreeN nc s.gh.tr G →
   -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) a traced node
   -- forwards no transfer request (a type the model does not describe, which `send` takes only
   -- untraced): `raft.Step.spec`'s premise
@@ -271,7 +273,8 @@ abbrev stepFollower.spec : Prop :=
       -- a forward to the leader: the send's gate, at no event (none of the three types is traced),
       -- whatever untraced messages it queues
       "Hgfwd" ∷ (⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗
-        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false⌝ -∗ G s.outbox -∗
+        -- (2026-11-24, P-raft-1b) and no snapshot
+        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false ∧ x.ty ≠ .snap⌝ -∗ G s.outbox -∗
         HookGateOpt s.gh.tr r none (G (s.outbox ++ out))) ∗
       -- a `MsgTimeoutNow`: `hup(campaignTransfer)`'s gates (the `BecomeCandidate` line, then each
       -- vote message, at the candidate's state)
