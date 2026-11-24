@@ -6049,4 +6049,8 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   The client's exported results (`client/v3/Results.lean`: `client_put_any` ... `client_get_after_put`)
   state the token in their pre and post. (`kv.Txn` and `Client.dial` make no call that needs the token;
   their specs keep it, passed through, for uniformity.)
+  The clients' lease contract `isEtcdLease` (`cache/v3/InvEtcdTxn.lean`) gives its `Grant` and `Revoke`
+  the token too (`KeepAlive` forks: unchanged), so that `lessor`'s proofs meet it (`LeaseClient.lean`).
+  Not yet followed: its users `concurrency.NewSession`, `Session.Close` (their specs need the token) and
+  theirs (`v3election`, `v3lock`, `leasing`).
 - **Decision.** Applied (branch `prove-ps2-clientrdlock/2026-11-24`); the two axioms retired.
