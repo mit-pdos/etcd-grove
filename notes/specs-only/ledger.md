@@ -25,6 +25,16 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
+  precondition, `InvBoot.lean`), and the start bundles `memberStartRes`/`memberFreshRes` (`lib/etcdstart/StartRes.lean`).
+- **Defect.** The slot took the axiomatized token `dataDirFresh d` besides `dataAreaFresh d`, which already claims every
+  name of `d`, none naming an entry; `putget_safe` had no source for the token on a distributed machine.
+- **Evidence.** `dataAreaFresh_empty` (`storage/WalAreaFresh.lean`).
+- **Proposed change.** Delete the token from `wal.bootRes` (a deletion of trust) and from the start bundles.
+- **Decision.** Accepted (Upamanyu, 2026-11-24, via coordinator-E); applied on `dist-putget-interim/2026-11-24`.
+
 ## 2026-11-24: interim: S2 interface for putget; retired by #24's switch and S2 proofs
 
 - **Spec.** New trust-boundary specs (no SpecPlan counterpart): `Spec/.../examples/etcd/dist/ServeDist.lean`

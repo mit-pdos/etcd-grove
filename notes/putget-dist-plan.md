@@ -578,3 +578,9 @@ obligation). Then the axioms are theorems with the same statements.
   `putget-dist.txt` has its baseline (159 axioms). Build fixes: heap-level `env_publish_h`/`envAt_pub_h` (a WP's fancy
   update is the heap's `IrisGS`, which the proof mode does not unify with `GooseGlobalGS.gooseInvGS`); `wenv_nonempty`
   over an all-`False` etcd model and the mvcc API's names law (`MvccName` is sealed).
+- (2026-11-24, Upamanyu's approval, a one-off exception to the scope rule) **`dataDirFresh` deleted from bootstrap's WAL
+  slot** (`wal.bootRes`, its own commit): `dataAreaFresh d` already says the data directory holds no entry
+  (`dataAreaFresh_empty`). The start bundles (`memberStartRes`, `memberFreshRes`) lose it; the single-process start
+  axiom's `startRights` still hands it out, unchanged, and `memberStartRes_intro` drops it. So `MemberBootHyps` and
+  `putget_safe_of_hyps` are gone: **`theorem putget_safe : putget_safe.spec`**, over the five interim axioms, no
+  hypothesis. Full VM build passes; `putget-dist.txt` 158 axioms (no `dataDirFresh`).

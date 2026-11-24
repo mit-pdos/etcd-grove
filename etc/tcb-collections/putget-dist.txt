@@ -1,13 +1,11 @@
 # putget_safe (examples/etcd/dist/putget, notes/putget-dist-plan.md): etcd's first distributed theorem,
-# one member machine and one client machine, no crash. Its proof today is `putget_safe_of_hyps`
-# (Proof/.../examples/etcd/dist/putget/TopLevelRobustness.lean), whose remaining hypothesis is the
-# member's data directory fresh (`MemberBootHyps.dataDir`; the metric IDs' registration rights are each
-# machine's own since the prom-registry merge); its cross-machine steps rest on the five interim axioms
-# of notes/putget-dist-plan.md §12 (`etcd_dist.etcdAddrRaw`, `etcd_dist.etcdAddr_set`,
-# `etcd_dist.Serve_dist.wp_proof`, `etcd_dist.Client_Put_dist.wp_proof`,
+# one member machine and one client machine, no crash: `theorem putget_safe : putget_safe.spec`
+# (Proof/.../examples/etcd/dist/putget/TopLevelRobustness.lean), no hypothesis. Its cross-machine steps
+# rest on the five interim axioms of notes/putget-dist-plan.md §12 (`etcd_dist.etcdAddrRaw`,
+# `etcd_dist.etcdAddr_set`, `etcd_dist.Serve_dist.wp_proof`, `etcd_dist.Client_Put_dist.wp_proof`,
 # `etcd_dist.Client_Get_dist.wp_proof`), retired by #24's switch and S2's proofs. The rest is the
 # single-process member's and client's trust base. Baseline written by --check --update after a full
-# VM build (2026-11-24).
+# VM build.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/putget-dist.txt [--check [--update]]
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness\.lean$
@@ -46,7 +44,6 @@ axiom bytes.Buffer.Write.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
-axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok

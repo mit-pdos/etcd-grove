@@ -55,7 +55,7 @@ theorem Member.wp_proof
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
   have HrbN : receiptBound GF ≤ 2 ^ 28 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
   have HwbN : 2 ^ 28 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
-  wp_start as ⟨Htok, #Hprem, #Hvoff, Hdd, Hwa, Hshare, #Hpub⟩
+  wp_start as ⟨Htok, #Hprem, #Hvoff, Hwa, Hshare, #Hpub⟩
   iunfold memberShare at Hshare
   icases Hshare with ⟨#Haddr, Hhalf, #Hinv⟩
   -- the imports' package facts
@@ -72,7 +72,7 @@ theorem Member.wp_proof
   wp_apply wp_NewNop as %lg #Hlgz
   (try wp_auto)
   -- `StartServer(Name, peer, client, lg)`
-  ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hdd Hwa]
+  ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hwa]
   · iframe; iframe #
   wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne (2 ^ 28) name peer client lg id ctxs boot Hbf hpl
       (by decide) (by decide) Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr

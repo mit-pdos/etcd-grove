@@ -322,7 +322,7 @@ theorem alloc3On (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (
         (bootEntries (LogEntry.toEntries boot 0)))) ∗
       authHistView ρ₁.rd.kv [srvAuthSt0] := by
   simp only [memberStartRes, memberFreshRes]
-  iintro #Hmarsh ⟨#Hv₁, Hw₁, WaHw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, Hw₂, WaHw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, Hw₃, WaHw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
+  iintro #Hmarsh ⟨#Hv₁, WaHw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, WaHw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, WaHw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
   imod (alloc3OnHttp hne id₁ id₂ id₃ ps hperm ctxs boot Hbc dir a₁ a₂ a₃ Hd0 Hhost Hrb Hrb2)
       $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,

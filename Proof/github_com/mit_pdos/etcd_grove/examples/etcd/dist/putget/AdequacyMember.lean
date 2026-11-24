@@ -5,7 +5,7 @@
 `member_boot`: the member machine's boot program (`putget.initialize' #()`, then `putget.Member(peer, client)`)
 is safe from the member's share of the distributed start (`memberShare` at `Pub = putgetPub`) and its whole
 start (`DistBootWpSL`: its files' and listeners' start resources, no package initialized, its main thread's
-token, the logic's bounds with at least `srvLevelK` receipts), under the named hypotheses `MemberBootHyps`.
+token, the logic's bounds with at least `srvLevelK` receipts).
 Linked: `Member.wp_proof` at its callees' linked results (`etcdstart`'s `Link`, `zap.NewNop`'s,
 `time.Sleep`'s, and the trust-boundary axiom `etcd_dist.Serve_dist.wp_proof`), `putget`'s `wp_initialize'`.
 
@@ -15,11 +15,9 @@ initialization (`wp_initialize'`, from no package initialized and the registrati
 allocated here as the machine's registry ghost state, `PromRegGS`, from `putget_regQsOk`; prom-registry,
 2026-11-23); `Member`.
 
-**The named hypotheses** (`MemberBootHyps`; no axiom): each a start resource with no source yet on a machine
-of a distributed start, where in one process `goose_adequacy_start` hands it out:
-* `dataDir`: the member's data directory fresh (`dataDirFresh`, an axiomatized token), until it is a
-  definition over the machine's file tree (the WAL link, `notes/wal-link-scope.md`; blocked on the fs
-  redesign, etcd-grove#15).
+**No named hypotheses** (2026-11-24): the member's data directory needs no token of its own (`bootstrap`'s
+slot `wal.bootRes` takes only its fresh areas, `memberAreasFresh`, from its machine's files), and the
+metric IDs' registration rights are allocated here (prom-registry).
 
 `ETCD_VERIFY` off (`envVerifyOff`) is the statement's `HEnvTok`, passed in (`member_boot`'s `HEnvTok`).
 That a valid address's peer URL `http://a` is plain (`host:port`) is proved (`etcd_dist.addrOk_plainPeerURL`).
@@ -57,13 +55,6 @@ open Iris Iris.BI Iris.ProofMode Iris.ProgramLogic go_etcd_io.raft.v3 Net
 
 attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
   etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem GooseGlobalGS.gooseInvGS
-
-/-- **The member boot's named hypotheses** (see the file header): start resources with no source yet on a
-machine of a distributed start. -/
-structure MemberBootHyps [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions] : Prop where
-  /-- The member's data directory fresh (until `dataDirFresh` is defined over the machine's files). -/
-  dataDir : ⊢@{IProp putgetGF} dataDirFresh (memberDataDir name)
 
 /-- The IDs `putget`'s packages register (their metric names' label-free descriptor IDs and `v3rpc`'s
 server metrics' IDs, in `regQs`' order; computed with xxhash64, checked by the kernel in `putget_regQsOk`;
@@ -105,7 +96,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     [log.NewModel] [net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (HM : MemberBootHyps) (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
+    (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
     (peer client : GoString) (hpeer : Net.addrOk peer = true)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
@@ -137,7 +128,6 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.regQs $$ Hregs
   ihave Hown := ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.getIsPkgInit (GF := putgetGF)) $$ Hgs
-  ihave Hdd := HM.dataDir
   ihave #Hvoff := HEnvTok
   imod etcdNetFs_start σm Hm.1 $$ Hls with ⟨#Hos, -, Htree⟩
   imodintro
@@ -165,7 +155,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
       mvcc.api.mvccApi_names_nonempty_law_holds
       peer client id ctxs boot γE (putgetPub (GF := putgetGF)) Hbf (etcd_dist.addrOk_plainPeerURL hpeer)
       (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
-    $$ [Htok Hdd Hwa Hshare]
+    $$ [Htok Hwa Hshare]
   · iframe; iframe #
   ipureintro
   rfl

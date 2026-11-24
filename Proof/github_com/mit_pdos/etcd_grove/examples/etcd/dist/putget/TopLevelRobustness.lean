@@ -2,9 +2,9 @@
 
 # `etcd/dist/putget`: the proof skeleton of `putget_safe` (`notes/putget-dist-plan.md`, section 5)
 
-`putget_safe_of_boot` proves `putget_safe.spec` from one named hypothesis, `PutgetBoot`, which
-`putget_safe_of_hyps` discharges from the member's named start hypotheses (`MemberBootHyps`), over the
-interim cross-machine axioms (below). No `sorry`. The bridge from one WP per machine to `Robust []` is proved
+**`putget_safe`** (`theorem putget_safe : putget_safe.spec`): `putget_safe_of_boot` proves the statement from
+one named hypothesis, `PutgetBoot`, which `putget_safe` discharges over the interim cross-machine axioms
+(below). No `sorry`, no hypothesis left. The bridge from one WP per machine to `Robust []` is proved
 (`Net.robust_of_distBootI`, `Net/Statement/DistBridgeExts.lean`, over any list of extensions with the net
 extension), with the interpretations' initial-state conditions from the statement's `FsInit` premises
 (`etcdNetExts_initP`).
@@ -15,17 +15,16 @@ its whole start (`DistBootWpSL srvLevelK`: its files' and listeners' start resou
 token, the logic's bounds with at least `srvLevelK` receipts, which the served member's `srvLevels` needs;
 the bridge `robust_of_distBootIL` picks them). Over the interim cross-machine axioms
 (`notes/putget-dist-plan.md` §12; `etcd/dist/S2Interim.lean` and the axioms `Serve_dist`,
-`Client_Put_dist`, `Client_Get_dist`), `putget_safe_of_hyps` discharges it:
+`Client_Put_dist`, `Client_Get_dist`), `putget_safe` discharges it:
 * the start (`putget_start`, proved): the publication name and invariant (`envPub_start`), the client
   address set (`etcdAddr_set`), the member's and the client's shares (`Defs.lean`);
 * the member's boot (`member_boot`, `AdequacyMember.lean`, proved): the in-process `Main.wp_proof`'s first
   half (`etcdstart.wp_StartServer1`, shared with it), the view published (`env_publish`), `Serve` on a
-  member machine (`Serve_dist`), from the statement's `envVerifyOff` (`HEnvTok`) and the named
-  hypothesis `MemberBootHyps` (`dataDirFresh`; the metric IDs' registration rights are allocated by each
-  machine's boot, prom-registry);
+  member machine (`Serve_dist`), from the statement's `envVerifyOff` (`HEnvTok`) and the machine's own
+  start (its files' fresh areas; the metric IDs' registration rights allocated by each machine's boot,
+  prom-registry);
 * the client's boot (`client_boot`, `AdequacyClient.lean`, proved): the in-process second half, its
   `Put` learning the view (`Client_Put_dist`), its `Get` at it (`Client_Get_dist`).
-`putget_safe` itself (the plain name) is declared once `MemberBootHyps` is discharged.
 -/
 module
 
@@ -124,18 +123,12 @@ theorem putget_start [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
 
 end start
 
-/-- **`putget_safe` from the member's named hypotheses** (see the file header): the start is proved
-(`putget_start`), the member's boot is proved (`member_boot`, at `Pub = putgetPub`), the client's boot
-is proved (`client_boot`), the bridge is proved (`putget_safe_of_boot`); the cross-machine steps are the
-interim axioms of `notes/putget-dist-plan.md` §12 (`etcd_dist.etcdAddrRaw`, `etcdAddr_set`,
-`Serve_dist`, `Client_Put_dist`, `Client_Get_dist`). The hypotheses: the member's start resources with
-no source yet (`MemberBootHyps`: `dataDirFresh`, until the fs redesign or an interim start law; the
-metric IDs' registration rights are each machine's own, allocated in `member_boot`/`client_boot`,
-prom-registry). `theorem putget_safe : putget_safe.spec` follows once they are discharged. -/
-theorem putget_safe_of_hyps
-    (HM : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics]
-      [github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions], MemberBootHyps) :
-    putget_safe.spec := by
+/-- **`putget_safe`** (see the file header): the start is proved (`putget_start`), the member's boot is
+proved (`member_boot`, at `Pub = putgetPub`), the client's boot is proved (`client_boot`), the bridge is
+proved (`putget_safe_of_boot`); the cross-machine steps are the interim axioms of
+`notes/putget-dist-plan.md` §12 (`etcd_dist.etcdAddrRaw`, `etcdAddr_set`, `Serve_dist`,
+`Client_Put_dist`, `Client_Get_dist`). -/
+theorem putget_safe : putget_safe.spec := by
   refine putget_safe_of_boot ?_
   intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
     Hm Hc Hok HEnv HEnvTok G hlo hb
@@ -155,7 +148,7 @@ theorem putget_safe_of_hyps
     match i, hm with
     | 0, hm =>
       simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
-      exact member_boot Hctx HM HEnvTok peer client hpeer id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm γE
+      exact member_boot Hctx HEnvTok peer client hpeer id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm γE
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
         Option.some.injEq] at hm; subst hm; exact client_boot Hctx Hcec client hcl σc γE id
     | k + 2, hm => simp [system] at hm
