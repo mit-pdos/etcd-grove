@@ -495,7 +495,7 @@ theorem EtcdServer.applySnapshot.wp_proofKeep
   · iframe #
   (try wp_auto)
   wp_if_destruct
-  swap
+  rotate_left
   · exfalso; word
   (try wp_auto)
   -- `ep` at the snapshot: its term, index, both snapshot indexes, its conf state
