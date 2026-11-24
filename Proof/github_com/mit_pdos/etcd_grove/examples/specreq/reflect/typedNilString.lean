@@ -5,6 +5,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.specreq.reflect.typedNilString
 public import Perennial.Proof.reflect.Link
+public import Perennial.Proof.reflect.Results
 
 @[expose] public section
 
@@ -30,8 +31,8 @@ theorem typedNilString.wp_proof :
   intro T p
   wp_start
   wp_auto
-  wp_apply (_root_.Perennial.reflect.wp_ValueOf.1 (t := go.PointerType T) 22 #p rfl
-    (by simp [_root_.Perennial.reflect.rtype.ty]) (by omega))
+  wp_apply (_root_.Perennial.reflect.wp_ValueOf_reflPtr T p) as %w %Hw
+  subst Hw
   wp_method_call
   wp_pures
   wp_load
@@ -62,7 +63,8 @@ theorem typedNilString.wp_proof_int :
   have h2 : go.int ≠ _root_.Perennial.reflect.rtype.ty := by
     simp [_root_.Perennial.reflect.rtype.ty, go.int]
   have h3 : go.isInterfaceType go.int = false := by rfl
-  wp_apply (_root_.Perennial.reflect.wp_ValueOf.2.1 (V := w64) (t := go.int) 2 n h1 h2 (by omega) (by omega) (by omega) h3) as %q Hq
+  wp_apply (_root_.Perennial.reflect.wp_ValueOf.2.1 (V := w64) (t := go.int) (u := go.int) 2 1 n h1 h2
+    (_root_.Perennial.reflect.directIfaceN_of_kind (u := go.int) (k := 2) 0 h1 (by omega) (by omega)) h3) as %q Hq
   wp_method_call
   wp_pures
   wp_load

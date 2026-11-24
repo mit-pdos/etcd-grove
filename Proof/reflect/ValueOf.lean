@@ -6,6 +6,7 @@ module
 
 public import Spec.reflect.ValueOf
 public import Perennial.Proof.reflect.Link
+public import Perennial.Proof.reflect.Results
 
 @[expose] public section
 
@@ -29,7 +30,8 @@ theorem reflect.ValueOf.wp_proof :
     reflect.ValueOf.spec (GF := GF) (hG := hG) := by
   intro T p
   iintro %Φ #Hinit HΦ
-  wp_apply (_root_.Perennial.reflect.wp_ValueOf.1 (t := go.PointerType T) 22 #p rfl (by simp [_root_.Perennial.reflect.rtype.ty]) (by omega)) $$ [$Hinit]
+  wp_apply (_root_.Perennial.reflect.wp_ValueOf_reflPtr T p) $$ [$Hinit] as %w %Hw
+  subst Hw
   iapply HΦ
   isplit
   · imodintro
@@ -52,7 +54,7 @@ theorem reflect.ValueOf.wp_proof :
     ipureintro
     refine ⟨k, hk, ?_⟩
     simp only
-    rw [show W64 ↑(22 : Nat) = W64 22 from rfl, (reflectM.elemFlag_bits k (reflectM.kindOf_lt hk)).2.2.2]
+    rw [(reflectM.elemFlag_bits k (reflectM.kindOf_lt hk)).2.2.2]
 
 end proof
 

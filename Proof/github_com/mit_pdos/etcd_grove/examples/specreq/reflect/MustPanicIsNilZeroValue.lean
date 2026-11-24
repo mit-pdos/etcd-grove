@@ -5,6 +5,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.specreq.reflect.MustPanicIsNilZeroValue
 public import Perennial.Proof.reflect.Link
+public import Perennial.Proof.reflect.Results
 
 @[expose] public section
 
@@ -30,7 +31,7 @@ theorem MustPanicIsNilZeroValue.wp_proof :
   have hz : (zero_val _root_.Perennial.reflect.Value).flag' = W64 0 := rfl
   wp_start
   wp_auto
-  wp_apply _root_.Perennial.reflect.wp_ValueOf.2.2
+  wp_apply _root_.Perennial.reflect.wp_ValueOf_nil
   wp_pures
   wp_apply (_root_.Perennial.reflect.Value.wp_IsNil.2.2 _)
   · rw [hz, show (W64 0 &&& W64 31 : w64) = W64 0 by decide]; simp

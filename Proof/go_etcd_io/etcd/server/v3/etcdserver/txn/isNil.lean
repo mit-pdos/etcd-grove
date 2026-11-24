@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.isNil
 public import Perennial.Proof.reflect.Values
 public import Perennial.Proof.reflect.Link
+public import Perennial.Proof.reflect.Results
 
 @[expose] public section
 
@@ -30,7 +31,8 @@ theorem txn.isNil.wp_proof :
   intro T p
   wp_start
   wp_auto
-  wp_apply (_root_.Perennial.reflect.wp_ValueOf.1 (t := go.PointerType T) 22 #p rfl (by simp [_root_.Perennial.reflect.rtype.ty]) (by omega))
+  wp_apply (_root_.Perennial.reflect.wp_ValueOf_reflPtr T p) as %w %Hw
+  subst Hw
   wp_apply (_root_.Perennial.reflect.Value.wp_IsNil.1 _ (t := go.PointerType T) (e := T) p (by simp only; rfl) (by simp only; rfl) rfl)
   iapply HΦ
   itrivial

@@ -5,6 +5,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.specreq.reflect.isNil
 public import Perennial.Proof.reflect.Link
+public import Perennial.Proof.reflect.Results
 
 @[expose] public section
 
@@ -36,8 +37,8 @@ theorem isNil.wp_proof :
     ipureintro
     simp
   · wp_auto
-    wp_apply (_root_.Perennial.reflect.wp_ValueOf.1 (t := go.PointerType T) 22 #p rfl
-      (by simp [_root_.Perennial.reflect.rtype.ty]) (by omega))
+    wp_apply (_root_.Perennial.reflect.wp_ValueOf_reflPtr T p) as %w %Hw
+    subst Hw
     wp_pures
     wp_apply (_root_.Perennial.reflect.Value.wp_IsNil.1 _ (t := go.PointerType T) (e := T) p (by simp only; rfl) (by simp only; rfl) rfl)
     iapply HΦ
