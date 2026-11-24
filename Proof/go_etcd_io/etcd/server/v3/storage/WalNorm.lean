@@ -14,7 +14,7 @@ alone.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalHist
 
 @[expose] public section
 
@@ -52,14 +52,9 @@ def normH (H : WalHist) : WalHist := normFrom hsZero H
 theorem walLastHS_eq_foldl (H : WalHist) : walLastHS H = H.foldl opHS hsZero := by
   unfold walLastHS
   congr 1
-  funext p o
-  cases o <;> rfl
 
 theorem phsNext_self' (p : HardStateM) : phsNext p p = p := by
-  unfold phsNext; split <;> [skip; rfl]
-  rename_i h
-  obtain ⟨t, v, c⟩ := p
-  simp only at h; obtain ⟨rfl, rfl, rfl⟩ := h; rfl
+  unfold phsNext; split <;> rfl
 
 theorem phsNext_of_hsEmptyP {p h : HardStateM} (he : hsEmptyP h) : phsNext p h = p :=
   phsNext_empty p h he
@@ -68,10 +63,9 @@ theorem phsNext_of_hsEmptyP {p h : HardStateM} (he : hsEmptyP h) : phsNext p h =
 theorem opHS_normOp (p : HardStateM) (o : WalOp) : opHS p (normOp p o) = opHS p o := by
   cases o with
   | save h es =>
-    unfold normOp
-    split
-    · rename_i hc; simp only [opHS]; rw [phsNext_self', phsNext_of_hsEmptyP hc.2]
-    · rfl
+    by_cases hc : es ≠ [] ∧ hsEmptyP h
+    · simp only [normOp, if_pos hc, opHS]; rw [phsNext_self', phsNext_of_hsEmptyP hc.2]
+    · simp only [normOp, if_neg hc]
   | snap m al => rfl
 
 @[simp] theorem normFrom_length (p : HardStateM) (H : WalHist) : (normFrom p H).length = H.length := by
@@ -114,13 +108,9 @@ theorem normFrom_suffix_fix {A B : WalHist} (h : normFrom hsZero (A ++ B) = A ++
 theorem normOp_idem (p : HardStateM) (o : WalOp) : normOp p (normOp p o) = normOp p o := by
   cases o with
   | save h es =>
-    unfold normOp
     by_cases hc : es ≠ [] ∧ hsEmptyP h
-    · rw [if_pos hc]
-      by_cases hp : hsEmptyP p
-      · simp [hc.1, hp]
-      · simp [hp]
-    · rw [if_neg hc, if_neg hc]
+    · simp only [normOp, if_pos hc, ite_self]
+    · simp only [normOp, if_neg hc]
   | snap m al => rfl
 
 /-- **The normalization is idempotent**: a written history is its own normalization. -/
@@ -128,10 +118,6 @@ theorem normFrom_idem (p : HardStateM) (H : WalHist) : normFrom p (normFrom p H)
   induction H generalizing p with
   | nil => rfl
   | cons o H ih => simp only [normFrom, normOp_idem, opHS_normOp, ih]
-
-theorem normH_drop_fix (H : WalHist) (k : Nat) :
-    normFrom (walLastHS ((normH H).take k)) ((normH H).drop k) = (normH H).drop k := by
-  rw [normH_take, walLastHS_normH, normH_drop, normFrom_idem]
 
 theorem normH_snoc (H : WalHist) (o : WalOp) :
     normH (H ++ [o]) = normH H ++ [normOp (walLastHS H) o] := by
@@ -162,6 +148,10 @@ theorem normH_drop (H : WalHist) (k : Nat) :
     (normH H).drop k = normFrom (walLastHS (H.take k)) (H.drop k) := by
   rw [normH, normFrom_drop, walLastHS_eq_foldl]
 
+theorem normH_drop_fix (H : WalHist) (k : Nat) :
+    normFrom (walLastHS ((normH H).take k)) ((normH H).drop k) = (normH H).drop k := by
+  rw [normH_take, walLastHS_normH, normH_drop, normFrom_idem]
+
 theorem normFrom_getElem? (p : HardStateM) (H : WalHist) (i : Nat) :
     (normFrom p H)[i]? = H[i]?.map (normOp ((H.take i).foldl opHS p)) := by
   induction H generalizing p i with
@@ -178,10 +168,9 @@ def opShape : WalOp → Option (List EntryM)
 
 theorem normOp_save (p h : HardStateM) (es : List EntryM) :
     ∃ h', normOp p (.save h es) = .save h' es ∧ (hsEmptyP h' ∧ es = [] ↔ hsEmptyP h ∧ es = []) := by
-  unfold normOp
-  split
-  · rename_i hc; exact ⟨p, rfl, by simp [hc.1]⟩
-  · exact ⟨h, rfl, Iff.rfl⟩
+  by_cases hc : es ≠ [] ∧ hsEmptyP h
+  · exact ⟨p, by simp only [normOp, if_pos hc], by simp [hc.1]⟩
+  · exact ⟨h, by simp only [normOp, if_neg hc], Iff.rfl⟩
 
 theorem normOp_snap (p : HardStateM) (m : SnapshotMetadataM) (al : Bool) :
     normOp p (.snap m al) = .snap m al := rfl
@@ -200,10 +189,9 @@ theorem normFrom_filter_walKeep (c : Nat) (p : HardStateM) (H : WalHist) :
     | save h es =>
       obtain ⟨h', he, -⟩ := normOp_save p h es
       simp only [normFrom, he, List.filter_cons, walKeep, ite_true, ih]
-      rfl
     | snap m al =>
-      simp only [normFrom, normOp_snap, List.filter_cons, walKeep, opHS]
-      split <;> simp [ih, normFrom, normOp_snap, opHS]
+      by_cases hk : uint.nat m.Index' ≤ c <;>
+        simp [normFrom, normOp_snap, List.filter_cons, walKeep, opHS, hk, ih]
 
 /-- **The reader's fold is unchanged by the normalization** (from the running state `σ.hs`). -/
 theorem walFoldChkFrom_normFrom (σ : StorContents) (H : WalHist) :
@@ -217,38 +205,27 @@ theorem walFoldChkFrom_normFrom (σ : StorContents) (H : WalHist) :
       have hhs : (walSaveSnap σ m).hs = σ.hs := by unfold walSaveSnap; split <;> rfl
       rw [← hhs, ih]
     | save h es =>
-      simp only [normFrom, walFoldChkFrom, opHS]
-      unfold normOp
-      split
-      · rename_i hc
-        simp only [walFoldChkFrom, phsNext_self', phsNext_of_hsEmptyP hc.2]
+      by_cases hc : es ≠ [] ∧ hsEmptyP h
+      · simp only [normFrom, opHS, normOp, if_pos hc, walFoldChkFrom, phsNext_self',
+          phsNext_of_hsEmptyP hc.2]
         cases es.foldlM (fun ents e => readEnt σ.b ents e) σ.ents with
         | none => rfl
         | some ents =>
           simp only [Option.bind_eq_bind, Option.bind_some]
-          exact ih { σ with ents := ents }
-      · simp only [walFoldChkFrom]
+          exact ih _
+      · simp only [normFrom, opHS, normOp, if_neg hc, walFoldChkFrom]
         cases es.foldlM (fun ents e => readEnt σ.b ents e) σ.ents with
         | none => rfl
         | some ents =>
           simp only [Option.bind_eq_bind, Option.bind_some]
-          exact ih { σ with hs := phsNext σ.hs h, ents := ents }
+          exact ih _
 
 theorem walNewest_normFrom (p : HardStateM) (H : WalHist) : walNewest (normFrom p H) = walNewest H := by
   unfold walNewest
-  suffices ∀ b, (normFrom p H).foldl (fun best o => match o with
-      | .snap m _ => match best with
-        | none => some m
-        | some b => if uint.nat b.Index' ≤ uint.nat m.Index' then some m else best
-      | .save _ _ => best) b = H.foldl (fun best o => match o with
-      | .snap m _ => match best with
-        | none => some m
-        | some b => if uint.nat b.Index' ≤ uint.nat m.Index' then some m else best
-      | .save _ _ => best) b from this none
-  induction H generalizing p with
-  | nil => intro b; rfl
+  generalize (none : Option SnapshotMetadataM) = b
+  induction H generalizing p b with
+  | nil => rfl
   | cons o H ih =>
-    intro b
     cases o with
     | save h es =>
       obtain ⟨h', he, -⟩ := normOp_save p h es
@@ -264,84 +241,13 @@ theorem walReadFrom_normH (H : WalHist) (k : Nat) : walReadFrom (normH H) k = wa
   unfold walReadFrom
   simp only [walLastHS_normH, normH_take, normH_drop, normFrom_filter_walKeep, walNewest_normFrom]
   split
-  · rename_i hn; rw [hn]
-  · rename_i m hn
-    rw [hn]
-    exact walFoldChkFrom_normFrom ⟨walLastHS (H.take k), _, _, []⟩ _
+  · rfl
+  · exact walFoldChkFrom_normFrom ⟨walLastHS (H.take k), _, _, []⟩ _
 
 theorem walReadCut_normH (H : WalHist) (k : Nat) : walReadCut (normH H) k = walReadCut H k := by
   unfold walReadCut; split
   · exact walRead_normH H
   · exact walReadFrom_normH H k
-
-theorem walValidSnaps_normH (H : WalHist) (k : Nat) : walValidSnaps (normH H) k = walValidSnaps H k := by
-  unfold walValidSnaps
-  rw [walLastHS_normH, normH_drop]
-  congr 1
-  generalize walLastHS (H.take k) = p
-  induction H.drop k generalizing p with
-  | nil => rfl
-  | cons o H ih =>
-    cases o with
-    | save h es =>
-      obtain ⟨h', he, -⟩ := normOp_save p h es
-      simp only [normFrom, he, List.filterMap_cons]; exact ih _
-    | snap m al => simp only [normFrom, normOp_snap, List.filterMap_cons]; rw [ih]
-
-theorem walCutPos_normH (H : WalHist) (b : Nat) : walCutPos (normH H) b ↔ walCutPos H b := by
-  unfold walCutPos normH
-  rw [normFrom_getElem?]
-  cases H[b-1]? with
-  | none => simp
-  | some o =>
-    cases o with
-    | save h es =>
-      obtain ⟨h', he, hiff⟩ := normOp_save ((H.take (b - 1)).foldl opHS hsZero) h es
-      simp only [Option.map_some, he]
-      constructor
-      · rintro (h0 | ⟨h1, es1, e1, n1⟩ | ⟨m, al, e⟩)
-        · exact .inl h0
-        · cases e1; exact .inr (.inl ⟨h, es, rfl, fun hc => n1 (hiff.mpr hc)⟩)
-        · cases e
-      · rintro (h0 | ⟨h1, es1, e1, n1⟩ | ⟨m, al, e⟩)
-        · exact .inl h0
-        · cases e1; exact .inr (.inl ⟨h', es, rfl, fun hc => n1 (hiff.mp hc)⟩)
-        · cases e
-    | snap m al => simp [normOp_snap]
-
-theorem walLastIdx_normFrom (p : HardStateM) (H : WalHist) : walLastIdx (normFrom p H) = walLastIdx H := by
-  unfold walLastIdx
-  congr 1
-  · suffices ∀ x, (normFrom p H).foldl (fun x o => match o with
-        | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
-        | .snap _ _ => x) x = H.foldl (fun x o => match o with
-        | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
-        | .snap _ _ => x) x from this 0
-    induction H generalizing p with
-    | nil => intro x; rfl
-    | cons o H ih =>
-      intro x
-      cases o with
-      | save h es =>
-        obtain ⟨h', he, -⟩ := normOp_save p h es
-        simp only [normFrom, he, List.foldl_cons]; exact ih _ _
-      | snap m al => simp only [normFrom, normOp_snap, List.foldl_cons]; exact ih _ _
-  · suffices ∀ x, (normFrom p H).foldl (fun x o => match o with
-        | .save _ _ => x
-        | .snap m _ => max x (uint.nat m.Index')) x = H.foldl (fun x o => match o with
-        | .save _ _ => x
-        | .snap m _ => max x (uint.nat m.Index')) x from this 0
-    induction H generalizing p with
-    | nil => intro x; rfl
-    | cons o H ih =>
-      intro x
-      cases o with
-      | save h es =>
-        obtain ⟨h', he, -⟩ := normOp_save p h es
-        simp only [normFrom, he, List.foldl_cons]; exact ih _ _
-      | snap m al => simp only [normFrom, normOp_snap, List.foldl_cons]; exact ih _ _
-
-theorem walLastIdx_normH (H : WalHist) : walLastIdx (normH H) = walLastIdx H := walLastIdx_normFrom _ _
 
 /-- **The written history of a WAL's raw history** (the encoding layer's: `WalFs.histM`). -/
 def histN (H : List (WalOpG WalEnt)) : WalHist := normH (H.map WalOpG.toM)
@@ -369,7 +275,10 @@ def saveHS (p hs : HardStateM) (es : List EntryM) : HardStateM :=
 
 theorem normOp_save_eq (p hs : HardStateM) (es : List EntryM) :
     normOp p (.save hs es) = .save (saveHS p hs es) es := by
-  unfold normOp saveHS; split <;> rfl
+  unfold saveHS
+  by_cases hc : es ≠ [] ∧ hsEmptyP hs
+  · simp only [normOp, if_pos hc]
+  · simp only [normOp, if_neg hc]
 
 /-- After a `Save` that writes a state record, the running state is the one it wrote. -/
 theorem phsNext_saveHS {p hs : HardStateM} {es : List EntryM} (h : ¬ (es = [] ∧ hsEmptyP hs)) :

@@ -137,7 +137,7 @@ theorem walDecodeFiles_suffix {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : 
   obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md S m' last Smid zs false Spre.flatten c0 hzl hz
     hfitc (by simpa using hlast)
   refine ⟨n, hn, ?_⟩
-  rw [← hc0, ← hdec]
+  rw [← hdec]
   have hhdr : 1 ≤ (segHdrDs M md false (Spre.flatten ++ Smid.flatten)).length := by
     simp [segHdrDs, cutHdrDs]
   cases Smid with

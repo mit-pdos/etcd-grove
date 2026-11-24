@@ -67,7 +67,7 @@ theorem raStep_entry_eq {U : WalUnmarshal} {s : w64 × w64} {st : RAState} {d : 
     raStep U s st (entryType, d) = match readEnt (uint.nat s.1) st.ents e with
       | none => .error .sliceOutOfRange
       | some ents => .ok { st with ents := ents } := by
-  simp [raStep, he]
+  simp [raStep, he]; rfl
 
 /-- Applying the pending entries one more. -/
 theorem flushP_snoc (s : w64 × w64) (ents pend : List EntryM) (e : EntryM) :
@@ -80,8 +80,8 @@ theorem flushP_snoc (s : w64 × w64) (ents pend : List EntryM) (e : EntryM) :
   cases h : pend.foldlM (fun ents e => readEnt (uint.nat s.1) ents e) ents with
   | none => rfl
   | some x =>
-    simp only [Option.bind_eq_bind, Option.some_bind, List.foldlM_cons, List.foldlM_nil]
-    cases readEnt (uint.nat s.1) x e <;> rfl
+    cases hr : readEnt (uint.nat s.1) x e <;>
+      simp [hr, Option.bind, pure, bind, Except.bind, List.foldlM_cons, List.foldlM_nil]
 
 /-- The records' entry records decode. -/
 def EntsDecode (U : WalUnmarshal) (ds : List (w64 × List w8)) : Prop :=
@@ -127,7 +127,7 @@ theorem foldlM_raStepP_eq (U : WalUnmarshal) (s : w64 × w64) :
       cases hf : flushP s st.ents pend with
       | error x => rfl
       | ok ents =>
-        simp only [Except.bind_ok, List.foldlM_cons, hraw]
+        simp only [except_ok_bind, List.foldlM_cons, hraw]
         cases readEnt (uint.nat s.1) ents e <;> rfl
     · have hstep : raStepP U s (st, pend) r =
           ((flushP s st.ents pend >>= fun ents => raStep U s { st with ents := ents } r) >>=
@@ -136,17 +136,17 @@ theorem foldlM_raStepP_eq (U : WalUnmarshal) (s : w64 × w64) :
         cases flushP s st.ents pend with
         | error x => rfl
         | ok ents =>
-          simp only [Except.bind_ok]
+          simp only [except_ok_bind]
           cases raStep U s { st with ents := ents } r <;> rfl
       rw [List.foldlM_cons, hstep]
       cases hf : flushP s st.ents pend with
       | error x => rfl
       | ok ents =>
-        simp only [Except.bind_ok, List.foldlM_cons]
+        simp only [except_ok_bind, List.foldlM_cons]
         cases hs : raStep U s { st with ents := ents } r with
         | error x => rfl
         | ok st1 =>
-          simp only [Except.bind_ok]
+          simp only [except_ok_bind]
           by_cases hds : ds = []
           · subst hds; rfl
           · have hlast' : ∀ x ∈ ds.getLast?, x.1 ≠ entryType := by
@@ -196,15 +196,15 @@ theorem readAllFoldP_append (U : WalUnmarshal) (s : w64 × w64) (write : Bool) (
     obtain ⟨r, hr, rfl⟩ := hx
     exact hlast r hr
   rw [foldlM_raStepP_eq U s _ raInit [] hd1 hl (fun _ => rfl)]
-  have hf0 : flushP s raInit.ents [] = .ok raInit.ents := by simp [flushP]; rfl
+  have hf0 : flushP s raInit.ents [] = .ok raInit.ents := by simp [flushP]
   rw [hf0]
-  simp only [Except.bind_ok]
+  simp only [except_ok_bind]
   have hri : ({ raInit with ents := raInit.ents } : RAState) = raInit := rfl
   rw [hri]
   cases (recs.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit with
   | error x => rfl
   | ok st =>
-    simp only [Except.bind_ok]
+    simp only [except_ok_bind]
     obtain ⟨es, hes⟩ := foldlM_raStepP_ents U s _ st [] hd2 (by
       intro x hx; rw [List.mem_map] at hx; obtain ⟨r, hr, rfl⟩ := hx; exact hps r hr)
     rw [hes]

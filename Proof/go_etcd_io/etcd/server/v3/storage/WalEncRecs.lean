@@ -204,7 +204,7 @@ theorem histCutRest_entry (M : WalMarshal) (H : WalHist) (n : Nat) :
         simp only [opDs, List.length_append, List.length_map] at hk hp
         have hn : n ≤ es.length := by
           by_cases he : es = [] ∧ hsEmptyP h
-          · rw [if_pos he] at hk; simp at hk
+          · rw [if_pos he] at hk; simp at hk; omega
           · rw [if_neg he] at hk; simp at hk; omega
         rw [List.take_append_of_le_length (by simpa using hn)] at hp
         obtain ⟨e, -, rfl⟩ := List.mem_map.1 (List.mem_of_mem_take hp)

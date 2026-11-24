@@ -234,9 +234,8 @@ theorem normOp_fix {p : HardStateM} {o : WalOp} (h : normOp p o = o) :
     ∀ hh es, o = .save hh es → es ≠ [] → hsEmptyP hh → p = hh := by
   intro hh es ho hne hE
   subst ho
-  unfold normOp at h
-  rw [if_pos ⟨hne, hE⟩] at h
-  cases h; rfl
+  simp only [normOp, if_pos (⟨hne, hE⟩ : es ≠ [] ∧ hsEmptyP hh)] at h
+  injection h
 
 /-- **The loop over a normalized history's records is the loop over its operations** (`normFrom st.hs L
 = L`: every `Save` of entries with an empty state is after an empty running state). -/
@@ -549,8 +548,7 @@ theorem raStep_segs_ok (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w6
       · rw [if_neg hE]
     rw [List.flatten_cons] at hN
     obtain ⟨hNS, hNSs⟩ := normFrom_append_fix hN
-    rw [raStep_flatMap U M hU S _ (by show normFrom (if hsEmptyP (walLastHS P) then st.hs else walLastHS P) S = S
-      rw [hst1]; exact hNS)] at h2
+    rw [raStep_flatMap U M hU s S _ (by simp only; rw [hst1]; exact hNS)] at h2
     have hle1 : ∀ m al, WalOpG.snap m al ∈ S → uint.nat m.Index' ≤ c → uint.nat m.Index' ≤ uint.nat s.1 :=
       fun m al hm => hle m al (List.mem_append_left _ hm)
     have hle2 : ∀ m al, WalOpG.snap m al ∈ Ss.flatten → uint.nat m.Index' ≤ c →
@@ -649,8 +647,9 @@ theorem raStep_segs_complete (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (
           · exact h0
           · rw [h0, hsEmptyP_eq hE]
         · rw [if_neg hE]
-      rw [raStep_flatMap U M hU S _ (by show normFrom (if hsEmptyP (walLastHS P) then st.hs else walLastHS P) S = S
-        rw [hst1]; exact hNS), h2]
+      have hNS' : normFrom ({ st with md := some md, hs := if hsEmptyP (walLastHS P) then st.hs else walLastHS P } : RAState).hs S = S := by
+        simp only; rw [hst1]; exact hNS
+      rw [raStep_flatMap U M hU s S _ hNS', h2]
       exact hfold
     · right
       rcases hcase with ⟨-, rfl, rfl⟩ | hcase
@@ -851,7 +850,7 @@ theorem readAllFold_zero {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU 
       · simp only [Except.ok.injEq] at h1; subst h1; exact ⟨rfl, rfl, rfl⟩
     rw [List.flatten_cons] at hNo
     obtain ⟨hNS, hNSs⟩ := normFrom_append_fix hNo
-    rw [raStep_flatMap U M hU S st1 (by rw [hst1.2.1]; exact hNS)] at h2
+    rw [raStep_flatMap U M hU s S st1 (by rw [hst1.2.1]; exact hNS)] at h2
     have hle1 : ∀ m al, WalOpG.snap m al ∈ S → uint.nat m.Index' ≤ uint.nat (walLastHS (S :: Ss).flatten).Commit' →
         uint.nat m.Index' ≤ uint.nat s.1 :=
       fun m al hm => hle m al (List.mem_append_left _ hm)
@@ -1005,8 +1004,9 @@ theorem readAllFold_zero_dev {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} 
         (raStep U (W64 5, W64 1)) raInit = .ok ⟨some md, h, [e], true⟩ := by
       rw [recsOfSegs_map]
       simp only [segsDs, segHdrDs, ite_true, List.flatten_cons, List.flatten_nil, List.append_nil,
-        List.foldlM_append, raStep_hdr U M hU, raStep_flatMap U M hU]
+        List.foldlM_append, raStep_hdr U M hU]
       rw [if_neg (by decide), except_ok_bind]
+      rw [raStep_flatMap U M hU _ I _ (by simp [I, normFrom, normOp, hsEmptyP, h, opHS])]
       simp [I, goOp, readEnt, e, hhs]
       rfl
     exact readAllFold_of hfold rfl (Or.inl rfl)
