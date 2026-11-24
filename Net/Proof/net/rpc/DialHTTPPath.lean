@@ -86,30 +86,6 @@ theorem readErr_ptr (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) :
     simp only [interface.mkOk] at h
     cases h; exact ⟨pe, rfl⟩
 
-/-- A read's error other than for bytes is a pointer, not `nil`, with an `Error()` (`io.EOF`'s, or the
-`*OpError`'s: `resErr_errStr`). -/
-theorem readErr_some' (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (m : GoString)
-    (hr : ∀ bs, r ≠ .bytes bs) :
-    (□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
-      WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #xe))
-        (Val #())) {{ Φ }}) -∗
-    net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err -∗
-      ⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ ∗ net.errStr err := by
-  iintro #Hw HE
-  ihave #Hes : net.errStr (GF := GF) err $$ [HE]
-  · cases r with
-    | bytes bs => exact absurd rfl (hr bs)
-    | eof =>
-      simp only [net.ReadErr]
-      icases HE with %h; subst h
-      iapply net.errStr_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #xe⟩ m $$ Hw
-    | err k =>
-      simp only [net.ReadErr]
-      iapply net.resErr_errStr $$ HE
-  ihave %H := readErr_some r la ra ed err xe hr $$ HE
-  iframe Hes
-  ipureintro; exact H
-
 /-- A read's error other than for bytes is a pointer: not `nil`. -/
 theorem readErr_some (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (hr : ∀ bs, r ≠ .bytes bs) :
     net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err ⊢
@@ -135,6 +111,30 @@ theorem readErr_some (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (hr :
     simp only [interface.mkOk] at h
     cases h; exact ⟨pe, rfl⟩
 
+/-- A read's error other than for bytes is a pointer, not `nil`, with an `Error()` (`io.EOF`'s, or the
+`*OpError`'s: `resErr_errStr`). -/
+theorem readErr_some' (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (m : GoString)
+    (hr : ∀ bs, r ≠ .bytes bs) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+      WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #xe))
+        (Val #())) {{ Φ }}) -∗
+    net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err -∗
+      ⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ ∗ net.errStr err := by
+  iintro #Hw HE
+  ihave #Hes : net.errStr (GF := GF) err $$ [HE]
+  · cases r with
+    | bytes bs => exact absurd rfl (hr bs)
+    | eof =>
+      simp only [net.ReadErr]
+      icases HE with %h; subst h
+      iapply net.errStr_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #xe⟩ m $$ Hw
+    | err k =>
+      simp only [net.ReadErr]
+      iapply net.resErr_errStr $$ HE
+  ihave %H := readErr_some r la ra ed err xe hr $$ HE
+  iframe Hes
+  ipureintro; exact H
+
 /-- A reader with its protocol fact back. -/
 theorem recvTokL_back (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
     recvTokL (Gg := hG.goose_globalGS) cn s P R ∗ protoPrefix P cn R ⊢
@@ -151,11 +151,11 @@ recorded in `γe`, and every later read returns no byte (`read_after_dead_au`). 
 theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
     (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (t : Loc) (la ra : GoInterface)
     (γe : GName) (ed : GoInterface) (hA : W.hsAns a = connectAns) :
-    isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
-      net.connAt (GF := GF) t cn false a la ra ⊢
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.internal.poll ∗
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ net.connAt (GF := GF) t cn false a la ra ⊢
     EtcdGrove.io.readerStreamNE ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ (crSt W a cn γ γe)
       (crErr γe) := by
-  iintro ⟨#Hio, #Hed, #Hconn⟩
+  iintro ⟨#Hio, #Hpoll, #Hed, #Hconn⟩
   ihave #Hinit := _root_.Perennial.io.isInit_access $$ Hio
   icases Hinit with ⟨-, -, -, -, #HEOF, -, -⟩
   unfold errors.newVar
@@ -340,7 +340,11 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   icases Henv' with ⟨%eof, %ueof, %ed, #Hio, #Hsync, #Heof, #Hueof, #Hed, #HefV, #HesV, #Hdbg⟩
   ihave #Hhenv' := Hhenv
   iunfold net.http.httpEnv at Hhenv'
-  icases Hhenv' with ⟨#Hbufio, -⟩
+  icases Hhenv' with ⟨#Hbufio, -, #Hfmt, -⟩
+  -- `Conn.Read` takes `internal/poll`'s package fact: `fmt` imports it (through `os` in Go; directly in
+  -- the model overlay's import list)
+  ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
+  · solve_pkg_init
   wp_auto
   wp_apply wp_Dial nw hnw a iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqProto W a) (respProto W a)
@@ -388,7 +392,7 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     · iunfold crSt
       iframe Hrecv Hrdl Hrpc Hreqs Hγe
       ipureintro; exact Or.inl List.nil_prefix
-    ihave #Hstream := crStream wp_ReadLc W a cn γ t la ra γe ed HhsA $$ [$Hio $Hed $Hca]
+    ihave #Hstream := crStream wp_ReadLc W a cn γ t la ra γe ed HhsA $$ [$Hio $Hpoll $Hed $Hca]
     have hty : (⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ : GoInterfaceOk).ty ≠
         go.GoType.PointerType _root_.Perennial.bufio.Reader.ty := by
       simp only [ne_eq, go.GoType.PointerType.injEq]
