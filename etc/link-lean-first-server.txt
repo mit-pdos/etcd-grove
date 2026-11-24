@@ -583,7 +583,11 @@ etcdserver_tickToDur:
 EtcdServer__adjustTicks: EtcdServer__Logger RaftCluster__Members EtcdServer__MemberID types_ID__String zap_String zap_Int etcdserver_tickToDur zap_Logger__Info raftNode__advanceTicks =_root_.Perennial.time.wp_After
 EtcdServer__publishV3:
 EtcdServer__purgeFile: EtcdServer__Logger
-monitorFileDescriptor:
+# (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42) the file descriptor monitor over its body: etcd's
+# `runtime.FDUsage`/`FDLimit` over their trusted models (TrustedCode/go_etcd_io/etcd/pkg/v3/runtime.lean)
+runtime_FDUsage:
+runtime_FDLimit:
+monitorFileDescriptor: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop runtime_FDUsage runtime_FDLimit zap_Logger__Warn zap_Error zap_Uint64
 EtcdServer__monitorClusterVersions:
 EtcdServer__monitorStorageVersion:
 EtcdServer__monitorKVHash:
