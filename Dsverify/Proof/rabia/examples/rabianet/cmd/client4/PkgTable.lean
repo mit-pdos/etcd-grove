@@ -279,7 +279,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.rabia.examples.rabianet.cmd.cl
   have h40 : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h39, h14, True.intro⟩
+    exact ⟨h0, h39, h14, h32, True.intro⟩
   have h41 : GetIsPkgInitProp pkg_id.rabia.internal.config (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
