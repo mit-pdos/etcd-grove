@@ -26,7 +26,11 @@ usage: etc/tcb-report.py [-o REPORT.md] [--defs] [--json TCB.json] [--reuse]
            baseline: with --check, compared (exit 1 if they differ); with
            --check --update, rewritten (the other lines kept). With --check, several
            FILEs are checked in one run, each as on its own (exit 1 if any differs;
-           `tcb: collection FILE: FAILED` names it), the JSON loaded once
+           `tcb: collection FILE: FAILED` names it), the JSON loaded once.
+           A collection's `axioms PATTERN` lines (regular expressions) restrict its
+           report and baseline to the axioms and `sorry`s whose name (without the
+           namespace) or declaring module's file matches one of them: what one family
+           of declarations contributes to the roots, instead of all they rest on
 
 The Lean runs (one per group of root modules) run in two lanes, natively
 (etc/proof_roots.py: `run_groups`, `lean_script`); with `$TCB_CACHE` a directory, each
@@ -216,15 +220,19 @@ def check(path, current, kept, srs, sorries, update):
 
 
 def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users, fw_ax,
-                     defs, at_, per_root):
-    """What the roots `sel` rest on, in plain text."""
+                     defs, at_, per_root, ax_pats=None):
+    """What the roots `sel` rest on, in plain text (with `ax_pats`, of the axioms and
+    `sorry`s `sel_ax`/`sel_sr` were restricted to, only those)."""
     names = {(r["module"], r["name"]) for r in sel}
     # a declaration's location(s): one per module declaring it
     locs = lambda recs: ", ".join(loc(o).strip("`") for o in recs)
     out = []
     w = out.append
     w(f"{len(sel)} of {n_roots} roots match {' '.join(repr(p) for p in pats)}.")
-    clean = [r for r in sel if not r["sorries"]]
+    if ax_pats:
+        w(f"Only the axioms and `sorry`s matching {' '.join(repr(p) for p in ax_pats)}.")
+    in_sr = lambda r: [x for x in r["sorries"] if x in sel_sr]
+    clean = [r for r in sel if not in_sr(r)]
     w(f"{len(clean)} of them reach no `sorry`.")
     w("")
     w(f"This repository's axioms they rest on: {len(sel_ax)}")
@@ -248,7 +256,7 @@ def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users,
     n_fw = len({a for r in sel for a in r["axioms"] if a in fw_ax})
     w(f"Perennial's axioms (its hand-written ones: Goose's untranslated declarations are `opaque`): {n_fw}.")
     w("")
-    listed = sel if per_root else [r for r in sel if r["sorries"]]
+    listed = sel if per_root else [r for r in sel if in_sr(r)]
     if listed:
         w(("Every root" if per_root else "The roots that reach a `sorry` (--per-root: every root)")
           + ":")
@@ -257,7 +265,7 @@ def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users,
         for r in listed:
             pa = sum(1 for a in r["axioms"] if a in sel_ax)
             where = spec_file(r, defs, at_) if r["module"] in LINKS else mod_path(r["module"])
-            w(f"  {short(r['name']).ljust(wa)}  {len(r['sorries']):5}  {pa:6}  {where}")
+            w(f"  {short(r['name']).ljust(wa)}  {len(in_sr(r)):5}  {pa:6}  {where}")
         w("")
     return "\n".join(out)
 
@@ -365,7 +373,7 @@ def main():
         return sorted([f"axiom {short(n)}" for n in axs] + [f"sorry {short(n)}" for n in srs])
 
     # --roots/--collection: what a collection of roots rests on
-    def selection(pats, coll_file, coll):
+    def selection(pats, coll_file, coll, ax_pats=None):
         sel = []
         for p in pats:
             hit = [r for r in roots.values() if matches(r, p, defs, at_)]
@@ -375,12 +383,18 @@ def main():
         sel.sort(key=lambda r: short(r["name"]))
         sel_ax = sorted({a for r in sel for a in r["axioms"] if is_project(a)})
         sel_sr = sorted({x for r in sel for x in r["sorries"]})
+        if ax_pats:  # the collection's `axioms PATTERN` lines: only the matching declarations
+            def wanted(n, table):
+                keys = [short(n)] + [mod_path(o["module"]) for o in table.get(n, [])]
+                return any(re.search(p, k) for p in ax_pats for k in keys)
+            sel_ax = [n for n in sel_ax if wanted(n, axioms)]
+            sel_sr = [n for n in sel_sr if wanted(n, sorries)]
         current = entries(sel_ax, sel_sr)
         if args.check:
             kept = [x for x in coll if not x.startswith(("axiom ", "sorry "))]
             return check(coll_file, current, kept, sel_sr, sorries, args.update)
         text = selection_report(sel, pats, len(roots), sel_ax, sel_sr, axioms, sorries,
-                                users, fw_ax, defs, at_, args.per_root)
+                                users, fw_ax, defs, at_, args.per_root, ax_pats)
         if args.out:
             with open(args.out, "w") as f:
                 f.write(text)
@@ -402,8 +416,9 @@ def main():
             pats = [x.split(None, 1)[1].strip() for x in coll if x.startswith("roots ")]
             if not pats:
                 sys.exit(f"tcb: {cf} has no `roots PATTERN` line")
+            ax_pats = [x.split(None, 1)[1].strip() for x in coll if x.startswith("axioms ")]
             try:
-                st = selection(pats, cf, coll)
+                st = selection(pats, cf, coll, ax_pats)
             except SystemExit as e:  # a pattern no root matches: this collection fails
                 print(e.code)
                 st = 1
