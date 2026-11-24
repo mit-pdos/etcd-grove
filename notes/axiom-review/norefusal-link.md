@@ -114,6 +114,15 @@ not: the started theorems return the facts, and only the old call sites apply th
 - **A server of the deployment** (`grpcServeTok`'s second disjunct, a member whose address the deployment set): no
   `grpcAddrIs` is made, so the axiom does not apply there.
 
+- **Another member's server on the same listener** (found by a second reviewer against `lean`'s old statement; Go:
+  a stand-alone module, 5/5 panics, kept outside the repository at the coordinator's
+  `jobs/03d8018a/tmp/review-reserve2/norefusal/`): the old axiom applied to an auth-off member A's `gsA` and a
+  listener `l` at `addr`; `grpc.start'` then served auth-on member B's `gsB` on `l`; with authentication enabled, a
+  credential-less `Put` is refused `"etcdserver: user name is empty"`. Closed by the fixed statement: its premises
+  name the server listening at `addr` (`gsB`'s `γ`), whose registrations hold the KV service over B's quota wrapper
+  (`kvRegs qB`; distinct full names allow one KV service per server), so the axiom is about B, with B's
+  `isServerReq … E` and `E.authOn = false`, which B's auth-on view does not give (its mode is pinned by the
+  server's wait registry, `model-param-sweep`), and B's chain.
 - **Etcd's KV service behind another chain** (the first fix's residual, closed): see below.
 
 ## The residual of the first fix (closed)
