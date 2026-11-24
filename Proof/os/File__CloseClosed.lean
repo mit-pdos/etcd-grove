@@ -6,6 +6,7 @@ module
 
 public import Spec.os.File__CloseClosed
 public import Proof.os.ErrorOk
+public import Proof.os.ErrnoPathErr
 
 @[expose] public section
 
@@ -36,15 +37,9 @@ theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG :
   try wp_auto
   rw [decide_eq_false hnn]
   try wp_auto
-  wp_func_call; wp_call
-  iapply wp_fupd
+  wp_apply os.wp_modelPathError_fields
+  iintro %pe #Op #Path #Err
   try wp_auto
-  wp_alloc pe as Hpe
-  iStructNamed Hpe
-  ipersist Op
-  ipersist Path
-  ipersist Err
-  imodintro
   iapply HΦ
   isplitl [Hfd]
   · iexists inner

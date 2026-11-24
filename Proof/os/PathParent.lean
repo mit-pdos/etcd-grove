@@ -152,7 +152,7 @@ macro "mkdirall_slice " P:term:max k:term:max hM:ident K:tactic : tactic => `(ta
   try wp_auto
   try simp only [show sint.nat (W64 (($k : Nat) : Int)) = $k by word, show sint.nat (W64 0) = 0 from rfl,
     Nat.sub_zero, List.drop_zero]
-  rw [← $hM:ident]
+  (rw [← $hM:ident])
   $K))
 
 set_option hygiene false in

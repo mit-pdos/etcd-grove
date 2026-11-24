@@ -78,6 +78,7 @@ theorem os.Mkdir.wp_tree (R : Roots) (p : GoString) (perm : w32) (I : IProp GF) 
     wp_apply wp_osPathKindS R p hpin CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi as %k %hk
     obtain ⟨-, rfl⟩ := hk.resolve_right (fun h => h.1 htn)
     try wp_auto
+    iunfold os.mkdirAttempt at Hat
     wp_apply Hat $$ HI as %e' Hr
     try wp_auto
     wp_apply wp_errnoErr
@@ -103,7 +104,8 @@ theorem os.Mkdir.wp_tree (R : Roots) (p : GoString) (perm : w32) (I : IProp GF) 
     iframe
     ipureintro
     refine ⟨he4, ?_⟩
-    simp [h0]
+    simp
+    first | exact h0 | simpa using h0 | (intro h; apply h0; rw [h]; rfl)
 
 /-- **`os.Mkdir(p)` at a root or an ancestor of one** (`PathKind` is not `1`): any errno but 0,
 no step of the extension (each `EINTR` retried): an error. -/
@@ -133,7 +135,7 @@ theorem os.Mkdir.wp_notTree (R : Roots) (p : GoString) (perm : w32)
     try wp_auto
     wp_bind (App (Val (@! syscall.fsPathKind)) (Val #p))
     iapply hk
-    iframe "Hos Hsi"
+    iframe Hos Hsi
     iintro %k %hk1
     try wp_auto
     rw [decide_eq_false hk1]
@@ -173,7 +175,7 @@ theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (
       (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
     {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
         ⌜err ≠ interface.nil⌝ }} := by
-  wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  iintro %Φ ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩ HΦ
   icases osPathS_pathIn_keep R d dq j $$ Hp with ⟨%hpd, Hp⟩
   have hpin : PathIn R (child d b) := pathIn_child hpd.2 hb
   have htn : RootsTreeName R (child d b) := os.treeName_child hpd.2 hb
