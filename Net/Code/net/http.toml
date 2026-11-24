@@ -40,7 +40,11 @@ translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessa
              "badRequestError", "response.disableWriteContinue", "response.closeNotify",
              "protoHTTP1", "protoHTTP2", "protoUnencryptedHTTP2", "protoHTTP3", "maxInt64",
              "bufferBeforeChunkingSize", "debugServerConnections", "DefaultMaxHeaderBytes", "runHooks",
-             "StateNew", "StateActive", "StateIdle", "StateHijacked", "StateClosed", "use121"]
+             "StateNew", "StateActive", "StateIdle", "StateHijacked", "StateClosed", "use121",
+             "parsePattern", "pattern.*", "pathUnescape", "compareSegments", "combineRelationships",
+             "equivalent", "moreGeneral", "moreSpecific", "disjoint", "overlaps", "routingNode.*",
+             "firstSegment", "routingIndex.*", "mapping.*", "maxSlice", "exactMatch",
+             "urlFromEscaped", "serveMux121.*", "appendSorted"]
 
 # servemux121.go's `var httpmuxgo121 = godebug.New("httpmuxgo121")` and its `init` (gc's `init.1`;
 # `http2.go`'s is `init.0`): internal/godebug is not translated; modelled over the run's setting
@@ -49,7 +53,7 @@ translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessa
 trusted = ["httpmuxgo121", "init.1"]
 imports = ["!*", "errors", "fmt", "io", "bufio", "net", "net/url", "net/textproto", "strings",
            "strconv", "sync", "sync/atomic", "time", "context", "path", "runtime",
-           "crypto/tls", "vendor/golang.org/x/net/http/httpguts", "golang.org/x/net/http/httpguts",
+           "crypto/tls", "math", "sort", "vendor/golang.org/x/net/http/httpguts", "golang.org/x/net/http/httpguts",
            "mime/multipart", "log", "net/http/internal/ascii", "slices"]
 
 # translate the definitions of all type declarations goose supports
