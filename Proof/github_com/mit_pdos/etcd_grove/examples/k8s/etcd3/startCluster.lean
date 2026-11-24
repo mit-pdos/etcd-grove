@@ -300,7 +300,7 @@ theorem startCluster.wp_proof
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hksa, #Hwr⟩
       · iframe; iframe #
       -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
-      ihave %Hnr := EtcdGrove.etcd_noRefusal_at xj.1.Client' sj E { xj.2.ρ with wait := γw } HEo $$ [Hksa]
+      ihave %Hnr := EtcdGrove.etcd_noRefusal_srv xj.1.Client' sj E { xj.2.ρ with wait := γw } HEo $$ [Hksa]
       · iframe #
       imodintro
       iframe Htk

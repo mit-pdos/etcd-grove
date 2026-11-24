@@ -163,7 +163,7 @@ theorem Main.wp_proof
       (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Hserv, #Hkv, #Hksa, #Hwr⟩
     · iframe; iframe #
     -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
-    ihave %Hnr := EtcdGrove.etcd_noRefusal_at go!"127.0.0.1:23896" srv E { ρ with wait := γw } HEo $$ [Hksa]
+    ihave %Hnr := EtcdGrove.etcd_noRefusal_srv go!"127.0.0.1:23896" srv E { ρ with wait := γw } HEo $$ [Hksa]
     · iframe #
     imodintro
     iframe Hserv Hkv Hwr

@@ -19,7 +19,8 @@ func TestMainPanics(t *testing.T) {
 	Main()
 }
 
-// The residual route (see the package comment): the fixed axiom applies, and the call is refused.
+// The first fix's residual (see the package comment): it applied, and the call is refused; the final
+// axiom, which reads the chain, does not apply.
 func TestMainInterceptorPanics(t *testing.T) {
 	t.Chdir(t.TempDir())
 	walarea.Reset(t, "norefusal")

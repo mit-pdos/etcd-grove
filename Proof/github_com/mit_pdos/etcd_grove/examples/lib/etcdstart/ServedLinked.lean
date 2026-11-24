@@ -32,7 +32,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's KV calls registered at the address, and the server there etcd's** (see the file
-header; `kv_served` with `etcdKVSrvAt`, what `etcd_noRefusal_at` takes, 2026-11-24); under
+header; `kv_served` with `etcdKVSrv`, what `etcd_noRefusal_at` takes, 2026-11-24); under
 `grpcRepliesFit` (`grpc.start`'s). -/
 theorem kv_served_at (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
@@ -43,11 +43,11 @@ theorem kv_served_at (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
       |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid ∗
-        etcdKVSrvAt addr s := by
+        etcdKVSrv addr s := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -, #Hics⟩
   obtain ⟨HCA, -, Hregs, -, -, -, -, -, Hnd⟩ := HC
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
@@ -62,8 +62,10 @@ theorem kv_served_at (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   imodintro
   isplitl [Hserv]
   · iexists _; iexact Hserv
-  iframe Hksa
-  iunfold etcdKVAt
+  isplitr
+  · iunfold etcdKVAt
+    iframe #
+  iapply etcdKVSrv_intro addr s [il, im, iu]
   iframe #
 
 /-- **etcd's KV calls registered at the address** (see the file header; `kv_served_at` without the

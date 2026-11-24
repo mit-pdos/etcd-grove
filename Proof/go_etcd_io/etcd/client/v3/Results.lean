@@ -3506,7 +3506,7 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         (□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv [il, im, iu] m.spec) ⊢
       |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
-        etcdKVSrvAt addr s ∗
+        etcdKVSrvAt addr s [il, im, iu] ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
@@ -3539,7 +3539,7 @@ registrations, and etcd's specs of `Put`, `Range`, `DeleteRange` and `Txn` regis
 (`srvRevokeBuilt`, `srvRunPool`, with the levels `srvLevels`; per-type stage B3), given the server's
 request-path premises (`etcd_kv_served`'s), under the workload premise `grpcRepliesFit` and the
 registrations' distinct names (`grpc.start`'s); and (2026-11-24) that the server now listening at `addr`
-serves etcd's KV service over `s` (`etcdKVSrvAt`, from `grpc.start'`'s `grpcServerAt`: what
+serves etcd's KV service over `s` behind the chain `[il, im, iu]` (`etcdKVSrvAt`, from `grpc.start'`'s `grpcServerAt`: with the chain's identity, what
 `etcd_noRefusal_at` takes, after the start). -/
 theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
     (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64)
@@ -3560,7 +3560,7 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
         grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
-        etcdKVSrvAt addr s ∗
+        etcdKVSrvAt addr s [il, im, iu] ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗

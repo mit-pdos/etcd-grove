@@ -42438,9 +42438,27 @@ is new (`kv_served`, unchanged, is its weakening); `etcdstart.grpcUp_noRefusal` 
 sites (cache, watch, compactwatch, k8s compactor's and etcd3's `Main`s and `startCluster`s, txnlin,
 txnlinfaultsN, `cluster3.StartMember`, `kv_lease_served_watch`) apply `etcd_noRefusal_at` after the start.
 
-**Open (the residual).** The axiom does not read the server's unary chain `c.ics`: a server that
-registers etcd's KV service over the member behind a refusing interceptor of its own meets the
-premises, and Go refuses (`examples/axiomcx/norefusal/`, `TestMainInterceptorPanics`; Lean side not
-built). Closing it needs `v3rpc.Server`'s interceptors identified (their constructors' specs give only
-contracts, which a refusing interceptor meets; grpc-prometheus's is a trust-boundary axiom): the
-review's two ways. Not done here.
+**The chain by identity (same day, after an independent review: the first fix, `665f2f1efa`, left the
+unary chain unread).** A server registering etcd's KV service over the member behind a refusing
+interceptor of the program's met the first fix's premises, and Go refuses
+(`examples/axiomcx/norefusal/`, `TestMainInterceptorPanics`, 5/5 on the review): interceptor contracts
+(`srvInterceptorOk`) allow any non-handler error. Both axioms now also take `v3rpc.etcdUnaryIcs s c.ics`
+(`v3rpc/UnaryChain.lean`): the chain is exactly `[il, im, iu]`, `il`/`iu` the closures
+`newLogUnaryInterceptor(s)`/`newUnaryInterceptor(s)` return (their translated code over a variable
+holding `s`, `v3rpc.icClosureOf`, read off the code; their proved specs return it), `im` one of
+grpc-prometheus's (`promUnaryIc`, opaque). `v3rpc.Server`'s spec returns it, `grpcUp` carries it,
+`etcdKVSrvAt addr s ics` records `c.ics = ics`, and `etcdKVSrv addr s` adds the identity.
+
+Rejected: (b) interceptor contracts bounding their own errors' descriptions, proved for etcd's and
+assumed for grpc-prometheus's, with the voter fact moved onto `IsLearner`: a smaller axiom, but it
+redesigns the learner spec and the interceptor contract; not needed to close the hole.
+
+**Trust.** The axioms only lose instances again (their chain must be etcd's; the old axiom read no
+chain). One trusted spec restated: `grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof`
+also returns `⌜promUnaryIc ic⌝` (opaque, a `Prop`: no axiom), naming the value Go returns (the closure
+`interceptors.UnaryServerInterceptor(reporter)`), read only by the members' axioms; nothing else grows.
+
+**Docstrings corrected** (the review's): `grpcAddrIs_agree` and `InvNet.lean`'s header said an address
+is listened on once per run, false (`listen_au` lends the listening token again once the address's
+protocols are set); what holds is that `addrClaim`, which `grpc.start` and `bridge.New` consume for
+good, is given once per address.

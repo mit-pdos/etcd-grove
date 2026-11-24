@@ -192,7 +192,7 @@ theorem StartMember.wp_proof
     as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %pc, %pm, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
       %lcid, %lmid, %R,
       Hgsn, %Hregs, -, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,
-      Hbemu2, Hgo2⟩
+      Hbemu2, Hgo2, #Hics⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [HEw]; simp
@@ -284,8 +284,9 @@ theorem StartMember.wp_proof
     ipureintro; exact Hrb48
   -- (D29) the member never refuses: the server now at its client address is etcd's, authentication
   -- off, a voter (the members' axiom)
-  ihave %Hnr := EtcdGrove.etcd_noRefusal_at client srv E { ρ with wait := γw } HEo $$ [Hreq Hksa]
-  · iframe Hreq Hksa
+  ihave %Hnr := EtcdGrove.etcd_noRefusal_at client srv [il, im, iu] E { ρ with wait := γw } HEo
+      $$ [Hreq Hksa Hics]
+  · iframe Hreq Hksa Hics
   -- (W2) the `Watch` stream served at the client address
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit

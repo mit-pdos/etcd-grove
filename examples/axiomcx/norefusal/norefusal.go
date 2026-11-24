@@ -11,11 +11,14 @@
 // address (grpcAddrIs addrA γ, grpcSrvCfg γ c with etcd's KV registrations among c's), which here is
 // gs2, without them: it does not apply.
 //
-// MainInterceptor: the route the fix leaves open (the residual, recorded in the review). The server at
-// addrB is a grpc server gs3 with etcd's own KV service over the member (v3rpc.NewQuotaKVServer(s):
-// quotaKVServerAt q ... s, kvRegs q among its registrations) and a unary interceptor of the program's
-// that answers every call with the learner refusal. Both the old and the fixed axiom apply to it (they
-// read the registrations, not the interceptor chain), and the call is refused. MainInterceptor panics.
+// MainInterceptor: the route the first fix (665f2f1efa) left open. The server at addrB is a grpc
+// server gs3 with etcd's own KV service over the member (v3rpc.NewQuotaKVServer(s): quotaKVServerAt q
+// ... s, kvRegs q among its registrations) and a unary interceptor of the program's that answers every
+// call with the learner refusal. The old axiom and the first fix applied to it (they read the
+// registrations, not the interceptor chain), and the call is refused: MainInterceptor panics. The
+// final axiom requires the chain to be etcd's by identity (v3rpc.etcdUnaryIcs s c.ics: the closures
+// newLogUnaryInterceptor(s) and newUnaryInterceptor(s) return and grpc-prometheus's), which
+// [refuseAll] is not: it does not apply.
 package norefusal
 
 import (
@@ -113,8 +116,8 @@ func MainInterceptor() {
 	if err != nil {
 		return
 	}
-	// grpc.start' gs3 l addrB: grpcAddrIs addrB γ ∗ grpcSrvCfg γ c, kvRegs q ⊆ c.regs; the fixed
-	// etcd_noRefusal: noRefusalAt addrB
+	// grpc.start' gs3 l addrB: grpcAddrIs addrB γ ∗ grpcSrvCfg γ c, kvRegs q ⊆ c.regs; the first
+	// fix's etcd_noRefusal: noRefusalAt addrB (the final one also needs etcdUnaryIcs s c.ics: false here)
 	go gs3.Serve(l)
 	defer gs3.Stop()
 	err = put(addrB)

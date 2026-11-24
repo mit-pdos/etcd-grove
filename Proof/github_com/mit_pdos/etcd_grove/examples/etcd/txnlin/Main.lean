@@ -6,7 +6,7 @@ The server's start is putget's `Main`'s (`Proof/.../putget/Main.lean`), at `link
 configuration: `Main`'s premises in the shared start's form (`etcdstart.bootPremise_of`); the ghost
 state `NewServer` takes (`etcdstart.alloc1`);
 `etcdstart.StartServer`; `etcdstart.Serve` with the ghost step `etcdstart.kv_served_at` (etcd's KV
-calls registered at the address, and the server there etcd's) then `etcd_noRefusal_at` (the member
+calls registered at the address, and the server there etcd's) then `etcd_noRefusal_srv` (the member
 refusal-free, D29);
 `etcdstart.NewClient` (etcd's default configuration; `clientWriteOnce`, D29). Then the instance's
 invariant at the server's start store (`linkvInv_alloc_boot`: the bootstrap log changes no KV
@@ -148,7 +148,7 @@ theorem Main.wp_proof
       $$ [Hg Hstk] with ⟨Hserv, #Hkv, #Hksa⟩
     · iframe; iframe #
     -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
-    ihave %Hnr := EtcdGrove.etcd_noRefusal_at go!"127.0.0.1:23796" srv E { ρ with wait := γw } HEo
+    ihave %Hnr := EtcdGrove.etcd_noRefusal_srv go!"127.0.0.1:23796" srv E { ρ with wait := γw } HEo
       $$ [Hksa]
     · iframe #
     imodintro

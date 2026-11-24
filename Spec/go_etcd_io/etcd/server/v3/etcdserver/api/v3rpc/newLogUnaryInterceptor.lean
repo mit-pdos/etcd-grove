@@ -6,6 +6,7 @@ counterpart); the vocabulary is `Proof/google_golang_org/grpc/InvGrpc.lean` and
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.UnaryChain
 
 @[expose] public section
 
@@ -31,7 +32,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`newLogUnaryInterceptor(s)`** returns a transparent interceptor (`srvInterceptorOk`, for any
 requests), whose run holds a reader slot of `s.lgMu` (`s.Logger()`, after the handler): it calls
 the handler and, the logger a zap logger (premise fixes 6), logs the call in a deferred `logUnaryRequestStats`
-with `s.Cfg.WarningUnaryRequestDuration`. -/
+with `s.Cfg.WarningUnaryRequestDuration`. (2026-11-24) It is the closure of
+the function's code over a variable holding `s` (`v3rpc.isLogUnaryIc`, `UnaryChain.lean`), which the
+members' axiom reads to name etcd's chain. -/
 abbrev v3rpc.newLogUnaryInterceptor.spec : Prop :=
   ∀ (s lg : Loc) (wd : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -39,8 +42,8 @@ abbrev v3rpc.newLogUnaryInterceptor.spec : Prop :=
       srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗
       srvCfgFieldAddr s go!"WarningUnaryRequestDuration" ↦□ wd }}
     (App (Val (@! v3rpc.newLogUnaryInterceptor)) (Val #s))
-  {{ (ic : GoFunc), RET #ic; □ ∀ Q : GoInterface → IProp GF,
-      srvInterceptorOk ic (srvLgReader s) Q }}
+  {{ (ic : GoFunc), RET #ic; (□ ∀ Q : GoInterface → IProp GF,
+      srvInterceptorOk ic (srvLgReader s) Q) ∗ v3rpc.isLogUnaryIc ic s }}
 
 end spec
 

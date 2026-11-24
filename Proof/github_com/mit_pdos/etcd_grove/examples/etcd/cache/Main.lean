@@ -314,7 +314,7 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, Hlis, Hleft, -⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, Hlis, Hleft, -, #Hics⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     -- the watch server's environment is the server's: `E` is `R.E` from here on
     subst hRE
@@ -353,7 +353,7 @@ theorem Main.wp_proof
       ipureintro; exact Hrb48
     -- (D29) the member never refuses: the server now at its address is etcd's, authentication off,
     -- a voter (the members' axiom)
-    ihave %Hnr := EtcdGrove.etcd_noRefusal_at go!"127.0.0.1:23873" srv R.E { ρ with wait := γw } HEo $$ [Hksa]
+    ihave %Hnr := EtcdGrove.etcd_noRefusal_at go!"127.0.0.1:23873" srv [il, im, iu] R.E { ρ with wait := γw } HEo $$ [Hksa]
     · iframe #
     imodintro
     iframe Hserv HKV HWF Hgo2

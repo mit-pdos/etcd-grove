@@ -42,7 +42,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 watch condition** (`srvWOk V.W`, `srvOnce V.W`: the store does not compact, watchkv's and
 cachekv's, `client.srvOnce_noCmp`; or no revision writes a key twice, `compactkv`'s; watches across a
 compaction, W4, 2026-11-01); (2026-11-24) with the server listening at the address etcd's
-(`etcdKVSrvAt`, what `etcd_noRefusal_at` takes). -/
+(`etcdKVSrvAt` at its unary chain, which with the chain's identity is what `etcd_noRefusal_at` takes). -/
 theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv GF) (addr : GoString)
     (gs q p pw s : Loc) (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -80,7 +80,7 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
         client.srvKVFacts V ∗ client.eofOk ∗ v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
         v3rpc.srvOnce V.W ⊢
       |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗
-        client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : client.SrvAt GF) ∗ etcdKVSrvAt addr s ∗
+        client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : client.SrvAt GF) ∗ etcdKVSrvAt addr s [il, im, iu] ∗
         watchAddrFacts V := by
   haveI := v3rpc.srvWOk_persistent Hp V.W V.R.wsl v3rpc.wsN
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hleft, #Hb, #Hrp,
