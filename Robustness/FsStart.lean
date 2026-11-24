@@ -95,7 +95,7 @@ theorem lookup_root_or_none (st : OsState) (hw : ∀ j c cs, walk st.tree (.dir 
   by_cases h : ∃ (rj : GoString × Ino) (cs : List GoString), rj ∈ st.fs.roots ∧
       (∀ c ∈ cs, NameOk c) ∧ p = joinPath rj.1 cs
   · have hl : st.lookup p = walk st.tree (.dir h.choose.2) h.choose_spec.choose := by
-      unfold OsState.lookup; rw [dif_pos h]
+      unfold OsState.lookup; rw [dite_cond_eq_true (eq_true h)]
     have hspec := h.choose_spec.choose_spec
     revert hl hspec
     generalize h.choose_spec.choose = cs
@@ -107,7 +107,7 @@ theorem lookup_root_or_none (st : OsState) (hw : ∀ j c cs, walk st.tree (.dir 
       refine ⟨rj, hspec.1, by simpa [joinPath] using hspec.2.2, ?_⟩
       rw [hl]; simp [walk]
     | cons c cs => left; rw [hl]; exact hw _ _ _
-  · left; unfold OsState.lookup; rw [dif_neg h]
+  · left; unfold OsState.lookup; rw [dite_cond_eq_false (eq_false h)]
 
 theorem fsOneRoot_tree (r : GoString) : (fsOneRoot r).tree = (fsOneRoot r).fs.treeDur := rfl
 

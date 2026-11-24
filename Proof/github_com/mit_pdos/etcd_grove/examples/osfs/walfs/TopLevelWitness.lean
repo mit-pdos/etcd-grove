@@ -53,7 +53,7 @@ theorem crash_robust.premisesSat : premise_sat% crash_robust.spec := by
     fsInit_fsOneRoot _ hr, ⟨0, List.mem_singleton.2 rfl⟩,
     ⟨fun J h => Option.noConfusion ((h0 _).symm.trans h),
      fun J h => Option.noConfusion ((h0 _).symm.trans h)⟩,
-    fun k h => Option.noConfusion ((h0 _).symm.trans h), 0,
+    fun k h => absurd ((h0 _).symm.trans h) (by simp), 0,
     (robustStart_one (σ := freshState (fsOneRoot (slashB :: go!"w"), ())) (g := ⟨((), ()), ∅⟩)
       (fresh_freshState _) (by exts_init) (by exact ⟨fsInit_fsOneRoot _ hr, trivial⟩)).2⟩
 

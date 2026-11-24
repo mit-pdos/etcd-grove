@@ -43,7 +43,8 @@ theorem raft_kvnet_robust.premisesSat : premise_sat% raft_kvnet_robust.spec := b
     [(go!"10.0.0.1:7001", freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvnet", ())))],
     freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvnet", ())),
     (⟨((default : Net.NetGlobal), ((), ())), ∅⟩ : GlobalState),
-    by unfold ClusterConfig.Ok oneVoterConfig exampleConfig; decide, by decide, by decide, by decide,
+    by show oneVoterConfig.Ok 1; unfold ClusterConfig.Ok oneVoterConfig exampleConfig; decide,
+    by simp, by decide, by simp,
     ?_, robustStart_same (σ := freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvnet", ())))
       ?_ (fresh_freshState _) (by exts_init) ?_⟩
   · intro a σ h
@@ -52,7 +53,7 @@ theorem raft_kvnet_robust.premisesSat : premise_sat% raft_kvnet_robust.spec := b
     exact ⟨by decide, fsOneRoot_root_mem _,
       fun c => fsOneRoot_lookup_joinPath _ _ (List.cons_ne_nil _ _)⟩
   · intro m hm
-    simp [List.mapIdx_singleton] at hm
+    simp at hm
     rcases hm with h | h <;> subst h <;> rfl
   · exact ⟨rfl, fsInit_fsOneRoot _ kvnetDir_rootForm, trivial⟩
 
@@ -74,7 +75,7 @@ theorem raft_kvnet_robust_example.premisesSat : premise_sat% raft_kvnet_robust_e
     exact ⟨fsOneRoot_root_mem _, fun c => fsOneRoot_lookup_joinPath _ _ (List.cons_ne_nil _ _)⟩
   · intro m hm
     simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hm
-    rcases hm with h | h | h | h | h | h <;> subst h <;> rfl
+    rcases hm with (h | h | h | h | h) | h <;> subst h <;> rfl
   · exact ⟨rfl, fsInit_fsOneRoot _ kvnetDir_rootForm, trivial⟩
 
 end raft_kvnet
