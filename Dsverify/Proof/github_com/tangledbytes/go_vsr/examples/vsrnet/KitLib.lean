@@ -52,7 +52,7 @@ abbrev RegisterJSON.spec : Prop :=
     (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.RegisterJSON)) (Val #()))
   {{ RET #(); encoding.json.codecSet (GF := GF) }}
 
-theorem RegisterJSON.wp_proof (wp_SetCodec : encoding.json.SetCodec.spec (GF := GF) (hG := hG)) :
+theorem wp_RegisterJSON (wp_SetCodec : encoding.json.SetCodec.spec (GF := GF) (hG := hG)) :
     RegisterJSON.spec (GF := GF) (hG := hG) := by
   wp_start as Hfr
   iunfold encoding.json.codecFresh at Hfr

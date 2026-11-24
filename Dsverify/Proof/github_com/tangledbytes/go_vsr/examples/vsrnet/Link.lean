@@ -78,7 +78,7 @@ theorem wp_Server (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
     (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof
       net.Conn.Close.wp_proof h.conn_readerOk)
     (runReplica.wp_proof log.slog.New.wp_proof log.slog.DiscardHandler.load_proof j.codecOk
-      (RegisterJSON.wp_proof encoding.json.SetCodec.wp)
+      (wp_RegisterJSON encoding.json.SetCodec.wp)
       (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame encoding.json.Unmarshal.wp j.codecOk))
       (pkg.network.TCP.Run.wp log.slog.Debug.wp_proof j.newDecoder)
       pkg.network.TCP.Recv.wp
@@ -108,7 +108,7 @@ theorem wp_Client (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
     (mkClient.wp_proof
       (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame encoding.json.Unmarshal.wp
         j.codecOk))
-      log.slog.New.wp_proof log.slog.DiscardHandler.load_proof (RegisterJSON.wp_proof encoding.json.SetCodec.wp)
+      log.slog.New.wp_proof log.slog.DiscardHandler.load_proof (wp_RegisterJSON encoding.json.SetCodec.wp)
       pkg.time.NewReal.wp pkg.client.New.wp)
     Codec.wp_proof
 

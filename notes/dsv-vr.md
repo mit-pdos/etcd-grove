@@ -52,7 +52,45 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 
 ## State
 
-### Round 6: JSON on the main tree (2026-11-23 late; the current handoff)
+### Round 7: J3's premise shapes, RegisterJSON from the boot (2026-11-24; the current handoff)
+
+Coordinator's decisions (round 6's open points): (1) restate the JSON premises in J3's true
+shapes; (2) prove `RegisterJSON` from a first-run boot as swiftpaxos's; (3) discharge the
+restated premises from jsongen's code; (4) keep `newDecoder`/`Decode_frame` over `unmarshalVia`.
+
+**Design (two contracts, no Löb).** The kit's contract `vsrnet.jsonCodec` (`encP`, `decP`,
+unchanged but `codecSet` is now the main tree's `codecSetWith` at the kit's functions) is the
+per-type methods' contract. The registered codec cannot meet it (`jsonMarshal(*Event)` panics), so
+it meets `encoding.json.codecPart jsonCodec` (`Spec/jsonlib.lean`, generic: `J` restricted to the
+values the dispatch sends to the codec: `marshalsByCodec`/`unmarshalsByCodec`). The `Logs`
+recursion of the lab (one codec calling back into itself through `Logs.MarshalJSON`) is gone:
+`DoViewChange`'s methods reach the registered codec, whose fact (`registeredCodecOk`) does not
+depend on the types' facts, and the codec's `[]log.Log` path calls no method. So no Löb lemma is
+needed (none exists on any branch either).
+
+**(1) done: the premises.** `JsonHyps` (`examples/vsrnet/JsonHyps.lean`) now:
+`NewEncoder`, `Encode_conn` (the main tree's statements themselves), `newDecoder`,
+`Decode_frame` (precondition `codecSet ∗ unmarshalVia _ F (&Frame)` in place of
+`codecSet ∗ kitCodecOk F`), `codec : vsrnet.registeredCodecOk`, `types : vsrnet.TypeCodecs`
+(14 fields, `typeCodecOk vsrnet.jsonCodec scanF T`). Removed: `Unmarshal` (the main tree's
+`Unmarshal.wp`), `RegisterJSON` (proved, (2)). `kitCodecOk F` (vr's internal bundle) is now
+`codecOkWith (codecPart jc) … ∗ □ ∀ T ∈ kitTypes, typeCodecOk jc F T`; `vsrnet.codecOk` (what
+the proofs take) is derived: `vsrnet.codecOk_of`, `JsonHyps.codecOk`. `Proof/events/LibHyps.lean`
+(the `.kitSpec`s) deleted. Truth arguments: the docstrings of `registeredCodecOk`, `TypeCodecs`
+(`Spec/json.lean`), `Decode_frame` (`Spec/events.lean`).
+
+**(2) done: the boot.** `etc/dsv/_vr_boot.py` (from `_swiftpaxos_boot.py`) generates
+`examples/vsrnet/BootTable.lean` (`gOff`, `KitG`, `wf_*`, `wfO_*`; owned = the path
+`vsrnet → replica → network → encoding/json`, the first package on each level whose closure has
+encoding/json) and `BootCmdsLinked.lean` (each command's `kitG`, `wp_boot`). `BootLinked.lean`
+(hand-written): `boot_json` (allocs, `io`, `sync`; `sync.init_Mutex` over `codecInv`, returns
+`codecFresh`), `boot_network`, `boot_replica`, `boot_vsrnet` (generated bodies, the path's call
+first-run). `wp_package_init_first` is swiftpaxos's (`InitFirst.lean`, imported). `KitLib.lean`:
+`RegisterJSON.spec` (`codecFresh` → `codecSet`), `wp_RegisterJSON` over the main tree's
+`SetCodec.spec`. `codecFresh` threads boot → `wp_bootR` (TopLevel) → `Mains` → `Client.spec`/
+`Server.spec` → `mkClient.spec`/`runReplica.spec` → `RegisterJSON()`.
+
+### Round 6: JSON on the main tree (2026-11-23 late; history)
 
 Brief: move vr onto the main tree's JSON (J1/J2/J3 landed on `lean` 69adf61913,
 `prove-ps2-jsonj2`, `ps2-jsongen`). Merged `origin/lean` 69adf61913 (Perennial pin `ccfeb3895`,
