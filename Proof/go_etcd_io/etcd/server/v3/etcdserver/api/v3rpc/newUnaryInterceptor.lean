@@ -198,7 +198,10 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   wp_join (iprop(∃ ver : GoString, ver_ptr ↦ ver ∗
       [∗map] _k ↦ sl ∈ m, ∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝)) with [ver Hsls]
     as ⟨%ver, ver, Hsls⟩
-  · rcases Hvs with rfl | ⟨k', hk'⟩
+  · rcases (show vsl = slice.nil ∨ ∃ k', m !! k' = some vsl from by
+        obtain ⟨r, -, h | h⟩ := Hvs
+        · exact Or.inl h.1
+        · exact Or.inr ⟨r, h⟩) with rfl | ⟨k', hk'⟩
     · exfalso; revert Hif; simp [slice.nil]
     ihave ⟨⟨%vss, Hvss, %Hne⟩, Hback⟩ :=
       (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : GoString) (sl : GoSlice) =>
