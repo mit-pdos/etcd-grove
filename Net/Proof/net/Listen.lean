@@ -5,7 +5,7 @@ The proof of `Net/Spec/net/Listen.lean`: `Listen.impl`'s extension `Listen`
 module
 
 public import Net.Spec.net.Listen
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -49,12 +49,9 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
     iright
     iexists x
     iframe Hx
-    unfold resErr opErr
-    iexists e
-    iframe He
-    iexists pe, nw
-    iframe Hpe
-    ipureintro; exact ⟨rfl, hnw⟩
+    iapply resErr_intro hnw
+      (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+    all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
   · -- a new listener
     iintro %lid %hl0 Hl #Hlat
     wp_auto

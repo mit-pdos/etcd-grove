@@ -9,7 +9,7 @@ none`, and `nn = 0` or fewer than all; and (D25) after the first step, the end's
 module
 
 public import Net.Spec.net.Conn__Write
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -76,12 +76,9 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
     iframe HP Hsl
     isplitr
     · ipureintro; exact Hw
-    unfold resErr opErr
-    iexists GoInterface.ok ie
-    iframe He
-    iexists pe, v.net'
-    iframe Hpe
-    ipureintro; exact ⟨rfl, Hnw⟩
+    iapply resErr_intro Hnw
+      (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+    all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
 
 end proof
 

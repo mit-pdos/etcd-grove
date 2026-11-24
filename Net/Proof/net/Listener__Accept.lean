@@ -6,7 +6,7 @@ holding the acceptor's end, as a `Conn`.
 module
 
 public import Net.Spec.net.Listener__Accept
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -63,12 +63,9 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
     iright
     iexists _
     iframe HQ
-    unfold resErr opErr
-    iexists GoInterface.ok ie
-    iframe He
-    iexists pe, v.net'
-    iframe Hpe
-    ipureintro; exact ⟨rfl, hnl.1⟩
+    iapply resErr_intro hnl.1
+      (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+    all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
   · icases HAU with ⟨-, HAU⟩
     iintro %a %ha
     imod HAU $$ %a %ha with ⟨%o, %S, Hlo, Hp, Hk⟩

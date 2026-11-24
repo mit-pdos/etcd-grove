@@ -6,7 +6,7 @@ taking the caller's update (`Net.wp_net_SetDeadline`).
 module
 
 public import Net.Spec.net.Conn__SetDeadline
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -61,12 +61,9 @@ theorem Conn.SetDeadline.wp_proof : Conn.SetDeadline.spec (GF := GF) (hG := hG) 
     iapply HΦ
     iexists some k
     iframe HQ
-    unfold resErr opErr
-    iexists GoInterface.ok ie
-    iframe He
-    iexists pe, v.net'
-    iframe Hpe
-    ipureintro; exact ⟨rfl, Hnw⟩
+    iapply resErr_intro Hnw
+      (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+    all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
 
 end proof
 

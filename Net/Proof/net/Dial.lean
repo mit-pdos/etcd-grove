@@ -5,7 +5,7 @@ then a new `*TCPConn` holding the dialer's end, as a `Conn`.
 module
 
 public import Net.Spec.net.Dial
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -50,12 +50,9 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
     iframe HQf
     iexists x
     iframe Hx
-    unfold resErr opErr
-    iexists e
-    iframe He
-    iexists pe, nw
-    iframe Hpe
-    ipureintro; exact ⟨rfl, hnw⟩
+    iapply resErr_intro hnw
+      (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+    all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
   · icases HAU with ⟨-, HAU⟩
     imod HAU with ⟨%S, Hp, Hk⟩
     imodintro
@@ -100,12 +97,9 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
       iframe HQf
       iexists x
       iframe Hx
-      unfold resErr opErr
-      iexists e
-      iframe He
-      iexists pe, nw
-      iframe Hpe
-      ipureintro; exact ⟨rfl, hnw⟩
+      iapply resErr_intro hnw
+        (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+      all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
 
 end proof
 

@@ -6,7 +6,7 @@ The proof of `Net/Spec/net/Conn__Read.lean`: the interface call resolves to `con
 module
 
 public import Net.Spec.net.Conn__Read
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -95,12 +95,10 @@ theorem Conn.Read.wp_proofLc : Conn.Read.specLc (GF := GF) (hG := hG) := by
     iexists .err k, bs'
     iframe HQ Hsl Hlc1 Hlc2
     isplitr; · ipureintro; exact Hout
-    unfold ReadErr resErr opErr; dsimp only
-    iexists GoInterface.ok ie
-    iframe He
-    iexists pe, v.net'
-    iframe Hpe
-    ipureintro; exact ⟨rfl, Hnw⟩
+    unfold ReadErr; dsimp only
+    iapply resErr_intro Hnw
+      (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+    all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
 
 /-- `Conn.Read.spec`, from `Conn.Read.specLc`: the count as `ReadOut`'s, the credits dropped. -/
 theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by

@@ -6,7 +6,7 @@ The proof of `Net/Spec/net/Listener__Close.lean`: the method resolves to
 module
 
 public import Net.Spec.net.Listener__Close
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -60,12 +60,9 @@ theorem Listener.Close.wp_proof : Listener.Close.spec (GF := GF) (hG := hG) := b
     iapply HΦ
     iexists some k
     iframe HQ
-    unfold resErr opErr
-    iexists GoInterface.ok ie
-    iframe He
-    iexists pe, v.net'
-    iframe Hpe
-    ipureintro; exact ⟨rfl, hnl.1⟩
+    iapply resErr_intro hnl.1
+      (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+    all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
 
 end proof
 

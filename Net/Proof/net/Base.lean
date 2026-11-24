@@ -30,6 +30,7 @@ public import Proof.os.PkgInit
 public import Proof.internal.poll.PkgInit
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.errors.Base
+public import Perennial.Proof.fmt.Args
 
 @[expose] public section
 
@@ -231,13 +232,30 @@ instance opErr_persistent (op : GoString) (src addr e err : GoInterface) :
     Persistent (opErr (GF := GF) op src addr e err) := by
   unfold opErr; infer_instance
 
+/-- `x` is `nil` or a `netAddr` (an `*OpError`'s `Source` and `Addr`). -/
+def addrOrNil (x : GoInterface) : IProp GF := iprop(⌜x = interface.nil⌝ ∨ netAddr x)
+
+instance addrOrNil_persistent (x : GoInterface) : Persistent (addrOrNil (GF := GF) x) := by
+  unfold addrOrNil; infer_instance
+
+/-- `e` is a non-nil error whose `Error()` returns some string (what `OpError.Error` needs of its
+`Err`: Go's code calls `e.Err.Error()`). -/
+def errStr (e : GoInterface) : IProp GF :=
+  iprop(∃ ii : GoInterfaceOk, ⌜e = interface.ok ii⌝ ∗
+    _root_.Perennial.fmt.stringMethodSpec (GF := GF) ii go!"Error")
+
+instance errStr_persistent (e : GoInterface) : Persistent (errStr (GF := GF) e) := by
+  unfold errStr; infer_instance
+
 /-- The error of an operation `op` (`Source` `src`, `Addr` `addr`) whose result is `res`
-(`Net.errCode`'s): `nil` for success, else an `*OpError` whose `Err` is the kind's (`kindErr`). -/
+(`Net.errCode`'s): `nil` for success, else an `*OpError` whose `Err` is the kind's (`kindErr`), has an
+`Error()` (`errStr`), and whose addresses are `nil` or `netAddr`s (so `OpError.Error` is defined on it). -/
 def resErr (res : Option NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) : IProp GF :=
   match res with
   | none => iprop(⌜err = interface.nil⌝)
-  | some k => iprop(∃ e, opErr op src addr e err ∗ kindErr k ed nm e)
+  | some k => iprop(∃ e, opErr op src addr e err ∗ kindErr k ed nm e ∗ errStr e ∗
+      addrOrNil src ∗ addrOrNil addr)
 
 instance resErr_persistent (res : Option NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
@@ -289,12 +307,6 @@ def netOwnErr (e : GoInterface) : IProp GF :=
 
 instance netOwnErr_persistent (e : GoInterface) : Persistent (netOwnErr (GF := GF) e) := by
   unfold netOwnErr; infer_instance
-
-/-- `x` is `nil` or a `netAddr` (an `*OpError`'s `Source` and `Addr`). -/
-def addrOrNil (x : GoInterface) : IProp GF := iprop(⌜x = interface.nil⌝ ∨ netAddr x)
-
-instance addrOrNil_persistent (x : GoInterface) : Persistent (addrOrNil (GF := GF) x) := by
-  unfold addrOrNil; infer_instance
 
 /-- The precondition of `OpError`'s `Error`, `Timeout` and `Temporary` (Upamanyu's D2: Go's code
 calls the `Err`'s and the addresses' methods, which only net's own make defined): `Err` is one of

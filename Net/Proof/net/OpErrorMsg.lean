@@ -75,15 +75,6 @@ private theorem wp_TCPAddr_String (p : Loc) (Φ : val → IProp GF) :
   wp_apply wp_extAnyString as %s
   iapply HΦ
 
-/-- `e` is a non-nil error whose `Error()` returns some string (the precondition `OpError.Error`
-needs of its `Err`: Go's code calls `e.Err.Error()`). -/
-def errStr (e : GoInterface) : IProp GF :=
-  iprop(∃ ii : GoInterfaceOk, ⌜e = interface.ok ii⌝ ∗
-    _root_.Perennial.fmt.stringMethodSpec (GF := GF) ii go!"Error")
-
-instance errStr_persistent (e : GoInterface) : Persistent (errStr (GF := GF) e) := by
-  unfold errStr; infer_instance
-
 private theorem wp_errStr (ii : GoInterfaceOk) (Φ : val → IProp GF) :
     _root_.Perennial.fmt.stringMethodSpec (GF := GF) ii go!"Error" -∗ (∀ s : GoString, Φ #s) -∗
     WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }} := by
@@ -113,6 +104,30 @@ theorem netOwnErr_errStr (e : GoInterface) : netOwnErr (GF := GF) e ⊢ errStr e
       (unfold internal.poll.DeadlineExceededError.Error.impl) |
       (unfold timeoutError.Error.impl) | (unfold os.SyscallError.Error.impl))
     all_goals (first | iapply HΦ | (inext; iapply HΦ))
+
+theorem addrOrNil_addr (x : GoInterface) : netAddr (GF := GF) x ⊢ addrOrNil x := by
+  unfold addrOrNil; iintro #H; iright; iexact H
+
+theorem addrOrNil_nil : ⊢ addrOrNil (GF := GF) interface.nil := by
+  unfold addrOrNil; ileft; ipureintro; rfl
+
+/-- A failure's error, as the wrappers build it: the new `*OpError` `pe` around the kind's `Err`
+(net's own, given `edTyped ed`), with addresses `nil` or `netAddr`s. -/
+theorem resErr_intro {k : NetErr} {op : GoString} {src addr e : GoInterface}
+    {ed : Option GoInterface} {nm : GoString → Prop} {pe : Loc} {nw : GoString}
+    (hnw : tcpNet nw) (hed : edTyped ed) :
+    pe ↦□ (OpError.mk op nw src addr e) -∗ kindErr (GF := GF) k ed nm e -∗
+    addrOrNil src -∗ addrOrNil addr -∗
+    resErr (some k) op src addr ed nm (interface.mkOk (go.GoType.PointerType OpError.ty) #pe) := by
+  iintro #Hpe #He #Hs #Ha
+  ihave #Hown := kindErr_netOwnErr k ed nm e hed $$ He
+  ihave #Hes := netOwnErr_errStr e $$ Hown
+  unfold resErr opErr
+  iexists e
+  iframe He Hes Hs Ha
+  iexists pe, nw
+  iframe Hpe
+  ipureintro; exact ⟨rfl, hnw⟩
 
 /-- What `OpError.Error` needs of `v` (weaker than `opErrOk`): `Err` has an `Error()`
 (`errStr`), `Source` and `Addr` are nil or a `netAddr`. -/
