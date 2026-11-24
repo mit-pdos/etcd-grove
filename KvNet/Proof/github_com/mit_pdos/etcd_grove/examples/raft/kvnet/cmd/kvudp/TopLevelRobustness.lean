@@ -30,6 +30,11 @@ namespace Perennial
 namespace EtcdGrove
 namespace raft_kvudp
 
+open NetFsUdp
+
+section proof
+attribute [local instance] kvudpExts kvudpExtsSemantics kvudpExts_hasNet kvudpExts_hasFs
+  kvudpExts_hasUdp
 variable [go_gctx : GoGlobalContext]
 
 /-- **kvudp is robust** (the statement: `raft_kvudp_robust.spec`). -/
@@ -39,6 +44,8 @@ theorem raft_kvudp_robust : raft_kvudp_robust.spec := by
 /-- **kvudp is robust, an example**: from `raft_kvudp_robust`. -/
 theorem raft_kvudp_robust_example : raft_kvudp_robust_example.spec := by
   sorry
+
+end proof
 
 end raft_kvudp
 end EtcdGrove
