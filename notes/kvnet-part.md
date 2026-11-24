@@ -16,6 +16,12 @@ initializers, `PkgInitExt`). `KvNet/` is a fifth tree holding all of them, made 
 
 ## How the part is made
 
+(2026-11-24, branch `raft-retire/2026-11-24`) The part's 114 copies of kvdurablenoax's specs and
+proofs and its 24 copies of kvreconf's are now the part's own files (their first line dropped), and
+etc/copy-part.py's `RENAME_KVNET`, `TEXT_FIXES_KVNET` and `KVNET_REUSED` are gone: kvdurable,
+kvdurablenoax and kvreconf's proofs retire (raft_kvnet_robust and kvudp subsume their theorems), so
+nothing is left to copy them from. What this file says below about those three is history.
+
 1. **Translations** (`etc/goose.py`): project `kvnet` (root `KvNet`, packages `.` and `./kvcheck` of
    `examples/raft/kvnet`, no Goose configuration), and a `Part` into `KvNet` of each project whose
    package it needs: raft-noax (raft's five packages, configured by `KvNet/Code/go_etcd_io/raft/**.toml`),

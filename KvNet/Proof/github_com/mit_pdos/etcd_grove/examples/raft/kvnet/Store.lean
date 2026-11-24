@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Store.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 # The durable key-value store's shared ghost vocabulary (2026-11-22, kvnet decision B)
 

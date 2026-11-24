@@ -80,19 +80,6 @@ KVD_MAIN = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurable"
 # path (goose.KVDURABLE_NOAX_PKG); empty while that is kvdurable's own. (Read by etc/gen-link.py.)
 RENAME = {k: v for k, v in [(lean_pkg(KVD_MAIN), lean_pkg(goose.KVDURABLE_NOAX_PKG))] if k != v}
 
-# KvNet's: kvnet's storage.go is kvdurablenoax's, and its codec helpers (putBytes, getBytes) and
-# withTimeout are kv.go's/cluster.go's, the same Go text in another package, so the part takes their
-# specs and proofs (and the pure codec, `Codec.lean`) from RaftNoAx's kvdurablenoax, the package
-# path and the proofs' namespace renamed; a module the part has a file of its own of (`Base.lean`:
-# kvnet's package initialization) is the part's.
-# KvNet's plain text edits of the copies taken from kvdurablenoax (after the renames): kvdurablenoax's
-# proofs take the durable extension `durableExt` as a section variable (its file was `durableExt`'s);
-# kvnet's file is fsExt's (kvnet's own `Defs`), so the variable goes.
-TEXT_FIXES_KVNET = [(" [HasExt durableExt]", "")]
-
-RENAME_KVNET = {lean_pkg(goose.KVDURABLE_NOAX_PKG): "github_com.mit_pdos.etcd_grove.examples.raft.kvnet",
-                "raft_kvdurable": "raft_kvnet"}
-
 NOTE = "(etc/copy-part.py; rerun it, do not edit)"
 
 IMPORT_RE = re.compile(r"(?m)^((?:(?:public|private|meta)\s+)*import\s+(?:all\s+)?)(\S+)")
@@ -166,16 +153,10 @@ class Part:
         """(source root, file) of `mod` in the first source tree that has it, or None; a clash
         (two source parts, neither the main tree) stops the script unless gen-init writes `mod`."""
         found = []
-        # (a part that renames a package takes its modules from the source package's: KvNet's
-        # kvnet codec proofs are kvdurablenoax's, `RENAME_KVNET`)
-        cands = [mod] + ([rename(mod, {v: k for k, v in self.renames.items()})]
-                         if self.own_first and rename(mod, {v: k for k, v in self.renames.items()}) != mod else [])
         for s in self.sources:
-            for c in cands:
-                p = os.path.join(ROOT, *([s] if s else []), *c.split(".")) + ".lean"
-                if os.path.exists(p):
-                    found.append((s, p))
-                    break
+            p = os.path.join(ROOT, *([s] if s else []), *mod.split(".")) + ".lean"
+            if os.path.exists(p):
+                found.append((s, p))
         parts = [f for f in found if f[0]]
         if len(parts) > 1 and mod not in self.gen_init_mods() and not mod.endswith(".Link"):
             sys.exit(f"copy-part: {self.name}: {mod} is in more than one source tree "
@@ -259,36 +240,10 @@ def raftnoax_roots(part):
     return [f"Proof.{lean_pkg(KVD_MAIN)}.Results", f"Proof.{lean_pkg(KVD_MAIN)}.TopLevelRobustness"]
 
 
-# KvNet's proofs taken from kvdurablenoax (`RENAME_KVNET`) that no module of the part imports yet:
-# kvnet's codec helpers and withTimeout, roots until kvnet's `Link.lean` links them.
-KVNET_PKG = "github_com.mit_pdos.etcd_grove.examples.raft.kvnet"
-KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
-                ["putUint64", "getUint64", "putBytes", "getBytes", "putIDs", "getIDs", "putEntry",
-                 "getEntry", "putSnapshot", "getSnapshot", "withTimeout", "encode", "decode",
-                 # storage.go and the codecs, the same Go text (notes/kvnet-part.md, the replica layer)
-                 "newStorage", "image__applySnapshot", "image__append", "image__createSnapshot",
-                 "image__compact", "Storage__ApplySnapshot", "Storage__Append",
-                 "Storage__CreateSnapshot", "Storage__Compact", "Storage__encode",
-                 "encodeState", "decodeState", "putMap", "getMap", "less", "sortStrings", "readCtx",
-                 "decodeReadCtx", "validConf", "fits", "oneIn", "below",
-                 # (2026-11-22) over kvnet's own Defs (kvdurablenoax's interface kept)
-                 "Storage__SetHardState", "Storage__snapIndex", "Storage__InitialState",
-                 "Storage__Snapshot", "openStorage",
-                 # (2026-11-22) StartNode's callees, the same Go text
-                 "itoa", "quietLogger__Debugf", "quietLogger__Errorf", "quietLogger__Infof",
-                 "quietLogger__Warningf",
-                 # (2026-11-22) the conf law's update (kvdurable's `kd_ccAu`)
-                 "ReconfAu",
-                 # (2026-11-22) model.go, the same Go text as kvdurablenoax's check.go's (kvcheck's `Check`)
-                 "Model", "Gen", "copyMap", "within", "hashString", "hashMap",
-                 ]]
-
-
 def own_roots(part):
     """The part's own hand-written modules under `Spec/` and `Proof/` (not copies, not generated),
-    the modules gen-init writes for it (built with the part, so their imports must be there), and
-    (KvNet) the reused proofs `KVNET_REUSED`."""
-    out = sorted(part.gen_init_mods()) + (KVNET_REUSED if part.name == "KvNet" else [])
+    and the modules gen-init writes for it (built with the part, so their imports must be there)."""
+    out = sorted(part.gen_init_mods())
     gi = part.gen_init_mods()
     for d in ("Spec", "Proof"):
         for dp, _, fs in os.walk(os.path.join(ROOT, part.name, d)):
@@ -323,7 +278,7 @@ def kvnet_gen_init_paths():
 
 PARTS = {
     "RaftNoAx": Part("RaftNoAx", [""], raftnoax_roots, False, RENAME, raftnoax_gen_init_paths),
-    "KvNet": Part("KvNet", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, RENAME_KVNET,
+    "KvNet": Part("KvNet", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, {},
                   kvnet_gen_init_paths),
 }
 
@@ -421,9 +376,6 @@ def compute(part):
         txt = txt[:s] + IMPORT_RE.sub(imp, head) + txt[s + len(head):]
         if part.renames:
             txt = rename(txt, part.renames)
-        if part.name == "KvNet" and src == "RaftNoAx":
-            for a, b in TEXT_FIXES_KVNET:
-                txt = txt.replace(a, b)
         if part.renames and not part.own_first:
             dst = os.path.join(P, rename(rel))
         else:
@@ -489,8 +441,6 @@ def prune_unimported(part, why, files):
         changed = False
         for m in sorted(alive & set(copied)):
             if m.endswith((".Results", ".TopLevelRobustness", ".Link")):
-                continue
-            if part.name == "KvNet" and m[len(P) + 1:] in KVNET_REUSED:
                 continue
             if m.startswith((f"{P}.TrustedCode.", f"{P}.ManualProof.")) and part.sources != [""]:
                 continue  # (a translated package's, kept whether or not imported)

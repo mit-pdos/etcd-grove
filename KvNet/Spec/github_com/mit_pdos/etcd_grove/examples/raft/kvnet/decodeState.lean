@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/decodeState.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's spec (the same Go text), ported.
 
 `decodeState(b)` (kv.go, D22 S-r): what `encodeState` wrote (`encState kvs ops`, both well
