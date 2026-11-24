@@ -38,8 +38,8 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Pe
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Tx.Rollback_kv`). -/
-private theorem bbolt.kvGlue_Tx__Rollback_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Rollback.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Tx__Rollback_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Rollback.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (D : backend.Data),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txLive tx γ 1 (bbolt.TxView.ro D) }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Rollback")) (Val #()))
@@ -60,8 +60,8 @@ private theorem bbolt.kvGlue_Tx__Rollback_kv (h : ∀ [ExtSemantics Fs.fsExt] [F
     iapply HΦ; iframe Ht; iexact Hd
 
 theorem backend.batchTxBuffered.unsafeCommit.wp_proof
-    (hRollback : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Rollback.spec (GF := GF) (hG := hG))
+    (hRollback : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Rollback.spec (GF := GF) (hG := hG))
     (hReset : backend.readTx.reset.spec (GF := GF) (hG := hG))
     (hBC : backend.batchTx.commit.spec (GF := GF) (hG := hG))
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :

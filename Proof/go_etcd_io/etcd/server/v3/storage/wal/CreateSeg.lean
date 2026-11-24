@@ -79,7 +79,7 @@ variable [os_sem : os.Assumptions]
 
 /-- **`createNewWALFile(dir/b, false)` of a name absent from the whole claim held** (see the file
 header). -/
-theorem wp_createSeg [os.file.FieldAssumptions]
+theorem wp_createSeg
     (wp_create : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF)
       (hG := hG))
     (wp_open : os.OpenFile.specCreateSnc (GF := GF) (hG := hG))

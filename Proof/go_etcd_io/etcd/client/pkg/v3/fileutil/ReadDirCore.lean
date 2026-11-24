@@ -39,7 +39,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `ReadDir(d, opts...)` over abstract triples of `os.Open(d)` (from `A`: an fd `fd` of `d`
 with `Fd fd` and `B`, or an error `ErrO` with `C`), `Readdirnames(n)`, `n ≤ 0` (from the fd and

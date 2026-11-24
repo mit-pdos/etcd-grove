@@ -163,7 +163,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- **A name of the WAL directory's claim the round keeps is a file**: a `.wal` name's (`walInv_walFiles`),

@@ -28,7 +28,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- The new destination (`O_TRUNC`'s `trFile i True`) is the copy's at `0`. -/

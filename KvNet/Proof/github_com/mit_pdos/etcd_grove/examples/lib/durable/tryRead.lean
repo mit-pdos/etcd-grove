@@ -35,7 +35,6 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
-variable [os.file.FieldAssumptions]
 
 theorem openFd_flRO_readable (i : Ino) : (openFd i flRO).readable = true := by
   show decide (flRO.toNat % 4 ≠ O_WRONLY) = true; decide

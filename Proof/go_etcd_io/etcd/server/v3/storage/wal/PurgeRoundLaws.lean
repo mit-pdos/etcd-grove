@@ -104,7 +104,7 @@ section triple
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [os_sem : os.Assumptions] [os.file.FieldAssumptions]
+variable [sem : go.Semantics] [os_sem : os.Assumptions]
 
 /-- `os.OpenFile(d/b, flag, 0600)` of a file `b` of a claim, as `TryLockFile` takes it: the claim's
 resources lent and given back, the inode `i` (`walOpen_triple`'s statement). -/

@@ -52,7 +52,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- `unlink` loop on a name holding a file or nothing (the whole claim on it): some errno; the
 claim's entries a part of what they were. -/

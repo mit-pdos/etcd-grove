@@ -24,7 +24,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- The copy's state over the `*File`s (`io.cpS`) is its state over their inner `file`s (`io.cpG`). -/
 theorem io.cpS_cpG (bf f ind ins : Loc) (i : Ino) (o : Nat) (bs : List ByteG) (j : Nat) :

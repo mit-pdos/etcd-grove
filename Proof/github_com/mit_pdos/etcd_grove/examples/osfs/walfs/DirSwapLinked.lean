@@ -56,7 +56,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `dirswap_crash_safety` for executions of fewer than `N` steps along which fewer than `T`
 threads are live. -/
 theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : Assumptions] [os.Assumptions] [os.file.FieldAssumptions]
+    [package_sem : Assumptions] [os.Assumptions]
     [hPre : GooseGpreS GF]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC GF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
@@ -165,7 +165,6 @@ create, the write, the sync, the rename of the directory or the parent's sync). 
 the package's initializer runs (`Hinit_wp`). (`dirswap_crash_safety_bounded` with the ghost state
 `fsGF`.) -/
 theorem dirswap_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
         (App (Val initialize') (Val #()))

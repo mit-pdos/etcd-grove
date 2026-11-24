@@ -51,7 +51,7 @@ live threads) follows from the step bound: an execution of `n` steps from one th
 than `n + 2`. -/
 def bootCrashRobust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (dir : GoString)
+ (dir : GoString)
     (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
       ∀ hG : HeapGS .hasLC fsGF, initialize'.spec (GF := fsGF) (hG := heapAt hG lctx))
     (σ : state) (g : GlobalState)

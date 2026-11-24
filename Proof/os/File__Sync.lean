@@ -29,24 +29,26 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
   intro f fd name dqf dq d m lo xs hcov
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hbs⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  wp_for
+  wp_stub os.fsFsync.impl
   wp_apply wp_osFsync fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hosfd Hm Hbs as %e Hr Hosfd
   by_cases he4 : e = W64 4
   · icases Hr with (⟨%he, -, -⟩ | ⟨%he, -, -⟩)
     · exact absurd (he4 ▸ he) (by decide)
     · exact absurd he4 he.2
   rw [decide_eq_false he4]
-  wp_auto
+  try wp_auto
   icases Hr with (⟨%he, Hm, Hbs⟩ | ⟨%he, Hm, Hbs⟩)
   · subst he
     rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
     simp only [Bool.not_true]
-    wp_auto
+    try wp_auto
+    wp_for_post
     ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
     iapply HΦ
     iframe Hokn
@@ -58,8 +60,10 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
     iframe
   · have he0' : ¬ e = W64 0 := he.1
     simp only [decide_eq_false he0', Bool.not_false]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+    try wp_auto
+    wp_for_post
     ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
     iapply HΦ
     iframe Hokn

@@ -32,7 +32,7 @@ variable [go_etcd_io.bbolt.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- bbolt's `Tx.WriteTo` in the backend's vocabulary, at `theFs`. -/
 private theorem bbolt.kvGlue_TxWriteTo (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-      [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.WriteTo.spec (GF := GF) (hG := hG)) :
+, bbolt.Tx.WriteTo.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (q : Qp) (D : backend.Data) (w : GoInterfaceOk)
     (Wr : Bool → List w8 → IProp GF) (c : Bool) (bs₀ : List w8),
   io.writerPlain w →
@@ -58,8 +58,8 @@ private theorem bbolt.kvGlue_TxWriteTo (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSe
 
 /-- `s.WriteTo(w)`: `s.Tx.WriteTo(w)` of the snapshot's read transaction. -/
 theorem backend.snapshot.WriteTo.wp_proof
-    (hWT : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.WriteTo.spec (GF := GF) (hG := hG)) :
+    (hWT : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.WriteTo.spec (GF := GF) (hG := hG)) :
     backend.snapshot.WriteTo.spec (GF := GF) (hG := hG) := by
   replace hWT := bbolt.kvGlue_TxWriteTo hWT
   intro sp D γ q w Wr c bs₀ hw

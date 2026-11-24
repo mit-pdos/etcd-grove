@@ -81,7 +81,7 @@ section oscalls
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
-variable [sem : go.Semantics] [os.Assumptions] [os.file.FieldAssumptions]
+variable [sem : go.Semantics] [os.Assumptions]
 
 set_option hygiene false in
 /-- `Remove`'s `rmdir(2)` loop on `seg.tmp`, no directory in the history `hc` (`Hh`): each attempt
@@ -482,7 +482,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- `commit(d)`, `d` the root of `j`, nothing at `seg.tmp` or `seg` now: it does not panic. -/
 theorem wp_commit (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))

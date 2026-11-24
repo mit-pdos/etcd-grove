@@ -24,7 +24,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- A spine's two halves. -/
 theorem os.osPathS_halves (R : Roots) (d : GoString) (qd : Qp) (j : Ino) :

@@ -29,7 +29,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofTailNoErr [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofTailNoErr
     (Mr : WalMarshal)
     (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specGNE (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTailNoErr (Sio := Sio) (W := W) Mr := by

@@ -39,7 +39,7 @@ the net swap (2026-11-22) as `etcd_robust`, whose name the distributed theorem t
 (`GooseLang/Ext/Net`): the program runs over `etcdNetExts` (`[idIssueExt, fsExt, netExt]`,
 `Proof/.../examples/lib/etcdstart/NetExts.lean`), the network starting with no connection and no listener
 (`Robust`'s premises on the extensions' initial states), and the statement takes Net's hand-stated field
-facts of `net`'s structs (`net.FieldAssumptions`, a semantic premise as `os.file.FieldAssumptions`).
+facts of `net`'s structs (`net.FieldAssumptions`, a semantic premise).
 `HAs` (`addrsUnclaimed`) is as before the swap: (a) no other process binds or dials the addresses (the
 models' gRPC and HTTP traffic does not go through the net extension, so its closed network does not
 cover it), (b) the program's own connections to them are its verified or trust-boundary clients'.

@@ -102,8 +102,9 @@ theorem wp_wrapErrno (op : GoString) (inner : Loc) (name : GoString) (e : w64)
   -- modelErrno(e)
   wp_func_call; wp_call
   try wp_auto
-  wp_if_destruct <;>
-  · wp_auto
+  wp_if_destruct
+  all_goals
+    try wp_auto
     -- modelPathError(op, name, err)
     wp_func_call; wp_call
     try wp_auto

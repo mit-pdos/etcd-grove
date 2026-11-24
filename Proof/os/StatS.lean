@@ -32,7 +32,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `model.stat(op, p)` of the directory `J` (a spine to it): a `fileStat`, or an error. -/
 theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc : Qp) :

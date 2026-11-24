@@ -129,7 +129,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- `unlink` loop on an absent name (a fraction of a claim on names containing it): an errno. -/
 theorem os.model.wp_unlinkLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N : NameSet)

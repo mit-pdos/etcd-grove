@@ -64,7 +64,7 @@ private theorem probe_error_streams (d rp : Loc) (IoE : GoInterface → Prop)
   · iapply vse_streams d IoE eof fs fsD kD k off' c' false hkD; iframe
 
 theorem wal.segmentContainsSnapshot.wp_proof
-    [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+ [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (U : WalUnmarshal) (hUs : U.SnapCoh)
     (hEnv : WalDecEnvSupply (GF := GF))
     (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))

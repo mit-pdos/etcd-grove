@@ -28,7 +28,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- The bytes `[o, o + n)` of a file held from 0 (empty past the end), and the rest back. -/
 theorem os.osBytes_mid (i : Ino) (dq : DFrac) (bs : List ByteG) (o n : Nat) :

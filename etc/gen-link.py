@@ -852,10 +852,10 @@ PER_FN_PENDING = {"--k8s-etcd3"}
 # The modes whose `@` callees with no Link of their own package are looked up in every imported Link
 # (k8s 7e-4: the driver's `storage`/`labels`/`fields` callees, linked in the k8s etcd3 store's Link)
 EXT_ANY_LINK = {"--k8setcd3"}
-# The trusted assumptions a mode's linked proofs need beyond its package's, first (minibolt's: the
-# layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
-# emit; `OpenFile`'s and `Stat`'s proofs take them).
-PRE_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
+# The trusted assumptions a mode's linked proofs need beyond its package's, first (none since
+# 2026-11-24: minibolt's were the layouts of `os.file` and `os.fileStat`, `os.file.FieldAssumptions`,
+# which the Go-model overlays (S5) made translated).
+PRE_VARS: dict = {}
 # The section variables a mode's specs take besides the usual ones, last (kvdurable's: the durable
 # extension, `GooseLang/Ext/Durable`, and the injectivity of strings its file names need)
 EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoString]\n",

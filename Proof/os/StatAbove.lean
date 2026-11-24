@@ -22,7 +22,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions]
+variable [os.Assumptions]
   [go.BasicIntoValInj]
 
 theorem os.Stat.wp_proofAboveRoot : os.Stat.specAboveRoot (GF := GF) (hG := hG) := by

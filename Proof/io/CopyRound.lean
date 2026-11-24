@@ -43,7 +43,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- **One `copy_file_range` round** (see the file header). -/
 theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqfd dqfs : DFrac)

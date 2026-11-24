@@ -433,7 +433,7 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
             %hre' %hm2' Hm Hb Hv Hk Hosfd Hsl Hfd HΦ
         · exact absurd he00.symm he0
 /-- **`wp_tailWriteW` with no error** (over `wp_tailWriteAtWNE`): only the success arm. -/
-theorem wp_tailWriteWNE [os.file.FieldAssumptions] (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : Roots) (jr : Ino)
+theorem wp_tailWriteWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (r : GoString) (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice)
     (data : List w8) (dqs : DFrac) (o : w64) (wr : Nat) (dq : DFrac) (d : OsFd) (m : OsMeta)
@@ -524,7 +524,7 @@ theorem tailOkWNE_prefix {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {md : List
 /-- **The tail's writer with no error** (`wal.tailWriterW` under `NoIoErr`, every inode covered): every
 non-empty `Write` of the encoder's bytes (`io.writerStreamPNE`: the page writer never writes an empty
 slice) up to `maxBytes` succeeds; no broken state (`B` false). -/
-theorem wal.tailWriterWNE [os.file.FieldAssumptions] (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal)
+theorem wal.tailWriterWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal)
     (R : Roots) (jr : Ino) (r : GoString) (f : Loc) (fd : w64) (name dir : GoString) (γ : GName) (i : Ino)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) :
     ⊢ walAreaOk walCodec Mr R jr r -∗

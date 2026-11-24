@@ -35,7 +35,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
-    [os.Assumptions] [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+    [os.Assumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (wp_TryLock : go_etcd_io.etcd.client.pkg.v3.fileutil.TryLockFile.spec (GF := GF) (hG := hG))
     (wp_NewFileReader : go_etcd_io.etcd.client.pkg.v3.fileutil.NewFileReader.spec (GF := GF) (hG := hG))
     (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))

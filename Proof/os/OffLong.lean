@@ -35,7 +35,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- `f.Write(b)` of an empty `b` on an open fd: `(0, nil)` or `(0, err)`, the offset unchanged,
 nothing else touched (the model's empty-`Write` branch). -/

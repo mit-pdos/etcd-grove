@@ -34,7 +34,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `os.OpenFile(d/b, flag, perm)` of a name holding the file `i`, `flag` without `O_TRUNC`, with
 a fraction of a claim on names containing `b`: a fresh fd on `i` with `flag`'s access mode, or an

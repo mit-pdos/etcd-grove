@@ -32,7 +32,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [golang_org.x.sys.unix.Assumptions]
+variable [os.Assumptions] [golang_org.x.sys.unix.Assumptions]
 
 /-- `lockFile(f)`: an OFD write lock on the whole file, without waiting (`unix.FcntlFlock`'s
 `F_OFD_SETLK`), on a writable fd with no OFD lock: on success the fd holds it, with its token; on an

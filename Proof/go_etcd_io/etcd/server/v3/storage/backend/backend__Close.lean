@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 `FsNoErrAll` refutes); the file it gives back (`fileHoldsM`, S3g), at the inode the database kept
 (`dbRestF`): `bClosed` (S5; until then, with the claim the database kept, `fileHolds`). -/
 private theorem bbolt.kvGlue_DB__Close
-    (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+    (h : ∀,
       bbolt.DB.Close.spec (GF := GF) (hG := hG)) :
   ∀ (db : Loc) (γ : DBNames) (D : backend.Data),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db γ ∗ ownDB db γ D ∗ dbHalf γ D }}
@@ -66,7 +66,7 @@ private theorem bbolt.kvGlue_DB__Close
     iframe Hino Hf
 
 theorem backend.backend.Close.wp_proof
-    (hClose : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+    (hClose : ∀,
       bbolt.DB.Close.spec (GF := GF) (hG := hG)) :
     backend.backend.Close.spec (GF := GF) (hG := hG) := by
   replace hClose := bbolt.kvGlue_DB__Close hClose

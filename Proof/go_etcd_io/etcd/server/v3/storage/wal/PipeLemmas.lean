@@ -334,7 +334,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions]
 
 /-- **`createNewWALFile(dir/b, true)` of a pipeline name.** -/
-theorem wp_createTmp [os.file.FieldAssumptions]
+theorem wp_createTmp
     (wp_create : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF)
       (hG := hG))
     (wp_open : os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG))

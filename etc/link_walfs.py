@@ -31,7 +31,7 @@ The rules:
   (`Perennial/Proof/<pkg>/Link.lean`) are used as they are; a spec with no proof is a hypothesis.
 - **Premises** (`PREMISES`: the laws of the client's protobuf model `P`, the decoder's environment
   supply) are hypotheses: they are facts about the parameters, which the WAL's client discharges.
-- Instance binders (`[os.file.FieldAssumptions]`, the packages' `Assumptions`) are section
+- Instance binders (the packages' `Assumptions`) are section
   variables, collected from the linked proofs' own and their modules' `variable` lines.
 
 A binder of a kind none of these covers makes the theorem a lemma, not a result; a root proof with

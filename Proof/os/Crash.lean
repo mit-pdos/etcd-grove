@@ -40,7 +40,7 @@ theorem syscall.Fdatasync.wp_proof_crash [syscall.Assumptions] :
 
 variable [os.Assumptions]
 
-theorem os.OpenFile.wp_proof_crash [os.file.FieldAssumptions] :
+theorem os.OpenFile.wp_proof_crash :
     os.OpenFile.specCrash (GF := GF) (hG := hG) := by
   intro d b perm N R q γ Good s hb hs hN hN' hok
   wp_start as ⟨#Hos, #Hsi, Hperm, #Hinv, Hown⟩

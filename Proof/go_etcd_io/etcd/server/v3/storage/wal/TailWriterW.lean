@@ -723,7 +723,7 @@ theorem wp_tailWriteAtW (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
 /-- **`(*os.File).Write` on the tail, from inside the file** (`wp_tailWrite` with `wp_tailWriteAtW`): a non-empty `b` at the offset `o`, the record's write position
 `wr`; on success `len(b)`, the offset and the write position past `b`; on an error the handle's
 parts of the tail are lost. -/
-theorem wp_tailWriteW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (jr : Ino)
+theorem wp_tailWriteW (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (r : GoString) (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice)
     (data : List w8) (dqs : DFrac) (o : w64) (wr : Nat) (dq : DFrac) (d : OsFd) (m : OsMeta)
@@ -848,7 +848,7 @@ def tailWB (f : Loc) (fd : w64) (name : GoString) (i : Ino) (_ _ : List w8) : IP
 `f` of inode `i`, written from the encoder's start `o0`, is a guarded stream of its intended bytes
 (`tailOkW`: no size clause), the tail growing past its size `sz` as needed (`walTailWS`); a failed write
 leaves the tail's file and fd (`tailWB`), nothing else. -/
-theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (jr : Ino)
+theorem wal.tailWriterW (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (r : GoString) (f : Loc) (fd : w64) (name dir : GoString) (γ : GName) (i : Ino)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) :
     ⊢ walAreaOk walCodec Mr R jr r -∗

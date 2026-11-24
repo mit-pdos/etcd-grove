@@ -146,24 +146,23 @@ class FsNoErrAll [ExtSemantics fsExt] : Prop where
 
 open Fs in
 /-- **The Linux file extension's instances**, packed: its semantics, the model's facts about it,
-its place in the program's extensions (with the global `fs_interp`), and the field facts of the
-trusted `os.file` and `os.fileStat` (`TrustedCode/os.lean`: every linked result of bbolt's
-`Link.lean` takes them, as section variables there). (`GF` is explicit: the field facts are stated
-in the heap's local context.) -/
+its place in the program's extensions (with the global `fs_interp`). (Until 2026-11-24 it also held
+the field facts of the then trusted `os.file` and `os.fileStat`, `os.file.FieldAssumptions`; Go-model
+overlays S5 made both translated layouts; `GF` stays a parameter, now unused, so that its uses
+are unchanged.) -/
+include GF in
 structure FsCtx where
   S : ExtSemantics fsExt
   ok : @FsSemOk S
   has : @HasExt _ _ _ fsExt S fs_interp
-  fa : os.file.FieldAssumptions
-  fsa : os.fileStat.FieldAssumptions
   ne : @FsNoErrAll S
 
 /-- **There is at most one `FsCtx`**: `HasExt.sem_eq` pins the semantics to the program's (the
 position of `fsExt` in the list of extensions is a proof of a proposition), and the other
 fields are proofs. -/
 theorem FsCtx.eq (a b : FsCtx GF) : a = b := by
-  obtain ⟨S1, ok1, h1, _, _, _⟩ := a
-  obtain ⟨S2, ok2, h2, _, _, _⟩ := b
+  obtain ⟨S1, ok1, h1, _⟩ := a
+  obtain ⟨S2, ok2, h2, _⟩ := b
   have hS : S1 = S2 := h1.sem_eq.symm.trans h2.sem_eq
   subst hS
   rfl
@@ -179,10 +178,10 @@ def theFs : Option (FsCtx GF) :=
 open Fs in
 /-- With the instances in scope, `theFs` is them. -/
 theorem theFs_eq [S : ExtSemantics fsExt] [ok : FsSemOk] [has : HasExt fsExt]
-    [fa : os.file.FieldAssumptions] [fsa : os.fileStat.FieldAssumptions] [ne : FsNoErrAll] :
-    theFs GF = some ⟨S, ok, has, fa, fsa, ne⟩ := by
+ [ne : FsNoErrAll] :
+    theFs GF = some ⟨S, ok, has, ne⟩ := by
   unfold theFs
-  rw [dif_pos ⟨⟨S, ok, has, fa, fsa, ne⟩⟩]
+  rw [dif_pos ⟨⟨S, ok, has, ne⟩⟩]
   exact congrArg some (FsCtx.eq GF _ _)
 
 end fsctx
@@ -204,7 +203,7 @@ def onFs (f : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], IProp GF) : IPr
 
 /-- `onFs` with the instances in scope. -/
 theorem onFs_eq [S : ExtSemantics fsExt] [ok : FsSemOk] [has : HasExt fsExt]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [FsNoErrAll]
+ [FsNoErrAll]
     (f : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], IProp GF) :
     onFs f = @f S ok has := by
   unfold onFs; rw [theFs_eq]
@@ -367,7 +366,7 @@ def dbFile (_db : Loc) (γ : DBNames) (path : GoString) : IProp GF := iprop(⌜�
 the inodes agree (`bbolt.boltIno_agree`). -/
 theorem bPath_join (γ : DBNames) (path : GoString) (D : Data) :
     bPath (GF := GF) γ path ∗ bClosed γ D ⊢ fileHolds path D := by
-  rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩
+  rcases hfs : theFs GF with _ | ⟨S, ok, has, ne⟩
   · simp only [bPath, onFs_none hfs]
     iintro ⟨H, -⟩; iexfalso; iexact H
   · simp only [bPath, bClosed, fileHolds, onFs_some hfs]
@@ -391,7 +390,7 @@ theorem bPath_join (γ : DBNames) (path : GoString) (D : Data) :
 /-- A file at `path` holding `D` is the file `path` holds (`fileHolds`). -/
 theorem fileAt_fileHolds (path : GoString) (D : Data) :
     fileAt (GF := GF) path D ⊢ fileHolds path D := by
-  rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩
+  rcases hfs : theFs GF with _ | ⟨S, ok, has, ne⟩
   · simp only [fileAt, onFs_none hfs]
     iintro H; iexfalso; iexact H
   · simp only [fileAt, fileHolds, onFs_some hfs]
@@ -412,7 +411,7 @@ theorem fileAt_fileHolds (path : GoString) (D : Data) :
 
 /-- The cases of `theFs` in a law: none (every predicate `False`), or the instances. -/
 local macro "fs_law" : tactic =>
-  `(tactic| (rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩ <;>
+  `(tactic| (rcases hfs : theFs GF with _ | ⟨S, ok, has, ne⟩ <;>
     first
     | simp only [ownDB, isDB, txLive, txBytes, ownWTxG, wBkt, ownCur, txDone, txDB,
         onFs_none hfs]
@@ -441,7 +440,7 @@ local macro "fs_law" : tactic =>
   fs_law <;> infer_instance
 @[instance] theorem txLive_fractional (tx : Loc) (γ : DBNames) (T : bbolt.TxView) :
     Fractional (fun q => txLive (GF := GF) tx γ q T) := by
-  rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩
+  rcases hfs : theFs GF with _ | ⟨S, ok, has, ne⟩
   · simp only [txLive, onFs_none hfs]
     constructor
     intro _ _
@@ -537,8 +536,8 @@ instance curAt_persistent (tx : Loc) (γ : DBNames) (es : List Ent) (i : Nat) (k
   unfold curAt; split <;> infer_instance
 
 /-- The backend's `curAt` is bbolt's, at the instances. -/
-theorem curAt_eq [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [os.file.FieldAssumptions]
-    [os.fileStat.FieldAssumptions] [FsNoErrAll] (tx : Loc) (γ : DBNames)
+theorem curAt_eq [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+ [FsNoErrAll] (tx : Loc) (γ : DBNames)
     (es : List Ent) (i : Nat) (k v : GoSlice) :
     curAt (GF := GF) tx γ es i k v = bbolt.curAt tx γ es i k v := by
   unfold curAt bbolt.curAt txBytes

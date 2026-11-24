@@ -47,7 +47,6 @@ a fresh Go process (`Robust`'s premise), under `dirswap_crash_safety`'s other hy
 execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
 def dirswap_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
         (App (Val initialize') (Val #()))
@@ -94,7 +93,6 @@ a fresh Go process (`Robust`'s premise), under `crash_safety`'s other hypotheses
 execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
 def crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
         (App (Val initialize') (Val #()))
@@ -142,7 +140,6 @@ a fresh Go process (`Robust`'s premise), under `seglog_crash_safety`'s other hyp
 execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
 def seglog_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
         (App (Val initialize') (Val #()))

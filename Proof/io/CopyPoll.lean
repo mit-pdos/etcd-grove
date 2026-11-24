@@ -25,7 +25,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 theorem io.cpG_vals (bs : List ByteG) (o j k : Nat) :
     ((bs.map Prod.fst).drop o).take j ++ ((bs.map Prod.fst).drop (W64 (o + j)).toNat).take k =

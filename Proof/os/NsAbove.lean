@@ -57,7 +57,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions] [go.BasicIntoValInj]
 
-variable [os.fileStat.FieldAssumptions] in
+variable in
 /-- `model.stat(op, p)` of a strict ancestor of a root: some answer, nothing changed. -/
 theorem os.model.wp_stat_aboveS (op p : GoString) (R : Roots) (hp : RootsAbove R p) :
     {{ osInv (GF := GF) ∗ osSharedInv R }}
@@ -112,7 +112,7 @@ theorem os.model.wp_stat_aboveS (op p : GoString) (R : Roots) (hp : RootsAbove R
       iapply HΦ $$ %_ %_
       itrivial
 
-variable [os.file.FieldAssumptions] in
+variable in
 /-- `os.OpenFile(p, O_RDONLY, perm)` of a strict ancestor of a root: an outside fd, or an error. -/
 theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : RootsAbove R p) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv }}
@@ -171,7 +171,7 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
       iright
       ipureintro; exact ⟨(fun h => by cases h), rfl⟩
 
-variable [os.file.FieldAssumptions] in
+variable in
 /-- `os.Open(p)` of a strict ancestor of a root: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_aboveS (p : GoString) (R : Roots) (hp : RootsAbove R p) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv }}

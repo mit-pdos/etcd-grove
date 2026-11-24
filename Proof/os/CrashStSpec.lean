@@ -159,7 +159,7 @@ theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG :=
     iframe
     ipureintro; intro h; cases h
 
-theorem os.OpenFile.wp_proof_crashS [os.file.FieldAssumptions] :
+theorem os.OpenFile.wp_proof_crashS :
     os.OpenFile.specCrashS (GF := GF) (hG := hG) := by
   intro d b perm N R q γ Good Ok s hb hs hN hN' hok
   wp_start as ⟨#Hos, #Hsi, Hperm, #Hinv, Hown⟩

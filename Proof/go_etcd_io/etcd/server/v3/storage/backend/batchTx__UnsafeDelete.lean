@@ -35,8 +35,8 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Tx.Bucket_kvw`). -/
-private theorem bbolt.kvGlue_Tx__Bucket_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Tx__Bucket_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Bucket.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (D S : backend.Data) (G : GoString → Nat) (name : GoSlice) (n : GoString)
     (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ name ↦*{dq} n }}
@@ -64,8 +64,8 @@ private theorem bbolt.kvGlue_Tx__Bucket_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Bucket.Delete_kv`). -/
-private theorem bbolt.kvGlue_Bucket__Delete_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Bucket.Delete.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Bucket__Delete_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Bucket.Delete.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (D S : backend.Data) (G : GoString → Nat) (b : Loc) (n : GoString) (g : Nat)
     (m : backend.BktData) (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),
   G n = g → S.lookup n = some m →
@@ -92,13 +92,13 @@ private theorem bbolt.kvGlue_Bucket__Delete_kv (h : ∀ [ExtSemantics Fs.fsExt] 
     iapply HΦ; iframe
 
 theorem backend.batchTx.UnsafeDelete.wp_proof
-    (hBucket : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
+    (hBucket : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
     (hStringer : zap.Stringer.spec (GF := GF) (hG := hG))
     (hStack : zap.Stack.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
-    (hDelete : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Bucket.Delete.spec (GF := GF) (hG := hG))
+    (hDelete : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Bucket.Delete.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafeDelete.spec (GF := GF) (hG := hG) := by
   replace hBucket := bbolt.kvGlue_Tx__Bucket_kvw hBucket

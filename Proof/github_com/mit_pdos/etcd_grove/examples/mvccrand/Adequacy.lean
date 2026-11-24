@@ -133,7 +133,6 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     (r : GoString)
@@ -211,7 +210,6 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     (r : GoString)

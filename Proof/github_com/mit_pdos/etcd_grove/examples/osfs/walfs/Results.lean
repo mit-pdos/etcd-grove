@@ -71,7 +71,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `crash_safety` for executions of fewer than `N` steps along which fewer than `T` threads are
 live. -/
 theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.Assumptions] [os.file.FieldAssumptions]
+    [os.Assumptions]
     [hPre : GooseGpreS GF]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC GF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
@@ -196,7 +196,6 @@ particular whenever one interrupts `commit` (after the create, the write, the `f
 rename or the directory's sync). It assumes that the package's initializer runs (`Hinit_wp`, the
 module docstring). (`crash_safety_bounded` with the ghost state `fsGF`.) -/
 theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
         (App (Val initialize') (Val #()))

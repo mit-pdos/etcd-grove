@@ -25,7 +25,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- A file held whole after a truncation is held whole (`trFile i P` forgets `P`'s facts). -/
 theorem trFile_false (i : Ino) (P : Prop) : trFile (GF := GF) i P ⊢ trFile i False :=

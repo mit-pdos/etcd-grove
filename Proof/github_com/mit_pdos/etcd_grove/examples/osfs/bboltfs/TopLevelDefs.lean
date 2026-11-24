@@ -42,7 +42,6 @@ variable [sem : go.Semantics]
 
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
-variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
 
 /-- The package initializer's spec (an assumption of `bootCrashSafety`: see the file header). -/
 abbrev initialize'.spec : Prop :=

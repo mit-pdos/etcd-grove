@@ -64,9 +64,7 @@ variable [os.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 variable [_root_.Perennial.internal.filepathlite.Assumptions]
 variable [_root_.Perennial.path.filepath.Assumptions]
-variable [os.fileStat.FieldAssumptions]
 variable [github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
-variable [os.file.FieldAssumptions]
 
 theorem errors.wp_IsPathErrnoNotExist :
     _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG) :=
@@ -237,9 +235,7 @@ variable [os.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 variable [_root_.Perennial.internal.filepathlite.Assumptions]
 variable [_root_.Perennial.path.filepath.Assumptions]
-variable [os.fileStat.FieldAssumptions]
 variable [github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
-variable [os.file.FieldAssumptions]
 
 end links_pending
 

@@ -28,7 +28,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `os.OpenFile(d/b, O_RDONLY, perm)` of the directory `J` that `d/b` holds (a fraction of a claim
 on names of `d`'s directory containing `b`): a shared directory fd on `J`, or a `*PathError` of an

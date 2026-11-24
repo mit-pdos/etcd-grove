@@ -72,29 +72,72 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : os.Assumptions]
 
-/-- `f.wrapErr(op, Errno(e))` (`model.wrapErrno`) for a nonzero errno `e`: a fresh `*PathError`
-as an `error`, one `fmt` formats (`fmtErrorOk`). `wp_wrapErrno` with the error's fact. -/
+/-- `modelErrno(e)` (syscall's `errnoErr` of an errno): `errnoErr e`. -/
+theorem wp_modelErrno (e : w64) (Φ : val → IProp GF) :
+    Φ #(errnoErr e) ⊢ WP (App (Val (@! os.modelErrno)) (Val #e)) {{ Φ }} := by
+  iintro HΦ
+  wp_func_call; wp_call
+  try wp_auto
+  by_cases he : e = 0
+  · subst he
+    try wp_auto
+    unfold errnoErr; rw [if_pos rfl]; iexact HΦ
+  · simp only [show decide (e = W64 0) = false from decide_eq_false he]
+    try wp_auto
+    unfold errnoErr; rw [if_neg he]; iexact HΦ
+
+/-- `modelPathError(op, path, Errno(e))` for a nonzero errno `e`: a fresh `*PathError` as an
+`error`, one `fmt` formats (`fmtErrorOk`). -/
+theorem wp_modelPathError_ok (op path : GoString) (e : w64) (he : e ≠ 0) (Φ : val → IProp GF) :
+    (∀ pe : Loc, EtcdGrove.fmtErrorOk (GF := GF)
+        (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe) -∗
+      Φ #(interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) ⊢
+      WP (App (App (App (Val (@! os.modelPathError)) (Val #op)) (Val #path))
+        (Val #(errnoErr e))) {{ Φ }} := by
+  iintro HΦ
+  wp_func_call; wp_call
+  iapply wp_fupd
+  try wp_auto
+  wp_alloc pe as Hpe
+  iStructNamed Hpe
+  ipersist Op
+  ipersist Path
+  ipersist Err
+  try wp_auto
+  imodintro
+  iapply HΦ
+  iapply (pathError_fmtErrorOk pe op path (errnoErr e)) $$ Op Path Err
+  iapply (errnoErr_fmtErrorOk e he)
+
+/-- `modelPathError(op, path, modelErrno(e))` as one GooseLang expression (the shape of a hand-written
+GooseLang model calling the two, `TrustedCode/go_etcd_io/etcd/pkg/v3/runtime.lean`), `e ≠ 0`. -/
+theorem wp_pathError_ok (op path : GoString) (e : w64) (he : e ≠ 0) (Φ : val → IProp GF) :
+    (∀ pe : Loc, EtcdGrove.fmtErrorOk (GF := GF)
+        (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe) -∗
+      Φ #(interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) ⊢
+      WP (App (App (App (Val (@! os.modelPathError)) (Val #op)) (Val #path))
+        (App (Val (@! os.modelErrno)) (Val #e))) {{ Φ }} := by
+  iintro HΦ
+  wp_apply wp_modelErrno
+  wp_apply wp_modelPathError_ok op path e he
+  iexact HΦ
+
+/-- `modelWrapErrno(op, inner, e)` (`f.wrapErr(op, Errno(e))`) for a nonzero errno `e`: a fresh
+`*PathError` as an `error`, one `fmt` formats (`fmtErrorOk`). -/
 theorem wp_wrapErrno_ok (op : GoString) (inner : Loc) (name : GoString) (e : w64) (he : e ≠ 0)
     (Φ : val → IProp GF) :
     structFieldRef os.file go!"name" inner ↦□ name -∗
       (∀ pe : Loc, EtcdGrove.fmtErrorOk (GF := GF)
           (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe) -∗
         Φ #(interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) -∗
-      WP (App (App (App (Val os.model.wrapErrno) (Val #op)) (Val #inner)) (Val #e)) {{ Φ }} := by
+      WP (App (App (App (Val (@! os.modelWrapErrno)) (Val #op)) (Val #inner)) (Val #e)) {{ Φ }} := by
   iintro #Hn HΦ
-  unfold os.model.wrapErrno os.model.pathError
-  rw [file_ty_eq]
-  wp_auto
-  iapply wp_fupd
-  wp_apply wp_errno
-  iStructNamed pe
-  ipersist Op
-  ipersist Path
-  ipersist Err
-  imodintro
-  iapply HΦ
-  iapply (pathError_fmtErrorOk pe_ptr op name (errnoErr e)) $$ Op Path Err
-  iapply (errnoErr_fmtErrorOk e he)
+  wp_func_call; wp_call
+  try wp_auto
+  wp_apply wp_modelErrno
+  try wp_auto
+  wp_apply wp_modelPathError_ok op name e he
+  iexact HΦ
 
 /-- A `*LinkError` at `le` with persistent fields `op`, `old`, `new` and an `Err` that is
 `fmtErrorOk` is `fmtErrorOk` (its `Error()`, translated, concatenates the four). -/
@@ -133,52 +176,6 @@ theorem linkError_fmtErrorOk (le : Loc) (op old new : GoString) (err : GoInterfa
   iintro %s
   wp_auto
   iapply HΦ
-
-/-- `&PathError{op, path, Errno(e)}` (`model.pathError`) for a nonzero errno `e`: an `error`
-`fmt` formats (`fmtErrorOk`). -/
-theorem wp_pathError_ok (op path : GoString) (e : w64) (he : e ≠ 0) (Φ : val → IProp GF) :
-    (∀ pe : Loc, EtcdGrove.fmtErrorOk (GF := GF)
-        (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe) -∗
-      Φ #(interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) ⊢
-      WP (App (App (App (Val os.model.pathError) (Val #op)) (Val #path))
-        (App (Val syscall.model.errno) (Val #e))) {{ Φ }} := by
-  iintro HΦ
-  wp_apply wp_errno
-  unfold os.model.pathError
-  iapply wp_fupd
-  wp_auto
-  iStructNamed pe
-  ipersist Op
-  ipersist Path
-  ipersist Err
-  imodintro
-  iapply HΦ
-  iapply (pathError_fmtErrorOk pe_ptr op path (errnoErr e)) $$ Op Path Err
-  iapply (errnoErr_fmtErrorOk e he)
-
-/-- `&LinkError{op, old, new, Errno(e)}` (`model.linkError`) for a nonzero errno `e`: an `error`
-`fmt` formats (`fmtErrorOk`). -/
-theorem wp_linkError_ok (op old new : GoString) (e : w64) (he : e ≠ 0) (Φ : val → IProp GF) :
-    (∀ le : Loc, EtcdGrove.fmtErrorOk (GF := GF)
-        (interface.mkOk (go.GoType.PointerType os.LinkError.ty) #le) -∗
-      Φ #(interface.mkOk (go.GoType.PointerType os.LinkError.ty) #le)) ⊢
-      WP (App (App (App (App (Val os.model.linkError) (Val #op)) (Val #old)) (Val #new))
-        (App (Val syscall.model.errno) (Val #e))) {{ Φ }} := by
-  iintro HΦ
-  wp_apply wp_errno
-  unfold os.model.linkError
-  rw [show os.model.LinkError = os.LinkError.ty by unfold os.LinkError.ty; rfl]
-  iapply wp_fupd
-  wp_auto
-  iStructNamed le
-  ipersist Op
-  ipersist Old
-  ipersist New
-  ipersist Err
-  imodintro
-  iapply HΦ
-  iapply (linkError_fmtErrorOk le_ptr op old new (errnoErr e)) $$ Op Old New Err
-  iapply (errnoErr_fmtErrorOk e he)
 
 end wrap
 

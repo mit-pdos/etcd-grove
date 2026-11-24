@@ -320,7 +320,7 @@ theorem walOpen_errOk (e : GoInterfaceOk) :
 
 /-- `os.OpenFile(d/b, flag, 0600)` of a file `b` of a claim, as `TryLockFile` takes it: the
 claim's resources lent and given back, the inode `i`. -/
-theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
+theorem walOpen_triple [os.Assumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
     (N : NameSet) (dqn : DFrac) (h : NamesH) (qc : Qp) (flag : w64)
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
@@ -353,7 +353,7 @@ theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (
 
 /-- `walOpen_triple`, a failed open witnessed (wal-fsfix2): the file system can fail on `d/b`, or the
 path does not fit (`os.OpenFile.wp_fileS`'s error arm). -/
-theorem walOpen_tripleW [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
+theorem walOpen_tripleW [os.Assumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
     (N : NameSet) (dqn : DFrac) (h : NamesH) (qc : Qp) (flag : w64)
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)

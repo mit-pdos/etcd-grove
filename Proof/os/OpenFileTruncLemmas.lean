@@ -90,7 +90,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- `os.OpenFile(d/b, flag, perm)`, `flag` with `O_TRUNC` (with or without `O_CREATE`), of a name
 holding the file `i` (a leftover `N.tmp`), with a fraction of a claim on names containing `b` and

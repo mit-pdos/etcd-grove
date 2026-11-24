@@ -31,8 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Cursor.Seek_kv`). -/
-private theorem bbolt.kvGlue_Cursor__Seek_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Cursor.Seek.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Cursor__Seek_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Cursor.Seek.spec (GF := GF) (hG := hG)) :
   ∀ (tx c : Loc) (γ : DBNames) (T : bbolt.TxView) (es : List Ent) (pos : Option Nat) (q : Qp)
     (key : GoSlice) (kb : GoString) (dk : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx γ c T es pos ∗ txLive tx γ q T ∗ key ↦*{dk} kb }}
@@ -56,8 +56,8 @@ private theorem bbolt.kvGlue_Cursor__Seek_kv (h : ∀ [ExtSemantics Fs.fsExt] [F
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Cursor.Next_kv`). -/
-private theorem bbolt.kvGlue_Cursor__Next_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Cursor.Next.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Cursor__Next_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Cursor.Next.spec (GF := GF) (hG := hG)) :
   ∀ (tx c : Loc) (γ : DBNames) (T : bbolt.TxView) (es : List Ent) (i : Nat) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx γ c T es (some i) ∗ txLive tx γ q T }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.bbolt.Cursor.ty @!! go!"Next")) (Val #()))
@@ -111,10 +111,10 @@ theorem backend.cursorRange_take (es : List Ent) (kb eb : GoString) (limit : w64
   exact takeWhile_take_eq _ _ _ _ hall hle hend
 
 theorem backend.unsafeRange.wp_proof
-    (hSeek : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Cursor.Seek.spec (GF := GF) (hG := hG))
-    (hNext : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Cursor.Next.spec (GF := GF) (hG := hG)) :
+    (hSeek : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Cursor.Seek.spec (GF := GF) (hG := hG))
+    (hNext : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Cursor.Next.spec (GF := GF) (hG := hG)) :
     backend.unsafeRange.spec (GF := GF) (hG := hG) := by
   replace hSeek := bbolt.kvGlue_Cursor__Seek_kv hSeek
   replace hNext := bbolt.kvGlue_Cursor__Next_kv hNext

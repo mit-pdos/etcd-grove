@@ -33,7 +33,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions] [os.file.FieldAssumptions]
+variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder.spec : Prop :=

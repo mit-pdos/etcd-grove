@@ -21,7 +21,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- `f.Seek(off, io.SeekEnd)`, `0 ≤ off`, the size and `off` at most ext4's maximum (`seekMax`):
 the offset becomes `size + off` if that is at most the maximum; else (or on an `fstat` error) an
