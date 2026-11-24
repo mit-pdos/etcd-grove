@@ -115,17 +115,30 @@ The same review found two problems inside the S0.5 delta, and the reflection wor
 
 — upamanyus worker (handoff pickup, reflection)
 
-## 6. For #34 (bootstrap stage 4 land request, written ~19:40Z)
+## 6. For #34 (bootstrap stages 2 and 4 land request, written ~19:40Z, revised ~21:30Z)
 
 to: coordinator-E (for the land queue)
 
-land-queue: bootstrap-stage4/2026-11-25 f7ad50b54d
+land-queue: bootstrap-stage2/2026-11-25 3f21321c84
 
-Claim #34, stage 4: `bootstrap`'s WAL and raft-record callees (`bootstrapStorage`, `bootstrapNewWAL`, `bootstrapRaft`, `bootstrapRaftFromCluster`, `raftConfig`) are translated with their bodies and proved over their callees' specs. They are linked in the server's `Link.lean`; the remaining hypotheses are marked `?`. Spec changes are recorded in the ledger (2026-11-25).
-- **Checks:** the VM build of the two previously failing proofs and the server `Link` exits 0 (9,460 jobs). The same modules also build at `lean`'s Perennial `d9c8c1d97`. `gen-link --server` matches, and the tier, bounds and import-all checks pass.
-- **Trust:** no new axioms, and no `sorry` beyond the existing generated etcdserverpb ones. `bootstrap` isn't linked to any top-level result, so trust is unchanged.
-- **Merge:** merges cleanly with `lean` `09a3907df1`.
-- **For the owner, with the final stage:** STATUS records a soundness finding. The trusted `bootstrapContract` is false of Go when `cfg.UnsafeNoFsync = true`. No theorem is known to be wrong, since the examples set it to false.
+**Queue stage 2, not stage 4 on its own.** Stage 2 contains stage 4 (`bootstrap-stage4/2026-11-25` `f7ad50b54d`). Stage 4 alone fails the full build on `examples/lib/etcdstart/BootBridge.lean`, because it added premises to `bootstrap.spec` without updating the landed bridge. Stage 2 has the fix.
+
+**What it lands** (claim #34, stages 2 and 4):
+- **Stage 4:** `bootstrap`'s WAL and raft-record callees (`bootstrapStorage`, `bootstrapNewWAL`, `bootstrapRaft`, `bootstrapRaftFromCluster`, `raftConfig`) are translated with their bodies and proved over their callees' specs.
+- **Stage 2:** the cluster callees (`NewCluster`, `NewClusterFromURLsMap`, `computeMemberID`, `NewMember`, `MemberIDs`, `MemberByName`, the config checks, `URLsMap.String`, `bootstrapNewClusterNoWAL`, `bootstrapCluster`, `Finalize`).
+- All of them are linked in the server's `Link.lean`. The remaining hypotheses are marked `?`: `advertiseMatchesCluster`, `isMemberBootstrapped`, `bootClusterRows`, plus stage 4's.
+
+**Checks:**
+- **VM build** (165 targets, 11,543 jobs, exit 0, no `sorry`): every module the branch changes against `lean` `622264bf5e`, their dependents outside the examples, `BootBridge` and the server `Link`.
+- **Generators:** `gen-link --server` output is identical to `Link.lean`. gen-init, gen-specs-pkginit, tier, bounds and import-all pass.
+- **Merge:** with `lean` `4da2e64008`, no conflicts. git warns about entries on `notes/STATUS.md`'s "Last updated" line.
+
+**Changes:**
+- **Internal specs only, no axiom, no top-level statement or `bootPremise` changed** (ledger, 2026-11-25).
+- `lean`'s Perennial `d9c8c1d97` makes the real `strings.Join` require its result to be shorter than 2^61 bytes. So `computeMemberID`, `NewMember` and `NewClusterFromURLsMap` now take a URL-length precondition. `bootGo.initMapOk` gains a fifth conjunct, `Σ_k Σ_u (|k| + |urlStr u| + 2) < 2^61`, which is decidable and settled per example by evaluation. `URLsMap.String` and `VerifyBootstrap` take plain URLs and `types.urlsMapStrLen < 2^61`.
+- `BootBridge`'s two lemmas take `bootstrap.spec`'s new premises. One of them, `cfg.UnsafeNoFsync' = false` under `cfgOk`, can't be proved from the examples' `cfgOk` until the `UnsafeNoFsync` contract fix below. Nothing uses the bridge yet.
+
+**For the owner, with the final stage:** STATUS records a soundness finding. The trusted `bootstrapContract` is false of Go when `cfg.UnsafeNoFsync = true`. No theorem is known to be wrong, since the examples set it to false.
 
 **Branch cleanup (please delete, or tell me to):** the M1 port landed (`lean` `366ab8486d`). These are now in `lean`:
 - `bootstrap-proof/2026-11-23`
@@ -136,7 +149,7 @@ Claim #34, stage 4: `bootstrap`'s WAL and raft-record callees (`bootstrapStorage
 
 `bootstrap-handoff/2026-11-24` can go once stage 2 lands; its note has moved onto stage 2.
 
-**Stage 2:** it built before the `lean` merge. Lean's Perennial `d9c8c1d97` (real `strings.Join` needs its result shorter than 2^61; `fmt.Sprintf.argsWf` is gone) breaks `computeMemberID` and `URLsMap.String`. My decision: internal-spec URL-length preconditions on `computeMemberID`, `NewMember` and `NewClusterFromURLsMap`, plus a decidable condition in `bootGo.initMapOk` settled per example by evaluation. `URLsMap.String` gets the exact-string URL spec, with the bound passed down from `VerifyBootstrap`. No top-level statement and no `bootPremise` changes. I'll send a land request when it builds; it goes after stage 4.
+**Next:** step 4, which links `bootstrap` at the server level. It adds about three open hypotheses to the server Link (`touchMember`, `existFree`, `metaSnap`). After that comes the final stage: about 40 examples switch to `bootstrap.spec`, plus `Hfips` and the `UnsafeNoFsync` fix, for the owner.
 
 — upamanyus worker (handoff pickup, bootstrap)
 
