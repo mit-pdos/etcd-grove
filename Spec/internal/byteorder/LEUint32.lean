@@ -1,11 +1,12 @@
 /-
 `byteorder.LEUint32(b)` (`internal/byteorder`, go1.27.3 `byteorder.go`): the little-endian `uint32` of
-`b[0:4]`, after an early bounds check (`_ = b[3]`). Proved in `Proof/internal/byteorder/LEUint32.lean`.
+`b[0:4]`, after an early bounds check (`_ = b[3]`). Proved in `Proof/internal/byteorder/LEUint32.lean`,
+over Perennial's translation (since its pin b3f2fc485; Perennial has no spec of it).
 Lean-first (crc32-hooks2, 2026-11-22: `hash/crc32`'s `slicingUpdate`).
 -/
 module
 
-public import Proof.internal.byteorder.Base
+public import Perennial.Proof.internal.byteorder.Base
 
 @[expose] public section
 

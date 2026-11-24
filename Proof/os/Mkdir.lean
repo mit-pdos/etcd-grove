@@ -9,6 +9,7 @@ module
 
 public import Spec.os.Mkdir
 public import Proof.os.ErrorOk
+public import Proof.os.ErrnoPathErr
 public import Proof.os.SharedExt
 
 @[expose] public section
@@ -71,13 +72,15 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
         wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he)]
         wp_auto
-        unfold os.model.pathError
-        wp_apply wp_errno
+        wp_apply os.wp_pathError_errno as %err #Herr
+        ihave %hne := os.errnoPathErr_ne err _ $$ Herr
         iapply HΦ
+        isplitr
+        · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
         iframe
         dsimp only [mkOut, mkNew]
         iframe
-        ipureintro; intro hc; cases hc
+        ipureintro; intro hc; exact absurd hc hne
     · icases (osNames_join j _ q r _ hq).2 $$ Hw with ⟨Hn, Hr⟩
       unfold osLogged
       icases Hlog with ⟨%hst, #He, #Hl⟩
@@ -102,13 +105,17 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
       · rw [decide_eq_true he0]
         wp_auto
         iapply HΦ
+        isplitr
+        · iapply fmtErrorOkOrNil_nil
         iframe
         ipureintro; intro _; rfl
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
-      unfold os.model.pathError
-      wp_apply wp_errno
+      wp_apply os.wp_pathError_errno as %err #Herr
+      ihave %hne := os.errnoPathErr_ne err _ $$ Herr
       iapply HΦ
+      isplitr
+      · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
       iframe
       ipureintro; intro _; rfl
   · obtain ⟨x, sx, J⟩ := xs
@@ -130,9 +137,11 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
     wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
     wp_auto
-    unfold os.model.pathError
-    wp_apply wp_errno
+    wp_apply os.wp_pathError_errno as %err #Herr
+    ihave %hne := os.errnoPathErr_ne err _ $$ Herr
     iapply HΦ
+    isplitr
+    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
     iframe
     ipureintro; intro _; rfl
 

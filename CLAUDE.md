@@ -347,7 +347,9 @@ which roots reach a `sorry` (`--per-root`: every root). A collection
 (`etc/tcb-collections/*.txt`) keeps the patterns (`roots` lines) with their baseline
 (`axiom`/`sorry` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
 `--check` compares, `--check --update` rewrites the baseline. Track a proof's progress
-by adding a collection for it.
+by adding a collection for it. Its `axioms PATTERN` lines, if any, restrict the report and the
+baseline to the axioms and `sorry`s whose name or module file matches one: what one family of
+declarations contributes to the roots (`etc/tcb-collections/grpc.txt`).
 
 ## How much is verified
 
