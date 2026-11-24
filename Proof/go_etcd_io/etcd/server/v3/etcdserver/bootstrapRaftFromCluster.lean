@@ -315,12 +315,12 @@ theorem bootstrapRaftFromCluster.wp_proof
   try (· iframe Hw; iframe #)
   try (· iframe Hw)
   try wp_auto
+  -- the storage registered
+  imod (memStorReg_register (∅ : GMap Loc MemStorNamesRec) ms γs rfl) $$ Hauth with ⟨Hauth, #Hreg⟩
   -- `raftConfig(cfg, uint64(member.ID), s)`
   wp_apply (hCfg cfg mv.ID' ms) as %cfgl ⟨%lok, Hcv, #Hlok⟩
   try (· iframe #)
   try wp_auto
-  -- the storage registered
-  imod (memStorReg_register (∅ : GMap Loc MemStorNamesRec) ms γs rfl) $$ Hauth with ⟨Hauth, #Hreg⟩
   have hid : mv.ID' = bootGo.id cfg U := Hmbid
   iapply HΦ
   iexists (bootstrappedRaft.mk cfg.Logger' (cfg.TickMs' * W64 1000000) psl cfgl ms)
@@ -336,6 +336,8 @@ theorem bootstrapRaftFromCluster.wp_proof
       (raftCfgOf_valid cfg mv.ID' ms lok h0 (by rw [hid]; exact Hidr.1) (by rw [hid]; exact Hidr.2)
         Hcok.2.2.2.2) hpre.symm hne, rfl, rfl, ?_⟩
     simp only [raftCfgOf]; exact hid
+  try dsimp only
+  iframe #
   ipureintro; exact Hsz
 
 end proof
