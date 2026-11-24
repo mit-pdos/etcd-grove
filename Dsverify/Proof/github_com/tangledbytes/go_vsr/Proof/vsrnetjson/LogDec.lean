@@ -9,6 +9,7 @@ Ported from dsverify-lab's `examples/vr/proof/VsrProof/Proof/vsrnetjson/DecFlat.
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.json
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.Facts
 public import Net.Spec.models_lab.jsoncodec.At
 public import Net.Spec.models_lab.jsoncodec.Empty
@@ -51,8 +52,8 @@ variable (wp_QuotedUint : models_lab.jsoncodec.QuotedUint.spec (GF := GF) (hG :=
 
 set_option goose.wp.extras true
 
-/-- `jdecMember_log_Log(b, i, "data", p, e)` on a plain string at `i`. -/
 include wp_String in
+/-- `jdecMember_log_Log(b, i, "data", p, e)` on a plain string at `i`. -/
 theorem vsrnet.wp_jdecMember_Log_0 (b : GoSlice) (dq : DFrac) (bs : List w8) (i : w64)
     (p e : Loc) (r : pkg.log.Log) (str rest : List w8) (hs : ∀ c ∈ str, JsonScan.okB c)
     (hb : bs.drop (uint.nat i) = 34#8 :: (str ++ 34#8 :: rest)) :
@@ -66,8 +67,8 @@ theorem vsrnet.wp_jdecMember_Log_0 (b : GoSlice) (dq : DFrac) (bs : List w8) (i 
   wp_apply (wp_String b dq bs i str rest hs hb) $$ Hs as Hs
   iapply HΦ; iframe
 
-/-- `jdecMember_log_Log(b, i, "client_id", p, e)` on `"n"` at `i`. -/
 include wp_QuotedUint in
+/-- `jdecMember_log_Log(b, i, "client_id", p, e)` on `"n"` at `i`. -/
 theorem vsrnet.wp_jdecMember_Log_1 (b : GoSlice) (dq : DFrac) (bs : List w8) (i : w64)
     (p e : Loc) (r : pkg.log.Log) (n : Nat) (rest : List w8)
     (hb : bs.drop (uint.nat i) = 34#8 :: (JsonScan.decN n ++ 34#8 :: rest)) (hn : n < 2 ^ 64) :
@@ -81,8 +82,8 @@ theorem vsrnet.wp_jdecMember_Log_1 (b : GoSlice) (dq : DFrac) (bs : List w8) (i 
   wp_apply (wp_QuotedUint b dq bs i _ n rest hb (by simp; omega)) $$ Hs as Hs
   iapply HΦ; iframe
 
-/-- `jdecMember_log_Log(b, i, "request_id", p, e)` on `"n"` at `i`. -/
 include wp_QuotedUint in
+/-- `jdecMember_log_Log(b, i, "request_id", p, e)` on `"n"` at `i`. -/
 theorem vsrnet.wp_jdecMember_Log_2 (b : GoSlice) (dq : DFrac) (bs : List w8) (i : w64)
     (p e : Loc) (r : pkg.log.Log) (n : Nat) (rest : List w8)
     (hb : bs.drop (uint.nat i) = 34#8 :: (JsonScan.decN n ++ 34#8 :: rest)) (hn : n < 2 ^ 64) :
@@ -96,8 +97,8 @@ theorem vsrnet.wp_jdecMember_Log_2 (b : GoSlice) (dq : DFrac) (bs : List w8) (i 
   wp_apply (wp_QuotedUint b dq bs i _ n rest hb (by simp; omega)) $$ Hs as Hs
   iapply HΦ; iframe
 
-/-- `jdec_log_Log(b, i, p, e)` on the encoding at `i`. -/
 include wp_At wp_Empty wp_Member wp_Next wp_String wp_QuotedUint in
+/-- `jdec_log_Log(b, i, p, e)` on the encoding at `i`. -/
 theorem vsrnet.wp_jdec_Log (b : GoSlice) (dq : DFrac) (bs : List w8) (i : w64) (p e : Loc)
     (r : pkg.log.Log) (op : List w8) (cid : Nat) (req : Nat) (rest : List w8)
     (h_op : PlainStr op) (h_cid : cid < 2 ^ 64) (h_req : req < 2 ^ 64)
