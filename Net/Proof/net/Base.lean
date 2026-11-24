@@ -13,8 +13,10 @@ and the vocabulary of the specs:
   keeps).
 * The errors (D14): `opErr op src addr e err` (`err` a new `*OpError`, read-only, with `Err` `e`),
   `kindErr k ed nm e` (`e` the `Err` of a failure of kind `k`: `closedErr` = `poll.ErrNetClosing`,
-  `ed` = `poll.ErrDeadlineExceeded`'s value, or `sysErr nm e`, an `*os.SyscallError`), `resErr res
-  ...` (a result's error), `ErrFlag` (what `OpError.Timeout`/`Temporary` answer); `netErr err` (a
+  `ed` = `poll.ErrDeadlineExceeded`'s value, or `sysErr nm e`, an `*os.SyscallError`), `epollErr e`
+  (a bare `ENOMEM`/`ENOSPC` of a failed poller registration), `resErr res ... (poll := true)` (a
+  result's error; with `poll`, of an operation that registers a new socket with the poller, whose
+  `sys` failure may carry an `epollErr` instead: `Accept`, `Dial`), `ErrFlag` (what `OpError.Timeout`/`Temporary` answer); `netErr err` (a
   non-nil `*OpError`), with `resErr_netErr`.
 -/
 module
@@ -190,17 +192,23 @@ instance opErr_persistent (op : GoString) (src addr e err : GoInterface) :
   unfold opErr; infer_instance
 
 /-- The error of an operation `op` (`Source` `src`, `Addr` `addr`) whose result is `res`
-(`Net.errCode`'s): `nil` for success, else an `*OpError` whose `Err` is the kind's (`kindErr`). -/
+(`Net.errCode`'s): `nil` for success, else an `*OpError` whose `Err` is the kind's (`kindErr`). With
+`poll` (an operation that registers a new socket with the poller, `Accept` and `Dial`: D6, D7, D8,
+`model.pollErr`), a `sys` failure's `Err` may instead be a bare `Errno` (`epollErr`): Go returns the
+poller registration's error unwrapped (`netFD.accept`, `netFD.connect`, `fd_unix.go`). -/
 def resErr (res : Option NetErr) (op : GoString) (src addr : GoInterface)
-    (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) : IProp GF :=
-  match res with
-  | none => iprop(⌜err = interface.nil⌝)
-  | some k => iprop(∃ e, opErr op src addr e err ∗ kindErr k ed nm e)
+    (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) (poll : Bool := false) :
+    IProp GF :=
+  match res, poll with
+  | none, _ => iprop(⌜err = interface.nil⌝)
+  | some k, false => iprop(∃ e, opErr op src addr e err ∗ kindErr k ed nm e)
+  | some k, true => iprop(∃ e, opErr op src addr e err ∗
+      (kindErr k ed nm e ∨ ⌜k = .sys ∧ epollErr e⌝))
 
 instance resErr_persistent (res : Option NetErr) (op : GoString) (src addr : GoInterface)
-    (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    Persistent (resErr (GF := GF) res op src addr ed nm err) := by
-  cases res <;> unfold resErr <;> infer_instance
+    (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) (poll : Bool) :
+    Persistent (resErr (GF := GF) res op src addr ed nm err poll) := by
+  cases res <;> cases poll <;> unfold resErr <;> infer_instance
 
 /-- What `OpError.Timeout` and `Temporary` may answer for the `Err` `e` (D14): `false` for
 `poll.ErrNetClosing`'s type, `true` for `*poll.DeadlineExceededError` and `*timeoutError`, anything
@@ -225,14 +233,37 @@ theorem opErr_netErr (op : GoString) (src addr e err : GoInterface) :
   unfold opErr; iintro ⟨%pe, %nw, %h, -⟩; ipureintro; exact ⟨pe, h.1⟩
 
 /-- A failure's `resErr` is a failure's error; a success's is `nil`. -/
-theorem resErr_netErr (res : Option NetErr) (op : GoString) (src addr : GoInterface)
+theorem resErr_netErr {poll : Bool} (res : Option NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    resErr (GF := GF) res op src addr ed nm err ⊢
+    resErr (GF := GF) res op src addr ed nm err poll ⊢
       ⌜(res = none → err = interface.nil) ∧ (res ≠ none → netErr err)⌝ := by
   cases res
   · unfold resErr; iintro %h; ipureintro; exact ⟨fun _ => h, fun h => absurd rfl h⟩
-  · unfold resErr opErr; iintro ⟨%e, ⟨%pe, %nw, %h, -⟩, -⟩
-    ipureintro; exact ⟨fun h => (by cases h), fun _ => ⟨pe, h.1⟩⟩
+  · cases poll
+    · unfold resErr opErr; iintro ⟨%e, ⟨%pe, %nw, %h, -⟩, -⟩
+      ipureintro; exact ⟨fun h => (by cases h), fun _ => ⟨pe, h.1⟩⟩
+    · unfold resErr opErr; iintro ⟨%e, ⟨%pe, %nw, %h, -⟩, -⟩
+      ipureintro; exact ⟨fun h => (by cases h), fun _ => ⟨pe, h.1⟩⟩
+
+/-- A failure's `resErr` is an `*OpError` (with or without `poll`). -/
+theorem resErr_opErr {poll : Bool} (k : NetErr) (op : GoString) (src addr : GoInterface)
+    (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
+    resErr (GF := GF) (some k) op src addr ed nm err poll ⊢ ∃ e, opErr op src addr e err := by
+  cases poll
+  · unfold resErr; iintro ⟨%e, Hop, -⟩; iexists e; iexact Hop
+  · unfold resErr; iintro ⟨%e, Hop, -⟩; iexists e; iexact Hop
+
+/-- A failure's `resErr`, without `poll`, is one with it (weakening). -/
+theorem resErr_poll (k : NetErr) (op : GoString) (src addr : GoInterface)
+    (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
+    resErr (GF := GF) (some k) op src addr ed nm err ⊢
+      resErr (GF := GF) (some k) op src addr ed nm err true := by
+  unfold resErr
+  iintro ⟨%e, Hop, He⟩
+  iexists e
+  iframe Hop
+  ileft
+  iexact He
 
 end def_
 

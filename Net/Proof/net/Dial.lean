@@ -41,7 +41,7 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
     wp_bind (ExternalOp _ _ _)
     iapply wp_net_AnyString
     iintro %nm
-    wp_apply wp_kindErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
+    wp_apply wp_pollErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
     (try wp_auto)
     wp_apply wp_anyTCPAddr as %x #Hx
     (try wp_auto)
@@ -86,7 +86,7 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
       wp_bind (ExternalOp _ _ _)
       iapply wp_net_AnyString
       iintro %nm
-      wp_apply wp_kindErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
+      wp_apply wp_pollErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
       (try wp_auto)
       wp_apply wp_anyTCPAddr as %x #Hx
       (try wp_auto)

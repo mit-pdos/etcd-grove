@@ -14,8 +14,8 @@ import (
 	"unsafe"
 )
 
-// TestListenEpollErrno (D6, D12; v3.6, Net/TrustedCode/net.lean's Listen.impl and
-// model.epollErr). When the poller's registration of the new listening socket
+// TestListenEpollErrno (D6, D7, D8, D12; v3.6, Net/TrustedCode/net.lean's
+// Listen.impl and model.epollErr). When the poller's registration of the new listening socket
 // fails, net.Listen returns an *OpError{Op: "listen"} whose Err is the bare
 // syscall.Errno of epoll_ctl(2), not an *os.SyscallError, and no listener (Go
 // closes the socket). Go's path (go1.27.3): ListenConfig.Listen ->
@@ -39,23 +39,42 @@ import (
 // a loop (EINVAL, ELOOP), or a file that cannot poll (EPERM): none applies. (EINTR
 // only while the process is being killed.)
 //
+// Accept and Dial (D7, D8; v3.6, TCPListener.Accept.impl, Dial.impl,
+// DialTimeout.impl and model.pollErr) register their new socket the same way and
+// return the same unwrapped Errno: netFD.accept (fd_unix.go) does
+// `if err = netfd.init(); err != nil { netfd.Close(); return nil, err }` after
+// accept4(2) took a connection off the listener's queue (so the dialer then sees
+// the connection closed: EOF on its read, measured here), and
+// TCPListener.Accept wraps it as *OpError{Op: "accept"}; netFD.connect
+// (fd_unix.go) does `if err := fd.pfd.Init(fd.net, true); err != nil { return
+// nil, err }` after connect(2), socket (sock_posix.go) closes the fd, and
+// dialSingle (dial.go) wraps it as *OpError{Op: "dial"}.
+//
 // Measured: the kernel's own ENOSPC needs lowering fs.epoll.max_user_watches
-// (root, system-wide): not done. Instead the child (child_test.go, role
-// "listen-epoll") installs a seccomp filter (unprivileged, no_new_privs) that
-// fails epoll_ctl(EPOLL_CTL_ADD) with the errno, after the poller is
-// initialized, and calls net.Listen (NETSEM_ADDR carries the errno): Go's handling of the kernel's error is
-// what is measured, the kernel's choice of errno is the documented part above.
-// Before v3.6 the model always returned an *os.SyscallError (the outcome
-// excluded: Listen.spec promised it).
+// (root, system-wide): not done. Instead the child (role "listen-epoll", with
+// NETSEM_ADDR "op:errno") installs a seccomp filter (unprivileged, no_new_privs)
+// that fails epoll_ctl(EPOLL_CTL_ADD) with the errno, after the poller is
+// initialized (and, for accept, after a listener is open and a connection is
+// queued on it by a raw connect(2) that bypasses the poller), then calls
+// net.Listen, ln.Accept or net.Dial: Go's handling of the kernel's error is what
+// is measured, the kernel's choice of errno is the documented part above.
+// Before v3.6 the models always returned an *os.SyscallError for a sys failure
+// (the outcome excluded: Listen.spec, Listener.Accept.spec and Dial.spec promised
+// it).
 func TestListenEpollErrno(t *testing.T) {
 	t.Parallel()
-	for _, e := range []syscall.Errno{syscall.ENOSPC, syscall.ENOMEM} {
-		ch := startChild(t, "listen-epoll", fmt.Sprint(int(e)))
-		got := ch.line(t)
-		ch.kill(t)
-		want := fmt.Sprintf("opError=true op=listen net=tcp addr=*net.TCPAddr errType=syscall.Errno errno=%d syscallError=false listener=false socketsBefore=0 socketsAfter=0", int(e))
-		if got != want {
-			t.Errorf("Listen with epoll_ctl failing %v:\n got %s\nwant %s", e, got, want)
+	for _, op := range []string{"listen", "accept", "dial"} {
+		for _, e := range []syscall.Errno{syscall.ENOSPC, syscall.ENOMEM} {
+			ch := startChild(t, "listen-epoll", fmt.Sprintf("%s:%d", op, int(e)))
+			got := ch.line(t)
+			ch.kill(t)
+			want := fmt.Sprintf("opError=true op=%s net=tcp addr=*net.TCPAddr errType=syscall.Errno errno=%d syscallError=false result=false newSockets=0", op, int(e))
+			if op == "accept" {
+				want += " peer=EOF"
+			}
+			if got != want {
+				t.Errorf("%s with epoll_ctl failing %v:\n got %s\nwant %s", op, e, got, want)
+			}
 		}
 	}
 }
@@ -69,12 +88,15 @@ func init() {
 }
 
 // childListenEpoll is the child of TestListenEpollErrno: epoll_ctl(EPOLL_CTL_ADD)
-// fails with errno from now on (all threads), then one net.Listen; it prints
-// the error's shape and its socket count before and after.
-func childListenEpoll(errno string) {
+// fails with errno from now on (all threads), then one net.Listen, Accept or
+// Dial; it prints the error's shape, whether a result came back, how many
+// sockets the call left open, and (accept) what the queued connection's dialer
+// reads.
+func childListenEpoll(arg string) {
+	op, errno, ok := strings.Cut(arg, ":")
 	var e int
-	if _, err := fmt.Sscan(errno, &e); err != nil {
-		childFail("errno %q: %v", errno, err)
+	if _, err := fmt.Sscan(errno, &e); !ok || err != nil {
+		childFail("arg %q: %v", arg, err)
 	}
 	// Initialize the poller (netpollinit's own epoll_ctl of its eventfd) before the filter.
 	r, w, err := os.Pipe()
@@ -83,25 +105,70 @@ func childListenEpoll(errno string) {
 	}
 	defer r.Close()
 	defer w.Close()
+	var ln net.Listener
+	raw := -1
+	if op == "accept" || op == "dial" {
+		if ln, err = net.Listen("tcp", "127.0.0.1:0"); err != nil {
+			childFail("listen: %v", err)
+		}
+	}
+	if op == "accept" { // a queued connection, its dialer outside the poller
+		if raw, err = syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM, 0); err != nil {
+			childFail("socket: %v", err)
+		}
+		port := ln.Addr().(*net.TCPAddr).Port
+		if err := syscall.Connect(raw, &syscall.SockaddrInet4{Port: port, Addr: [4]byte{127, 0, 0, 1}}); err != nil {
+			childFail("connect: %v", err)
+		}
+		tv := syscall.Timeval{Sec: 5}
+		syscall.SetsockoptTimeval(raw, syscall.SOL_SOCKET, syscall.SO_RCVTIMEO, &tv)
+	}
 	before := countSockets()
 	if err := failEpollCtlAdd(e); err != nil {
 		childFail("seccomp: %v", err)
 	}
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	var res bool
+	switch op {
+	case "listen":
+		var l net.Listener
+		l, err = net.Listen("tcp", "127.0.0.1:0")
+		res = l != nil
+	case "accept":
+		var c net.Conn
+		c, err = ln.Accept()
+		res = c != nil
+	case "dial":
+		var c net.Conn
+		c, err = net.Dial("tcp", ln.Addr().String())
+		res = c != nil
+	default:
+		childFail("op %q", op)
+	}
 	after := countSockets()
 	var oe *net.OpError
 	isOp := errors.As(err, &oe)
-	op, nw, addr, errType, errnoV := "", "", "", "", -1
+	eop, nw, addr, errType, errnoV := "", "", "", "", -1
 	if isOp {
-		op, nw, addr = oe.Op, oe.Net, fmt.Sprintf("%T", oe.Addr)
+		eop, nw, addr = oe.Op, oe.Net, fmt.Sprintf("%T", oe.Addr)
 		errType = fmt.Sprintf("%T", oe.Err)
 		if en, ok := oe.Err.(syscall.Errno); ok {
 			errnoV = int(en)
 		}
 	}
 	var se *os.SyscallError
-	fmt.Printf("opError=%v op=%s net=%s addr=%s errType=%s errno=%d syscallError=%v listener=%v socketsBefore=%d socketsAfter=%d\n",
-		isOp, op, nw, addr, errType, errnoV, errors.As(err, &se), ln != nil, before, after)
+	out := fmt.Sprintf("opError=%v op=%s net=%s addr=%s errType=%s errno=%d syscallError=%v result=%v newSockets=%d",
+		isOp, eop, nw, addr, errType, errnoV, errors.As(err, &se), res, after-before)
+	if op == "accept" {
+		buf := make([]byte, 1)
+		n, rerr := syscall.Read(raw, buf)
+		switch {
+		case n == 0 && rerr == nil:
+			out += " peer=EOF"
+		default:
+			out += fmt.Sprintf(" peer=%d,%v", n, rerr)
+		}
+	}
+	fmt.Println(out)
 	os.Exit(0)
 }
 

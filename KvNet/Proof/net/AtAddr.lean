@@ -60,7 +60,8 @@ abbrev Listener.Accept.specAddrOk : Prop :=
     (App (Val #(methods (go.GoType.PointerType TCPListener.ty) go!"Accept" #t)) (Val #()))
   {{ (c : GoInterface) (err : GoInterface), RET (PairV #c #err);
       (⌜err = interface.nil⌝ ∗ ∃ cn, isConn c cn true a ∗ Qok cn) ∨
-      (∃ k, Qfail k ∗ resErr (some k) go!"accept" interface.nil x none (· = go!"accept4") err) }}
+      (∃ k, Qfail k ∗
+        resErr (some k) go!"accept" interface.nil x none (· = go!"accept4") err (poll := true)) }}
 
 theorem Listen.spec_addrOk (h : Listen.spec (GF := GF) (hG := hG)) :
     Listen.specAddrOk (GF := GF) (hG := hG) := by

@@ -1123,3 +1123,58 @@ epoll watches, panics. The fix is this one's, at `TCPListener.Accept.impl`, `Dia
 
 **Verdict:** the change is sound (only adds executions; nothing new to derive `False` from); the
 `Accept`/`Dial` instances of the same gap remain, documented in D12.
+
+## v3.6, continued (2026-11-24): `Accept` and `Dial`
+
+The remaining instances above, fixed on the same branch. **The change** (trusted:
+`Net/TrustedCode/net.lean`'s `TCPListener.Accept.impl`, `Dial.impl`, `DialTimeout.impl`, the new
+`model.pollErr`; `Impl.lean`'s header, D7, D8, D12): a failure's `Err` is `model.pollErr` of the
+step's code instead of `model.kindErr`: for a `sys` code, at the model's choice (`AnyBool`), the
+kind's `*os.SyscallError` or `model.epollErr` (bare `ENOMEM`/`ENOSPC`); for `closed` and `timeout`,
+the kind's, as before. The relations (`AcceptStep`, `DialStep`) are unchanged. Specs: `resErr` gains
+`(poll : Bool := false)`; with `poll`, a `sys` failure's `Err` is `kindErr` or `epollErr`
+(`resErr`'s third arm; without it the definition is v3.5's, the same term after unfolding).
+`Listener.Accept.spec` and `Dial.spec` (and `AtAddr`'s `specAddrOk`) take `(poll := true)`;
+`DialTimeout.spec`'s pure alternative gains `epollErr e` (and kvnet's `DialTCP.spec`, which restates
+it). The lemmas over any `resErr` (`resErr_netErr`, `errNE_resErr`, `errAny_resErr`,
+`notServerErr_resErr`, `resErr_errOrNil`, `errAny_resErr'`) take `poll` implicitly, through the new
+`resErr_opErr`. Evidence: `TestListenEpollErrno` now runs `Listen`, `Accept` and `Dial` with
+`epoll_ctl(EPOLL_CTL_ADD)` failing `ENOSPC`, then `ENOMEM` (seccomp, in a child): each returns an
+`*OpError` (`listen`, `accept`, `dial`) whose `Err` is the bare `Errno`, no result and no socket left
+open, and `Accept`'s queued connection (dialed by a raw `connect(2)` before the filter) is closed: its
+dialer reads EOF.
+
+**Review** (the `axiom` skill's checks, as a fresh reader):
+
+* *No behaviour removed.* Every v3.5 execution of the three models is a v3.6 one: for a `sys`
+  failure, one more step (`AnyBool` returning `false`) then `model.kindErr` as before; for `closed`
+  and `timeout`, only the code comparison `model.pollErr` makes before calling `model.kindErr`.
+  `DialTimeout.impl`'s first branch is the same. The relations are unchanged.
+* *No new way to prove `False`.* No axiom, premise or ghost update is added; `model.pollErr` always
+  reduces (a comparison, `AnyBool`, two constants); `wp_pollErr` is proved. The specs only got
+  weaker (a disjunct in a failure's `Err`), and their proofs (`Listener.Accept.wp_proof`,
+  `Dial.wp_proof`, `DialTimeout.wp_proof`) are proved. `resErr`'s default `poll := false` leaves every
+  other spec's statement as it was.
+* *`Accept`'s state.* Go's `accept4` took the connection off the kernel's queue and `netFD.accept`
+  closes it: no connection reaches the program (the model: the `sys` step, no result), and the
+  dialer sees its peer close (measured: EOF; a reset if it had sent bytes the closed socket left
+  unread). The model leaves the connection pending at its address, untouched: the dialer's reads may
+  cut it (D1: EOF once its bytes are read, or a `sys` error) and its writes may count into a cut
+  direction or fail (D2), which covers both; a later `Accept` of it is more than Linux (as D7's
+  pending connections already are). The extension's `AcceptStep` needs no change.
+* *`Dial`'s state.* `connect(2)` started the handshake before the failed registration, and `socket`
+  closes the fd: the listener's kernel may hold the connection (handshake completed: it is accepted
+  and reads EOF) or not. The model's `Dial` `sys` failure has both outcomes already (D8: nothing, or
+  D16's abandoned connection, the dialer's end closed and its direction `fin`), and `pollErr` is
+  chosen after either.
+* *`closed`/`timeout` excluded from the bare `Errno`.* An `Accept` on a closed listener fails in
+  `poll.FD.Accept` (`ErrNetClosing`) before any registration; a `DialTimeout` timeout fails in the
+  wait after the registration succeeded (`netFD.connect`): `pollErr` returns the bare `Errno` only
+  for `sys`, matching.
+* *Callers.* Every caller of these specs used only that a failure's `err` is a non-nil `*OpError`
+  (`resErr_netErr`, `opErr_netErr`, `errAny_resErr`); none inspected a `sys` failure's `Err`. The
+  `OpError.Temporary` of an `Accept` failure (Go: `false` for a bare `ENOMEM`/`ENOSPC`, so
+  `net/http`'s accept loop returns) is `model.errFlag`'s arbitrary answer: more.
+
+**Verdict:** sound (only adds executions; nothing new to derive `False` from). D12 no longer lists a
+bare `Errno` of a new socket's registration as not modeled.

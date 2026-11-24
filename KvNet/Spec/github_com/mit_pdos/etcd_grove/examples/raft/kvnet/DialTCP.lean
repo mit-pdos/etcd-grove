@@ -49,7 +49,7 @@ abbrev DialTCP.spec : Prop :=
   {{ (c : GoInterface) (err : GoInterface), RET (PairV #c #err);
       (⌜err = interface.nil⌝ ∗ ∃ cn, net.isConn (GF := GF) c cn false a ∗ Qok cn) ∨
       (Qfail ∗ ∃ x e, net.netAddr x ∗ net.opErr go!"dial" interface.nil x e err ∗
-        (net.sysErr (fun _ => True) e ∨ ⌜e = et ∨ e = ed⌝)) }}
+        (net.sysErr (fun _ => True) e ∨ ⌜e = et ∨ e = ed ∨ net.epollErr e⌝)) }}
 
 end spec
 

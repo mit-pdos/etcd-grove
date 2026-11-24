@@ -12,7 +12,7 @@
 //	D2  WriteStep        D9   LisClose              D16 abandoned dials (DialStep, NetConn.abandoned)
 //	D3  CloseStep        D10  crash (a node's listeners go; connections untouched)
 //	D4  CloseWriteStep   D11  process exit: as a crash, for the peers
-//	D5  SetDeadlineStep  D12  not modeled (ENOMEM/ENOBUFS but Listen's epoll Errno, ...)
+//	D5  SetDeadlineStep  D12  not modeled (ENOMEM/ENOBUFS of a live connection, ...)
 //	D6  ListenStep       D13  the deployment     D17 Close of an open end or listener succeeds
 //	D7  AcceptStep       D14  the error kinds    D18 addresses (TrustedCode/net.lean)
 //	                                             D19 DialTimeout (TrustedCode/net.lean)
@@ -129,13 +129,15 @@
 //	                                  EADDRNOTAVAIL, an *OpError around an *os.SyscallError (bind):
 //	                                  the model's sys failure (v3.4: no plan, any machine may listen
 //	                                  at any valid address; the kernel refuses one not its own)
-//	TestListenEpollErrno         D6,D12 epoll_ctl's registration of the listening socket failing        measured   Listen.impl, model.epollErr
-//	(listen_epoll_test.go)            (ENOSPC, ENOMEM, injected by a seccomp filter in a child):        (Go's    (v3.6; Listen.spec's epollErr)
-//	                                  an *OpError "listen" whose Err is the bare syscall.Errno, no        side);
-//	                                  *os.SyscallError, no listener left (listenStream returns         documented
-//	                                  fd.init()'s error unwrapped: sock_posix.go); the kernel's        (the errnos:
-//	                                  errnos for a fresh socket are only these two (fs/eventpoll.c)     eventpoll.c)
-//	                                  (REFUTED v3.5's model, always an *os.SyscallError)
+//	TestListenEpollErrno         D6-D8,D12 epoll_ctl's registration of the new socket failing          measured   Listen.impl, Accept.impl, Dial.impl,
+//	(listen_epoll_test.go)            (ENOSPC, ENOMEM, injected by a seccomp filter in a child) in      (Go's    model.epollErr, model.pollErr
+//	                                  Listen, Accept, Dial: an *OpError listen/accept/dial whose Err    side);   (v3.6; the specs' epollErr,
+//	                                  is the bare syscall.Errno, no *os.SyscallError, no result, no     documented resErr's poll)
+//	                                  socket left; Accept's queued connection is closed (its dialer    (the errnos:
+//	                                  reads EOF); Go returns fd.init()'s error unwrapped (sock_posix.go eventpoll.c)
+//	                                  listenStream, fd_unix.go netFD.accept, netFD.connect); the
+//	                                  kernel's errnos for a fresh socket are only these two
+//	                                  (fs/eventpoll.c) (REFUTED v3.5's models, always *os.SyscallError)
 //	TestDialRefused              D8   no listener: ECONNREFUSED                                          measured   DialStep (sys)
 //	TestAcceptAfterListenerClose D7,D9,D17 LisClose: nil, wakes Accept with ErrClosed; Accept and Close  measured   AcceptStep, LisCloseOutcome
 //	                                  after it: ErrClosed

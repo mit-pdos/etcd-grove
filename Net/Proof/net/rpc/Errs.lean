@@ -202,27 +202,29 @@ theorem errAny_opErrPtr (pe : Loc) (v : net.OpError) :
   iapply HΦ
 
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is `errNE`. -/
-theorem errNE_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
+theorem errNE_resErr {poll : Bool} (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ errNE err := by
-  unfold net.resErr
-  iintro ⟨%e, Hop, -⟩
+    net.resErr (GF := GF) (some k) op src addr ed nm err poll ⊢ errNE err := by
+  iintro H
+  icases net.resErr_opErr _ _ _ _ _ _ _ $$ H with ⟨%e, Hop⟩
   iapply errNE_opErr $$ Hop
 
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is `errAny`. -/
-theorem errAny_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
+theorem errAny_resErr {poll : Bool} (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ models_lab.errAny err := by
-  unfold net.resErr
-  iintro ⟨%e, Hop, -⟩
+    net.resErr (GF := GF) (some k) op src addr ed nm err poll ⊢ models_lab.errAny err := by
+  iintro H
+  icases net.resErr_opErr _ _ _ _ _ _ _ $$ H with ⟨%e, Hop⟩
   iapply errAny_opErr $$ Hop
 
 /-- A failure's error is not a `ServerError`. -/
-theorem notServerErr_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
+theorem notServerErr_resErr {poll : Bool} (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ ⌜notServerErr err⌝ := by
-  unfold net.resErr net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, -⟩, -⟩
+    net.resErr (GF := GF) (some k) op src addr ed nm err poll ⊢ ⌜notServerErr err⌝ := by
+  iintro H
+  icases net.resErr_opErr _ _ _ _ _ _ _ $$ H with ⟨%e, Hop⟩
+  iunfold net.opErr at Hop
+  icases Hop with ⟨%pe, %nw, ⟨%Herr, -⟩, -⟩
   ipureintro
   subst Herr
   exact notServerErr_opError pe

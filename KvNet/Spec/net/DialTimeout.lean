@@ -2,7 +2,8 @@
 /-
 `net.DialTimeout("tcp", a, timeout)` for a valid address `a` (`addrOk`, D20; `DialTimeout.impl`,
 `Net/TrustedCode/net.lean`, D19): as `net.Dial` (`Dial.spec`: the extension's `Dial`, D8, D16),
-but a failure's `Err` is an `*os.SyscallError` or a timeout, `net`'s `errTimeout` (`et`) or
+but a failure's `Err` is an `*os.SyscallError`, a bare `ENOMEM`/`ENOSPC` (`epollErr`, D8: Go's
+`netFD.connect` returns the poller registration's error unwrapped), or a timeout, `net`'s `errTimeout` (`et`) or
 `poll.ErrDeadlineExceeded`'s value (`ed`): both occur (`TestDialTimeoutAccepted`). The timeout's
 value is not modeled. Proved in `Net/Proof/net/DialTimeout.lean`.
 
@@ -45,7 +46,7 @@ abbrev DialTimeout.spec : Prop :=
   {{ (c : GoInterface) (err : GoInterface), RET (PairV #c #err);
       (⌜err = interface.nil⌝ ∗ ∃ cn, isConn c cn false a ∗ Qok cn) ∨
       (Qfail ∗ ∃ x e, netAddr x ∗ opErr go!"dial" interface.nil x e err ∗
-        (sysErr (fun _ => True) e ∨ ⌜e = et ∨ e = ed⌝)) }}
+        (sysErr (fun _ => True) e ∨ ⌜e = et ∨ e = ed ∨ epollErr e⌝)) }}
 
 end spec
 

@@ -53,7 +53,7 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
     rw [Conn_ty_eq]
     wp_auto
     cases o
-    · wp_apply wp_kindErr (c := NetErr.closed.code) .closed none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
+    · wp_apply wp_pollErr (c := NetErr.closed.code) .closed none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
       (try wp_auto)
       wp_apply wp_opError $$ %Hnw as %err #Herr
       (try wp_auto)
@@ -65,7 +65,7 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
       unfold resErr
       iexists e
       iframe Herr He
-    · wp_apply wp_kindErr (c := NetErr.sys.code) .sys none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
+    · wp_apply wp_pollErr (c := NetErr.sys.code) .sys none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
       (try wp_auto)
       wp_apply wp_opError $$ %Hnw as %err #Herr
       (try wp_auto)

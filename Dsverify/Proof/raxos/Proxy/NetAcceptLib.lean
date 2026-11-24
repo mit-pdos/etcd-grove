@@ -111,13 +111,16 @@ theorem errorString_ptr_notFormatter [errors.Assumptions] [fmt.Assumptions] :
 omit π qv in
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is not a `fmt.Formatter`, and is
 `errAny` (`net.rpc.errAny_resErr`). -/
-theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] (k : NetErr) (op : GoString)
-    (src addr : GoInterface) (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢
+theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] {poll : Bool} (k : NetErr)
+    (op : GoString) (src addr : GoInterface) (ed : Option GoInterface) (nm : GoString → Prop)
+    (err : GoInterface) :
+    net.resErr (GF := GF) (some k) op src addr ed nm err poll ⊢
       ⌜∀ ii, err = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
         models_lab.errAny err := by
-  unfold net.resErr net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
+  iintro H
+  icases net.resErr_opErr _ _ _ _ _ _ _ $$ H with ⟨%e, Hop⟩
+  iunfold net.opErr at Hop
+  icases Hop with ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩
   subst Herr
   isplitr
   · ipureintro; intro ii hii; cases hii; exact opError_ptr_notFormatter

@@ -53,9 +53,9 @@ theorem tcpConn_ne_writer :
   unfold net.TCPConn.ty bufio.Writer.ty; simp
 
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is an error with some message. -/
-theorem resErr_errOrNil (k : NetErr) (op : GoString) (src addr : GoInterface)
+theorem resErr_errOrNil {poll : Bool} (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ errOrNil err := by
+    net.resErr (GF := GF) (some k) op src addr ed nm err poll ⊢ errOrNil err := by
   iintro #H
   ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ H
   ihave #Ha := net.rpc.errAny_resErr _ _ _ _ _ _ _ $$ H

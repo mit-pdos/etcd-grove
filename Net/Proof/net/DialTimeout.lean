@@ -59,22 +59,24 @@ local macro "dt_fail" : tactic => `(tactic| (
       · wp_auto
         unfold model.deadlineErr
         wp_auto
-        ihave #He : iprop(sysErr (GF := GF) (fun _ => True) ed ∨ ⌜ed = et ∨ ed = ed⌝) $$ []
-        · iright; ipureintro; exact .inr rfl
+        ihave #He : iprop(sysErr (GF := GF) (fun _ => True) ed ∨ ⌜ed = et ∨ ed = ed ∨ epollErr ed⌝) $$ []
+        · iright; ipureintro; exact .inr (.inl rfl)
         dt_tail
       · unfold errTimeout at *
         wp_auto
-        ihave #He : iprop(sysErr (GF := GF) (fun _ => True) et ∨ ⌜et = et ∨ et = ed⌝) $$ []
+        ihave #He : iprop(sysErr (GF := GF) (fun _ => True) et ∨ ⌜et = et ∨ et = ed ∨ epollErr et⌝) $$ []
         · iright; ipureintro; exact .inl rfl
         dt_tail
     · wp_auto
       wp_bind (ExternalOp _ _ _)
       iapply wp_net_AnyString
       iintro %nm
-      wp_apply wp_kindErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He0
+      wp_apply wp_pollErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He0
       simp only [kindErr]
-      ihave #He : iprop(sysErr (GF := GF) (fun _ => True) e ∨ ⌜e = et ∨ e = ed⌝) $$ [He0]
-      · ileft; iexact He0
+      ihave #He : iprop(sysErr (GF := GF) (fun _ => True) e ∨ ⌜e = et ∨ e = ed ∨ epollErr e⌝) $$ [He0]
+      · icases He0 with (#He0 | %He0)
+        · ileft; iexact He0
+        · iright; ipureintro; exact .inr (.inr (by first | exact He0.2 | exact He0))
       dt_tail))
 
 theorem DialTimeout.wp_proof : DialTimeout.spec (GF := GF) (hG := hG) := by

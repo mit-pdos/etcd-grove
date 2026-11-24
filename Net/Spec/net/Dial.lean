@@ -7,7 +7,8 @@ set (`netPend`), which gets `cn` (with `netConnAt` and its acceptor's end's fres
 dialer's end as a `Conn` (`isConn _ cn false a`) and `Qok cn`, or, abandoned, the dialer's end
 closed and its direction shut and empty, the call failing with `Qfail`. A failure's error is
 `*OpError{Op: "dial", Source: nil, Addr: x}`, `x` a `*TCPAddr`, whose `Err` is an `*os.SyscallError`
-(`resErr`, D14). Proved in `Net/Proof/net/Dial.lean`.
+(`resErr`, D14) or, `poll`, a bare `ENOMEM`/`ENOSPC` (`epollErr`, D8: Go's `netFD.connect` returns
+the poller registration's error unwrapped). Proved in `Net/Proof/net/Dial.lean`.
 
 The network `nw` is `"tcp"` or `"tcp4"` (`tcpNet`, D23): the same on the valid IPv4
 addresses, the network kept in the connection or listener and put in its errors.
@@ -46,7 +47,8 @@ abbrev Dial.spec : Prop :=
     (App (App (Val (@! net.Dial)) (Val #nw)) (Val #a))
   {{ (c : GoInterface) (err : GoInterface), RET (PairV #c #err);
       (⌜err = interface.nil⌝ ∗ ∃ cn, isConn c cn false a ∗ Qok cn) ∨
-      (Qfail ∗ ∃ x, netAddr x ∗ resErr (some .sys) go!"dial" interface.nil x none (fun _ => True) err) }}
+      (Qfail ∗ ∃ x, netAddr x ∗
+        resErr (some .sys) go!"dial" interface.nil x none (fun _ => True) err (poll := true)) }}
 
 end spec
 

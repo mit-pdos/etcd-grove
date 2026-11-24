@@ -1,6 +1,6 @@
 /-
 The trusted models' error and address helpers (`Net/TrustedCode/net.lean`: `model.opError`,
-`model.kindErr`, `model.sysErr`, `model.epollErr`, `model.anyTCPAddr`), as WP lemmas the proofs of `net`'s specs use:
+`model.kindErr`, `model.sysErr`, `model.epollErr`, `model.pollErr`, `model.anyTCPAddr`), as WP lemmas the proofs of `net`'s specs use:
 each gives the error's or the address's predicate of `Base.lean` (`opErr`, `kindErr`, `sysErr`,
 `epollErr`, `netAddr`). And `(*OpError).Error()` (`OpError.Error.impl`): a message of Go's form, its
 operation, then `": "` (`opErrMsg`, `wp_OpError_Error`).
@@ -121,6 +121,43 @@ theorem wp_epollErr (Φ : val → IProp GF) :
   · wp_auto
     iapply HΦ
     ipureintro; exact .inl rfl
+
+/-- The `Err` of a failure of kind `k` of an operation that registers a new socket with the poller
+(`model.pollErr`): the kind's, or for `sys` a bare `Errno` (`epollErr`). -/
+theorem wp_pollErr (k : NetErr) (ed : Option GoInterface) (name : GoString)
+    (nm : GoString → Prop) (hnm : nm name) {c : w64} (hc : c = errCode (some k))
+    (Φ : val → IProp GF) :
+    (match k, ed with
+     | .timeout, some e => iprop(globalAddr internal.poll.ErrDeadlineExceeded ↦□ e)
+     | .timeout, none => iprop(False)
+     | _, _ => iprop(True)) -∗
+    (∀ e, (kindErr (GF := GF) k ed nm e ∨ ⌜k = .sys ∧ epollErr e⌝) -∗ Φ #e) -∗
+    WP (App (App (Val model.pollErr) (Val #c)) (Val #name)) {{ Φ }} := by
+  subst hc
+  iintro Hed HΦ
+  unfold model.pollErr
+  cases k
+  · wp_auto
+    wp_apply wp_kindErr .closed ed name nm hnm rfl $$ Hed as %e #He
+    iapply HΦ
+    ileft; iexact He
+  · wp_auto
+    wp_apply wp_kindErr .timeout ed name nm hnm rfl $$ Hed as %e #He
+    iapply HΦ
+    ileft; iexact He
+  · wp_auto
+    wp_bind (ExternalOp _ _ _)
+    iapply wp_net_AnyBool
+    iintro %b
+    cases b
+    · wp_auto
+      wp_apply wp_kindErr .sys ed name nm hnm rfl $$ Hed as %e #He
+      iapply HΦ
+      ileft; iexact He
+    · wp_auto
+      wp_apply wp_epollErr as %e %He
+      iapply HΦ
+      iright; ipureintro; exact ⟨rfl, He⟩
 
 theorem wp_anyTCPAddr (Φ : val → IProp GF) :
     (∀ x, netAddr (GF := GF) x -∗ Φ #x) -∗

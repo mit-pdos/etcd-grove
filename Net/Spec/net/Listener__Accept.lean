@@ -12,7 +12,8 @@ wildcard) and pending there is taken out of `a`'s pending set (`netPend`), by an
 listener's state and that set which the caller gives for every such `a`, and the call returns its
 acceptor's end as a `Conn` (`isConn _ cn true a`) with `Qok a cn`. A failure's error is the
 `*OpError{Op: "accept", Source: nil, Addr: x}` of its kind (`resErr`; a `sys` error's call
-`"accept4"`). Proved in `Net/Proof/net/Listener__Accept.lean`. Its instance at a valid address, with
+`"accept4"`, or, `poll`, a bare `ENOMEM`/`ENOSPC`: `epollErr`, D7, Go's `netFD.accept` returning the
+poller registration's error of the connection it took unwrapped, after closing it). Proved in `Net/Proof/net/Listener__Accept.lean`. Its instance at a valid address, with
 one update over both cases, is `Listener.Accept.spec_addrOk` (`Net/Proof/net/AtAddr.lean`).
 -/
 module
@@ -53,7 +54,8 @@ abbrev Listener.Accept.spec : Prop :=
   {{ (c : GoInterface) (err : GoInterface), RET (PairV #c #err);
       (⌜err = interface.nil⌝ ∗ ∃ cn a, ⌜addrOk a = true ∧ lisAccepts la a⌝ ∗ isConn c cn true a ∗
         Qok a cn) ∨
-      (∃ k, Qfail k ∗ resErr (some k) go!"accept" interface.nil x none (· = go!"accept4") err) }}
+      (∃ k, Qfail k ∗
+        resErr (some k) go!"accept" interface.nil x none (· = go!"accept4") err (poll := true)) }}
 
 end spec
 

@@ -22,10 +22,11 @@ v3.4 (no plan and no hosts: any machine may listen at any valid address, D6, D13
 adds behaviours, each starting from a step that was a panic: `notes/net-tcp.md`, v3.4), v3.5 (a
 `sys` read error only once nothing is unread, D1: before it a read could fail `ECONNRESET` and a
 later read return bytes, which Linux never does; it only removes behaviours, those in which a `sys`
-read error came with a byte unread: `notes/net-sticky-read.md`), v3.6 (a failed `Listen`'s `Err`
-may be a bare `ENOMEM` or `ENOSPC`, D6, D12: Go returns the poller registration's `Errno`
-unwrapped, which v3.5's model, always an `*os.SyscallError`, excluded; it only adds behaviours,
-each a failing `Listen` whose `Err` is one of the two `Errno`s instead of a `*os.SyscallError`).
+read error came with a byte unread: `notes/net-sticky-read.md`), v3.6 (a `sys` failure's `Err` of
+`Listen`, `Accept`, `Dial` and `DialTimeout` may be a bare `ENOMEM` or `ENOSPC`, D6, D7, D8, D12: Go
+returns the poller registration's `Errno` of a new socket unwrapped, which v3.5's models, always an
+`*os.SyscallError`, excluded; it only adds behaviours, each a failing call whose `Err` is one of
+the two `Errno`s instead of a `*os.SyscallError`).
 
 **State: only what a program can observe.** The global state (`NetGlobal`) is the connections.
 A connection (`NetConn`) has the address it was dialed to, whether it has been accepted, two ends
@@ -136,7 +137,14 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
 * D7 `"Accept"` of a listener `l`: only `closed` once `l` is closed. Otherwise a connection dialed
   to an address `l` takes (`lisAccepts`: its own, or any address with its port for a wildcard,
   D21) and not yet accepted, now accepted; or a `sys` failure; until one of these, it waits (a
-  stutter, D22). Pending connections belong to the address, not to a listener, because a node's
+  stutter, D22). A `sys` failure's `Err` (the trusted `TCPListener.Accept.impl`) is an
+  `*os.SyscallError` (`accept4`) or, v3.6, a bare `ENOMEM`/`ENOSPC` (`model.pollErr`): Go's
+  `netFD.accept` (`fd_unix.go`) returns the poller registration's error of the socket `accept4(2)`
+  returned unwrapped, after closing that socket. The kernel had taken that connection off the
+  listener's queue, and closing it sends the dialer a FIN (or a reset, with bytes unread); the model's
+  `sys` failure changes nothing, the connection stays pending at its address, and the dialer's view
+  of a closed peer is a cut its reads and writes may take (D1, D2), while a later `Accept` of it is
+  more than Linux (`TestListenEpollErrno`). Pending connections belong to the address, not to a listener, because a node's
   step sees only its own local state and the network (Perennial's step relation): a `Dial` cannot
   see whether another node listens, and a crash cannot reset connections. So a connection dialed
   when no listener was open, or before the listening node's crash, may be accepted later, by any
@@ -149,7 +157,12 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
   and whose direction from it is `fin` and empty (`NetConn.abandoned`): Go's `connect` gives up
   (a deadline, a cancelled context) and closes the socket after the kernel's handshake finished, so
   the listener's kernel has queued the connection and `Accept` returns it, reading EOF
-  (`TestDialTimeoutAccepted`). For every dial (simplest, and sound: more than Linux).
+  (`TestDialTimeoutAccepted`). For every dial (simplest, and sound: more than Linux). A `sys`
+  failure's `Err` (the trusted `Dial.impl`, `DialTimeout.impl`) is an `*os.SyscallError` or, v3.6, a
+  bare `ENOMEM`/`ENOSPC` (`model.pollErr`): Go's `netFD.connect` (`fd_unix.go`) returns the poller
+  registration's error unwrapped, after `connect(2)` started the handshake, and `socket` then closes
+  the socket (`sock_posix.go`): the listener's kernel may have queued it (the D16 outcome) or not
+  (`TestListenEpollErrno`).
 * D9 `"LisClose"` of `l`: closes it, with success (D17, as D3); `closed` if it is closed already.
   Pending connections stay pending (D7).
 * `"AnyBool"`, `"AnyString"`, `"AnyW64"`: an arbitrary value; `"AnyErrno"`: an arbitrary nonzero
@@ -184,10 +197,10 @@ lock, or hold references to it; the model lets them wait (a stutter). A program 
 goroutines blocked on one socket can panic in Go where the model says it cannot.
 
 **What is not modeled** (D12). Memory exhaustion in the kernel (`ENOMEM`/`ENOBUFS`: a failure of a
-live connection that is not a cut, and the bare `Errno` of a failed `epoll_ctl` registration in
-`Accept` or `Dial`), as the file extensions' allocation failures. (`Listen`'s bare `Errno` of a
-failed registration, `ENOMEM` or `ENOSPC`, is modeled since v3.6, D6: until then this list did not
-name `Listen`, and its model excluded the outcome without saying so.) Addresses are the valid strings
+live connection that is not a cut), as the file extensions' allocation failures. (The bare `Errno`,
+`ENOMEM` or `ENOSPC`, of a failed `epoll_ctl` registration of a new socket is modeled since v3.6, in
+`Listen`, `Accept`, `Dial` and `DialTimeout`: D6, D7, D8. Until then this list named it as not
+modeled in `Accept` and `Dial`, and not at all in `Listen`, whose model excluded it.) Addresses are the valid strings
 (D20) and the wildcards of D21, compared as strings; `Listen` or `Dial` of any other string panics
 (D22).
 Port `0`, TLS, UDP, Unix sockets, the deadlines' values, the keepalive probes' timing (D24: their

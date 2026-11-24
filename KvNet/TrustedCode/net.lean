@@ -65,8 +65,9 @@ and arbitrary otherwise: an `Errno`'s are `true` for `ETIMEDOUT`, `EAGAIN` (and 
 `sys` error may be (`syscall_unix.go`, `net.go`). When registering a new socket with the poller
 fails (`ENOMEM`, `ENOSPC` of `epoll_ctl(2)`), Go returns that `syscall.Errno` bare, not wrapped in an
 `*os.SyscallError` (`fd.init()`'s error, `internal/poll/fd_poll_runtime.go`'s `pollDesc.init`):
-`Listen`'s model returns it too (`model.epollErr`, D6: `listenStream`, `sock_posix.go`); `Accept`'s
-and `Dial`'s do not (D12).
+the models of `Listen`, `Accept`, `Dial` and `DialTimeout` return it too, as an alternative to a `sys`
+failure's `*os.SyscallError` (`model.epollErr`, `model.pollErr`; D6: `listenStream`, `sock_posix.go`;
+D7: `netFD.accept`, D8: `netFD.connect`, `fd_unix.go`).
 
 **Faithfulness.** Each model is the Go function with its system calls replaced by the extension's
 operations (`Impl.lean` says why each operation's outcomes are those of Linux). Go's `Read` loops
@@ -306,6 +307,21 @@ noncomputable def model.kindErr : val :=
     else if: "code" =⟨go.uint64⟩ #(W64 2) then model.deadlineErr #()
     else model.sysErr "name"
 
+/-- The `Err` of a failure of the kind with code `code` of an operation that registers a new socket
+with the poller (`Accept`, `Dial`, D7, D8): `model.kindErr`'s, or, for a `sys` failure, at the
+model's choice, the bare `Errno` of a failed registration (`model.epollErr`). Go's `netFD.accept`
+(`fd_unix.go`: `if err = netfd.init(); err != nil { netfd.Close(); return nil, err }`, after
+`accept4(2)` took a connection) and `netFD.connect` (`fd_unix.go`: `if err :=
+fd.pfd.Init(fd.net, true); err != nil { return nil, err }`, after `connect(2)`, and `socket` then
+closes the fd, `sock_posix.go`) return it unwrapped. A `closed` or `timeout` failure never reaches the
+registration (`accept4` or the wait failed first). -/
+noncomputable def model.pollErr : val :=
+  λ: "code" "name",
+    if: "code" =⟨go.uint64⟩ #(W64 3) then
+      (if: ExternalOp Net.netExt.name "AnyBool" #() then model.epollErr #()
+       else model.kindErr "code" "name")
+    else model.kindErr "code" "name"
+
 /-- A new `*TCPAddr` with arbitrary fields, as an `Addr`. -/
 noncomputable def model.anyTCPAddr : val :=
   λ: <>,
@@ -382,7 +398,8 @@ noncomputable def Listen.impl : val :=
 `Dialer`, which for `"tcp"` resolves the address, then `socket(2)` and `connect(2)` (waiting for
 the handshake): the extension's `Dial` (a panic unless the address is valid, `addrOk`). A `*TCPConn`
 with new addresses and the network (`"tcp"` or `"tcp4"`, D23) as a `Conn`; an error is
-`&OpError{Op: "dial", Net: network, Addr: <the resolved address>, ...}` (`dialSingle`) with a nil
+`&OpError{Op: "dial", Net: network, Addr: <the resolved address>, Err: e}` (`dialSingle`), `e` the
+kind's or, for a `sys` failure, a bare `ENOMEM`/`ENOSPC` (`model.pollErr`, D8), with a nil
 `Conn`. -/
 noncomputable def Dial.impl : val :=
   λ: "network" "address",
@@ -391,12 +408,12 @@ noncomputable def Dial.impl : val :=
       if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (model.newConn (Fst "r") "network", #GoInterface.nil)
       else (GoZeroVal model.Conn #(), model.opError #(go!"dial") "network" #GoInterface.nil
         (model.anyTCPAddr #())
-        (model.kindErr (Snd "r") (ExternalOp Net.netExt.name "AnyString" #())))
+        (model.pollErr (Snd "r") (ExternalOp Net.netExt.name "AnyString" #())))
     else Panic "net: Dial of a network but tcp and tcp4 not modelled"
 
 /-- D19. `DialTimeout(network, address string, timeout time.Duration) (Conn, error)` (`dial.go`):
 `Dialer{Timeout: timeout}.Dial`, the extension's `Dial` as `Dial.impl`; a failure's `Err` is the
-system's error, or a timeout: `net`'s `errTimeout` (`mapErr(ctx.Err())` once the dial's context
+system's error (an `*os.SyscallError`, or a bare `ENOMEM`/`ENOSPC`: `model.pollErr`), or a timeout: `net`'s `errTimeout` (`mapErr(ctx.Err())` once the dial's context
 expired: `dialSerial`, `partialDeadline`, `netFD.connect`) or `poll.ErrDeadlineExceeded`
 (`netFD.connect`'s `WaitWrite` under the write deadline it sets to the dial's deadline, returned
 as it is when the context's timer has not fired yet). The timeout's value is not modeled (any
@@ -409,7 +426,7 @@ noncomputable def DialTimeout.impl : val :=
       else (GoZeroVal model.Conn #(), model.opError #(go!"dial") "network" #GoInterface.nil
         (model.anyTCPAddr #())
         (if: ExternalOp Net.netExt.name "AnyBool" #() then
-          model.kindErr (Snd "r") (ExternalOp Net.netExt.name "AnyString" #())
+          model.pollErr (Snd "r") (ExternalOp Net.netExt.name "AnyString" #())
          else if: ExternalOp Net.netExt.name "AnyBool" #() then
           ![go.error] (GlobalVarAddr go!"net.errTimeout" #())
          else model.deadlineErr #()))
@@ -418,7 +435,10 @@ noncomputable def DialTimeout.impl : val :=
 /-- `(*TCPListener).Accept() (Conn, error)` (`tcpsock.go`, `tcpsock_posix.go`'s `accept`):
 `accept4(2)` through the poller (waiting for a connection; `ECONNABORTED` retried): the extension's
 `Accept`. A `*TCPConn` with new addresses as a `Conn`; an error is
-`&OpError{Op: "accept", Addr: l.addr, ...}`. A zero `TCPListener` (`lid` 0): `nil`,
+`&OpError{Op: "accept", Addr: l.addr, Err: e}`, `e` the kind's or, for a `sys` failure, a bare
+`ENOMEM`/`ENOSPC` (`model.pollErr`, D7: `netFD.accept` closes the connection `accept4` took when its
+registration fails; the extension's `sys` failure leaves it pending, from which every outcome the
+peer sees of a closed connection is allowed: D7). A zero `TCPListener` (`lid` 0): `nil`,
 `syscall.EINVAL`. -/
 noncomputable def TCPListener.Accept.impl : val :=
   λ: "l" <>,
@@ -433,7 +453,7 @@ noncomputable def TCPListener.Accept.impl : val :=
     else (GoZeroVal model.Conn #(), model.opError #(go!"accept")
       (![go.string] (StructFieldRef model.TCPListener go!"net" "l")) #GoInterface.nil
       (![model.Addr] (StructFieldRef model.TCPListener go!"addr" "l"))
-      (model.kindErr (Snd "r") #(go!"accept4")))
+      (model.pollErr (Snd "r") #(go!"accept4")))
 
 /-- `(*TCPListener).Close() error` (`tcpsock.go`): `close(2)` of the listening socket (a second
 close is `ErrNetClosing`): the extension's `LisClose`; an error is
