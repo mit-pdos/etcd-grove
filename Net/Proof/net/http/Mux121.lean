@@ -465,6 +465,109 @@ local macro "mux121_rest " mt:term:max : tactic => `(tactic| (
     try wp_auto
     mux121_close $mt st.es st.ents Hok.2))
 
+/-- `rep121` splits and combines by fractions (its state fixed). -/
+theorem rep121_split (q1 q2 : Qp) (mux : Loc) (st : Mux121St) (M : GMap GoString net.http.muxEntry) :
+    rep121 (GF := GF) (hG := hG) (DFrac.own (q1 + q2)) mux st M ⊣⊢
+      rep121 (DFrac.own q1) mux st M ∗ rep121 (DFrac.own q2) mux st M := by
+  have hpt : ∀ {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V),
+      (l ↦{DFrac.own (q1 + q2)} v : IProp GF) ⊣⊢ l ↦{DFrac.own q1} v ∗ l ↦{DFrac.own q2} v :=
+    fun l v => (typedPointsto_dfractional (GF := GF) l v).dfractional (DFrac.own q1) (DFrac.own q2)
+  have hsl : (st.es ↦*{DFrac.own (q1 + q2)} st.ents : IProp GF) ⊣⊢
+      st.es ↦*{DFrac.own q1} st.ents ∗ st.es ↦*{DFrac.own q2} st.ents :=
+    (ownSlice_dfractional (GF := GF) st.es st.ents).dfractional (DFrac.own q1) (DFrac.own q2)
+  have hcap : (ownSliceCap (GF := GF) net.http.muxEntry st.es (DFrac.own (q1 + q2))) ⊣⊢
+      ownSliceCap net.http.muxEntry st.es (DFrac.own q1) ∗
+        ownSliceCap net.http.muxEntry st.es (DFrac.own q2) :=
+    (ownSliceCap_dfractional (GF := GF) (V := net.http.muxEntry) st.es).dfractional
+      (DFrac.own q1) (DFrac.own q2)
+  have hmap := (ownMap_fractional (GF := GF) st.m M).fractional q1 q2
+  unfold rep121
+  by_cases hm : st.m = map.nil
+  · simp only [hm, ↓reduceIte]
+    refine ⟨?_, ?_⟩
+    · iintro ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, -⟩
+      icases (hpt _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
+      icases (hpt _ _).1 $$ Hes with ⟨Hes1, Hes2⟩
+      icases (hpt _ _).1 $$ Hh with ⟨Hh1, Hh2⟩
+      icases hsl.1 $$ Hents with ⟨Hents1, Hents2⟩
+      icases hcap.1 $$ Hcap with ⟨Hcap1, Hcap2⟩
+      isplitl [Hm1 Hes1 Hh1 Hents1 Hcap1]
+      · iframe; ipureintro; exact ⟨Hok, trivial⟩
+      · iframe; ipureintro; exact ⟨Hok, trivial⟩
+    · iintro ⟨⟨Hm1, Hes1, Hh1, Hents1, Hcap1, %Hok, -⟩, ⟨Hm2, Hes2, Hh2, Hents2, Hcap2, -, -⟩⟩
+      isplitl [Hm1 Hm2]
+      · iapply (hpt _ _).2; iframe
+      isplitl [Hes1 Hes2]
+      · iapply (hpt _ _).2; iframe
+      isplitl [Hh1 Hh2]
+      · iapply (hpt _ _).2; iframe
+      isplitl [Hents1 Hents2]
+      · iapply hsl.2; iframe
+      isplitl [Hcap1 Hcap2]
+      · iapply hcap.2; iframe
+      ipureintro; exact ⟨Hok, trivial⟩
+  · simp only [hm, ↓reduceIte]
+    refine ⟨?_, ?_⟩
+    · iintro ⟨Hm, Hes, Hh, Hents, Hcap, %Hok, HM⟩
+      icases (hpt _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
+      icases (hpt _ _).1 $$ Hes with ⟨Hes1, Hes2⟩
+      icases (hpt _ _).1 $$ Hh with ⟨Hh1, Hh2⟩
+      icases hsl.1 $$ Hents with ⟨Hents1, Hents2⟩
+      icases hcap.1 $$ Hcap with ⟨Hcap1, Hcap2⟩
+      icases hmap.1 $$ HM with ⟨HM1, HM2⟩
+      isplitl [Hm1 Hes1 Hh1 Hents1 Hcap1 HM1]
+      · iframe; ipureintro; exact Hok
+      · iframe; ipureintro; exact Hok
+    · iintro ⟨⟨Hm1, Hes1, Hh1, Hents1, Hcap1, %Hok, HM1⟩, ⟨Hm2, Hes2, Hh2, Hents2, Hcap2, -, HM2⟩⟩
+      isplitl [Hm1 Hm2]
+      · iapply (hpt _ _).2; iframe
+      isplitl [Hes1 Hes2]
+      · iapply (hpt _ _).2; iframe
+      isplitl [Hh1 Hh2]
+      · iapply (hpt _ _).2; iframe
+      isplitl [Hents1 Hents2]
+      · iapply hsl.2; iframe
+      isplitl [Hcap1 Hcap2]
+      · iapply hcap.2; iframe
+      isplitr
+      · ipureintro; exact Hok
+      iapply hmap.2; iframe
+
+theorem mapOfRoutes_unique (M1 M2 : GMap GoString net.http.muxEntry) (R : GMap GoString GoInterface)
+    (h1 : mapOfRoutes M1 R) (h2 : mapOfRoutes M2 R) : M1 = M2 :=
+  GMap.ext (fun k => by rw [h1 k, h2 k])
+
+instance mux121P_fractional (γ : Mux121Names) (mux : Loc) :
+    Fractional (mux121P (GF := GF) (hG := hG) γ mux) where
+  fractional q1 q2 := by
+    have hg := fun (x : Mux121St) => (ghostVar_half_fractional (GF := GF) γ.st x).fractional q1 q2
+    have ha := fun (R : GMap GoString GoInterface) =>
+      (ghostMapAuth_fractional (GF := GF) γ.r R).fractional q1 q2
+    unfold mux121P
+    refine ⟨?_, ?_⟩
+    · iintro ⟨%st, %R, %M, Hg, HA, Hrep, %HMR⟩
+      icases (hg st).1 $$ Hg with ⟨Hg1, Hg2⟩
+      icases (ha R).1 $$ HA with ⟨HA1, HA2⟩
+      icases (rep121_split q1 q2 mux st M).1 $$ Hrep with ⟨Hr1, Hr2⟩
+      isplitl [Hg1 HA1 Hr1]
+      · iexists st, R, M; iframe; ipureintro; exact HMR
+      · iexists st, R, M; iframe; ipureintro; exact HMR
+    · iintro ⟨⟨%st1, %R1, %M1, Hg1, HA1, Hr1, %HMR1⟩, ⟨%st2, %R2, %M2, Hg2, HA2, Hr2, %HMR2⟩⟩
+      ihave %Hst := ghostVar_agree γ.st _ _ _ _ $$ Hg1 Hg2
+      subst Hst
+      ihave %HR := ghostMapAuth_agree γ.r _ _ _ _ $$ HA1 HA2
+      subst HR
+      have HM := mapOfRoutes_unique M1 M2 R1 HMR1.1 HMR2.1
+      subst HM
+      iexists st1, R1, M1
+      isplitl [Hg1 Hg2]
+      · iapply (hg st1).2; iframe
+      isplitl [HA1 HA2]
+      · iapply (ha R1).2; iframe
+      isplitl [Hr1 Hr2]
+      · iapply (rep121_split q1 q2 mux st1 M1).2; iframe
+      ipureintro; exact HMR1
+
 /-- `mux.handle(p, h)` by the owner (the other half of the state): `p` registered for `h`. -/
 theorem wp_mux121_handle (wp_Search : sort.Search.spec (GF := GF) (hG := hG)) (mux : Loc)
     (γ : Mux121Names) (st : Mux121St) (p : GoString) (h : GoInterface)
@@ -592,6 +695,36 @@ theorem wp_mux121_redirectToPathSlash (mux : Loc) (γ : Mux121Names) (host path 
   · iunfold mux121P; iexists st, R, M; iframe; ipureintro; exact HMR
   try wp_auto
   iapply HΦ
+  iframe
+
+/-- The fields of a request `r` that the matcher reads for a `CONNECT` (at `dq`). -/
+def connReqFields (dq : DFrac) (r u : Loc) (path rh uh : GoString) : IProp GF :=
+  iprop(structFieldRef net.http.Request go!"Method" r ↦{dq} go!"CONNECT" ∗
+    structFieldRef net.http.Request go!"URL" r ↦{dq} u ∗
+    structFieldRef net.http.Request go!"Host" r ↦{dq} rh ∗
+    structFieldRef _root_.Perennial.net.url.URL go!"Host" u ↦{dq} uh ∗
+    structFieldRef _root_.Perennial.net.url.URL go!"Path" u ↦{dq} path)
+
+/-- `mux.findHandler(r)` for a `CONNECT` to a registered path, by a reader: the path's handler. -/
+theorem wp_mux121_findHandler_connect (mux : Loc) (γ : Mux121Names) (dq : DFrac) (r u : Loc)
+    (path rh uh : GoString) (h : GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗
+        sync.ownRWMutex (structFieldRef net.http.serveMux121 go!"mu" mux) (mux121P γ mux) ∗
+        path ↪[γ.r]□ h ∗ connReqFields dq r u path rh uh }}
+      (App (Val (mux @!! go.GoType.PointerType net.http.serveMux121.ty @!! go!"findHandler")) (Val #r))
+    {{ RET (PairV #h #path); sync.ownRWMutex (structFieldRef net.http.serveMux121 go!"mu" mux)
+        (mux121P γ mux) ∗ connReqFields dq r u path rh uh }} := by
+  wp_start as ⟨Hrw, #Hel, Hr⟩
+  iunfold connReqFields at Hr
+  icases Hr with ⟨Hmeth, Hurl, Hrh, Huh, Hpath⟩
+  try wp_auto
+  wp_apply wp_mux121_redirectToPathSlash mux γ uh path u h $$ [$Hrw $Hel] as Hrw
+  try wp_auto
+  wp_apply wp_mux121_handler mux γ rh path h $$ [$Hrw $Hel] as Hrw
+  try wp_auto
+  iapply HΦ
+  iframe
+  iunfold connReqFields
   iframe
 
 end defs
