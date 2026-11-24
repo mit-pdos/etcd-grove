@@ -107,6 +107,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   runtime_envs_unfold : FuncUnfold runtime_envs [] runtime_envs.impl
   FcntlFlock_unfold : FuncUnfold FcntlFlock [] FcntlFlock.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  Exit_unfold : FuncUnfold Exit [] Exit.impl
   Fallocate_unfold : FuncUnfold Fallocate [] Fallocate.impl
   Fdatasync_unfold : FuncUnfold Fdatasync [] Fdatasync.impl
   Flock_unfold : FuncUnfold Flock [] Flock.impl
@@ -201,6 +202,7 @@ attribute [instance] Assumptions.SysProcIDMap_instance
   Assumptions.runtime_envs_unfold
   Assumptions.FcntlFlock_unfold
   Assumptions.«init.0_unfold»
+  Assumptions.Exit_unfold
   Assumptions.Fallocate_unfold
   Assumptions.Fdatasync_unfold
   Assumptions.Flock_unfold

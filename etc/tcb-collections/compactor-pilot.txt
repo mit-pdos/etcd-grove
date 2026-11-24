@@ -23,7 +23,4 @@ axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom sort.SliceIsSorted.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

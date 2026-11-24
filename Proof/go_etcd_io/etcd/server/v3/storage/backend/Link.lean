@@ -82,7 +82,10 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.hooks__OnPreCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBatchTxBuffered
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBucketBuffer
+public import Proof.os.Exit
 public import Proof.os.Getenv
+public import Proof.go_uber_org.zap.internal.pool.Pool__Get
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Lock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
@@ -102,6 +105,7 @@ public import Proof.sort.stable
 public import Proof.sort.swapRange
 public import Proof.sort.symMerge
 public import Proof.strings.ToLower
+public import Proof.syscall.Exit
 public import Proof.time.Duration__Seconds
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txBuffer__reset
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer__ForEach
@@ -201,13 +205,25 @@ theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Error.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Get :
+    EtcdGrove.zap.internal.pool.Pool.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Get.wp_proof
+
 theorem zap.Logger.wp_Panic :
     EtcdGrove.zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Panic.wp_proof
+  EtcdGrove.zap.Logger.Panic.wp_proof zap.internal.pool.Pool.wp_Get
+
+theorem syscall.wp_Exit :
+    EtcdGrove.syscall.Exit.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.syscall.Exit.wp_proof
+
+theorem os.wp_Exit :
+    EtcdGrove.os.Exit.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.Exit.wp_proof syscall.wp_Exit
 
 theorem zap.Logger.wp_Fatal :
     EtcdGrove.zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Fatal.wp_proof
+  EtcdGrove.zap.Logger.Fatal.wp_proof zap.internal.pool.Pool.wp_Get os.wp_Exit
 
 theorem backend.wp_unsafeBegin :
     EtcdGrove.backend.backend.unsafeBegin.spec (GF := GF) (hG := hG) :=
@@ -409,9 +425,13 @@ theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Warn :
     EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
