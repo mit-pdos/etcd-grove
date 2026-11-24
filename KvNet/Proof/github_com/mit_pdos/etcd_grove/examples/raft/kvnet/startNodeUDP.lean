@@ -56,7 +56,51 @@ theorem startNodeUDP.wp_proof (γ : KdNames) (vs : List w64) (dir : GoString)
       (kvNodeStart γ vs dir)) :
     startNodeUDP.spec (GF := GF) (hG := hG) (kvFacts γ (fun _ => True)) (kvRep γ vs dir) kvConfRead
       (kvStp γ vs dir) (kvNodeStart γ vs dir) := by
-  sorry
+  intro γu cfg M a Hma Hok
+  wp_start as ⟨#HM, HS, Hu⟩
+  -- the cluster's facts, read off the start resource (which goes on whole)
+  iunfold kvNodeStart at HS
+  icases HS with ⟨%Hdir, %fl, %qc, Hst, #Hglob, #Hpeers, %Hopts⟩
+  ihave #Hglob' := Hglob
+  iunfold kvStartGlobals at Hglob'
+  icases Hglob' with ⟨%Hcf, -⟩
+  obtain ⟨Hdup, Hbl0, Htr0, Hsl, Hmd, Hmax⟩ := Hcf
+  ihave HS : kvNodeStart γ vs dir cfg.ID' cfg.Dir' cfg.Opts' M $$ [Hst]
+  · iunfold kvNodeStart
+    isplitr
+    · ipureintro; exact Hdir
+    iexists fl, qc
+    iframe Hst Hglob Hpeers
+    ipureintro; exact Hopts
+  try wp_auto
+  wp_apply wp_openUDP (kvFacts γ (fun _ => True)) γu cfg M a Hma Hok $$ [$Hpkg $HM $Hu]
+    as %u ⟨%boot, #Hun⟩
+  -- the transport constructor: the endpoint's method value, at TCP's per-address premise
+  ihave #Hctor : ptCtor (kvFacts γ (fun _ => True)) γ.r.cluster kdRaftN cfg.ID'
+      (tcpAP (kvFacts γ (fun _ => True)))
+      (methods (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.udpNet.ty)
+        go!"newTransport" #u) $$ []
+  · unfold ptCtor
+    iintro !> %am %M' %sts %Φ' !> ⟨Hpkg', #HM', #Hsts, -⟩ HΦ'
+    iapply wp_newTransport (kvFacts γ (fun _ => True)) γu u cfg.ID' boot γ.r.cluster kdRaftN am M' sts
+      Htr0 $$ [$Hpkg' $Hun $HM' $Hsts]
+    iexact HΦ'
+  ihave #Hstep := kv_stepLaw (GF := GF) γ (fun _ => True) cfg.ID' Htr0 Hmd (by rw [Hsl])
+  ihave #Hstop := wp_stopIncarnation cfg M
+  ihave #Hstart := wp_start cfg M
+  try wp_auto
+  wp_apply wp_startNode cfg M
+      (methods (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.udpNet.ty)
+        go!"newTransport" #u)
+      γ.r.cluster kdRaftN (tcpAP (kvFacts γ (fun _ => True))) (kvNodeStart γ vs dir cfg.ID' cfg.Dir' cfg.Opts' M)
+    $$ [$Hpkg $HM $HS $Hctor $Hstep $Hstop $Hstart] as %nd #Hnd
+  · ipureintro; exact Htr0
+  subst Hdir
+  ihave #Hlaw := kv_confLaw (GF := GF) γ vs cfg.Dir' cfg.ID'
+  try wp_auto
+  iapply HΦ
+  iexists γ.r.cluster, kdRaftN, boot
+  iframe Hnd Hlaw Hun
 
 end proof
 

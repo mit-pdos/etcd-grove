@@ -28,7 +28,19 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assum
 theorem putAck.wp_proof
     (wp_putHeader : putHeader.spec (GF := GF) (hG := hG)) :
     putAck.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro src dst boot seq
+  wp_start
+  try wp_auto
+  wp_apply wp_slice_make3 (V := w8) (W64 0) (W64 37) (by decide) as %buf ⟨Hbuf, Hcap, -⟩
+  rw [show List.replicate 0 (zero_val w8) = [] from rfl]
+  try wp_auto
+  wp_apply wp_putHeader buf [] _ src dst boot seq $$ [$Hbuf $Hcap] as %s ⟨Hs, Hscap⟩
+  try wp_auto
+  iapply HΦ
+  iframe Hscap
+  unfold ackBytes kindAckB
+  rw [List.nil_append]
+  iexact Hs
 
 end proof
 

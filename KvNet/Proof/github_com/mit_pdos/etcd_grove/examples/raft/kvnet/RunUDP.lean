@@ -41,7 +41,27 @@ theorem RunUDP.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     (wp_receive : udpNet.receive.spec (GF := GF) (hG := hG) F rep stp)
     (wp_accept : Node.accept.spec (GF := GF) (hG := hG) F rep stp cf) :
     RunUDP.spec (GF := GF) (hG := hG) F rep cf S := by
-  sorry
+  intro γu cfg M a eof ed Hma Hok
+  wp_start as ⟨#HM, #Ha, HS, Hu, #Heof, #Hed, #Hcc⟩
+  try wp_auto
+  wp_apply (wp_map_lookup1 (K := w64) (V := GoString) go.uint64 go.string _ M cfg.ID' DFrac.discard)
+    $$ HM as -
+  rw [Hma]
+  simp only [Option.getD_some]
+  try wp_auto
+  wp_apply wp_listen a (kvP F cfg.ID') (kvQ F cfg.ID') $$ [$Hpkg $Ha] as %li ⟨%l, #Hli, Hlis, #Hla⟩
+  try wp_auto
+  wp_apply wp_startNodeUDP γu cfg M a Hma Hok $$ [$Hpkg $HM $HS $Hu]
+    as %nd %u ⟨%γ, %N, %boot, #Hnd, #Hcl, #Hun⟩
+  try wp_auto
+  wp_apply wp_fork $$ []
+  · wp_apply wp_receive γu u cfg.ID' boot nd γ N $$ [$Hpkg $Hun $Hnd $Hcc]
+    itrivial
+  try wp_auto
+  wp_apply wp_accept nd γ N cfg.ID' li l a eof ed $$ [$Hpkg $Hnd $Hcl $Ha $Hli $Hlis $Hla $Heof $Hed $Hcc]
+  try wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 
